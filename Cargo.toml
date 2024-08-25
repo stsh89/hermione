@@ -1,6 +1,6 @@
-[package]
-name = "hermione"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+resolver = "2"
+members = [ "magic_stick","spellbook"]
 
-[dependencies]
+[workspace.dependencies]
+ratatui = "0.28.0"
