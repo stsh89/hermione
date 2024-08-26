@@ -15,20 +15,20 @@ pub struct InstructionAttributes {
 }
 
 impl Instruction {
-    pub fn directive(&self) -> &str {
-        &self.directive
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn new(attributes: InstructionAttributes) -> Self {
+    pub fn build(attributes: InstructionAttributes) -> Self {
         let InstructionAttributes { name, directive } = attributes;
 
         Self {
             name: Name::new(name),
             directive: Directive::new(directive),
         }
+    }
+
+    pub fn directive(&self) -> &str {
+        &self.directive
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }
