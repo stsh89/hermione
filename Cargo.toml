@@ -1,6 +1,3 @@
 [workspace]
 resolver = "2"
-members = [ "magic_stick","spellbook"]
-
-[workspace.dependencies]
-ratatui = "0.28.0"
+members = ["segment"]
