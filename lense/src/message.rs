@@ -5,5 +5,6 @@ pub enum Message {
     ExitWorkspace,
     NewWorkspace,
     RemoveWorkspace,
-    SelectWorkspace,
+    PreviewNextWorkspace,
+    PreviewPreviousWorkspace,
 }

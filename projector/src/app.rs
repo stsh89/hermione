@@ -1,7 +1,10 @@
 use std::time::Duration;
 
 use ratatui::{
-    crossterm::event::{self, Event, KeyCode}, layout::{Constraint, Direction, Layout, Rect}, widgets::Paragraph, Frame
+    crossterm::event::{self, Event, KeyCode},
+    style::{Style, Stylize},
+    widgets::{List, ListState},
+    Frame,
 };
 
 use lense::{Message, Model};
@@ -11,7 +14,7 @@ pub struct App {}
 impl App {
     pub fn run(&self) -> std::io::Result<()> {
         let mut terminal = ratatui::init();
-        let mut model = Model::default();
+        let mut model = Model::initialize();
 
         loop {
             terminal.draw(|f| view(&mut model, f))?;
@@ -32,14 +35,13 @@ impl App {
     }
 }
 
-fn view(_model: &mut Model, frame: &mut Frame) {
-    let layout = Layout::new(
-        Direction::Horizontal,
-        [Constraint::Length(5), Constraint::Min(0)],
-    )
-    .split(Rect::new(0, 0, 10, 10));
-    frame.render_widget(Paragraph::new("foo"), layout[0]);
-    frame.render_widget(Paragraph::new("bar"), layout[1]);
+fn view(model: &mut Model, frame: &mut Frame) {
+    let list = List::new(model.workspace_names()).highlight_style(Style::new().reversed());
+    let mut state = ListState::default();
+
+    state.select(model.current_workspace_preview_index());
+
+    frame.render_stateful_widget(list, frame.area(), &mut state);
 }
 
 fn handle_event(_: &Model) -> std::io::Result<Option<Message>> {
@@ -58,6 +60,8 @@ fn handle_key(key: event::KeyEvent) -> Option<Message> {
     match key.code {
         KeyCode::Char('n') => Some(Message::NewWorkspace),
         KeyCode::Char('q') => Some(Message::Exit),
+        KeyCode::Down => Some(Message::PreviewNextWorkspace),
+        KeyCode::Up => Some(Message::PreviewPreviousWorkspace),
         _ => None,
     }
 }
