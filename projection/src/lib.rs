@@ -1,7 +1,7 @@
 mod instruction;
 mod workspace;
 
-pub use instruction::Instruction;
+pub use instruction::{Instruction, InstructionAttributes};
 pub use workspace::Workspace;
 
 #[derive(Default)]

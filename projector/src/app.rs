@@ -57,13 +57,14 @@ fn view(model: &mut Model, frame: &mut Frame) {
     state.select(model.current_workspace_preview_index());
 
     frame.render_stateful_widget(list, left, &mut state);
-    frame.render_widget(
+
+    let list = List::new(model.preview_workspace_commands()).block(
         Block::new()
             .title("Instructions")
             .title_alignment(Alignment::Center)
             .borders(Borders::all()),
-        right,
-    )
+    );
+    frame.render_widget(list, right)
 }
 
 fn handle_event(_: &Model) -> std::io::Result<Option<Message>> {
