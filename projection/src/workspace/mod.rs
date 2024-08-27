@@ -5,11 +5,6 @@ pub struct Workspace {
     name: String,
 }
 
-pub struct WorkspaceAttributes {
-    pub instructions: Vec<Instruction>,
-    pub name: String,
-}
-
 impl Workspace {
     pub fn add_instruction(&mut self, instruction: Instruction) {
         self.instructions.push(instruction);
@@ -19,10 +14,11 @@ impl Workspace {
         &self.instructions
     }
 
-    pub fn new(attributes: WorkspaceAttributes) -> Self {
-        let WorkspaceAttributes { instructions, name } = attributes;
-
-        Self { name, instructions }
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            instructions: vec![],
+        }
     }
 
     pub fn name(&self) -> &str {
