@@ -8,6 +8,7 @@ pub struct App {}
 impl App {
     pub fn run(&self) -> std::io::Result<()> {
         let mut terminal = ratatui::init();
+
         loop {
             terminal.draw(|frame| {
                 frame.render_widget(
