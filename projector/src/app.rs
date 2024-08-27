@@ -2,8 +2,9 @@ use std::time::Duration;
 
 use ratatui::{
     crossterm::event::{self, Event, KeyCode},
+    layout::{Alignment, Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
-    widgets::{List, ListState},
+    widgets::{Block, Borders, List, ListState},
     Frame,
 };
 
@@ -36,12 +37,33 @@ impl App {
 }
 
 fn view(model: &mut Model, frame: &mut Frame) {
-    let list = List::new(model.workspace_names()).highlight_style(Style::new().reversed());
+    let layout = Layout::new(
+        Direction::Horizontal,
+        vec![Constraint::Percentage(25), Constraint::Percentage(75)],
+    )
+    .flex(Flex::Start);
+    let [left, right] = layout.areas(frame.area());
+
+    let list = List::new(model.workspace_names())
+        .highlight_style(Style::new().reversed())
+        .block(
+            Block::new()
+                .title("Workspaces")
+                .title_alignment(Alignment::Center)
+                .borders(Borders::all()),
+        );
     let mut state = ListState::default();
 
     state.select(model.current_workspace_preview_index());
 
-    frame.render_stateful_widget(list, frame.area(), &mut state);
+    frame.render_stateful_widget(list, left, &mut state);
+    frame.render_widget(
+        Block::new()
+            .title("Instructions")
+            .title_alignment(Alignment::Center)
+            .borders(Borders::all()),
+        right,
+    )
 }
 
 fn handle_event(_: &Model) -> std::io::Result<Option<Message>> {
