@@ -1,7 +1,9 @@
 mod context;
+mod input;
 mod message;
 
 use context::{Context, WorkspaceContext, WorkspaceFormContext, WorkspacesContext};
+use input::Input;
 use message::Message;
 use projection::{Projection, Workspace};
 use ratatui::{
@@ -118,8 +120,7 @@ impl Lens {
 
     fn enter_workspace_form(&mut self) {
         self.context = Context::WorkspaceForm(WorkspaceFormContext {
-            value: "".to_string(),
-            character_index: 0,
+            name: Input::default(),
         });
     }
 
@@ -144,7 +145,7 @@ impl Lens {
             return;
         };
 
-        let workspace = Workspace::new(context.value.clone());
+        let workspace = Workspace::new(context.name.value.clone());
 
         self.projection.add_workspace(workspace);
         self.context = Context::Workspaces(WorkspacesContext::new(self.workspace_names()));

@@ -1,3 +1,4 @@
+mod command_form_context;
 mod workspace_context;
 mod workspace_form_context;
 mod workspaces_context;
