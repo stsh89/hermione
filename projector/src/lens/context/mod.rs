@@ -38,10 +38,10 @@ impl Context {
             Self::WorkspaceForm(_) => match key_code {
                 KeyCode::Esc => Some(Message::ExitWorkspaceForm),
                 KeyCode::Enter => Some(Message::CreateWorkspace),
-                KeyCode::Char(to_insert) => Some(Message::WorkspaceFormAddChar(to_insert)),
-                KeyCode::Backspace => Some(Message::WorkspaceFormNameDeleteChar),
-                KeyCode::Left => Some(Message::WorkspaceFormMoveCusorLeft),
-                KeyCode::Right => Some(Message::WorkspaceFormMoveCusorRight),
+                KeyCode::Char(to_insert) => Some(Message::InputChar(to_insert)),
+                KeyCode::Backspace => Some(Message::DeleteChar),
+                KeyCode::Left => Some(Message::MoveCusorLeft),
+                KeyCode::Right => Some(Message::MoveCusorRight),
                 _ => None,
             },
         }

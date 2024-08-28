@@ -104,13 +104,13 @@ impl Lens {
 
             Message::CreateWorkspace => self.create_workspace(),
 
-            Message::WorkspaceFormAddChar(char) => self.workspace_form_add_char(char),
+            Message::InputChar(char) => self.workspace_form_add_char(char),
 
-            Message::WorkspaceFormNameDeleteChar => self.workspace_form_delete_char(),
+            Message::DeleteChar => self.workspace_form_delete_char(),
 
-            Message::WorkspaceFormMoveCusorLeft => self.workspace_form_move_cursor_left(),
+            Message::MoveCusorLeft => self.workspace_form_move_cursor_left(),
 
-            Message::WorkspaceFormMoveCusorRight => self.workspace_form_move_cursor_right(),
+            Message::MoveCusorRight => self.workspace_form_move_cursor_right(),
 
             Message::EnterWorkspaceForm => self.enter_workspace_form(),
         }
