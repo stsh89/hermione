@@ -5,7 +5,7 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode},
     layout::{Alignment, Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
-    widgets::{Block, Borders, List, ListState},
+    widgets::{Block, Borders, List, ListState, Paragraph},
     Frame,
 };
 
@@ -63,6 +63,14 @@ fn projection() -> Projection {
 }
 
 fn view(model: &Model, frame: &mut Frame) {
+    if model.workspace_is_entered() {
+        workspace_view(model, frame);
+    } else {
+        workspaces_view(model, frame);
+    }
+}
+
+fn workspaces_view(model: &Model, frame: &mut Frame) {
     let layout = Layout::new(
         Direction::Horizontal,
         vec![Constraint::Percentage(25), Constraint::Percentage(75)],
@@ -84,22 +92,53 @@ fn view(model: &Model, frame: &mut Frame) {
 
     frame.render_stateful_widget(list, left, &mut state);
 
-    if let Some(index) = model.selected_workspace_index() {
-        let list = List::new(model.workspace_commands(index)).block(
+    let list = List::new(model.selected_workspace_commands()).block(
+        Block::new()
+            .title("Commands")
+            .title_alignment(Alignment::Center)
+            .borders(Borders::all()),
+    );
+    frame.render_widget(list, right)
+}
+
+fn workspace_view(model: &Model, frame: &mut Frame) {
+    let layout = Layout::new(
+        Direction::Vertical,
+        vec![Constraint::Percentage(100), Constraint::Min(3)],
+    )
+    .flex(Flex::Start);
+    let [top, bottom] = layout.areas(frame.area());
+
+    let list = List::new(model.selected_workspace_commands())
+        .highlight_style(Style::new().reversed())
+        .block(
             Block::new()
-                .title("Commands")
+                .title(format!(
+                    "{} commands",
+                    model.selected_workspace().unwrap().name()
+                ))
                 .title_alignment(Alignment::Center)
                 .borders(Borders::all()),
         );
-        frame.render_widget(list, right)
-    } else {
-        let block = Block::new()
-            .title("Commands")
-            .title_alignment(Alignment::Center)
-            .borders(Borders::all());
+    let mut state = ListState::default();
 
-        frame.render_widget(block, right)
-    }
+    state.select(model.selected_command_index());
+
+    frame.render_stateful_widget(list, top, &mut state);
+
+    let paragraph_text = if let Some(command) = model.selected_command() {
+        command.name()
+    } else {
+        ""
+    };
+
+    let paragraph = Paragraph::new(paragraph_text).block(
+        Block::new()
+            .title("Command name")
+            .title_alignment(Alignment::Center)
+            .borders(Borders::all()),
+    );
+    frame.render_widget(paragraph, bottom)
 }
 
 fn handle_event(model: &Model) -> std::io::Result<Option<Message>> {
@@ -123,6 +162,20 @@ fn handle_event(model: &Model) -> std::io::Result<Option<Message>> {
 fn handle_key(key: event::KeyEvent, model: &Model) -> Option<Message> {
     match key.code {
         KeyCode::Down => {
+            if model.workspace_is_entered() {
+                if model.selected_workspace_commands().is_empty() {
+                    return None;
+                }
+
+                if let Some(index) = model.selected_command_index() {
+                    if index < model.selected_workspace_commands().len() - 1 {
+                        return Some(Message::SelectCommand(index + 1));
+                    }
+                }
+
+                return Some(Message::SelectCommand(0));
+            }
+
             if model.workspace_names().is_empty() {
                 return None;
             }
@@ -137,6 +190,22 @@ fn handle_key(key: event::KeyEvent, model: &Model) -> Option<Message> {
         }
 
         KeyCode::Up => {
+            if model.workspace_is_entered() {
+                if model.selected_workspace_commands().is_empty() {
+                    return None;
+                }
+
+                if let Some(index) = model.selected_command_index() {
+                    if index > 0 {
+                        return Some(Message::SelectCommand(index - 1));
+                    }
+                }
+
+                return Some(Message::SelectCommand(
+                    model.selected_workspace_commands().len() - 1,
+                ));
+            }
+
             if model.workspace_names().is_empty() {
                 return None;
             }
@@ -148,6 +217,24 @@ fn handle_key(key: event::KeyEvent, model: &Model) -> Option<Message> {
             }
 
             Some(Message::SelectWorkspace(model.workspace_names().len() - 1))
+        }
+
+        KeyCode::Enter => {
+            if model.workspace_is_selected() {
+                Some(Message::EnterWorkspace)
+            } else {
+                None
+            }
+        }
+
+        KeyCode::Esc => {
+            if model.workspace_is_entered() {
+                Some(Message::ExitWorkspace)
+            } else if model.workspace_is_selected() {
+                Some(Message::UnselectWorkspace)
+            } else {
+                Some(Message::Exit)
+            }
         }
         _ => None,
     }
