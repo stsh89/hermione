@@ -6,4 +6,7 @@ pub enum Message {
     SelectCommand(usize),
     SelectWorkspace(usize),
     UnselectWorkspace,
+    NewWorkspace,
+    CreateWorkspace(String),
+    CancelNewWorkspace,
 }

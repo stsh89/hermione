@@ -1,5 +1,5 @@
 mod app;
-// mod model;
+mod lens;
 
 use app::App;
 

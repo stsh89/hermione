@@ -1,4 +1,4 @@
-use crate::Message;
+use crate::{input::Input, Message};
 use projection::{Instruction, Projection, Workspace};
 
 pub struct Model {
@@ -7,11 +7,25 @@ pub struct Model {
     selected_workspace_index: Option<usize>,
     selected_command_index: Option<usize>,
     workspace_is_entered: bool,
+    new_workspace_input: Option<Input>,
 }
 
 impl Model {
     pub fn is_exited(&self) -> bool {
         self.is_exited
+    }
+
+    pub fn new_workspace_input(&self) -> Option<&Input> {
+        self.new_workspace_input.as_ref()
+    }
+
+    fn create_workspace(&mut self) {
+        if let Some(input) = &self.new_workspace_input {
+            self.projection
+                .add_workspace(Workspace::new(input.value().to_string()));
+        }
+
+        self.unselect_workspace();
     }
 
     fn delete_workspace(&mut self) {
@@ -32,7 +46,20 @@ impl Model {
             selected_workspace_index: None,
             selected_command_index: None,
             workspace_is_entered: false,
+            new_workspace_input: None,
         }
+    }
+
+    fn prepare_workspace(&mut self) {
+        self.new_workspace_input = Some(Input::default());
+    }
+
+    fn cancel_new_workspace(&mut self) {
+        self.new_workspace_input = None;
+    }
+
+    pub fn new_workspace_is_prepared(&self) -> bool {
+        self.new_workspace_input.is_some()
     }
 
     pub fn select_workspace(&mut self, index: usize) {
@@ -103,6 +130,9 @@ impl Model {
             Message::SelectCommand(index) => self.select_command(index),
             Message::UnselectWorkspace => self.unselect_workspace(),
             Message::DeleteWorkspace => self.delete_workspace(),
+            Message::NewWorkspace => self.prepare_workspace(),
+            Message::CreateWorkspace(_name) => self.create_workspace(),
+            Message::CancelNewWorkspace => self.cancel_new_workspace(),
         }
     }
 
