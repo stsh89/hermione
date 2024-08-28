@@ -1,0 +1,17 @@
+pub enum Message {
+    CloseLens,
+    CreateWorkspace,
+    DeleteWorkspace,
+    EnterWorkspace,
+    EnterWorkspaceForm,
+    ExitWorkspace,
+    ExitWorkspaceForm,
+    SelectNextCommand,
+    SelectNextWorkspace,
+    SelectPreviousCommand,
+    SelectPreviousWorkspace,
+    WorkspaceFormAddChar(char),
+    WorkspaceFormMoveCusorLeft,
+    WorkspaceFormMoveCusorRight,
+    WorkspaceFormNameDeleteChar,
+}
