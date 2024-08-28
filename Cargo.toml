@@ -1,8 +1,7 @@
 [workspace]
 resolver = "2"
-members = [ "lens","projection", "projector"]
+members = [ "projection", "projector"]
 
 [workspace.dependencies]
 ratatui = "0.28.1"
 projection = { path = "projection" }
-lens = { path = "lens" }
