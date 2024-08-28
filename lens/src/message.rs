@@ -1,8 +1,9 @@
 pub enum Message {
+    DeleteWorkspace,
     EnterWorkspace,
-    ExitWorkspace,
     Exit,
-    SelectWorkspace(usize),
+    ExitWorkspace,
     SelectCommand(usize),
+    SelectWorkspace(usize),
     UnselectWorkspace,
 }

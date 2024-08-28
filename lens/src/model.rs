@@ -14,6 +14,13 @@ impl Model {
         self.is_exited
     }
 
+    fn delete_workspace(&mut self) {
+        if let Some(index) = self.selected_workspace_index {
+            self.projection.remove_workspace(index);
+            self.unselect_workspace();
+        }
+    }
+
     fn exit(&mut self) {
         self.is_exited = true;
     }
@@ -95,6 +102,7 @@ impl Model {
             Message::ExitWorkspace => self.exit_workspace(),
             Message::SelectCommand(index) => self.select_command(index),
             Message::UnselectWorkspace => self.unselect_workspace(),
+            Message::DeleteWorkspace => self.delete_workspace(),
         }
     }
 

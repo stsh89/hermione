@@ -161,6 +161,18 @@ fn handle_event(model: &Model) -> std::io::Result<Option<Message>> {
 
 fn handle_key(key: event::KeyEvent, model: &Model) -> Option<Message> {
     match key.code {
+        KeyCode::Char('d') => {
+            if model.workspace_is_entered() {
+                return None;
+            }
+
+            if model.workspace_is_selected() {
+                return Some(Message::DeleteWorkspace);
+            }
+
+            None
+        }
+
         KeyCode::Down => {
             if model.workspace_is_entered() {
                 if model.selected_workspace_commands().is_empty() {
