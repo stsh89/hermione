@@ -1,6 +1,8 @@
 pub enum Message {
     CloseLens,
 
+    CreateCommand,
+
     CreateWorkspace,
 
     DeleteChar,
@@ -11,6 +13,10 @@ pub enum Message {
 
     EnterWorkspaceForm,
 
+    EnterCommandForm,
+
+    ExitCommandForm,
+
     ExitWorkspace,
 
     ExitWorkspaceForm,
@@ -20,6 +26,8 @@ pub enum Message {
     MoveCusorLeft,
 
     MoveCusorRight,
+
+    ToggleActiveInput,
 
     SelectNextCommand,
 

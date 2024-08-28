@@ -2,10 +2,13 @@ mod context;
 mod input;
 mod message;
 
-use context::{Context, WorkspaceContext, WorkspaceFormContext, WorkspacesContext};
+use context::{
+    ActiveInput, CommandFormContext, Context, WorkspaceContext, WorkspaceFormContext,
+    WorkspacesContext,
+};
 use input::Input;
 use message::Message;
-use projection::{Projection, Workspace};
+use projection::{Instruction, InstructionAttributes, Projection, Workspace};
 use ratatui::{
     crossterm::event::{self, Event, KeyEventKind},
     Frame,
@@ -96,6 +99,8 @@ impl Lens {
 
             Message::ExitWorkspace => self.exit_workspace(),
 
+            Message::ExitCommandForm => self.exit_command_form(),
+
             Message::SelectNextCommand => self.select_next_command(),
 
             Message::SelectPreviousCommand => self.select_previous_command(),
@@ -106,16 +111,41 @@ impl Lens {
 
             Message::CreateWorkspace => self.create_workspace(),
 
-            Message::InputChar(char) => self.workspace_form_add_char(char),
+            Message::CreateCommand => self.create_command(),
 
-            Message::DeleteChar => self.workspace_form_delete_char(),
+            Message::InputChar(char) => self.add_char(char),
 
-            Message::MoveCusorLeft => self.workspace_form_move_cursor_left(),
+            Message::DeleteChar => self.delete_char(),
 
-            Message::MoveCusorRight => self.workspace_form_move_cursor_right(),
+            Message::MoveCusorLeft => self.move_cursor_left(),
+
+            Message::MoveCusorRight => self.move_cursor_right(),
 
             Message::EnterWorkspaceForm => self.enter_workspace_form(),
+
+            Message::EnterCommandForm => self.enter_command_form(),
+
+            Message::ToggleActiveInput => self.toggle_active_input(),
         }
+    }
+
+    fn toggle_active_input(&mut self) {
+        if let Context::CommandForm(ref mut context) = self.context {
+            context.toggle_active_input();
+        };
+    }
+
+    fn enter_command_form(&mut self) {
+        let Context::Workspace(context) = &self.context else {
+            return;
+        };
+
+        self.context = Context::CommandForm(CommandFormContext {
+            workspace_index: context.workspace_index,
+            name: Input::default(),
+            directive: Input::default(),
+            active_input: ActiveInput::Directive,
+        });
     }
 
     fn enter_workspace_form(&mut self) {
@@ -124,24 +154,28 @@ impl Lens {
         });
     }
 
-    fn workspace_form_move_cursor_left(&mut self) {
-        let Context::WorkspaceForm(ref mut context) = self.context else {
-            return;
+    fn move_cursor_left(&mut self) {
+        if let Context::WorkspaceForm(ref mut context) = self.context {
+            context.move_cursor_left();
         };
 
-        context.move_cursor_left();
+        if let Context::CommandForm(ref mut context) = self.context {
+            context.move_cursor_left();
+        };
     }
 
-    fn workspace_form_move_cursor_right(&mut self) {
-        let Context::WorkspaceForm(ref mut context) = self.context else {
-            return;
+    fn move_cursor_right(&mut self) {
+        if let Context::WorkspaceForm(ref mut context) = self.context {
+            context.move_cursor_right();
         };
 
-        context.move_cursor_right();
+        if let Context::CommandForm(ref mut context) = self.context {
+            context.move_cursor_right();
+        };
     }
 
     fn create_workspace(&mut self) {
-        let Context::WorkspaceForm(ref mut context) = self.context else {
+        let Context::WorkspaceForm(context) = &self.context else {
             return;
         };
 
@@ -151,20 +185,49 @@ impl Lens {
         self.context = Context::Workspaces(WorkspacesContext::new(self.workspace_names()));
     }
 
-    fn workspace_form_add_char(&mut self, char: char) {
-        let Context::WorkspaceForm(ref mut context) = self.context else {
+    fn create_command(&mut self) {
+        let Context::CommandForm(context) = &self.context else {
             return;
         };
 
-        context.enter_char(char);
+        let instruction = Instruction::new(InstructionAttributes {
+            name: context.name.value.clone(),
+            directive: context.directive.value.clone(),
+        });
+
+        let Some(workspace) = self.projection.get_workspace_mut(context.workspace_index) else {
+            return;
+        };
+
+        workspace.add_instruction(instruction);
+
+        self.context = Context::Workspace(WorkspaceContext {
+            workspace_index: context.workspace_index,
+            selected_command_index: None,
+            commands: self.workspace_commands(context.workspace_index),
+            selected_command_name: String::new(),
+            workspace_name: self.workspace_name(context.workspace_index),
+        });
     }
 
-    fn workspace_form_delete_char(&mut self) {
-        let Context::WorkspaceForm(ref mut context) = self.context else {
-            return;
+    fn add_char(&mut self, char: char) {
+        if let Context::WorkspaceForm(ref mut context) = self.context {
+            context.enter_char(char);
         };
 
-        context.delete_char();
+        if let Context::CommandForm(ref mut context) = self.context {
+            context.enter_char(char);
+        };
+    }
+
+    fn delete_char(&mut self) {
+        if let Context::WorkspaceForm(ref mut context) = self.context {
+            context.delete_char();
+        };
+
+        if let Context::CommandForm(ref mut context) = self.context {
+            context.delete_char();
+        };
     }
 
     fn delete_workspace(&mut self) {
@@ -208,6 +271,20 @@ impl Lens {
 
     fn exit_workspace(&mut self) {
         self.context = Context::Workspaces(WorkspacesContext::new(self.workspace_names()));
+    }
+
+    fn exit_command_form(&mut self) {
+        let Context::CommandForm(context) = &self.context else {
+            return;
+        };
+
+        self.context = Context::Workspace(WorkspaceContext {
+            workspace_index: context.workspace_index,
+            selected_command_index: None,
+            commands: self.workspace_commands(context.workspace_index),
+            selected_command_name: String::new(),
+            workspace_name: self.workspace_name(context.workspace_index),
+        });
     }
 
     fn exit_workspace_form(&mut self) {
