@@ -57,15 +57,7 @@ impl Lens {
     }
 
     fn is_editor_mode(&self) -> bool {
-        if let Context::WorkspaceForm(_) = self.context {
-            return true;
-        }
-
-        if let Context::CommandForm(_) = self.context {
-            return true;
-        }
-
-        false
+        self.context.is_editor_mode()
     }
 
     pub fn handle_event(&self) -> std::io::Result<Option<Message>> {
@@ -101,35 +93,25 @@ impl Lens {
     pub fn update(&mut self, message: Message) {
         match message {
             Message::Close => self.close(),
-
-            Message::SelectNext => self.select_next(),
-
-            Message::SelectPrevious => self.select_previous(),
-
-            Message::ExitContext => self.exit_context(),
-
-            Message::DeleteSelection => self.delete_selection(),
-
-            Message::Enter => self.confirm(),
-
-            Message::EnterChar(char) => self.enter_char(char),
-
             Message::DeleteChar => self.delete_char(),
-
+            Message::DeleteSelection => self.delete_selection(),
+            Message::Enter => self.confirm(),
+            Message::EnterChar(char) => self.enter_char(char),
+            Message::ExitContext => self.exit_context(),
             Message::MoveCusorLeft => self.move_cursor_left(),
-
             Message::MoveCusorRight => self.move_cursor_right(),
-
             Message::New => self.initialize_form_context(),
-
+            Message::SelectNext => self.select_next(),
+            Message::SelectPrevious => self.select_previous(),
             Message::ToggleActiveInput => self.toggle_active_input(),
         }
     }
 
     fn toggle_active_input(&mut self) {
-        if let Context::CommandForm(ref mut context) = self.context {
-            context.toggle_active_input();
-        };
+        match self.context {
+            Context::CommandForm(ref mut context) => context.toggle_active_input(),
+            Context::Workspace(_) | Context::WorkspaceForm(_) | Context::Workspaces(_) => {}
+        }
     }
 
     fn initialize_form_context(&mut self) {
@@ -197,7 +179,9 @@ impl Lens {
                     workspace_name: self.workspace_name(workspace_index),
                 });
             };
-        };
+        } else if let Context::Workspace(context) = &self.context {
+            context.execute_command();
+        }
     }
 
     fn enter_char(&mut self, char: char) {

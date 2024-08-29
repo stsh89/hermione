@@ -11,13 +11,20 @@ pub use workspace_form_context::WorkspaceFormContext;
 pub use workspaces_context::WorkspacesContext;
 
 pub enum Context {
-    Workspaces(WorkspacesContext),
+    CommandForm(CommandFormContext),
     Workspace(WorkspaceContext),
     WorkspaceForm(WorkspaceFormContext),
-    CommandForm(CommandFormContext),
+    Workspaces(WorkspacesContext),
 }
 
 impl Context {
+    pub fn is_editor_mode(&self) -> bool {
+        match self {
+            Self::WorkspaceForm(_) | Self::CommandForm(_) => true,
+            Self::Workspace(_) | Self::Workspaces(_) => false,
+        }
+    }
+
     pub fn workspaces(projection: &Projection) -> Self {
         Context::Workspaces(WorkspacesContext::new(projection))
     }

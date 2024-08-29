@@ -1,3 +1,4 @@
+use std::{io::Read, process::Stdio};
 use projection::{Projection, Workspace};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
@@ -5,6 +6,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListState, Paragraph},
     Frame,
 };
+use std::io::Write;
 
 pub struct WorkspaceContext {
     pub workspace_index: usize,
@@ -28,6 +30,33 @@ impl WorkspaceContext {
         self.commands = commands(workspace);
         self.selected_command_name = "".to_string();
         self.selected_command_index = None;
+    }
+
+    pub fn execute_command(&self) {
+        let Some(index) = self.selected_command_index else {
+            return;
+        };
+
+        let Some(command) = self.commands.get(index) else {
+            return;
+        };
+
+        let mut cmd = std::process::Command::new("PowerShell");
+        cmd.stdin(Stdio::piped());
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+        let mut process = cmd
+        .spawn()
+        .expect("launch failure");
+        let stdin = process.stdin.as_mut().expect("pipe failure");
+        writeln!(stdin, "{}", command).unwrap();
+        process.wait();
+        let mut stdout = process.stdout.take().unwrap();
+        // let output = str::from_utf8(bytes);
+        let mut buf = String::new();
+        stdout.read_to_string(&mut buf).unwrap();
+
+    println!("{}", buf);
     }
 
     pub fn render(&self, frame: &mut Frame) {

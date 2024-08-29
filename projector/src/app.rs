@@ -40,7 +40,13 @@ fn projection() -> Projection {
         directive: "cargo clippy".to_string(),
     }));
     projection.add_workspace(workspace);
-    projection.add_workspace(Workspace::new("General".to_string()));
+
+    let mut workspace = Workspace::new("General".to_string());
+    workspace.add_instruction(Instruction::new(InstructionAttributes {
+        name: "".to_string(),
+        directive: "Get-ChildItem".to_string()
+    }));
+    projection.add_workspace(workspace);
 
     let mut workspace = Workspace::new("Vulkan tutorial".to_string());
     workspace.add_instruction(Instruction::new(InstructionAttributes {
