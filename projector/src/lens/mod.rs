@@ -2,7 +2,10 @@ mod context;
 mod input;
 mod message;
 
-use context::{ActiveInput, CommandFormContext, Context, WorkspaceContext, WorkspaceFormContext};
+use context::{
+    ActiveInput, CommandExecutionContext, CommandFormContext, Context, WorkspaceContext,
+    WorkspaceFormContext,
+};
 use input::Input;
 use message::Message;
 use projection::{Instruction, InstructionAttributes, Projection, Workspace};
@@ -110,7 +113,10 @@ impl Lens {
     fn toggle_active_input(&mut self) {
         match self.context {
             Context::CommandForm(ref mut context) => context.toggle_active_input(),
-            Context::Workspace(_) | Context::WorkspaceForm(_) | Context::Workspaces(_) => {}
+            Context::Workspace(_)
+            | Context::WorkspaceForm(_)
+            | Context::Workspaces(_)
+            | Context::CommandExecution(_) => {}
         }
     }
 
@@ -146,41 +152,65 @@ impl Lens {
     }
 
     fn confirm(&mut self) {
-        if let Context::WorkspaceForm(context) = &self.context {
-            let workspace = Workspace::new(context.name.value.clone());
-            self.projection.add_workspace(workspace);
-            self.context = Context::workspaces(&self.projection);
-        } else if let Context::CommandForm(context) = &self.context {
-            let instruction = Instruction::new(InstructionAttributes {
-                name: context.name.value.clone(),
-                directive: context.directive.value.clone(),
-            });
-
-            let Some(workspace) = self.projection.get_workspace_mut(context.workspace_index) else {
-                return;
-            };
-
-            workspace.add_instruction(instruction);
-
-            self.context = Context::Workspace(WorkspaceContext {
-                workspace_index: context.workspace_index,
-                selected_command_index: None,
-                commands: self.workspace_commands(context.workspace_index),
-                selected_command_name: String::new(),
-                workspace_name: self.workspace_name(context.workspace_index),
-            });
-        } else if let Context::Workspaces(context) = &self.context {
-            if let Some(workspace_index) = context.selected_workspace_index {
-                self.context = Context::Workspace(WorkspaceContext {
-                    workspace_index,
-                    commands: self.workspace_commands(workspace_index),
-                    selected_command_index: None,
-                    selected_command_name: "".to_string(),
-                    workspace_name: self.workspace_name(workspace_index),
+        match &self.context {
+            Context::WorkspaceForm(context) => {
+                let workspace = Workspace::new(context.name.value.clone());
+                self.projection.add_workspace(workspace);
+                self.context = Context::workspaces(&self.projection);
+            }
+            Context::CommandForm(context) => {
+                let instruction = Instruction::new(InstructionAttributes {
+                    name: context.name.value.clone(),
+                    directive: context.directive.value.clone(),
                 });
-            };
-        } else if let Context::Workspace(context) = &self.context {
-            context.execute_command();
+
+                let Some(workspace) = self.projection.get_workspace_mut(context.workspace_index)
+                else {
+                    return;
+                };
+
+                workspace.add_instruction(instruction);
+
+                self.context = Context::Workspace(WorkspaceContext {
+                    workspace_index: context.workspace_index,
+                    selected_command_index: None,
+                    commands: self.workspace_commands(context.workspace_index),
+                    selected_command_name: String::new(),
+                    workspace_name: self.workspace_name(context.workspace_index),
+                });
+            }
+            Context::Workspaces(context) => {
+                if let Some(workspace_index) = context.selected_workspace_index {
+                    self.context = Context::Workspace(WorkspaceContext {
+                        workspace_index,
+                        commands: self.workspace_commands(workspace_index),
+                        selected_command_index: None,
+                        selected_command_name: "".to_string(),
+                        workspace_name: self.workspace_name(workspace_index),
+                    });
+                };
+            }
+            Context::Workspace(context) => {
+                let (stdout, stderr) = context.execute_command();
+
+                self.context = Context::CommandExecution(CommandExecutionContext {
+                    stdout,
+                    stderr,
+                    workspace_index: context.workspace_index,
+                    command_index: context.selected_command_index.unwrap(),
+                    command_name: context.selected_command_name.clone(),
+                    command_directive: self
+                        .projection
+                        .get_instruction(
+                            context.workspace_index,
+                            context.selected_command_index.unwrap(),
+                        )
+                        .unwrap()
+                        .directive()
+                        .to_string(),
+                });
+            }
+            Context::CommandExecution(_context) => {}
         }
     }
 
@@ -231,6 +261,15 @@ impl Lens {
                     selected_command_index: None,
                     commands: self.workspace_commands(context.workspace_index),
                     selected_command_name: String::new(),
+                    workspace_name: self.workspace_name(context.workspace_index),
+                })
+            }
+            Context::CommandExecution(context) => {
+                self.context = Context::Workspace(WorkspaceContext {
+                    workspace_index: context.workspace_index,
+                    selected_command_index: Some(context.command_index),
+                    commands: self.workspace_commands(context.workspace_index),
+                    selected_command_name: context.command_name.clone(),
                     workspace_name: self.workspace_name(context.workspace_index),
                 })
             }

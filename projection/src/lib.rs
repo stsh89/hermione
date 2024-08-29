@@ -20,8 +20,7 @@ impl Projection {
         instruction_index: usize,
     ) -> Option<&Instruction> {
         self.get_workspace(workspace_index)
-            .map(|w| w.get_instruction(instruction_index))
-            .flatten()
+            .and_then(|w| w.get_instruction(instruction_index))
     }
 
     pub fn get_workspace(&self, index: usize) -> Option<&Workspace> {

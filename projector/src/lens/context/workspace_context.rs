@@ -1,4 +1,3 @@
-use std::{io::Read, process::Stdio};
 use projection::{Projection, Workspace};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
@@ -7,6 +6,7 @@ use ratatui::{
     Frame,
 };
 use std::io::Write;
+use std::process::Stdio;
 
 pub struct WorkspaceContext {
     pub workspace_index: usize,
@@ -32,31 +32,31 @@ impl WorkspaceContext {
         self.selected_command_index = None;
     }
 
-    pub fn execute_command(&self) {
+    pub fn execute_command(&self) -> (String, String) {
         let Some(index) = self.selected_command_index else {
-            return;
+            return (String::new(), String::new());
         };
 
         let Some(command) = self.commands.get(index) else {
-            return;
+            return (String::new(), String::new());
         };
 
         let mut cmd = std::process::Command::new("PowerShell");
         cmd.stdin(Stdio::piped());
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
-        let mut process = cmd
-        .spawn()
-        .expect("launch failure");
+        let mut process = cmd.spawn().expect("launch failure");
         let stdin = process.stdin.as_mut().expect("pipe failure");
         writeln!(stdin, "{}", command).unwrap();
-        process.wait();
-        let mut stdout = process.stdout.take().unwrap();
-        // let output = str::from_utf8(bytes);
-        let mut buf = String::new();
-        stdout.read_to_string(&mut buf).unwrap();
+        let out = process.wait_with_output().unwrap();
+        let stdout = std::str::from_utf8(out.stdout.as_slice())
+            .unwrap()
+            .to_string();
+        let stderr = std::str::from_utf8(out.stderr.as_slice())
+            .unwrap()
+            .to_string();
 
-    println!("{}", buf);
+        (stdout, stderr)
     }
 
     pub fn render(&self, frame: &mut Frame) {
@@ -121,7 +121,7 @@ impl WorkspaceContext {
         }
 
         self.selected_command_index = Some(new_index);
-        self.selected_command_name = command_name(&projection, self.workspace_index, new_index);
+        self.selected_command_name = command_name(projection, self.workspace_index, new_index);
     }
 }
 

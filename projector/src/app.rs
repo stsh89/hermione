@@ -44,7 +44,7 @@ fn projection() -> Projection {
     let mut workspace = Workspace::new("General".to_string());
     workspace.add_instruction(Instruction::new(InstructionAttributes {
         name: "".to_string(),
-        directive: "Get-ChildItem".to_string()
+        directive: "Get-ChildItem".to_string(),
     }));
     projection.add_workspace(workspace);
 
