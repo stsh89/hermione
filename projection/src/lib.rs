@@ -1,8 +1,13 @@
 mod instruction;
 mod workspace;
+mod operation;
+mod projection_error;
 
 pub use instruction::{Instruction, InstructionAttributes};
 pub use workspace::Workspace;
+pub use projection_error::ProjectionError;
+pub use operation::{LoadProjection, Load, SaveProjection, Save};
+
 
 #[derive(Default)]
 pub struct Projection {
