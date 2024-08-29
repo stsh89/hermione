@@ -1,3 +1,4 @@
+use projection::Projection;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
@@ -12,7 +13,31 @@ pub struct WorkspacesContext {
 }
 
 impl WorkspacesContext {
-    pub fn new(workspaces: Vec<String>) -> Self {
+    pub fn delete_workspace(&mut self, projection: &mut Projection) {
+        let Some(index) = self.selected_workspace_index else {
+            return;
+        };
+
+        projection.remove_workspace(index);
+
+        self.reset(projection);
+    }
+
+    fn reset(&mut self, projection: &Projection) {
+        let new = Self::new(projection);
+
+        self.selected_workspace_index = new.selected_workspace_index;
+        self.commands = new.commands;
+        self.workspaces = new.workspaces;
+    }
+
+    pub fn new(projection: &Projection) -> Self {
+        let workspaces = projection
+            .workspaces()
+            .iter()
+            .map(|w| w.name().to_string())
+            .collect();
+
         Self {
             selected_workspace_index: None,
             commands: vec![],
@@ -49,5 +74,51 @@ impl WorkspacesContext {
                 .borders(Borders::all()),
         );
         frame.render_widget(list, right)
+    }
+
+    pub fn select_next_workspace(&mut self, projection: &Projection) {
+        if self.workspaces.is_empty() {
+            return;
+        }
+
+        let mut new_index = 0;
+
+        if let Some(index) = self.selected_workspace_index {
+            if index < (self.workspaces.len() - 1) {
+                new_index = index + 1;
+            }
+        }
+
+        self.selected_workspace_index = Some(new_index);
+        self.commands = commands(new_index, projection);
+    }
+
+    pub fn select_previous_workspace(&mut self, projection: &Projection) {
+        if self.workspaces.is_empty() {
+            return;
+        }
+
+        let mut new_index = self.workspaces.len() - 1;
+
+        if let Some(index) = self.selected_workspace_index {
+            if index > 0 {
+                new_index = index - 1;
+            }
+        }
+
+        self.selected_workspace_index = Some(new_index);
+        self.commands = commands(new_index, projection);
+    }
+}
+
+fn commands(workspace_index: usize, projection: &Projection) -> Vec<String> {
+    if let Some(workspace) = projection.get_workspace(workspace_index) {
+        workspace
+            .instructions()
+            .iter()
+            .map(|i| i.directive().to_string())
+            .collect()
+    } else {
+        vec![]
     }
 }

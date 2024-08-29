@@ -18,6 +18,10 @@ impl Projection {
         self.workspaces.get_mut(index)
     }
 
+    pub fn get_workspace(&self, index: usize) -> Option<&Workspace> {
+        self.workspaces.get(index)
+    }
+
     pub fn remove_workspace(&mut self, index: usize) {
         self.workspaces.remove(index);
     }

@@ -1,39 +1,25 @@
 pub enum Message {
-    CloseLens,
-
-    CreateCommand,
-
-    CreateWorkspace,
+    Close,
 
     DeleteChar,
 
-    DeleteWorkspace,
+    DeleteSelection,
 
-    EnterWorkspace,
+    Enter,
 
-    EnterWorkspaceForm,
+    ExitContext,
 
-    EnterCommandForm,
-
-    ExitCommandForm,
-
-    ExitWorkspace,
-
-    ExitWorkspaceForm,
-
-    InputChar(char),
+    EnterChar(char),
 
     MoveCusorLeft,
 
     MoveCusorRight,
 
+    New,
+
     ToggleActiveInput,
 
-    SelectNextCommand,
+    SelectNext,
 
-    SelectNextWorkspace,
-
-    SelectPreviousCommand,
-
-    SelectPreviousWorkspace,
+    SelectPrevious,
 }

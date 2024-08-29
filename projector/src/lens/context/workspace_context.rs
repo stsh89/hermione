@@ -1,3 +1,4 @@
+use projection::{Projection, Workspace};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
@@ -14,6 +15,19 @@ pub struct WorkspaceContext {
 }
 
 impl WorkspaceContext {
+    pub fn delete_command(&mut self, projection: &mut Projection) {
+        let Some(index) = self.selected_command_index else {
+            return;
+        };
+
+        if let Some(workspace) = projection.get_workspace_mut(self.workspace_index) {
+            workspace.remove_instruction(index);
+            self.commands = commands(workspace);
+            self.selected_command_name = "".to_string();
+            self.selected_command_index = None;
+        }
+    }
+
     pub fn render(&self, frame: &mut Frame) {
         let layout = Layout::new(
             Direction::Vertical,
@@ -44,4 +58,58 @@ impl WorkspaceContext {
         );
         frame.render_widget(paragraph, bottom)
     }
+
+    pub fn select_next_command(&mut self, projection: &Projection) {
+        if self.commands.is_empty() {
+            return;
+        }
+
+        let mut new_index = 0;
+
+        if let Some(index) = self.selected_command_index {
+            if index < (self.commands.len() - 1) {
+                new_index = index + 1;
+            }
+        }
+
+        self.selected_command_index = Some(new_index);
+        self.selected_command_name = command_name(projection, self.workspace_index, new_index);
+    }
+
+    pub fn select_previous_command(&mut self, projection: &Projection) {
+        if self.commands.is_empty() {
+            return;
+        }
+
+        let mut new_index = self.commands.len() - 1;
+
+        if let Some(index) = self.selected_command_index {
+            if index > 0 {
+                new_index = index - 1;
+            }
+        }
+
+        self.selected_command_index = Some(new_index);
+        self.selected_command_name = command_name(projection, self.workspace_index, new_index);
+    }
+}
+
+fn command_name(projection: &Projection, workspace_index: usize, command_index: usize) -> String {
+    if let Some(workspace) = projection.workspaces().get(workspace_index) {
+        if let Some(command) = workspace.instructions().get(command_index) {
+            command.name().to_string()
+        } else {
+            "".to_string()
+        }
+    } else {
+        "".to_string()
+    }
+}
+
+fn commands(workspace: &Workspace) -> Vec<String> {
+    workspace
+        .instructions()
+        .iter()
+        .map(|i| i.directive().to_string())
+        .collect()
 }

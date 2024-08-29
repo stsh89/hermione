@@ -2,15 +2,12 @@ mod context;
 mod input;
 mod message;
 
-use context::{
-    ActiveInput, CommandFormContext, Context, WorkspaceContext, WorkspaceFormContext,
-    WorkspacesContext,
-};
+use context::{ActiveInput, CommandFormContext, Context, WorkspaceContext, WorkspaceFormContext};
 use input::Input;
 use message::Message;
 use projection::{Instruction, InstructionAttributes, Projection, Workspace};
 use ratatui::{
-    crossterm::event::{self, Event, KeyEventKind},
+    crossterm::event::{self, Event, KeyCode, KeyEventKind},
     Frame,
 };
 use std::time::Duration;
@@ -36,25 +33,11 @@ impl Lens {
     }
 
     pub fn open(projection: Projection) -> Self {
-        let workspaces = projection
-            .workspaces()
-            .iter()
-            .map(|w| w.name().to_string())
-            .collect();
-
         Self {
+            context: Context::workspaces(&projection),
             projection,
             state: State::Open,
-            context: Context::Workspaces(WorkspacesContext::new(workspaces)),
         }
-    }
-
-    fn workspace_names(&self) -> Vec<String> {
-        self.projection
-            .workspaces()
-            .iter()
-            .map(|w| w.name().to_string())
-            .collect()
     }
 
     fn workspace_commands(&self, workspace_index: usize) -> Vec<String> {
@@ -73,11 +56,39 @@ impl Lens {
         self.context.view(frame);
     }
 
+    fn is_editor_mode(&self) -> bool {
+        if let Context::WorkspaceForm(_) = self.context {
+            return true;
+        }
+
+        if let Context::CommandForm(_) = self.context {
+            return true;
+        }
+
+        false
+    }
+
     pub fn handle_event(&self) -> std::io::Result<Option<Message>> {
         if event::poll(Duration::from_millis(250))? {
             if let Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press {
-                    let message = self.context.handle_key(key.code);
+                    let message = match key.code {
+                        KeyCode::Char(to_insert) if self.is_editor_mode() => {
+                            Some(Message::EnterChar(to_insert))
+                        }
+                        KeyCode::Char('q') => Some(Message::Close),
+                        KeyCode::Esc => Some(Message::ExitContext),
+                        KeyCode::Up => Some(Message::SelectPrevious),
+                        KeyCode::Down => Some(Message::SelectNext),
+                        KeyCode::Enter => Some(Message::Enter),
+                        KeyCode::Char('d') => Some(Message::DeleteSelection),
+                        KeyCode::Char('n') => Some(Message::New),
+                        KeyCode::Backspace => Some(Message::DeleteChar),
+                        KeyCode::Left => Some(Message::MoveCusorLeft),
+                        KeyCode::Right => Some(Message::MoveCusorRight),
+                        KeyCode::Tab => Some(Message::ToggleActiveInput),
+                        _ => None,
+                    };
 
                     return Ok(message);
                 }
@@ -89,31 +100,19 @@ impl Lens {
 
     pub fn update(&mut self, message: Message) {
         match message {
-            Message::CloseLens => self.close(),
+            Message::Close => self.close(),
 
-            Message::SelectNextWorkspace => self.select_next_workspace(),
+            Message::SelectNext => self.select_next(),
 
-            Message::SelectPreviousWorkspace => self.select_previous_workspace(),
+            Message::SelectPrevious => self.select_previous(),
 
-            Message::EnterWorkspace => self.enter_workspace(),
+            Message::ExitContext => self.exit_context(),
 
-            Message::ExitWorkspace => self.exit_workspace(),
+            Message::DeleteSelection => self.delete_selection(),
 
-            Message::ExitCommandForm => self.exit_command_form(),
+            Message::Enter => self.confirm(),
 
-            Message::SelectNextCommand => self.select_next_command(),
-
-            Message::SelectPreviousCommand => self.select_previous_command(),
-
-            Message::DeleteWorkspace => self.delete_workspace(),
-
-            Message::ExitWorkspaceForm => self.exit_workspace_form(),
-
-            Message::CreateWorkspace => self.create_workspace(),
-
-            Message::CreateCommand => self.create_command(),
-
-            Message::InputChar(char) => self.add_char(char),
+            Message::EnterChar(char) => self.enter_char(char),
 
             Message::DeleteChar => self.delete_char(),
 
@@ -121,9 +120,7 @@ impl Lens {
 
             Message::MoveCusorRight => self.move_cursor_right(),
 
-            Message::EnterWorkspaceForm => self.enter_workspace_form(),
-
-            Message::EnterCommandForm => self.enter_command_form(),
+            Message::New => self.initialize_form_context(),
 
             Message::ToggleActiveInput => self.toggle_active_input(),
         }
@@ -135,31 +132,25 @@ impl Lens {
         };
     }
 
-    fn enter_command_form(&mut self) {
-        let Context::Workspace(context) = &self.context else {
-            return;
+    fn initialize_form_context(&mut self) {
+        if let Context::Workspaces(_) = &self.context {
+            self.context = Context::WorkspaceForm(WorkspaceFormContext {
+                name: Input::default(),
+            });
+        } else if let Context::Workspace(context) = &self.context {
+            self.context = Context::CommandForm(CommandFormContext {
+                workspace_index: context.workspace_index,
+                name: Input::default(),
+                directive: Input::default(),
+                active_input: ActiveInput::Directive,
+            });
         };
-
-        self.context = Context::CommandForm(CommandFormContext {
-            workspace_index: context.workspace_index,
-            name: Input::default(),
-            directive: Input::default(),
-            active_input: ActiveInput::Directive,
-        });
-    }
-
-    fn enter_workspace_form(&mut self) {
-        self.context = Context::WorkspaceForm(WorkspaceFormContext {
-            name: Input::default(),
-        });
     }
 
     fn move_cursor_left(&mut self) {
         if let Context::WorkspaceForm(ref mut context) = self.context {
             context.move_cursor_left();
-        };
-
-        if let Context::CommandForm(ref mut context) = self.context {
+        } else if let Context::CommandForm(ref mut context) = self.context {
             context.move_cursor_left();
         };
     }
@@ -167,50 +158,49 @@ impl Lens {
     fn move_cursor_right(&mut self) {
         if let Context::WorkspaceForm(ref mut context) = self.context {
             context.move_cursor_right();
-        };
-
-        if let Context::CommandForm(ref mut context) = self.context {
+        } else if let Context::CommandForm(ref mut context) = self.context {
             context.move_cursor_right();
         };
     }
 
-    fn create_workspace(&mut self) {
-        let Context::WorkspaceForm(context) = &self.context else {
-            return;
+    fn confirm(&mut self) {
+        if let Context::WorkspaceForm(context) = &self.context {
+            let workspace = Workspace::new(context.name.value.clone());
+            self.projection.add_workspace(workspace);
+            self.context = Context::workspaces(&self.projection);
+        } else if let Context::CommandForm(context) = &self.context {
+            let instruction = Instruction::new(InstructionAttributes {
+                name: context.name.value.clone(),
+                directive: context.directive.value.clone(),
+            });
+
+            let Some(workspace) = self.projection.get_workspace_mut(context.workspace_index) else {
+                return;
+            };
+
+            workspace.add_instruction(instruction);
+
+            self.context = Context::Workspace(WorkspaceContext {
+                workspace_index: context.workspace_index,
+                selected_command_index: None,
+                commands: self.workspace_commands(context.workspace_index),
+                selected_command_name: String::new(),
+                workspace_name: self.workspace_name(context.workspace_index),
+            });
+        } else if let Context::Workspaces(context) = &self.context {
+            if let Some(workspace_index) = context.selected_workspace_index {
+                self.context = Context::Workspace(WorkspaceContext {
+                    workspace_index,
+                    commands: self.workspace_commands(workspace_index),
+                    selected_command_index: None,
+                    selected_command_name: "".to_string(),
+                    workspace_name: self.workspace_name(workspace_index),
+                });
+            };
         };
-
-        let workspace = Workspace::new(context.name.value.clone());
-
-        self.projection.add_workspace(workspace);
-        self.context = Context::Workspaces(WorkspacesContext::new(self.workspace_names()));
     }
 
-    fn create_command(&mut self) {
-        let Context::CommandForm(context) = &self.context else {
-            return;
-        };
-
-        let instruction = Instruction::new(InstructionAttributes {
-            name: context.name.value.clone(),
-            directive: context.directive.value.clone(),
-        });
-
-        let Some(workspace) = self.projection.get_workspace_mut(context.workspace_index) else {
-            return;
-        };
-
-        workspace.add_instruction(instruction);
-
-        self.context = Context::Workspace(WorkspaceContext {
-            workspace_index: context.workspace_index,
-            selected_command_index: None,
-            commands: self.workspace_commands(context.workspace_index),
-            selected_command_name: String::new(),
-            workspace_name: self.workspace_name(context.workspace_index),
-        });
-    }
-
-    fn add_char(&mut self, char: char) {
+    fn enter_char(&mut self, char: char) {
         if let Context::WorkspaceForm(ref mut context) = self.context {
             context.enter_char(char);
         };
@@ -230,35 +220,12 @@ impl Lens {
         };
     }
 
-    fn delete_workspace(&mut self) {
-        let Context::Workspaces(context) = &self.context else {
-            return;
-        };
-
-        let Some(index) = context.selected_workspace_index else {
-            return;
-        };
-
-        self.projection.remove_workspace(index);
-        self.context = Context::Workspaces(WorkspacesContext::new(self.workspace_names()));
-    }
-
-    fn enter_workspace(&mut self) {
-        let Context::Workspaces(context) = &self.context else {
-            return;
-        };
-
-        let Some(workspace_index) = context.selected_workspace_index else {
-            return;
-        };
-
-        self.context = Context::Workspace(WorkspaceContext {
-            workspace_index,
-            commands: self.workspace_commands(workspace_index),
-            selected_command_index: None,
-            selected_command_name: "".to_string(),
-            workspace_name: self.workspace_name(workspace_index),
-        });
+    fn delete_selection(&mut self) {
+        if let Context::Workspaces(ref mut context) = self.context {
+            context.delete_workspace(&mut self.projection);
+        } else if let Context::Workspace(ref mut context) = self.context {
+            context.delete_command(&mut self.projection);
+        }
     }
 
     fn workspace_name(&self, workspace_index: usize) -> String {
@@ -269,137 +236,36 @@ impl Lens {
         workspace.name().to_string()
     }
 
-    fn exit_workspace(&mut self) {
-        self.context = Context::Workspaces(WorkspacesContext::new(self.workspace_names()));
-    }
-
-    fn exit_command_form(&mut self) {
-        let Context::CommandForm(context) = &self.context else {
-            return;
-        };
-
-        self.context = Context::Workspace(WorkspaceContext {
-            workspace_index: context.workspace_index,
-            selected_command_index: None,
-            commands: self.workspace_commands(context.workspace_index),
-            selected_command_name: String::new(),
-            workspace_name: self.workspace_name(context.workspace_index),
-        });
-    }
-
-    fn exit_workspace_form(&mut self) {
-        self.context = Context::Workspaces(WorkspacesContext::new(self.workspace_names()));
-    }
-
-    fn select_next_workspace(&mut self) {
-        let Context::Workspaces(context) = &self.context else {
-            return;
-        };
-
-        if context.workspaces.is_empty() {
-            return;
-        }
-
-        let mut new_index = 0;
-
-        if let Some(index) = context.selected_workspace_index {
-            if index < (context.workspaces.len() - 1) {
-                new_index = index + 1;
+    fn exit_context(&mut self) {
+        match &self.context {
+            Context::Workspaces(_) => self.close(),
+            Context::Workspace(_) => self.context = Context::workspaces(&self.projection),
+            Context::WorkspaceForm(_) => self.context = Context::workspaces(&self.projection),
+            Context::CommandForm(context) => {
+                self.context = Context::Workspace(WorkspaceContext {
+                    workspace_index: context.workspace_index,
+                    selected_command_index: None,
+                    commands: self.workspace_commands(context.workspace_index),
+                    selected_command_name: String::new(),
+                    workspace_name: self.workspace_name(context.workspace_index),
+                })
             }
-        }
-
-        self.context = Context::Workspaces(WorkspacesContext {
-            selected_workspace_index: Some(new_index),
-            workspaces: self.workspace_names(),
-            commands: self.workspace_commands(new_index),
-        });
+        };
     }
 
-    fn select_next_command(&mut self) {
-        let Context::Workspace(context) = &self.context else {
-            return;
-        };
-
-        if context.commands.is_empty() {
-            return;
+    fn select_next(&mut self) {
+        if let Context::Workspaces(ref mut context) = &mut self.context {
+            context.select_next_workspace(&self.projection);
+        } else if let Context::Workspace(ref mut context) = &mut self.context {
+            context.select_next_command(&self.projection);
         }
-
-        let mut new_index = 0;
-
-        if let Some(index) = context.selected_command_index {
-            if index < (context.commands.len() - 1) {
-                new_index = index + 1;
-            }
-        }
-
-        self.context = Context::Workspace(WorkspaceContext {
-            workspace_index: context.workspace_index,
-            selected_command_index: Some(new_index),
-            commands: context.commands.clone(),
-            selected_command_name: self.command_name(context.workspace_index, new_index),
-            workspace_name: context.workspace_name.clone(),
-        });
     }
 
-    fn select_previous_command(&mut self) {
-        let Context::Workspace(context) = &self.context else {
-            return;
-        };
-
-        if context.commands.is_empty() {
-            return;
+    fn select_previous(&mut self) {
+        if let Context::Workspaces(ref mut context) = &mut self.context {
+            context.select_previous_workspace(&self.projection);
+        } else if let Context::Workspace(ref mut context) = &mut self.context {
+            context.select_previous_command(&self.projection);
         }
-
-        let mut new_index = context.commands.len() - 1;
-
-        if let Some(index) = context.selected_command_index {
-            if index > 0 {
-                new_index = index - 1;
-            }
-        }
-
-        self.context = Context::Workspace(WorkspaceContext {
-            workspace_index: context.workspace_index,
-            selected_command_index: Some(new_index),
-            commands: context.commands.clone(),
-            selected_command_name: self.command_name(context.workspace_index, new_index),
-            workspace_name: context.workspace_name.clone(),
-        });
-    }
-
-    fn command_name(&self, workspace_index: usize, command_index: usize) -> String {
-        let Some(workspace) = self.projection.workspaces().get(workspace_index) else {
-            return "".to_string();
-        };
-
-        let Some(command) = workspace.instructions().get(command_index) else {
-            return "".to_string();
-        };
-
-        command.name().to_string()
-    }
-
-    fn select_previous_workspace(&mut self) {
-        let Context::Workspaces(context) = &self.context else {
-            return;
-        };
-
-        if context.workspaces.is_empty() {
-            return;
-        }
-
-        let mut new_index = context.workspaces.len() - 1;
-
-        if let Some(index) = context.selected_workspace_index {
-            if index > 0 {
-                new_index = index - 1;
-            }
-        }
-
-        self.context = Context::Workspaces(WorkspacesContext {
-            selected_workspace_index: Some(new_index),
-            workspaces: self.workspace_names(),
-            commands: self.workspace_commands(new_index),
-        });
     }
 }
