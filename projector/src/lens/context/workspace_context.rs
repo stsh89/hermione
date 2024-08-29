@@ -20,12 +20,14 @@ impl WorkspaceContext {
             return;
         };
 
-        if let Some(workspace) = projection.get_workspace_mut(self.workspace_index) {
-            workspace.remove_instruction(index);
-            self.commands = commands(workspace);
-            self.selected_command_name = "".to_string();
-            self.selected_command_index = None;
-        }
+        let Some(workspace) = projection.get_workspace_mut(self.workspace_index) else {
+            return;
+        };
+
+        workspace.remove_instruction(index);
+        self.commands = commands(workspace);
+        self.selected_command_name = "".to_string();
+        self.selected_command_index = None;
     }
 
     pub fn render(&self, frame: &mut Frame) {
@@ -90,20 +92,15 @@ impl WorkspaceContext {
         }
 
         self.selected_command_index = Some(new_index);
-        self.selected_command_name = command_name(projection, self.workspace_index, new_index);
+        self.selected_command_name = command_name(&projection, self.workspace_index, new_index);
     }
 }
 
 fn command_name(projection: &Projection, workspace_index: usize, command_index: usize) -> String {
-    if let Some(workspace) = projection.workspaces().get(workspace_index) {
-        if let Some(command) = workspace.instructions().get(command_index) {
-            command.name().to_string()
-        } else {
-            "".to_string()
-        }
-    } else {
-        "".to_string()
-    }
+    projection
+        .get_instruction(workspace_index, command_index)
+        .map(|i| i.name().to_string())
+        .unwrap_or_default()
 }
 
 fn commands(workspace: &Workspace) -> Vec<String> {

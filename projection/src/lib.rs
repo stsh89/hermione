@@ -14,12 +14,22 @@ impl Projection {
         self.workspaces.push(workspace);
     }
 
-    pub fn get_workspace_mut(&mut self, index: usize) -> Option<&mut Workspace> {
-        self.workspaces.get_mut(index)
+    pub fn get_instruction(
+        &self,
+        workspace_index: usize,
+        instruction_index: usize,
+    ) -> Option<&Instruction> {
+        self.get_workspace(workspace_index)
+            .map(|w| w.get_instruction(instruction_index))
+            .flatten()
     }
 
     pub fn get_workspace(&self, index: usize) -> Option<&Workspace> {
         self.workspaces.get(index)
+    }
+
+    pub fn get_workspace_mut(&mut self, index: usize) -> Option<&mut Workspace> {
+        self.workspaces.get_mut(index)
     }
 
     pub fn remove_workspace(&mut self, index: usize) {

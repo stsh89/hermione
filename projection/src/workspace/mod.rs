@@ -10,8 +10,16 @@ impl Workspace {
         self.instructions.push(instruction);
     }
 
+    pub fn get_instruction(&self, index: usize) -> Option<&Instruction> {
+        self.instructions.get(index)
+    }
+
     pub fn instructions(&self) -> &[Instruction] {
         &self.instructions
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn new(name: String) -> Self {
@@ -19,10 +27,6 @@ impl Workspace {
             name,
             instructions: vec![],
         }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
     }
 
     pub fn remove_instruction(&mut self, index: usize) {
