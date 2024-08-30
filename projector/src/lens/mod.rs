@@ -2,13 +2,16 @@ mod context;
 mod input;
 mod message;
 
+use crate::{
+    organizer::{Command, OrganizerCLient, Workspace},
+    AppResult,
+};
 use context::{
     ActiveInput, CommandExecutionContext, CommandFormContext, Context, WorkspaceContext,
     WorkspaceFormContext,
 };
 use input::Input;
 use message::Message;
-use handbag::{Command, InstructionAttributes, Organizer, Workspace};
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     Frame,
@@ -16,9 +19,10 @@ use ratatui::{
 use std::time::Duration;
 
 pub struct Lens {
-    organizer: Organizer,
+    client: OrganizerCLient,
     state: State,
     context: Context,
+    workspaces: Vec<Workspace>,
 }
 
 enum State {
@@ -35,28 +39,19 @@ impl Lens {
         self.state = State::Closed;
     }
 
-    pub fn open(organizer: Organizer) -> Self {
-        Self {
-            context: Context::workspaces(&organizer),
-            organizer,
+    pub fn open(client: OrganizerCLient) -> AppResult<Self> {
+        let workspaces = client.workspaces()?;
+
+        Ok(Self {
+            context: Context::workspaces(),
+            client,
             state: State::Open,
-        }
-    }
-
-    fn workspace_commands(&self, workspace_index: usize) -> Vec<String> {
-        let Some(workspace) = self.organizer.workspaces().get(workspace_index) else {
-            return vec![];
-        };
-
-        workspace
-            .instructions()
-            .iter()
-            .map(|i| i.directive().to_string())
-            .collect()
+            workspaces,
+        })
     }
 
     pub fn view(&self, frame: &mut Frame) {
-        self.context.view(frame);
+        self.context.view(frame, &self.workspaces);
     }
 
     fn is_editor_mode(&self) -> bool {
@@ -100,7 +95,7 @@ impl Lens {
             Message::DeleteSelection => self.delete_selection(),
             Message::Enter => self.confirm(),
             Message::EnterChar(char) => self.enter_char(char),
-            Message::ExitContext => self.exit_context(),
+            Message::ExitContext => self.exit_context_or_close(),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::New => self.initialize_form_context(),
@@ -140,60 +135,47 @@ impl Lens {
     fn confirm(&mut self) {
         match &self.context {
             Context::WorkspaceForm(context) => {
-                let workspace = Workspace::new(context.name.value.clone());
-                self.organizer.add_workspace(workspace);
-                self.context = Context::workspaces(&self.organizer);
+                let workspace = Workspace {
+                    name: context.name.value.clone(),
+                    commands: vec![],
+                };
+                self.workspaces.push(workspace);
+                self.context = Context::workspaces();
             }
             Context::CommandForm(context) => {
-                let instruction = Command::new(InstructionAttributes {
+                let command = Command {
                     name: context.name.value.clone(),
-                    directive: context.directive.value.clone(),
-                });
+                    program: context.directive.value.clone(),
+                };
 
-                let Some(workspace) = self.organizer.get_workspace_mut(context.workspace_index)
+                let Some(ref mut workspace) = self.workspaces.get_mut(context.workspace_index)
                 else {
                     return;
                 };
 
-                workspace.add_command(instruction);
+                workspace.commands.push(command);
 
                 self.context = Context::Workspace(WorkspaceContext {
                     workspace_index: context.workspace_index,
                     selected_command_index: None,
-                    commands: self.workspace_commands(context.workspace_index),
-                    selected_command_name: String::new(),
-                    workspace_name: self.workspace_name(context.workspace_index),
                 });
             }
             Context::Workspaces(context) => {
                 if let Some(workspace_index) = context.selected_workspace_index {
                     self.context = Context::Workspace(WorkspaceContext {
                         workspace_index,
-                        commands: self.workspace_commands(workspace_index),
                         selected_command_index: None,
-                        selected_command_name: "".to_string(),
-                        workspace_name: self.workspace_name(workspace_index),
                     });
                 };
             }
             Context::Workspace(context) => {
-                let (stdout, stderr) = context.execute_command();
+                let (stdout, stderr) = context.execute_command(&self.workspaces);
 
                 self.context = Context::CommandExecution(CommandExecutionContext {
                     stdout,
                     stderr,
                     workspace_index: context.workspace_index,
                     command_index: context.selected_command_index.unwrap(),
-                    command_name: context.selected_command_name.clone(),
-                    command_directive: self
-                        .organizer
-                        .get_command(
-                            context.workspace_index,
-                            context.selected_command_index.unwrap(),
-                        )
-                        .unwrap()
-                        .directive()
-                        .to_string(),
                 });
             }
             Context::CommandExecution(_context) => {}
@@ -209,60 +191,56 @@ impl Lens {
     }
 
     fn delete_selection(&mut self) {
-        if let Context::Workspaces(ref mut context) = self.context {
-            context.delete_workspace(&mut self.organizer);
-        } else if let Context::Workspace(ref mut context) = self.context {
-            context.delete_command(&mut self.organizer);
+        if let Context::Workspaces(context) = &self.context {
+            self.delete_workspace(context.selected_workspace_index.unwrap());
+        } else if let Context::Workspace(context) = &self.context {
+            self.delete_command(
+                context.workspace_index,
+                context.selected_command_index.unwrap(),
+            );
         }
     }
 
-    fn workspace_name(&self, workspace_index: usize) -> String {
-        let Some(workspace) = self.organizer.workspaces().get(workspace_index) else {
-            return "".to_string();
-        };
-
-        workspace.name().to_string()
+    fn delete_workspace(&mut self, workspace_index: usize) {
+        self.workspaces.remove(workspace_index);
+        self.context = Context::workspaces();
     }
 
-    fn exit_context(&mut self) {
+    fn delete_command(&mut self, workspace_index: usize, command_index: usize) {
+        self.workspaces[workspace_index]
+            .commands
+            .remove(command_index);
+        self.context = Context::Workspace(WorkspaceContext {
+            workspace_index,
+            selected_command_index: None,
+        });
+    }
+
+    fn exit_context_or_close(&mut self) {
         match &self.context {
             Context::Workspaces(_) => self.close(),
-            Context::Workspace(_) => self.context = Context::workspaces(&self.organizer),
-            Context::WorkspaceForm(_) => self.context = Context::workspaces(&self.organizer),
+            Context::Workspace(_) => self.context = Context::workspaces(),
+            Context::WorkspaceForm(_) => self.context = Context::workspaces(),
             Context::CommandForm(context) => {
                 self.context = Context::Workspace(WorkspaceContext {
                     workspace_index: context.workspace_index,
                     selected_command_index: None,
-                    commands: self.workspace_commands(context.workspace_index),
-                    selected_command_name: String::new(),
-                    workspace_name: self.workspace_name(context.workspace_index),
                 })
             }
             Context::CommandExecution(context) => {
                 self.context = Context::Workspace(WorkspaceContext {
                     workspace_index: context.workspace_index,
                     selected_command_index: Some(context.command_index),
-                    commands: self.workspace_commands(context.workspace_index),
-                    selected_command_name: context.command_name.clone(),
-                    workspace_name: self.workspace_name(context.workspace_index),
                 })
             }
         };
     }
 
     fn select_next(&mut self) {
-        if let Context::Workspaces(ref mut context) = &mut self.context {
-            context.select_next_workspace(&self.organizer);
-        } else if let Context::Workspace(ref mut context) = &mut self.context {
-            context.select_next_command(&self.organizer);
-        }
+        self.context.select_next(&self.workspaces);
     }
 
     fn select_previous(&mut self) {
-        if let Context::Workspaces(ref mut context) = &mut self.context {
-            context.select_previous_workspace(&self.organizer);
-        } else if let Context::Workspace(ref mut context) = &mut self.context {
-            context.select_previous_command(&self.organizer);
-        }
+        self.context.select_previous(&self.workspaces)
     }
 }

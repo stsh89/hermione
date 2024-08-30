@@ -1,8 +1,8 @@
-mod program;
 mod name;
+mod program;
 
-use program::Program;
-use name::Name;
+pub use name::Name;
+pub use program::Program;
 
 pub struct Command {
     name: Name,
@@ -11,11 +11,18 @@ pub struct Command {
 
 impl Command {
     pub fn new(program: Program) -> Self {
-        Self { program, name: Name::new(String::new())}
+        Self {
+            program,
+            name: Name::new(String::new()),
+        }
     }
 
     pub fn name(&self) -> &Name {
         &self.name
+    }
+
+    pub fn set_name(&mut self, name: Name) {
+        self.name = name;
     }
 
     pub fn program(&self) -> &Program {

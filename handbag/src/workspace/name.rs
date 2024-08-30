@@ -1,7 +1,7 @@
 pub struct Name(String);
 
 impl Name {
-    fn new(name: String) -> Self {
+    pub fn new(name: String) -> Self {
         Name(name)
     }
 }

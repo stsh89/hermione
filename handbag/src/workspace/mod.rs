@@ -18,8 +18,7 @@ impl Workspace {
     }
 
     pub fn get_command(&self, id: &Id) -> OrganizerResult<&Command> {
-        self
-            .commands
+        self.commands
             .get(id.raw())
             .ok_or(OrganizerError::command_not_found(self.name(), id))
     }
@@ -37,7 +36,7 @@ impl Workspace {
 
     pub fn remove_command(&mut self, id: &Id) -> OrganizerResult<Command> {
         if self.commands().len() >= id.raw() {
-            return Err(OrganizerError::command_not_found(self.name(), id))
+            return Err(OrganizerError::command_not_found(self.name(), id));
         }
 
         Ok(self.commands.remove(id.raw()))

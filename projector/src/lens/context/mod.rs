@@ -6,11 +6,12 @@ mod workspaces_context;
 
 pub use command_execution_context::CommandExecutionContext;
 pub use command_form_context::{ActiveInput, CommandFormContext};
-use handbag::Organizer;
 use ratatui::Frame;
 pub use workspace_context::WorkspaceContext;
 pub use workspace_form_context::WorkspaceFormContext;
 pub use workspaces_context::WorkspacesContext;
+
+use crate::organizer::Workspace;
 
 pub enum Context {
     CommandForm(CommandFormContext),
@@ -21,11 +22,27 @@ pub enum Context {
 }
 
 impl Context {
+    pub fn select_next(&mut self, workspaces: &[Workspace]) {
+        match self {
+            Self::Workspaces(ref mut inner) => inner.select_next_workspace(workspaces),
+            Self::Workspace(ref mut inner) => inner.select_next_command(workspaces),
+            Self::CommandExecution(_) | Self::CommandForm(_) | Self::WorkspaceForm(_) => {}
+        }
+    }
+
+    pub fn select_previous(&mut self, workspaces: &[Workspace]) {
+        match self {
+            Self::Workspaces(ref mut inner) => inner.select_previous_workspace(workspaces),
+            Self::Workspace(ref mut inner) => inner.select_previous_command(workspaces),
+            Self::CommandExecution(_) | Self::CommandForm(_) | Self::WorkspaceForm(_) => {}
+        }
+    }
+
     pub fn delete_char(&mut self) {
         match self {
             Self::CommandForm(ref mut inner) => inner.delete_char(),
             Self::WorkspaceForm(ref mut inner) => inner.delete_char(),
-            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {},
+            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {}
         }
     }
 
@@ -33,7 +50,7 @@ impl Context {
         match self {
             Self::CommandForm(ref mut inner) => inner.enter_char(char),
             Self::WorkspaceForm(ref mut inner) => inner.enter_char(char),
-            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {},
+            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {}
         }
     }
 
@@ -48,7 +65,7 @@ impl Context {
         match self {
             Self::CommandForm(ref mut inner) => inner.move_cursor_left(),
             Self::WorkspaceForm(ref mut inner) => inner.move_cursor_left(),
-            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {},
+            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {}
         }
     }
 
@@ -56,7 +73,7 @@ impl Context {
         match self {
             Self::CommandForm(ref mut inner) => inner.move_cursor_right(),
             Self::WorkspaceForm(ref mut inner) => inner.move_cursor_right(),
-            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {},
+            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {}
         }
     }
 
@@ -70,17 +87,17 @@ impl Context {
         }
     }
 
-    pub fn workspaces(organizer: &Organizer) -> Self {
-        Context::Workspaces(WorkspacesContext::new(organizer))
+    pub fn workspaces() -> Self {
+        Context::Workspaces(WorkspacesContext::initialize())
     }
 
-    pub fn view(&self, frame: &mut Frame) {
+    pub fn view(&self, frame: &mut Frame, workspaces: &[Workspace]) {
         match &self {
-            Self::CommandExecution(inner) => inner.render(frame),
+            Self::CommandExecution(inner) => inner.render(frame, workspaces),
             Self::CommandForm(inner) => inner.render(frame),
-            Self::Workspace(inner) => inner.render(frame),
+            Self::Workspace(inner) => inner.render(frame, workspaces),
             Self::WorkspaceForm(inner) => inner.render(frame),
-            Self::Workspaces(inner) => inner.render(frame),
+            Self::Workspaces(inner) => inner.render(frame, workspaces),
         }
     }
 }
