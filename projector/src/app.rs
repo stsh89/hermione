@@ -1,4 +1,4 @@
-use handbag::{Instruction, InstructionAttributes, Organizer, Workspace};
+use handbag::{Command, InstructionAttributes, Organizer, Workspace};
 
 use crate::lens::Lens;
 
@@ -31,25 +31,25 @@ impl App {
 fn organizer() -> Organizer {
     let mut organizer = Organizer::default();
     let mut workspace = Workspace::new("Hermione".to_string());
-    workspace.add_instruction(Instruction::new(InstructionAttributes {
+    workspace.add_command(Command::new(InstructionAttributes {
         name: "Format project".to_string(),
         directive: "cargo fmt".to_string(),
     }));
-    workspace.add_instruction(Instruction::new(InstructionAttributes {
+    workspace.add_command(Command::new(InstructionAttributes {
         name: "Lint project".to_string(),
         directive: "cargo clippy".to_string(),
     }));
     organizer.add_workspace(workspace);
 
     let mut workspace = Workspace::new("General".to_string());
-    workspace.add_instruction(Instruction::new(InstructionAttributes {
+    workspace.add_command(Command::new(InstructionAttributes {
         name: "".to_string(),
         directive: "Get-ChildItem".to_string(),
     }));
     organizer.add_workspace(workspace);
 
     let mut workspace = Workspace::new("Vulkan tutorial".to_string());
-    workspace.add_instruction(Instruction::new(InstructionAttributes {
+    workspace.add_command(Command::new(InstructionAttributes {
         name: "Compile shader fragment".to_string(),
         directive:
             r#"C:\VulkanSDK\1.3.290.0\Bin\glslc.exe .\shaders\shader.frag -o .\shaders\frag.spv"#

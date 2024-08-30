@@ -26,7 +26,7 @@ impl WorkspaceContext {
             return;
         };
 
-        workspace.remove_instruction(index);
+        workspace.remove_command(index);
         self.commands = commands(workspace);
         self.selected_command_name = "".to_string();
         self.selected_command_index = None;
@@ -127,7 +127,7 @@ impl WorkspaceContext {
 
 fn command_name(organizer: &Organizer, workspace_index: usize, command_index: usize) -> String {
     organizer
-        .get_instruction(workspace_index, command_index)
+        .get_command(workspace_index, command_index)
         .map(|i| i.name().to_string())
         .unwrap_or_default()
 }

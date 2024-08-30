@@ -8,7 +8,7 @@ use context::{
 };
 use input::Input;
 use message::Message;
-use handbag::{Instruction, InstructionAttributes, Organizer, Workspace};
+use handbag::{Command, InstructionAttributes, Organizer, Workspace};
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     Frame,
@@ -145,7 +145,7 @@ impl Lens {
                 self.context = Context::workspaces(&self.organizer);
             }
             Context::CommandForm(context) => {
-                let instruction = Instruction::new(InstructionAttributes {
+                let instruction = Command::new(InstructionAttributes {
                     name: context.name.value.clone(),
                     directive: context.directive.value.clone(),
                 });
@@ -155,7 +155,7 @@ impl Lens {
                     return;
                 };
 
-                workspace.add_instruction(instruction);
+                workspace.add_command(instruction);
 
                 self.context = Context::Workspace(WorkspaceContext {
                     workspace_index: context.workspace_index,
@@ -187,7 +187,7 @@ impl Lens {
                     command_name: context.selected_command_name.clone(),
                     command_directive: self
                         .organizer
-                        .get_instruction(
+                        .get_command(
                             context.workspace_index,
                             context.selected_command_index.unwrap(),
                         )

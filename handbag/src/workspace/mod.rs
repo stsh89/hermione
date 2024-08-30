@@ -1,35 +1,45 @@
-use crate::Instruction;
+mod name;
+
+use crate::{Command, Id, OrganizerError, OrganizerResult};
+pub use name::Name;
 
 pub struct Workspace {
-    instructions: Vec<Instruction>,
-    name: String,
+    commands: Vec<Command>,
+    name: Name,
 }
 
 impl Workspace {
-    pub fn add_instruction(&mut self, instruction: Instruction) {
-        self.instructions.push(instruction);
+    pub fn add_command(&mut self, command: Command) {
+        self.commands.push(command);
     }
 
-    pub fn get_instruction(&self, index: usize) -> Option<&Instruction> {
-        self.instructions.get(index)
+    pub fn commands(&self) -> &[Command] {
+        &self.commands
     }
 
-    pub fn instructions(&self) -> &[Instruction] {
-        &self.instructions
+    pub fn get_command(&self, id: &Id) -> OrganizerResult<&Command> {
+        self
+            .commands
+            .get(id.raw())
+            .ok_or(OrganizerError::command_not_found(self.name(), id))
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &Name {
         &self.name
     }
 
-    pub fn new(name: String) -> Self {
+    pub fn new(name: Name) -> Self {
         Self {
             name,
-            instructions: vec![],
+            commands: vec![],
         }
     }
 
-    pub fn remove_instruction(&mut self, index: usize) {
-        self.instructions.remove(index);
+    pub fn remove_command(&mut self, id: &Id) -> OrganizerResult<Command> {
+        if self.commands().len() >= id.raw() {
+            return Err(OrganizerError::command_not_found(self.name(), id))
+        }
+
+        Ok(self.commands.remove(id.raw()))
     }
 }
