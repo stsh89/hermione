@@ -60,7 +60,7 @@ impl Lens {
     }
 
     fn is_editor_mode(&self) -> bool {
-        self.context.is_editor_mode()
+        self.context.is_in_editor_mode()
     }
 
     pub fn handle_event(&self) -> std::io::Result<Option<Message>> {
@@ -111,13 +111,7 @@ impl Lens {
     }
 
     fn toggle_active_input(&mut self) {
-        match self.context {
-            Context::CommandForm(ref mut context) => context.toggle_active_input(),
-            Context::Workspace(_)
-            | Context::WorkspaceForm(_)
-            | Context::Workspaces(_)
-            | Context::CommandExecution(_) => {}
-        }
+        self.context.toggle_active_input();
     }
 
     fn initialize_form_context(&mut self) {
@@ -136,19 +130,11 @@ impl Lens {
     }
 
     fn move_cursor_left(&mut self) {
-        if let Context::WorkspaceForm(ref mut context) = self.context {
-            context.move_cursor_left();
-        } else if let Context::CommandForm(ref mut context) = self.context {
-            context.move_cursor_left();
-        };
+        self.context.move_cursor_left();
     }
 
     fn move_cursor_right(&mut self) {
-        if let Context::WorkspaceForm(ref mut context) = self.context {
-            context.move_cursor_right();
-        } else if let Context::CommandForm(ref mut context) = self.context {
-            context.move_cursor_right();
-        };
+        self.context.move_cursor_right();
     }
 
     fn confirm(&mut self) {
@@ -215,23 +201,11 @@ impl Lens {
     }
 
     fn enter_char(&mut self, char: char) {
-        if let Context::WorkspaceForm(ref mut context) = self.context {
-            context.enter_char(char);
-        };
-
-        if let Context::CommandForm(ref mut context) = self.context {
-            context.enter_char(char);
-        };
+        self.context.enter_char(char);
     }
 
     fn delete_char(&mut self) {
-        if let Context::WorkspaceForm(ref mut context) = self.context {
-            context.delete_char();
-        };
-
-        if let Context::CommandForm(ref mut context) = self.context {
-            context.delete_char();
-        };
+        self.context.delete_char();
     }
 
     fn delete_selection(&mut self) {

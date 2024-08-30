@@ -21,10 +21,52 @@ pub enum Context {
 }
 
 impl Context {
-    pub fn is_editor_mode(&self) -> bool {
+    pub fn delete_char(&mut self) {
+        match self {
+            Self::CommandForm(ref mut inner) => inner.delete_char(),
+            Self::WorkspaceForm(ref mut inner) => inner.delete_char(),
+            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {},
+        }
+    }
+
+    pub fn enter_char(&mut self, char: char) {
+        match self {
+            Self::CommandForm(ref mut inner) => inner.enter_char(char),
+            Self::WorkspaceForm(ref mut inner) => inner.enter_char(char),
+            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {},
+        }
+    }
+
+    pub fn is_in_editor_mode(&self) -> bool {
         match self {
             Self::WorkspaceForm(_) | Self::CommandForm(_) => true,
             Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => false,
+        }
+    }
+
+    pub fn move_cursor_left(&mut self) {
+        match self {
+            Self::CommandForm(ref mut inner) => inner.move_cursor_left(),
+            Self::WorkspaceForm(ref mut inner) => inner.move_cursor_left(),
+            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {},
+        }
+    }
+
+    pub fn move_cursor_right(&mut self) {
+        match self {
+            Self::CommandForm(ref mut inner) => inner.move_cursor_right(),
+            Self::WorkspaceForm(ref mut inner) => inner.move_cursor_right(),
+            Self::Workspace(_) | Self::Workspaces(_) | Self::CommandExecution(_) => {},
+        }
+    }
+
+    pub fn toggle_active_input(&mut self) {
+        match self {
+            Self::CommandForm(ref mut context) => context.toggle_active_input(),
+            Self::Workspace(_)
+            | Self::WorkspaceForm(_)
+            | Self::Workspaces(_)
+            | Self::CommandExecution(_) => {}
         }
     }
 
