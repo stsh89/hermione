@@ -1,20 +1,20 @@
 mod instruction;
 mod workspace;
 mod operation;
-mod projection_error;
+mod organizer_error;
 
 pub use instruction::{Instruction, InstructionAttributes};
 pub use workspace::Workspace;
-pub use projection_error::ProjectionError;
-pub use operation::{LoadProjection, Load, SaveProjection, Save};
+pub use organizer_error::OrganizerError;
+pub use operation::{LoadOrganizer, Load, SaveOrganizer, Save};
 
 
 #[derive(Default)]
-pub struct Projection {
+pub struct Organizer {
     workspaces: Vec<Workspace>,
 }
 
-impl Projection {
+impl Organizer {
     pub fn add_workspace(&mut self, workspace: Workspace) {
         self.workspaces.push(workspace);
     }

@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 ratatui = { workspace = true }
-projection = { workspace = true }
+handbag = { workspace = true }

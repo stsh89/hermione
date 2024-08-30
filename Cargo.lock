@@ -109,6 +109,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "handbag"
+version = "0.1.0"
+
+[[package]]
 name = "hashbrown"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -250,14 +254,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "projection"
-version = "0.1.0"
-
-[[package]]
 name = "projector"
 version = "0.1.0"
 dependencies = [
- "projection",
+ "handbag",
  "ratatui",
 ]
 
