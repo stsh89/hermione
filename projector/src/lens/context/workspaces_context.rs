@@ -1,4 +1,4 @@
-use projection::Projection;
+use handbag::Organizer;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
@@ -13,26 +13,26 @@ pub struct WorkspacesContext {
 }
 
 impl WorkspacesContext {
-    pub fn delete_workspace(&mut self, projection: &mut Projection) {
+    pub fn delete_workspace(&mut self, organizer: &mut Organizer) {
         let Some(index) = self.selected_workspace_index else {
             return;
         };
 
-        projection.remove_workspace(index);
+        organizer.remove_workspace(index);
 
-        self.reset(projection);
+        self.reset(organizer);
     }
 
-    fn reset(&mut self, projection: &Projection) {
-        let new = Self::new(projection);
+    fn reset(&mut self, organizer: &Organizer) {
+        let new = Self::new(organizer);
 
         self.selected_workspace_index = new.selected_workspace_index;
         self.commands = new.commands;
         self.workspaces = new.workspaces;
     }
 
-    pub fn new(projection: &Projection) -> Self {
-        let workspaces = projection
+    pub fn new(organizer: &Organizer) -> Self {
+        let workspaces = organizer
             .workspaces()
             .iter()
             .map(|w| w.name().to_string())
@@ -76,7 +76,7 @@ impl WorkspacesContext {
         frame.render_widget(list, right)
     }
 
-    pub fn select_next_workspace(&mut self, projection: &Projection) {
+    pub fn select_next_workspace(&mut self, organizer: &Organizer) {
         if self.workspaces.is_empty() {
             return;
         }
@@ -90,10 +90,10 @@ impl WorkspacesContext {
         }
 
         self.selected_workspace_index = Some(new_index);
-        self.commands = commands(new_index, projection);
+        self.commands = commands(new_index, organizer);
     }
 
-    pub fn select_previous_workspace(&mut self, projection: &Projection) {
+    pub fn select_previous_workspace(&mut self, organizer: &Organizer) {
         if self.workspaces.is_empty() {
             return;
         }
@@ -107,12 +107,12 @@ impl WorkspacesContext {
         }
 
         self.selected_workspace_index = Some(new_index);
-        self.commands = commands(new_index, projection);
+        self.commands = commands(new_index, organizer);
     }
 }
 
-fn commands(workspace_index: usize, projection: &Projection) -> Vec<String> {
-    if let Some(workspace) = projection.get_workspace(workspace_index) {
+fn commands(workspace_index: usize, organizer: &Organizer) -> Vec<String> {
+    if let Some(workspace) = organizer.get_workspace(workspace_index) {
         workspace
             .instructions()
             .iter()

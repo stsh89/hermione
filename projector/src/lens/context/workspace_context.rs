@@ -1,4 +1,4 @@
-use projection::{Projection, Workspace};
+use handbag::{Organizer, Workspace};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
@@ -17,12 +17,12 @@ pub struct WorkspaceContext {
 }
 
 impl WorkspaceContext {
-    pub fn delete_command(&mut self, projection: &mut Projection) {
+    pub fn delete_command(&mut self, organizer: &mut Organizer) {
         let Some(index) = self.selected_command_index else {
             return;
         };
 
-        let Some(workspace) = projection.get_workspace_mut(self.workspace_index) else {
+        let Some(workspace) = organizer.get_workspace_mut(self.workspace_index) else {
             return;
         };
 
@@ -90,7 +90,7 @@ impl WorkspaceContext {
         frame.render_widget(paragraph, bottom)
     }
 
-    pub fn select_next_command(&mut self, projection: &Projection) {
+    pub fn select_next_command(&mut self, organizer: &Organizer) {
         if self.commands.is_empty() {
             return;
         }
@@ -104,10 +104,10 @@ impl WorkspaceContext {
         }
 
         self.selected_command_index = Some(new_index);
-        self.selected_command_name = command_name(projection, self.workspace_index, new_index);
+        self.selected_command_name = command_name(organizer, self.workspace_index, new_index);
     }
 
-    pub fn select_previous_command(&mut self, projection: &Projection) {
+    pub fn select_previous_command(&mut self, organizer: &Organizer) {
         if self.commands.is_empty() {
             return;
         }
@@ -121,12 +121,12 @@ impl WorkspaceContext {
         }
 
         self.selected_command_index = Some(new_index);
-        self.selected_command_name = command_name(projection, self.workspace_index, new_index);
+        self.selected_command_name = command_name(organizer, self.workspace_index, new_index);
     }
 }
 
-fn command_name(projection: &Projection, workspace_index: usize, command_index: usize) -> String {
-    projection
+fn command_name(organizer: &Organizer, workspace_index: usize, command_index: usize) -> String {
+    organizer
         .get_instruction(workspace_index, command_index)
         .map(|i| i.name().to_string())
         .unwrap_or_default()

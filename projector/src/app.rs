@@ -1,4 +1,4 @@
-use projection::{Instruction, InstructionAttributes, Projection, Workspace};
+use handbag::{Instruction, InstructionAttributes, Organizer, Workspace};
 
 use crate::lens::Lens;
 
@@ -7,7 +7,7 @@ pub struct App {}
 impl App {
     pub fn run(&self) -> std::io::Result<()> {
         let mut terminal = ratatui::init();
-        let mut lens = Lens::open(projection());
+        let mut lens = Lens::open(organizer());
 
         loop {
             terminal.draw(|frame| lens.view(frame))?;
@@ -28,8 +28,8 @@ impl App {
     }
 }
 
-fn projection() -> Projection {
-    let mut projection = Projection::default();
+fn organizer() -> Organizer {
+    let mut organizer = Organizer::default();
     let mut workspace = Workspace::new("Hermione".to_string());
     workspace.add_instruction(Instruction::new(InstructionAttributes {
         name: "Format project".to_string(),
@@ -39,14 +39,14 @@ fn projection() -> Projection {
         name: "Lint project".to_string(),
         directive: "cargo clippy".to_string(),
     }));
-    projection.add_workspace(workspace);
+    organizer.add_workspace(workspace);
 
     let mut workspace = Workspace::new("General".to_string());
     workspace.add_instruction(Instruction::new(InstructionAttributes {
         name: "".to_string(),
         directive: "Get-ChildItem".to_string(),
     }));
-    projection.add_workspace(workspace);
+    organizer.add_workspace(workspace);
 
     let mut workspace = Workspace::new("Vulkan tutorial".to_string());
     workspace.add_instruction(Instruction::new(InstructionAttributes {
@@ -55,6 +55,6 @@ fn projection() -> Projection {
             r#"C:\VulkanSDK\1.3.290.0\Bin\glslc.exe .\shaders\shader.frag -o .\shaders\frag.spv"#
                 .to_string(),
     }));
-    projection.add_workspace(workspace);
-    projection
+    organizer.add_workspace(workspace);
+    organizer
 }

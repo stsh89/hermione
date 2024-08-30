@@ -6,7 +6,7 @@ mod workspaces_context;
 
 pub use command_execution_context::CommandExecutionContext;
 pub use command_form_context::{ActiveInput, CommandFormContext};
-use projection::Projection;
+use handbag::Organizer;
 use ratatui::Frame;
 pub use workspace_context::WorkspaceContext;
 pub use workspace_form_context::WorkspaceFormContext;
@@ -70,8 +70,8 @@ impl Context {
         }
     }
 
-    pub fn workspaces(projection: &Projection) -> Self {
-        Context::Workspaces(WorkspacesContext::new(projection))
+    pub fn workspaces(organizer: &Organizer) -> Self {
+        Context::Workspaces(WorkspacesContext::new(organizer))
     }
 
     pub fn view(&self, frame: &mut Frame) {

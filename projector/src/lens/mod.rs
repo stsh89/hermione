@@ -8,7 +8,7 @@ use context::{
 };
 use input::Input;
 use message::Message;
-use projection::{Instruction, InstructionAttributes, Projection, Workspace};
+use handbag::{Instruction, InstructionAttributes, Organizer, Workspace};
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     Frame,
@@ -16,7 +16,7 @@ use ratatui::{
 use std::time::Duration;
 
 pub struct Lens {
-    projection: Projection,
+    organizer: Organizer,
     state: State,
     context: Context,
 }
@@ -35,16 +35,16 @@ impl Lens {
         self.state = State::Closed;
     }
 
-    pub fn open(projection: Projection) -> Self {
+    pub fn open(organizer: Organizer) -> Self {
         Self {
-            context: Context::workspaces(&projection),
-            projection,
+            context: Context::workspaces(&organizer),
+            organizer,
             state: State::Open,
         }
     }
 
     fn workspace_commands(&self, workspace_index: usize) -> Vec<String> {
-        let Some(workspace) = self.projection.workspaces().get(workspace_index) else {
+        let Some(workspace) = self.organizer.workspaces().get(workspace_index) else {
             return vec![];
         };
 
@@ -141,8 +141,8 @@ impl Lens {
         match &self.context {
             Context::WorkspaceForm(context) => {
                 let workspace = Workspace::new(context.name.value.clone());
-                self.projection.add_workspace(workspace);
-                self.context = Context::workspaces(&self.projection);
+                self.organizer.add_workspace(workspace);
+                self.context = Context::workspaces(&self.organizer);
             }
             Context::CommandForm(context) => {
                 let instruction = Instruction::new(InstructionAttributes {
@@ -150,7 +150,7 @@ impl Lens {
                     directive: context.directive.value.clone(),
                 });
 
-                let Some(workspace) = self.projection.get_workspace_mut(context.workspace_index)
+                let Some(workspace) = self.organizer.get_workspace_mut(context.workspace_index)
                 else {
                     return;
                 };
@@ -186,7 +186,7 @@ impl Lens {
                     command_index: context.selected_command_index.unwrap(),
                     command_name: context.selected_command_name.clone(),
                     command_directive: self
-                        .projection
+                        .organizer
                         .get_instruction(
                             context.workspace_index,
                             context.selected_command_index.unwrap(),
@@ -210,14 +210,14 @@ impl Lens {
 
     fn delete_selection(&mut self) {
         if let Context::Workspaces(ref mut context) = self.context {
-            context.delete_workspace(&mut self.projection);
+            context.delete_workspace(&mut self.organizer);
         } else if let Context::Workspace(ref mut context) = self.context {
-            context.delete_command(&mut self.projection);
+            context.delete_command(&mut self.organizer);
         }
     }
 
     fn workspace_name(&self, workspace_index: usize) -> String {
-        let Some(workspace) = self.projection.workspaces().get(workspace_index) else {
+        let Some(workspace) = self.organizer.workspaces().get(workspace_index) else {
             return "".to_string();
         };
 
@@ -227,8 +227,8 @@ impl Lens {
     fn exit_context(&mut self) {
         match &self.context {
             Context::Workspaces(_) => self.close(),
-            Context::Workspace(_) => self.context = Context::workspaces(&self.projection),
-            Context::WorkspaceForm(_) => self.context = Context::workspaces(&self.projection),
+            Context::Workspace(_) => self.context = Context::workspaces(&self.organizer),
+            Context::WorkspaceForm(_) => self.context = Context::workspaces(&self.organizer),
             Context::CommandForm(context) => {
                 self.context = Context::Workspace(WorkspaceContext {
                     workspace_index: context.workspace_index,
@@ -252,17 +252,17 @@ impl Lens {
 
     fn select_next(&mut self) {
         if let Context::Workspaces(ref mut context) = &mut self.context {
-            context.select_next_workspace(&self.projection);
+            context.select_next_workspace(&self.organizer);
         } else if let Context::Workspace(ref mut context) = &mut self.context {
-            context.select_next_command(&self.projection);
+            context.select_next_command(&self.organizer);
         }
     }
 
     fn select_previous(&mut self) {
         if let Context::Workspaces(ref mut context) = &mut self.context {
-            context.select_previous_workspace(&self.projection);
+            context.select_previous_workspace(&self.organizer);
         } else if let Context::Workspace(ref mut context) = &mut self.context {
-            context.select_previous_command(&self.projection);
+            context.select_previous_command(&self.organizer);
         }
     }
 }
