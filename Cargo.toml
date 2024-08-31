@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "handbag", "projector"]
+members = [ "handbag", "classroom"]
 
 [workspace.dependencies]
 ratatui = "0.28.1"
