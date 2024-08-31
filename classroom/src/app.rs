@@ -1,11 +1,11 @@
-use crate::{lens::Lens, organizer::OrganizerCLient};
+use crate::{desktop::Desktop, organizer::OrganizerCLient};
 
 pub struct App {}
 
 impl App {
     pub fn run(&self) -> std::io::Result<()> {
         let mut terminal = ratatui::init();
-        let mut lens = Lens::open(OrganizerCLient::initialize())?;
+        let mut lens = Desktop::open(OrganizerCLient::initialize())?;
 
         loop {
             terminal.draw(|frame| lens.view(frame))?;

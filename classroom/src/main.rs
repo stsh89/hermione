@@ -1,6 +1,6 @@
 mod app;
 mod app_error;
-mod lens;
+mod desktop;
 mod organizer;
 
 use app::App;

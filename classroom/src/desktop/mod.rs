@@ -18,7 +18,7 @@ use ratatui::{
 };
 use std::time::Duration;
 
-pub struct Lens {
+pub struct Desktop {
     client: OrganizerCLient,
     state: State,
     context: Context,
@@ -30,7 +30,7 @@ enum State {
     Closed,
 }
 
-impl Lens {
+impl Desktop {
     pub fn is_closed(&self) -> bool {
         matches!(self.state, State::Closed)
     }

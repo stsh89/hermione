@@ -1,4 +1,4 @@
-use crate::lens::input::Input;
+use crate::desktop::input::Input;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout, Position},
     widgets::{Block, Borders, Paragraph},
