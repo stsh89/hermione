@@ -1,7 +1,10 @@
 [workspace]
 resolver = "2"
-members = [ "handbag", "classroom"]
+members = [ "crates/hermione-tui", "crates/hermione-memory"]
 
 [workspace.dependencies]
 ratatui = "0.28.1"
-handbag = { path = "handbag" }
+anyhow = "1.0.86"
+thiserror = "1.0.63"
+
+hermione-memory = { path = "crates/hermione-memory" }
