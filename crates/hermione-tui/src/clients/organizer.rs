@@ -1,3 +1,8 @@
+use std::{
+    fs::{File, OpenOptions},
+    io::BufReader,
+};
+
 use crate::{data::Command as DataCommand, data::Workspace as DataWorkspace, Result};
 use hermione_memory::{
     Command, CommandName, Error, Id, Load, LoadOrganizer, Organizer, Program, Save, SaveOrganizer,
@@ -84,36 +89,66 @@ pub struct Inner;
 
 impl Load for Inner {
     fn load(&self) -> Result<Organizer, Error> {
+        let file = File::open("hermione.json").map_err(eyre::Report::new)?;
+        let reader = BufReader::new(file);
+        let workspaces: Vec<DataWorkspace> =
+            serde_json::from_reader(reader).map_err(eyre::Report::new)?;
+
         let mut organizer = Organizer::empty();
-        let mut workspace = Workspace::new(WorkspaceName::new("Hermione".to_string()));
-        let mut command = Command::new(Program::new("cargo fmt".to_string()));
-        command.set_name(CommandName::new("Format project".to_string()));
-        workspace.add_command(command);
 
-        let mut command = Command::new(Program::new("cargo clippy".to_string()));
-        command.set_name(CommandName::new("Lint project".to_string()));
-        workspace.add_command(command);
-        organizer.add_workspace(workspace);
+        for workspace_data in workspaces {
+            let mut workspace = Workspace::new(WorkspaceName::new(workspace_data.name));
 
-        let mut workspace = Workspace::new(WorkspaceName::new("General".to_string()));
-        let command = Command::new(Program::new("Get-ChildItem".to_string()));
-        workspace.add_command(command);
-        organizer.add_workspace(workspace);
+            for command_data in workspace_data.commands {
+                let mut command = Command::new(Program::new(command_data.program));
+                command.set_name(CommandName::new(command_data.name));
+                workspace.add_command(command);
+            }
+            organizer.add_workspace(workspace);
+        }
 
-        let mut workspace = Workspace::new(WorkspaceName::new("Vulkan tutorial".to_string()));
-        let mut command = Command::new(Program::new(
-            r#"C:\VulkanSDK\1.3.290.0\Bin\glslc.exe .\shaders\shader.frag -o .\shaders\frag.spv"#
-                .to_string(),
-        ));
-        command.set_name(CommandName::new("Compile shader fragment".to_string()));
-        workspace.add_command(command);
-        organizer.add_workspace(workspace);
         Ok(organizer)
+
+        // let mut organizer = Organizer::empty();
+        // let mut workspace = Workspace::new(WorkspaceName::new("Hermione".to_string()));
+        // let mut command = Command::new(Program::new("cargo fmt".to_string()));
+        // command.set_name(CommandName::new("Format project".to_string()));
+        // workspace.add_command(command);
+
+        // let mut command = Command::new(Program::new("cargo clippy".to_string()));
+        // command.set_name(CommandName::new("Lint project".to_string()));
+        // workspace.add_command(command);
+        // organizer.add_workspace(workspace);
+
+        // let mut workspace = Workspace::new(WorkspaceName::new("General".to_string()));
+        // let command = Command::new(Program::new("Get-ChildItem".to_string()));
+        // workspace.add_command(command);
+        // organizer.add_workspace(workspace);
+
+        // let mut workspace = Workspace::new(WorkspaceName::new("Vulkan tutorial".to_string()));
+        // let mut command = Command::new(Program::new(
+        //     r#"C:\VulkanSDK\1.3.290.0\Bin\glslc.exe .\shaders\shader.frag -o .\shaders\frag.spv"#
+        //         .to_string(),
+        // ));
+        // command.set_name(CommandName::new("Compile shader fragment".to_string()));
+        // workspace.add_command(command);
+        // organizer.add_workspace(workspace);
+        // Ok(organizer)
     }
 }
 
 impl Save for Inner {
-    fn save(&self, _organizer: &Organizer) -> Result<(), Error> {
+    fn save(&self, organizer: &Organizer) -> Result<(), Error> {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .open("hermione.json")
+            .map_err(eyre::Report::new)?;
+
+        let workspaces: Vec<DataWorkspace> =
+            organizer.workspaces().iter().map(Into::into).collect();
+
+        serde_json::to_writer(&mut file, &workspaces).map_err(eyre::Report::new)?;
+
         Ok(())
     }
 }

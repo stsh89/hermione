@@ -4,6 +4,9 @@ use crate::{Id, WorkspaceName};
 pub enum Error {
     #[error("not found: {0}")]
     NotFound(String),
+
+    #[error(transparent)]
+    Unknown(#[from] eyre::Report),
 }
 
 impl Error {

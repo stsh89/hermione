@@ -8,3 +8,4 @@ name = "hermione_memory"
 
 [dependencies]
 thiserror = {workspace = true}
+eyre = {workspace = true}
