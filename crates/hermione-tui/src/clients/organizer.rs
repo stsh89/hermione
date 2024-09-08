@@ -1,18 +1,19 @@
-use std::{
-    fs::{File, OpenOptions},
-    io::BufReader,
-};
-
 use crate::{data::Command as CommandData, data::Workspace as WorkspaceData, Result};
 use hermione_memory::{
     Command, CommandName, CommandParameters, Error, Id, Load, LoadOrganizer, Organizer, Program,
     Save, SaveOrganizer, Workspace, WorkspaceName, WorkspaceParameters,
+};
+use std::{
+    fs::{File, OpenOptions},
+    io::BufReader,
 };
 
 pub struct Client {
     inner: Inner,
     organizer: Organizer,
 }
+
+struct Inner;
 
 impl Client {
     pub fn create_command(
@@ -91,8 +92,6 @@ impl Client {
     }
 }
 
-pub struct Inner;
-
 impl Load for Inner {
     fn load(&self) -> Result<Organizer, Error> {
         let file = File::open("hermione.json").map_err(eyre::Report::new)?;
@@ -123,41 +122,5 @@ impl Save for Inner {
         serde_json::to_writer(&mut file, &workspaces).map_err(eyre::Report::new)?;
 
         Ok(())
-    }
-}
-
-impl From<&Workspace> for WorkspaceData {
-    fn from(value: &Workspace) -> Self {
-        WorkspaceData {
-            name: value.name().to_string(),
-            commands: value.commands().iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<&Command> for CommandData {
-    fn from(value: &Command) -> Self {
-        CommandData {
-            name: value.name().to_string(),
-            program: value.program().to_string(),
-        }
-    }
-}
-
-impl From<WorkspaceData> for Workspace {
-    fn from(value: WorkspaceData) -> Self {
-        Workspace::new(WorkspaceParameters {
-            name: WorkspaceName::new(value.name),
-            commands: value.commands.into_iter().map(Into::into).collect(),
-        })
-    }
-}
-
-impl From<CommandData> for Command {
-    fn from(value: CommandData) -> Self {
-        Command::new(CommandParameters {
-            program: Program::new(value.program),
-            name: CommandName::new(value.name),
-        })
     }
 }
