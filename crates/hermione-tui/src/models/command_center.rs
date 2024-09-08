@@ -1,13 +1,15 @@
-use crate::{clients::OrganizerClient, data::Workspace, Result};
+use super::{TableauModel, TableauModelParameters};
+use crate::{
+    clients::{CommandExecutor, CommandExecutorOutput, OrganizerClient},
+    data::Workspace,
+    Result,
+};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
     widgets::{Block, Borders, List, ListState, Paragraph},
     Frame,
 };
-use std::{io::Write, process::Stdio};
-
-use super::{TableauModel, TableauModelParameters};
 
 pub struct Model<'a> {
     state: State,
@@ -162,22 +164,7 @@ impl<'a> Model<'a> {
         };
 
         let command = self.organizer.get_command(self.workspace_index, nidex)?;
-
-        let mut cmd = std::process::Command::new("PowerShell");
-        cmd.stdin(Stdio::piped());
-        cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::piped());
-        let mut process = cmd.spawn().expect("launch failure");
-        let stdin = process.stdin.as_mut().expect("pipe failure");
-        writeln!(stdin, "{}", command.program).unwrap();
-        let out = process.wait_with_output().unwrap();
-        let stdout = std::str::from_utf8(out.stdout.as_slice())
-            .unwrap()
-            .to_string();
-        let stderr = std::str::from_utf8(out.stderr.as_slice())
-            .unwrap()
-            .to_string();
-
+        let CommandExecutorOutput { stdout, stderr } = CommandExecutor::new(&command).execute()?;
         let model = TableauModel::new(TableauModelParameters {
             command,
             stdout,

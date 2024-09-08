@@ -1,4 +1,8 @@
-use crate::{data::Command, Result};
+use crate::{
+    clients::{CommandExecutor, CommandExecutorOutput},
+    data::Command,
+    Result,
+};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
@@ -18,13 +22,14 @@ pub struct ModelParameters {
     pub stderr: String,
 }
 
+pub enum Message {
+    RepeatCommand,
+    Exit,
+}
+
 enum State {
     Running,
     Exited,
-}
-
-pub enum Message {
-    Exit,
 }
 
 struct View<'a> {
@@ -34,6 +39,14 @@ struct View<'a> {
 }
 
 impl Model {
+    fn exit(&mut self) {
+        self.state = State::Exited;
+    }
+
+    pub fn is_exited(&self) -> bool {
+        matches!(self.state, State::Exited)
+    }
+
     pub fn new(parameters: ModelParameters) -> Self {
         let ModelParameters {
             command,
@@ -49,6 +62,25 @@ impl Model {
         }
     }
 
+    fn repeat_command(&mut self) -> Result<()> {
+        let CommandExecutorOutput { stdout, stderr } =
+            CommandExecutor::new(&self.command).execute()?;
+
+        self.stderr = stderr;
+        self.stdout = stdout;
+
+        Ok(())
+    }
+
+    pub fn update(&mut self, message: Message) -> Result<()> {
+        match message {
+            Message::RepeatCommand => self.repeat_command()?,
+            Message::Exit => self.exit(),
+        }
+
+        Ok(())
+    }
+
     pub fn view(&self, frame: &mut Frame) {
         let view = View {
             program: &self.command.program,
@@ -57,22 +89,6 @@ impl Model {
         };
 
         view.render(frame);
-    }
-
-    pub fn update(&mut self, message: Message) -> Result<()> {
-        match message {
-            Message::Exit => self.exit(),
-        }
-
-        Ok(())
-    }
-
-    pub fn is_exited(&self) -> bool {
-        matches!(self.state, State::Exited)
-    }
-
-    fn exit(&mut self) {
-        self.state = State::Exited;
     }
 }
 

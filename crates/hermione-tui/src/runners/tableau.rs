@@ -43,11 +43,13 @@ impl<'a> Runner<'a> {
     }
 
     pub fn handle_key(&mut self, key_code: KeyCode) -> Result<Option<TableauMessage>> {
-        let message = if key_code == KeyCode::Esc {
-            Some(TableauMessage::Exit)
-        } else {
-            None
-        };
+        let mut message = None;
+
+        match key_code {
+            KeyCode::Esc => message = Some(TableauMessage::Exit),
+            KeyCode::Char('r') => message = Some(TableauMessage::RepeatCommand),
+            _ => {}
+        }
 
         Ok(message)
     }
