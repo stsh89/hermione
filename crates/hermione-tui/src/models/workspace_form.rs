@@ -27,7 +27,7 @@ impl<'a> View<'a> {
 
         let [top] = layout.areas(frame.area());
 
-        let paragraph = Paragraph::new(self.name.value.as_str()).block(
+        let paragraph = Paragraph::new(self.name.value()).block(
             Block::new()
                 .title("Enter workspace name")
                 .title_alignment(Alignment::Center)
@@ -39,7 +39,7 @@ impl<'a> View<'a> {
         frame.set_cursor_position(Position::new(
             // Draw the cursor at the current position in the input field.
             // This position is can be controlled via the left and right arrow key
-            top.x + self.name.character_index as u16 + 1,
+            top.x + self.name.character_index() as u16 + 1,
             // Move one line down, from the border to the input line
             top.y + 1,
         ));
@@ -57,7 +57,7 @@ pub enum Message {
 
 impl Model {
     pub fn name(&self) -> &str {
-        &self.name.value
+        self.name.value()
     }
 
     pub fn new() -> Self {

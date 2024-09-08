@@ -51,8 +51,8 @@ impl Model {
 
     pub fn new_command(&self) -> NewCommand {
         NewCommand {
-            name: self.name.value.to_string(),
-            program: self.program.value.to_string(),
+            name: self.name.value().to_string(),
+            program: self.program.value().to_string(),
         }
     }
 
@@ -136,7 +136,7 @@ impl<'a> View<'a> {
 
         let [directive_input, name_input] = layout.areas(frame.area());
 
-        let paragraph = Paragraph::new(self.program.value.as_str()).block(
+        let paragraph = Paragraph::new(self.program.value()).block(
             Block::new()
                 .title("Enter directive")
                 .title_alignment(Alignment::Center)
@@ -145,7 +145,7 @@ impl<'a> View<'a> {
 
         frame.render_widget(paragraph, directive_input);
 
-        let paragraph = Paragraph::new(self.name.value.as_str()).block(
+        let paragraph = Paragraph::new(self.name.value()).block(
             Block::new()
                 .title("Enter command name")
                 .title_alignment(Alignment::Center)
@@ -155,11 +155,11 @@ impl<'a> View<'a> {
 
         let position = match self.active_input {
             ActiveInput::Name => Position::new(
-                name_input.x + self.name.character_index as u16 + 1,
+                name_input.x + self.name.character_index() as u16 + 1,
                 name_input.y + 1,
             ),
             ActiveInput::Program => Position::new(
-                directive_input.x + self.program.character_index as u16 + 1,
+                directive_input.x + self.program.character_index() as u16 + 1,
                 directive_input.y + 1,
             ),
         };

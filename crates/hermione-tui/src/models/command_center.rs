@@ -1,15 +1,20 @@
-use super::{TableauModel, TableauModelParameters};
+use super::{elements::Input, TableauModel, TableauModelParameters};
 use crate::{
     clients::{CommandExecutor, CommandExecutorOutput, OrganizerClient},
     data::Workspace,
     Result,
 };
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Flex, Layout},
+    layout::{Alignment, Constraint, Direction, Flex, Layout, Position},
     style::{Style, Stylize},
     widgets::{Block, Borders, List, ListState, Paragraph},
     Frame,
 };
+
+enum ActiveElement {
+    ProgramsList,
+    SearchBar,
+}
 
 pub enum Message {
     CreateCommand(NewCommand),
@@ -20,15 +25,17 @@ pub enum Message {
 }
 
 pub struct Model<'a> {
-    state: State,
-    selected_command_index: Option<usize>,
-    workspace_index: usize,
+    active_element: ActiveElement,
     organizer: &'a mut OrganizerClient,
+    search_bar: Input,
+    selected_command_index: Option<usize>,
+    state: State,
+    workspace_index: usize,
 }
 
 pub struct ModelParameters<'a> {
-    pub workspace_index: usize,
     pub organizer: &'a mut OrganizerClient,
+    pub workspace_index: usize,
 }
 
 pub struct NewCommand {
@@ -37,15 +44,30 @@ pub struct NewCommand {
 }
 
 enum State {
-    Running,
     Exited,
+    Running,
 }
 
 struct View<'a> {
+    active_element: &'a ActiveElement,
     command_name: &'a str,
     programs: &'a [String],
+    search_bar: &'a Input,
     selected_command_index: Option<usize>,
     workspace_name: &'a str,
+}
+
+impl ActiveElement {
+    fn is_search_bar(&self) -> bool {
+        matches!(self, ActiveElement::SearchBar)
+    }
+
+    fn toggle(&mut self) {
+        *self = match *self {
+            ActiveElement::ProgramsList => ActiveElement::SearchBar,
+            ActiveElement::SearchBar => ActiveElement::ProgramsList,
+        };
+    }
 }
 
 impl<'a> Model<'a> {
@@ -85,10 +107,12 @@ impl<'a> Model<'a> {
         } = params;
 
         Self {
-            state: State::Running,
-            selected_command_index: None,
-            workspace_index,
+            active_element: ActiveElement::SearchBar,
             organizer,
+            search_bar: Input::default(),
+            selected_command_index: None,
+            state: State::Running,
+            workspace_index,
         }
     }
 
@@ -108,13 +132,15 @@ impl<'a> Model<'a> {
         }
 
         let Some(index) = self.selected_command_index else {
+            self.active_element.toggle();
             self.selected_command_index = Some(0);
 
             return Ok(());
         };
 
         if index == (self.workspace()?.commands.len() - 1) {
-            self.selected_command_index = Some(0);
+            self.selected_command_index = None;
+            self.active_element.toggle();
         } else {
             self.selected_command_index = Some(index + 1);
         }
@@ -129,12 +155,14 @@ impl<'a> Model<'a> {
 
         let Some(index) = self.selected_command_index else {
             self.selected_command_index = Some(self.workspace()?.commands.len() - 1);
+            self.active_element.toggle();
 
             return Ok(());
         };
 
         if index == 0 {
-            self.selected_command_index = Some(self.workspace()?.commands.len() - 1);
+            self.selected_command_index = None;
+            self.active_element.toggle();
         } else {
             self.selected_command_index = Some(index - 1);
         }
@@ -190,6 +218,8 @@ impl<'a> Model<'a> {
             selected_command_index: self.selected_command_index,
             workspace_name: &workspace.name,
             command_name,
+            active_element: &self.active_element,
+            search_bar: &self.search_bar,
         };
 
         view.render(frame);
@@ -204,10 +234,14 @@ impl<'a> View<'a> {
     fn render(&self, frame: &mut Frame) {
         let layout = Layout::new(
             Direction::Vertical,
-            vec![Constraint::Percentage(100), Constraint::Min(3)],
+            vec![
+                Constraint::Min(3),
+                Constraint::Percentage(100),
+                Constraint::Min(3),
+            ],
         )
         .flex(Flex::Start);
-        let [top, bottom] = layout.areas(frame.area());
+        let [search_bar, programs_list, program_name] = layout.areas(frame.area());
 
         let list = List::new(self.programs.to_vec())
             .highlight_style(Style::new().reversed())
@@ -221,7 +255,7 @@ impl<'a> View<'a> {
 
         state.select(self.selected_command_index);
 
-        frame.render_stateful_widget(list, top, &mut state);
+        frame.render_stateful_widget(list, programs_list, &mut state);
 
         let paragraph = Paragraph::new(self.command_name).block(
             Block::new()
@@ -229,6 +263,24 @@ impl<'a> View<'a> {
                 .title_alignment(Alignment::Center)
                 .borders(Borders::all()),
         );
-        frame.render_widget(paragraph, bottom)
+        frame.render_widget(paragraph, program_name);
+
+        let paragraph = Paragraph::new(self.search_bar.value()).block(
+            Block::new()
+                .title("Search")
+                .title_alignment(Alignment::Center)
+                .borders(Borders::all()),
+        );
+        frame.render_widget(paragraph, search_bar);
+
+        if self.active_element.is_search_bar() {
+            frame.set_cursor_position(Position::new(
+                // Draw the cursor at the current position in the input field.
+                // This position is can be controlled via the left and right arrow key
+                search_bar.x + self.search_bar.character_index() as u16 + 1,
+                // Move one line down, from the border to the input line
+                search_bar.y + 1,
+            ));
+        }
     }
 }

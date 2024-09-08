@@ -1,12 +1,16 @@
 #[derive(Default)]
 pub struct Input {
     /// Current value of the input box
-    pub value: String,
+    value: String,
     /// Position of cursor in the editor area.
-    pub character_index: usize,
+    character_index: usize,
 }
 
 impl Input {
+    pub fn character_index(&self) -> usize {
+        self.character_index
+    }
+
     pub fn move_cursor_left(&mut self) {
         let cursor_moved_left = self.character_index.saturating_sub(1);
         self.character_index = self.clamp_cursor(cursor_moved_left);
@@ -59,5 +63,9 @@ impl Input {
 
     pub fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
         new_cursor_pos.clamp(0, self.value.chars().count())
+    }
+
+    pub fn value(&self) -> &str {
+        &self.value
     }
 }
