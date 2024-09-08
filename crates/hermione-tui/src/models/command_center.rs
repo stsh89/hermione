@@ -11,6 +11,14 @@ use ratatui::{
     Frame,
 };
 
+pub enum Message {
+    CreateCommand(NewCommand),
+    DeleteCommand,
+    Exit,
+    SelectNextCommand,
+    SelectPreviousCommand,
+}
+
 pub struct Model<'a> {
     state: State,
     selected_command_index: Option<usize>,
@@ -23,17 +31,14 @@ pub struct ModelParameters<'a> {
     pub organizer: &'a mut OrganizerClient,
 }
 
+pub struct NewCommand {
+    pub name: String,
+    pub program: String,
+}
+
 enum State {
     Running,
     Exited,
-}
-
-pub enum Message {
-    CreateCommand(NewCommand),
-    DeleteCommand,
-    Exit,
-    SelectNextCommand,
-    SelectPreviousCommand,
 }
 
 struct View<'a> {
@@ -43,12 +48,17 @@ struct View<'a> {
     workspace_name: &'a str,
 }
 
-pub struct NewCommand {
-    pub name: String,
-    pub program: String,
-}
-
 impl<'a> Model<'a> {
+    fn create_command(&mut self, parameters: NewCommand) -> Result<()> {
+        let NewCommand { name, program } = parameters;
+
+        self.organizer
+            .create_command(self.workspace_index, name, program)?;
+        self.selected_command_index = Some(self.programs()?.len() - 1);
+
+        Ok(())
+    }
+
     pub fn delete_command(&mut self) -> Result<()> {
         let Some(index) = self.selected_command_index else {
             return Ok(());
@@ -58,6 +68,14 @@ impl<'a> Model<'a> {
         self.selected_command_index = None;
 
         Ok(())
+    }
+
+    fn exit(&mut self) {
+        self.state = State::Exited;
+    }
+
+    pub fn is_exited(&self) -> bool {
+        matches!(self.state, State::Exited)
     }
 
     pub fn new(params: ModelParameters<'a>) -> Self {
@@ -82,32 +100,6 @@ impl<'a> Model<'a> {
                 .map(|command| command.program.clone())
                 .collect()
         })
-    }
-
-    fn workspace(&self) -> Result<Workspace> {
-        self.organizer.get_workspace(self.workspace_index)
-    }
-
-    pub fn update(&mut self, message: Message) -> Result<()> {
-        match message {
-            Message::SelectPreviousCommand => self.select_prev()?,
-            Message::SelectNextCommand => self.select_next()?,
-            Message::DeleteCommand => self.delete_command()?,
-            Message::Exit => self.exit(),
-            Message::CreateCommand(parameters) => self.create_command(parameters)?,
-        }
-
-        Ok(())
-    }
-
-    fn create_command(&mut self, parameters: NewCommand) -> Result<()> {
-        let NewCommand { name, program } = parameters;
-
-        self.organizer
-            .create_command(self.workspace_index, name, program)?;
-        self.selected_command_index = Some(self.programs()?.len() - 1);
-
-        Ok(())
     }
 
     fn select_next(&mut self) -> Result<()> {
@@ -150,14 +142,6 @@ impl<'a> Model<'a> {
         Ok(())
     }
 
-    pub fn is_exited(&self) -> bool {
-        matches!(self.state, State::Exited)
-    }
-
-    fn exit(&mut self) {
-        self.state = State::Exited;
-    }
-
     pub fn tableau(&mut self) -> Result<Option<TableauModel>> {
         let Some(nidex) = self.selected_command_index else {
             return Ok(None);
@@ -172,6 +156,18 @@ impl<'a> Model<'a> {
         });
 
         Ok(Some(model))
+    }
+
+    pub fn update(&mut self, message: Message) -> Result<()> {
+        match message {
+            Message::SelectPreviousCommand => self.select_prev()?,
+            Message::SelectNextCommand => self.select_next()?,
+            Message::DeleteCommand => self.delete_command()?,
+            Message::Exit => self.exit(),
+            Message::CreateCommand(parameters) => self.create_command(parameters)?,
+        }
+
+        Ok(())
     }
 
     pub fn view(&self, frame: &mut Frame) {
@@ -197,6 +193,10 @@ impl<'a> Model<'a> {
         };
 
         view.render(frame);
+    }
+
+    fn workspace(&self) -> Result<Workspace> {
+        self.organizer.get_workspace(self.workspace_index)
     }
 }
 
