@@ -8,8 +8,13 @@ pub struct Workspace {
     name: Name,
 }
 
+pub struct WorkspaceParameters {
+    pub name: Name,
+    pub commands: Vec<Command>,
+}
+
 impl Workspace {
-    pub fn add_command(&mut self, command: Command) {
+    pub(crate) fn add_command(&mut self, command: Command) {
         self.commands.push(command);
     }
 
@@ -35,10 +40,9 @@ impl Workspace {
         &self.name
     }
 
-    pub fn new(name: Name) -> Self {
-        Self {
-            name,
-            commands: vec![],
-        }
+    pub fn new(parameters: WorkspaceParameters) -> Self {
+        let WorkspaceParameters { name, commands } = parameters;
+
+        Self { name, commands }
     }
 }

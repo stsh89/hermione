@@ -3,10 +3,10 @@ use std::{
     io::BufReader,
 };
 
-use crate::{data::Command as DataCommand, data::Workspace as DataWorkspace, Result};
+use crate::{data::Command as CommandData, data::Workspace as WorkspaceData, Result};
 use hermione_memory::{
-    Command, CommandName, Error, Id, Load, LoadOrganizer, Organizer, Program, Save, SaveOrganizer,
-    Workspace, WorkspaceName,
+    Command, CommandName, CommandParameters, Error, Id, Load, LoadOrganizer, Organizer, Program,
+    Save, SaveOrganizer, Workspace, WorkspaceName, WorkspaceParameters,
 };
 
 pub struct Client {
@@ -21,8 +21,11 @@ impl Client {
         name: String,
         program: String,
     ) -> Result<()> {
-        let mut command = Command::new(Program::new(program));
-        command.set_name(CommandName::new(name));
+        let command = Command::new(CommandParameters {
+            program: Program::new(program),
+            name: CommandName::new(name.clone()),
+        });
+
         self.organizer
             .add_command(&Id::new(workspace_index), command)?;
 
@@ -36,7 +39,7 @@ impl Client {
         Ok(())
     }
 
-    pub fn get_command(&self, workspace_index: usize, command_index: usize) -> Result<DataCommand> {
+    pub fn get_command(&self, workspace_index: usize, command_index: usize) -> Result<CommandData> {
         let command = self
             .organizer
             .get_command(&Id::new(workspace_index), &Id::new(command_index))?;
@@ -44,7 +47,7 @@ impl Client {
         Ok(command.into())
     }
 
-    pub fn get_workspace(&self, index: usize) -> Result<DataWorkspace> {
+    pub fn get_workspace(&self, index: usize) -> Result<WorkspaceData> {
         let workspace = self.organizer.get_workspace(&Id::new(index))?;
 
         Ok(workspace.into())
@@ -67,7 +70,10 @@ impl Client {
     }
 
     pub fn create_workspace(&mut self, name: String) -> Result<()> {
-        let workspace = Workspace::new(WorkspaceName::new(name));
+        let workspace = Workspace::new(WorkspaceParameters {
+            name: WorkspaceName::new(name),
+            commands: vec![],
+        });
 
         self.organizer.add_workspace(workspace);
 
@@ -80,7 +86,7 @@ impl Client {
         Ok(())
     }
 
-    pub fn workspaces(&self) -> Vec<DataWorkspace> {
+    pub fn workspaces(&self) -> Vec<WorkspaceData> {
         self.organizer.workspaces().iter().map(Into::into).collect()
     }
 }
@@ -91,21 +97,14 @@ impl Load for Inner {
     fn load(&self) -> Result<Organizer, Error> {
         let file = File::open("hermione.json").map_err(eyre::Report::new)?;
         let reader = BufReader::new(file);
-        let workspaces: Vec<DataWorkspace> =
+        let workspaces: Vec<WorkspaceData> =
             serde_json::from_reader(reader).map_err(eyre::Report::new)?;
 
         let mut organizer = Organizer::empty();
 
-        for workspace_data in workspaces {
-            let mut workspace = Workspace::new(WorkspaceName::new(workspace_data.name));
-
-            for command_data in workspace_data.commands {
-                let mut command = Command::new(Program::new(command_data.program));
-                command.set_name(CommandName::new(command_data.name));
-                workspace.add_command(command);
-            }
-            organizer.add_workspace(workspace);
-        }
+        workspaces.into_iter().for_each(|workspace| {
+            organizer.add_workspace(workspace.into());
+        });
 
         Ok(organizer)
 
@@ -144,7 +143,7 @@ impl Save for Inner {
             .open("hermione.json")
             .map_err(eyre::Report::new)?;
 
-        let workspaces: Vec<DataWorkspace> =
+        let workspaces: Vec<WorkspaceData> =
             organizer.workspaces().iter().map(Into::into).collect();
 
         serde_json::to_writer(&mut file, &workspaces).map_err(eyre::Report::new)?;
@@ -153,20 +152,38 @@ impl Save for Inner {
     }
 }
 
-impl From<&Workspace> for crate::data::Workspace {
+impl From<&Workspace> for WorkspaceData {
     fn from(value: &Workspace) -> Self {
-        crate::data::Workspace {
+        WorkspaceData {
             name: value.name().to_string(),
             commands: value.commands().iter().map(Into::into).collect(),
         }
     }
 }
 
-impl From<&Command> for crate::data::Command {
+impl From<&Command> for CommandData {
     fn from(value: &Command) -> Self {
-        crate::data::Command {
+        CommandData {
             name: value.name().to_string(),
             program: value.program().to_string(),
         }
+    }
+}
+
+impl From<WorkspaceData> for Workspace {
+    fn from(value: WorkspaceData) -> Self {
+        Workspace::new(WorkspaceParameters {
+            name: WorkspaceName::new(value.name),
+            commands: value.commands.into_iter().map(Into::into).collect(),
+        })
+    }
+}
+
+impl From<CommandData> for Command {
+    fn from(value: CommandData) -> Self {
+        Command::new(CommandParameters {
+            program: Program::new(value.program),
+            name: CommandName::new(value.name),
+        })
     }
 }

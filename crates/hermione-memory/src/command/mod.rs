@@ -9,20 +9,20 @@ pub struct Command {
     program: Program,
 }
 
+pub struct CommandParameters {
+    pub name: Name,
+    pub program: Program,
+}
+
 impl Command {
     pub fn name(&self) -> &Name {
         &self.name
     }
 
-    pub fn new(program: Program) -> Self {
-        Self {
-            program,
-            name: Name::new(String::new()),
-        }
-    }
+    pub fn new(parameters: CommandParameters) -> Self {
+        let CommandParameters { name, program } = parameters;
 
-    pub fn set_name(&mut self, name: Name) {
-        self.name = name;
+        Self { name, program }
     }
 
     pub fn program(&self) -> &Program {
