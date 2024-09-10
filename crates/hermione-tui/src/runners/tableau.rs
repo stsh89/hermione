@@ -10,12 +10,12 @@ use ratatui::{
 use std::{io::Stdout, time::Duration};
 
 pub struct Runner<'a> {
-    model: TableauModel,
+    model: TableauModel<'a>,
     terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 
 pub struct RunnerParameters<'a> {
-    pub model: TableauModel,
+    pub model: TableauModel<'a>,
     pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 

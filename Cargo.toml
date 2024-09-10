@@ -3,11 +3,11 @@ resolver = "2"
 members = [ "crates/hermione-tui", "crates/hermione-memory"]
 
 [workspace.dependencies]
-ratatui = "0.28.1"
 anyhow = "1.0.86"
-thiserror = "1.0.63"
 eyre = "0.6.12"
-serde_json = "1.0.128"
+ratatui = "0.28.1"
 serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
+thiserror = "1.0.63"
 
 hermione-memory = { path = "crates/hermione-memory" }

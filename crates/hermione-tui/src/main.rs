@@ -10,6 +10,7 @@ use clients::OrganizerClient;
 
 fn main() -> Result<()> {
     tui::install_panic_hook();
+
     let terminal = tui::init_terminal()?;
     let organizer = OrganizerClient::new()?;
     let app = App {

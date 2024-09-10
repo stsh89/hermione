@@ -1,28 +1,24 @@
+mod id;
 mod name;
 mod program;
 
+pub use id::Id;
 pub use name::Name;
 pub use program::Program;
 
 pub struct Command {
-    name: Name,
-    program: Program,
-}
-
-pub struct CommandParameters {
-    pub name: Name,
-    pub program: Program,
+    pub(crate) id: Id,
+    pub(crate) name: Name,
+    pub(crate) program: Program,
 }
 
 impl Command {
-    pub fn name(&self) -> &Name {
-        &self.name
+    pub fn id(&self) -> &Id {
+        &self.id
     }
 
-    pub fn new(parameters: CommandParameters) -> Self {
-        let CommandParameters { name, program } = parameters;
-
-        Self { name, program }
+    pub fn name(&self) -> &Name {
+        &self.name
     }
 
     pub fn program(&self) -> &Program {

@@ -1,15 +1,13 @@
 mod command;
 mod error;
-mod id;
 mod operation;
 mod organizer;
 mod workspace;
 
-pub use command::{Command, CommandParameters, Name as CommandName, Program};
+pub use command::{Command, Id as CommandId, Name as CommandName, Program};
 pub use error::Error;
-pub use id::Id;
 pub use operation::{Load, LoadOrganizer, Save, SaveOrganizer};
-pub use organizer::Organizer;
-pub use workspace::{Name as WorkspaceName, Workspace, WorkspaceParameters};
+pub use organizer::{NewCommandParameters, NewWorkspaceParameters, Organizer};
+pub use workspace::{Id as WorkspaceId, Name as WorkspaceName, Workspace};
 
 pub type Result<T> = std::result::Result<T, Error>;

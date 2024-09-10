@@ -9,15 +9,15 @@ use ratatui::{
     Frame,
 };
 
-pub struct Model {
-    command: Command,
+pub struct Model<'a> {
+    command: &'a Command,
     stdout: String,
     stderr: String,
     state: State,
 }
 
-pub struct ModelParameters {
-    pub command: Command,
+pub struct ModelParameters<'a> {
+    pub command: &'a Command,
     pub stdout: String,
     pub stderr: String,
 }
@@ -38,7 +38,7 @@ struct View<'a> {
     stderr: &'a str,
 }
 
-impl Model {
+impl<'a> Model<'a> {
     fn exit(&mut self) {
         self.state = State::Exited;
     }
@@ -47,7 +47,7 @@ impl Model {
         matches!(self.state, State::Exited)
     }
 
-    pub fn new(parameters: ModelParameters) -> Self {
+    pub fn new(parameters: ModelParameters<'a>) -> Self {
         let ModelParameters {
             command,
             stdout,
@@ -64,7 +64,7 @@ impl Model {
 
     fn repeat_command(&mut self) -> Result<()> {
         let CommandExecutorOutput { stdout, stderr } =
-            CommandExecutor::new(&self.command).execute()?;
+            CommandExecutor::new(self.command).execute()?;
 
         self.stderr = stderr;
         self.stdout = stdout;

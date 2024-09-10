@@ -1,4 +1,4 @@
-use crate::{clients::OrganizerClient, Result};
+use crate::{clients::OrganizerClient, data::Workspace, Result};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
@@ -6,10 +6,10 @@ use ratatui::{
     Frame,
 };
 
-use super::{CommandCenterModel, CommandCenterModelParameters};
+use super::{elements::Selector, CommandCenterModel, CommandCenterModelParameters};
 
 pub struct Model<'a> {
-    selected_workspace_index: Option<usize>,
+    selector: Selector<Workspace>,
     state: State,
     organizer: &'a mut OrganizerClient,
 }
@@ -32,20 +32,22 @@ pub enum Message {
     Save,
 }
 
-struct View {
-    selected_workspace_index: Option<usize>,
-    workspaces: Vec<String>,
-    programs: Vec<Vec<String>>,
+struct View<'a> {
+    selector: &'a Selector<Workspace>,
 }
 
 impl<'a> Model<'a> {
-    pub fn command_center(&mut self) -> Option<CommandCenterModel> {
-        let workspace_index = self.selected_workspace_index?;
+    pub fn command_center(&mut self) -> Result<Option<CommandCenterModel>> {
+        let Some(workspace) = self.selector.item() else {
+            return Ok(None);
+        };
 
-        Some(CommandCenterModel::new(CommandCenterModelParameters {
-            workspace_index,
+        let model = CommandCenterModel::new(CommandCenterModelParameters {
+            workspace: workspace.clone(),
             organizer: self.organizer,
-        }))
+        });
+
+        Ok(Some(model))
     }
 
     fn save(&self) -> Result<()> {
@@ -54,50 +56,27 @@ impl<'a> Model<'a> {
 
     pub fn new(parameters: ModelParameters<'a>) -> Self {
         let ModelParameters { organizer } = parameters;
+        let workspaces = organizer.workspaces();
 
         Self {
-            selected_workspace_index: None,
+            selector: Selector::new(workspaces),
             state: State::Running,
             organizer,
         }
     }
 
-    pub fn workspaces(&self) -> Vec<String> {
-        self.organizer
-            .workspaces()
-            .iter()
-            .map(|workspace| workspace.name.clone())
-            .collect()
-    }
-
-    pub fn programs(&self) -> Vec<Vec<String>> {
-        self.organizer
-            .workspaces()
-            .iter()
-            .map(|workspace| {
-                workspace
-                    .commands
-                    .iter()
-                    .map(|command| command.program.to_string())
-                    .collect()
-            })
-            .collect()
-    }
-
     pub fn view(&self, frame: &mut Frame) {
         let view = View {
-            selected_workspace_index: self.selected_workspace_index,
-            workspaces: self.workspaces(),
-            programs: self.programs(),
+            selector: &self.selector,
         };
 
         view.render(frame);
     }
 
     fn delete_workspace(&mut self) -> Result<()> {
-        if let Some(index) = self.selected_workspace_index {
-            self.organizer.delete_workspace(index)?;
-            self.selected_workspace_index = None;
+        if let Some(workspace) = self.selector.item() {
+            self.organizer.delete_workspace(workspace.id)?;
+            self.reset_selector();
         }
 
         Ok(())
@@ -105,46 +84,21 @@ impl<'a> Model<'a> {
 
     fn create_workspace(&mut self, name: String) -> Result<()> {
         self.organizer.create_workspace(name.to_string())?;
-
-        self.selected_workspace_index = Some(self.organizer.workspaces().len() - 1);
+        self.reset_selector();
 
         Ok(())
     }
 
+    pub fn reset_selector(&mut self) {
+        self.selector = Selector::new(self.organizer.workspaces());
+    }
+
     fn select_next(&mut self) {
-        if self.organizer.workspaces().is_empty() {
-            return;
-        }
-
-        let Some(index) = self.selected_workspace_index else {
-            self.selected_workspace_index = Some(0);
-
-            return;
-        };
-
-        if index == (self.organizer.workspaces().len() - 1) {
-            self.selected_workspace_index = Some(0);
-        } else {
-            self.selected_workspace_index = Some(index + 1);
-        }
+        self.selector.next();
     }
 
     fn select_prev(&mut self) {
-        if self.organizer.workspaces().is_empty() {
-            return;
-        }
-
-        let Some(index) = self.selected_workspace_index else {
-            self.selected_workspace_index = Some(self.organizer.workspaces().len() - 1);
-
-            return;
-        };
-
-        if index == 0 {
-            self.selected_workspace_index = Some(self.organizer.workspaces().len() - 1);
-        } else {
-            self.selected_workspace_index = Some(index - 1);
-        }
+        self.selector.prev()
     }
 
     pub fn is_exited(&self) -> bool {
@@ -169,13 +123,25 @@ impl<'a> Model<'a> {
     }
 }
 
-impl View {
-    fn workspace_programs(&self) -> &[String] {
-        if let Some(index) = self.selected_workspace_index {
-            &self.programs[index]
-        } else {
-            &[]
-        }
+impl<'a> View<'a> {
+    fn workspace_names(&self) -> Vec<String> {
+        self.selector
+            .items()
+            .iter()
+            .map(|workspace| workspace.name.clone())
+            .collect()
+    }
+
+    fn programs(&self) -> Vec<String> {
+        let Some(workspace) = self.selector.item() else {
+            return vec![];
+        };
+
+        workspace
+            .commands
+            .iter()
+            .map(|command| command.program.to_string())
+            .collect()
     }
 
     fn render(self, frame: &mut Frame) {
@@ -186,7 +152,7 @@ impl View {
         .flex(Flex::Start);
         let [left, right] = layout.areas(frame.area());
 
-        let list = List::new(self.workspaces.to_vec())
+        let list = List::new(self.workspace_names())
             .highlight_style(Style::new().reversed())
             .block(
                 Block::new()
@@ -196,11 +162,11 @@ impl View {
             );
         let mut state = ListState::default();
 
-        state.select(self.selected_workspace_index);
+        state.select(self.selector.item_number());
 
         frame.render_stateful_widget(list, left, &mut state);
 
-        let list = List::new(self.workspace_programs().to_vec()).block(
+        let list = List::new(self.programs()).block(
             Block::new()
                 .title("Commands")
                 .title_alignment(Alignment::Center)

@@ -1,7 +1,10 @@
-use super::{elements::Input, TableauModel, TableauModelParameters};
+use super::{
+    elements::{Input, Selector},
+    TableauModel, TableauModelParameters,
+};
 use crate::{
-    clients::{CommandExecutor, CommandExecutorOutput, OrganizerClient},
-    data::Workspace,
+    clients::{CommandExecutor, CommandExecutorOutput, CreateCommandParameters, OrganizerClient},
+    data::{Command, Workspace},
     Result,
 };
 use ratatui::{
@@ -12,14 +15,19 @@ use ratatui::{
 };
 
 enum ActiveElement {
-    ProgramsList,
+    Selector,
     SearchBar,
 }
 
 pub enum Message {
+    ActivateSearchBar,
     CreateCommand(NewCommand),
+    DeleteChar,
     DeleteCommand,
+    EnterChar(char),
     Exit,
+    MoveCusorLeft,
+    MoveCusorRight,
     SelectNextCommand,
     SelectPreviousCommand,
 }
@@ -28,14 +36,14 @@ pub struct Model<'a> {
     active_element: ActiveElement,
     organizer: &'a mut OrganizerClient,
     search_bar: Input,
-    selected_command_index: Option<usize>,
+    selector: Selector<Command>,
     state: State,
-    workspace_index: usize,
+    workspace: Workspace,
 }
 
 pub struct ModelParameters<'a> {
     pub organizer: &'a mut OrganizerClient,
-    pub workspace_index: usize,
+    pub workspace: Workspace,
 }
 
 pub struct NewCommand {
@@ -50,11 +58,9 @@ enum State {
 
 struct View<'a> {
     active_element: &'a ActiveElement,
-    command_name: &'a str,
-    programs: &'a [String],
     search_bar: &'a Input,
-    selected_command_index: Option<usize>,
-    workspace_name: &'a str,
+    selector: &'a Selector<Command>,
+    workspace: &'a Workspace,
 }
 
 impl ActiveElement {
@@ -64,8 +70,8 @@ impl ActiveElement {
 
     fn toggle(&mut self) {
         *self = match *self {
-            ActiveElement::ProgramsList => ActiveElement::SearchBar,
-            ActiveElement::SearchBar => ActiveElement::ProgramsList,
+            ActiveElement::Selector => ActiveElement::SearchBar,
+            ActiveElement::SearchBar => ActiveElement::Selector,
         };
     }
 }
@@ -74,109 +80,137 @@ impl<'a> Model<'a> {
     fn create_command(&mut self, parameters: NewCommand) -> Result<()> {
         let NewCommand { name, program } = parameters;
 
-        self.organizer
-            .create_command(self.workspace_index, name, program)?;
-        self.selected_command_index = Some(self.programs()?.len() - 1);
+        self.organizer.create_command(CreateCommandParameters {
+            workspace_id: self.workspace.id,
+            name,
+            program,
+        })?;
+
+        self.reload_workspace()?;
+        self.reset_selector();
 
         Ok(())
     }
 
     pub fn delete_command(&mut self) -> Result<()> {
-        let Some(index) = self.selected_command_index else {
+        let Some(command) = self.selector.item() else {
             return Ok(());
         };
 
-        self.organizer.delete_command(self.workspace_index, index)?;
-        self.selected_command_index = None;
+        self.organizer
+            .delete_command(self.workspace.id, command.id)?;
+        self.reload_workspace()?;
+        self.reset_selector();
 
         Ok(())
+    }
+
+    pub fn delete_char(&mut self) {
+        if self.active_element.is_search_bar() {
+            self.search_bar.delete_char();
+            self.update_selector();
+        }
+    }
+
+    pub fn enter_char(&mut self, new_char: char) {
+        if self.active_element.is_search_bar() {
+            self.search_bar.enter_char(new_char);
+            self.update_selector();
+        }
     }
 
     fn exit(&mut self) {
         self.state = State::Exited;
     }
 
+    pub fn has_selected_command(&self) -> bool {
+        self.selector.item().is_some()
+    }
+
+    pub fn in_editor_mode(&self) -> bool {
+        matches!(self.active_element, ActiveElement::SearchBar)
+    }
+
+    pub fn in_normal_mode(&self) -> bool {
+        matches!(self.active_element, ActiveElement::Selector)
+    }
+
     pub fn is_exited(&self) -> bool {
         matches!(self.state, State::Exited)
     }
 
+    fn move_cursor_left(&mut self) {
+        if self.active_element.is_search_bar() {
+            self.search_bar.move_cursor_left();
+        }
+    }
+
+    fn move_cursor_right(&mut self) {
+        if self.active_element.is_search_bar() {
+            self.search_bar.move_cursor_right();
+        }
+    }
+
     pub fn new(params: ModelParameters<'a>) -> Self {
         let ModelParameters {
-            workspace_index,
             organizer,
+            workspace,
         } = params;
 
+        let mut selector = Selector::new(workspace.commands.clone());
+        selector.select_first();
+
         Self {
-            active_element: ActiveElement::SearchBar,
+            active_element: ActiveElement::Selector,
             organizer,
             search_bar: Input::default(),
-            selected_command_index: None,
+            selector,
             state: State::Running,
-            workspace_index,
+            workspace,
         }
     }
 
-    fn programs(&self) -> Result<Vec<String>> {
-        self.workspace().map(|workspace| {
-            workspace
-                .commands
-                .iter()
-                .map(|command| command.program.clone())
-                .collect()
-        })
+    fn activate_search_bar(&mut self) {
+        self.active_element = ActiveElement::SearchBar;
+        self.selector.unselect();
     }
 
-    fn select_next(&mut self) -> Result<()> {
-        if self.workspace()?.commands.is_empty() {
-            return Ok(());
-        }
-
-        let Some(index) = self.selected_command_index else {
-            self.active_element.toggle();
-            self.selected_command_index = Some(0);
-
-            return Ok(());
-        };
-
-        if index == (self.workspace()?.commands.len() - 1) {
-            self.selected_command_index = None;
-            self.active_element.toggle();
-        } else {
-            self.selected_command_index = Some(index + 1);
-        }
+    fn reload_workspace(&mut self) -> Result<()> {
+        self.workspace = self.organizer.get_workspace(self.workspace.id)?;
 
         Ok(())
     }
 
-    fn select_prev(&mut self) -> Result<()> {
-        if self.workspace()?.commands.is_empty() {
-            return Ok(());
+    fn reset_selector(&mut self) {
+        self.selector = Selector::new(self.workspace.commands.clone());
+    }
+
+    fn select_next(&mut self) {
+        match self.active_element {
+            ActiveElement::Selector => self.selector.next(),
+            ActiveElement::SearchBar => {
+                self.selector.select_first();
+                self.active_element.toggle();
+            }
         }
+    }
 
-        let Some(index) = self.selected_command_index else {
-            self.selected_command_index = Some(self.workspace()?.commands.len() - 1);
-            self.active_element.toggle();
-
-            return Ok(());
-        };
-
-        if index == 0 {
-            self.selected_command_index = None;
-            self.active_element.toggle();
-        } else {
-            self.selected_command_index = Some(index - 1);
+    fn select_prev(&mut self) {
+        match self.active_element {
+            ActiveElement::Selector => self.selector.prev(),
+            ActiveElement::SearchBar => {
+                self.selector.select_last();
+                self.active_element.toggle();
+            }
         }
-
-        Ok(())
     }
 
     pub fn tableau(&mut self) -> Result<Option<TableauModel>> {
-        let Some(nidex) = self.selected_command_index else {
+        let Some(command) = self.selector.item() else {
             return Ok(None);
         };
 
-        let command = self.organizer.get_command(self.workspace_index, nidex)?;
-        let CommandExecutorOutput { stdout, stderr } = CommandExecutor::new(&command).execute()?;
+        let CommandExecutorOutput { stdout, stderr } = CommandExecutor::new(command).execute()?;
         let model = TableauModel::new(TableauModelParameters {
             command,
             stdout,
@@ -188,45 +222,42 @@ impl<'a> Model<'a> {
 
     pub fn update(&mut self, message: Message) -> Result<()> {
         match message {
-            Message::SelectPreviousCommand => self.select_prev()?,
-            Message::SelectNextCommand => self.select_next()?,
-            Message::DeleteCommand => self.delete_command()?,
-            Message::Exit => self.exit(),
             Message::CreateCommand(parameters) => self.create_command(parameters)?,
+            Message::DeleteChar => self.delete_char(),
+            Message::DeleteCommand => self.delete_command()?,
+            Message::EnterChar(c) => self.enter_char(c),
+            Message::Exit => self.exit(),
+            Message::MoveCusorLeft => self.move_cursor_left(),
+            Message::MoveCusorRight => self.move_cursor_right(),
+            Message::SelectNextCommand => self.select_next(),
+            Message::SelectPreviousCommand => self.select_prev(),
+            Message::ActivateSearchBar => self.activate_search_bar(),
         }
 
         Ok(())
     }
 
+    fn update_selector(&mut self) {
+        let search_query = self.search_bar.value();
+        self.selector = Selector::new(
+            self.workspace
+                .commands
+                .clone()
+                .into_iter()
+                .filter(|command| command.program.contains(search_query))
+                .collect(),
+        );
+    }
+
     pub fn view(&self, frame: &mut Frame) {
-        let workspace = self.organizer.get_workspace(self.workspace_index).unwrap();
-        let programs: Vec<String> = workspace
-            .commands
-            .iter()
-            .map(|command| command.program.clone())
-            .collect();
-
-        let command_name = if let Some(index) = self.selected_command_index {
-            let command = &workspace.commands[index];
-            &command.name
-        } else {
-            ""
-        };
-
         let view = View {
-            programs: &programs,
-            selected_command_index: self.selected_command_index,
-            workspace_name: &workspace.name,
-            command_name,
+            workspace: &self.workspace,
+            selector: &self.selector,
             active_element: &self.active_element,
             search_bar: &self.search_bar,
         };
 
         view.render(frame);
-    }
-
-    fn workspace(&self) -> Result<Workspace> {
-        self.organizer.get_workspace(self.workspace_index)
     }
 }
 
@@ -243,21 +274,34 @@ impl<'a> View<'a> {
         .flex(Flex::Start);
         let [search_bar, programs_list, program_name] = layout.areas(frame.area());
 
-        let list = List::new(self.programs.to_vec())
+        let values: Vec<&str> = self
+            .selector
+            .items()
+            .iter()
+            .map(|command| command.program.as_str())
+            .collect();
+
+        let list = List::new(values)
             .highlight_style(Style::new().reversed())
             .block(
                 Block::new()
-                    .title(format!("{} commands", self.workspace_name))
+                    .title(format!("{} commands", self.workspace.name))
                     .title_alignment(Alignment::Center)
                     .borders(Borders::all()),
             );
         let mut state = ListState::default();
 
-        state.select(self.selected_command_index);
+        state.select(self.selector.item_number());
 
         frame.render_stateful_widget(list, programs_list, &mut state);
 
-        let paragraph = Paragraph::new(self.command_name).block(
+        let paragraph = Paragraph::new(
+            self.selector
+                .item()
+                .map(|command| command.name.as_str())
+                .unwrap_or_default(),
+        )
+        .block(
             Block::new()
                 .title("Command name")
                 .title_alignment(Alignment::Center)

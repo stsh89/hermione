@@ -1,7 +1,7 @@
-use crate::{data::Command as CommandData, data::Workspace as WorkspaceData, Result};
+use crate::{data::Workspace as WorkspaceData, Result};
 use hermione_memory::{
-    Command, CommandName, CommandParameters, Error, Id, Load, LoadOrganizer, Organizer, Program,
-    Save, SaveOrganizer, Workspace, WorkspaceName, WorkspaceParameters,
+    CommandId, Error, Load, LoadOrganizer, NewCommandParameters, NewWorkspaceParameters, Organizer,
+    Save, SaveOrganizer, WorkspaceId,
 };
 use std::{
     fs::{File, OpenOptions},
@@ -15,50 +15,44 @@ pub struct Client {
 
 struct Inner;
 
+pub struct CreateCommandParameters {
+    pub workspace_id: usize,
+    pub name: String,
+    pub program: String,
+}
+
 impl Client {
-    pub fn create_command(
-        &mut self,
-        workspace_index: usize,
-        name: String,
-        program: String,
-    ) -> Result<()> {
-        let command = Command::new(CommandParameters {
-            program: Program::new(program),
-            name: CommandName::new(name.clone()),
-        });
+    pub fn create_command(&mut self, parameters: CreateCommandParameters) -> Result<()> {
+        let CreateCommandParameters {
+            workspace_id,
+            name,
+            program,
+        } = parameters;
 
-        self.organizer
-            .add_command(&Id::new(workspace_index), command)?;
+        self.organizer.add_command(
+            &WorkspaceId::new(workspace_id),
+            NewCommandParameters { name, program },
+        )?;
 
         Ok(())
     }
 
-    pub fn delete_command(&mut self, workspace_index: usize, command_index: usize) -> Result<()> {
+    pub fn delete_command(&mut self, workspace_id: usize, command_id: usize) -> Result<()> {
         self.organizer
-            .delete_command(&Id::new(workspace_index), &Id::new(command_index))?;
+            .delete_command(&WorkspaceId::new(workspace_id), &CommandId::new(command_id))?;
 
         Ok(())
-    }
-
-    pub fn get_command(&self, workspace_index: usize, command_index: usize) -> Result<CommandData> {
-        let command = self
-            .organizer
-            .get_command(&Id::new(workspace_index), &Id::new(command_index))?;
-
-        Ok(command.into())
     }
 
     pub fn get_workspace(&self, index: usize) -> Result<WorkspaceData> {
-        let workspace = self.organizer.get_workspace(&Id::new(index))?;
+        let workspace = self.organizer.get_workspace(&WorkspaceId::new(index))?;
 
         Ok(workspace.into())
     }
 
     pub fn new() -> Result<Self> {
         let inner = Inner {};
-
         let organizer = LoadOrganizer { loader: &inner }.load()?;
-
         let client = Self { inner, organizer };
 
         Ok(client)
@@ -71,18 +65,14 @@ impl Client {
     }
 
     pub fn create_workspace(&mut self, name: String) -> Result<()> {
-        let workspace = Workspace::new(WorkspaceParameters {
-            name: WorkspaceName::new(name),
-            commands: vec![],
-        });
-
-        self.organizer.add_workspace(workspace);
+        self.organizer
+            .add_workspace(NewWorkspaceParameters { name });
 
         Ok(())
     }
 
-    pub fn delete_workspace(&mut self, index: usize) -> Result<()> {
-        self.organizer.delete_workspace(&Id::new(index))?;
+    pub fn delete_workspace(&mut self, id: usize) -> Result<()> {
+        self.organizer.delete_workspace(&WorkspaceId::new(id))?;
 
         Ok(())
     }
@@ -99,11 +89,23 @@ impl Load for Inner {
         let workspaces: Vec<WorkspaceData> =
             serde_json::from_reader(reader).map_err(eyre::Report::new)?;
 
-        let mut organizer = Organizer::empty();
+        let mut organizer = Organizer::initialize();
 
-        workspaces.into_iter().for_each(|workspace| {
-            organizer.add_workspace(workspace.into());
-        });
+        for workspace in workspaces {
+            let id = organizer.add_workspace(NewWorkspaceParameters {
+                name: workspace.name,
+            });
+
+            for command in workspace.commands {
+                organizer.add_command(
+                    &id,
+                    NewCommandParameters {
+                        name: command.name,
+                        program: command.program,
+                    },
+                )?;
+            }
+        }
 
         Ok(organizer)
     }
@@ -113,6 +115,8 @@ impl Save for Inner {
     fn save(&self, organizer: &Organizer) -> Result<(), Error> {
         let mut file = OpenOptions::new()
             .write(true)
+            .append(false)
+            .truncate(true)
             .open("hermione.json")
             .map_err(eyre::Report::new)?;
 

@@ -66,7 +66,7 @@ impl<'a> Runner<'a> {
     }
 
     fn run_command_center(&mut self) -> Result<()> {
-        let Some(model) = self.model.command_center() else {
+        let Some(model) = self.model.command_center()? else {
             return Ok(());
         };
 
@@ -76,6 +76,7 @@ impl<'a> Runner<'a> {
         });
 
         command_center.run()?;
+        self.model.reset_selector();
 
         Ok(())
     }
