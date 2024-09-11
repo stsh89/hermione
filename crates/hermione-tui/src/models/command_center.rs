@@ -108,16 +108,22 @@ impl<'a> Model<'a> {
         Ok(())
     }
 
-    fn delete_char(&mut self) {
+    fn delete_char(&mut self) -> Result<()> {
         if self.element.is_search_bar() {
             self.search_bar.delete_char();
+            self.update_selector()?;
         }
+
+        Ok(())
     }
 
-    fn enter_char(&mut self, new_char: char) {
+    fn enter_char(&mut self, new_char: char) -> Result<()> {
         if self.element.is_search_bar() {
             self.search_bar.enter_char(new_char);
+            self.update_selector()?;
         }
+
+        Ok(())
     }
 
     fn exit(&mut self) {
@@ -176,8 +182,10 @@ impl<'a> Model<'a> {
                 }
             }
             Element::SearchBar => {
-                self.element.toggle();
-                self.state = State::Selecting;
+                if self.selector.is_some() {
+                    self.element.toggle();
+                    self.state = State::Selecting;
+                }
             }
         }
     }
@@ -190,8 +198,10 @@ impl<'a> Model<'a> {
                 }
             }
             Element::SearchBar => {
-                self.element.toggle();
-                self.state = State::Selecting;
+                if self.selector.is_some() {
+                    self.element.toggle();
+                    self.state = State::Selecting;
+                }
             }
         }
     }
@@ -201,9 +211,9 @@ impl<'a> Model<'a> {
 
         match message {
             Message::ActivateSearchBar => self.activate_search_bar(),
-            Message::DeleteChar => self.delete_char(),
+            Message::DeleteChar => self.delete_char()?,
             Message::DeleteCommand => self.delete_command()?,
-            Message::EnterChar(c) => self.enter_char(c),
+            Message::EnterChar(c) => self.enter_char(c)?,
             Message::Exit => self.exit(),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
@@ -225,11 +235,25 @@ impl<'a> Model<'a> {
 
     fn update_selector(&mut self) -> Result<()> {
         let commands = self.organizer.get_workspace(self.workspace.id)?.commands;
+        let search_query = self.search_bar.value().to_lowercase();
 
         let selector = if commands.is_empty() {
             None
         } else {
-            Some(Selector::new(commands)?)
+            let commands = if search_query.is_empty() {
+                commands
+            } else {
+                commands
+                    .into_iter()
+                    .filter(|command| command.program.to_lowercase().contains(&search_query))
+                    .collect()
+            };
+
+            if commands.is_empty() {
+                None
+            } else {
+                Some(Selector::new(commands)?)
+            }
         };
 
         self.selector = selector;
