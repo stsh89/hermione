@@ -174,7 +174,6 @@ mod inner {
         fn save(&self, organizer: &Organizer) -> Result<(), Error> {
             let mut file = OpenOptions::new()
                 .write(true)
-                .append(false)
                 .truncate(true)
                 .open("hermione.json")
                 .map_err(eyre::Report::new)?;
