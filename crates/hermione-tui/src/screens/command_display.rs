@@ -1,5 +1,5 @@
 use crate::{
-    clients::OrganizerClient,
+    clients::organizer::Client,
     models::command_display::{Model, ModelParameters},
     runners::command_display::{Runner, RunnerParameters},
     Result,
@@ -10,7 +10,7 @@ use std::io::Stdout;
 pub struct CommandDisplay<'a> {
     pub workspace_id: usize,
     pub command_id: usize,
-    pub organizer: &'a mut OrganizerClient,
+    pub organizer: &'a mut Client,
     pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 

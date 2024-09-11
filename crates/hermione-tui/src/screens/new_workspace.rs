@@ -1,5 +1,5 @@
 use crate::{
-    clients::OrganizerClient,
+    clients::organizer::Client,
     models::new_workspace::Model,
     runners::new_workspace::{Runner, RunnerParameters},
     Result,
@@ -8,7 +8,7 @@ use ratatui::{prelude::CrosstermBackend, Terminal};
 use std::io::Stdout;
 
 pub struct NewWorkspace<'a> {
-    pub organizer: &'a mut OrganizerClient,
+    pub organizer: &'a mut Client,
     pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 

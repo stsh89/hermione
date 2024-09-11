@@ -1,5 +1,5 @@
 use crate::{
-    clients::OrganizerClient,
+    clients::organizer::Client,
     data::{Command, Workspace},
     elements::Selector,
     Result,
@@ -15,11 +15,11 @@ use ratatui::{
 pub struct Model<'a> {
     selector: Selector<(Workspace, Vec<Command>)>,
     state: State,
-    organizer: &'a mut OrganizerClient,
+    organizer: &'a mut Client,
 }
 
 pub struct ModelParameters<'a> {
-    pub organizer: &'a mut OrganizerClient,
+    pub organizer: &'a mut Client,
 }
 
 enum State {

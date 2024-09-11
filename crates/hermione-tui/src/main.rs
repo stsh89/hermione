@@ -6,13 +6,13 @@ mod runners;
 mod screens;
 
 use anyhow::Result;
-use clients::OrganizerClient;
+use clients::organizer::Client;
 
 fn main() -> Result<()> {
     tui::install_panic_hook();
 
     let mut terminal = tui::init_terminal()?;
-    let mut organizer = OrganizerClient::new()?;
+    let mut organizer = Client::new()?;
     let lobby = screens::Lobby {
         organizer: &mut organizer,
         terminal: &mut terminal,

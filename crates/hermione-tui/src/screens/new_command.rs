@@ -1,5 +1,5 @@
 use crate::{
-    clients::{CreateCommandParameters, OrganizerClient},
+    clients::organizer::{Client, CreateCommandParameters},
     models::new_command::Model,
     runners::new_command::{NewCommandParameters, Runner, RunnerParameters},
     Result,
@@ -9,7 +9,7 @@ use std::io::Stdout;
 
 pub struct NewCommand<'a> {
     pub workspace_id: usize,
-    pub organizer: &'a mut OrganizerClient,
+    pub organizer: &'a mut Client,
     pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 

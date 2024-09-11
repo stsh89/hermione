@@ -1,5 +1,5 @@
 use crate::{
-    clients::{CommandExecutor, CommandExecutorOutput},
+    clients::command_executor::{Client, Output},
     data::Command,
     Result,
 };
@@ -38,8 +38,7 @@ struct View<'a> {
 
 impl Model {
     fn execute_command(&mut self) -> Result<()> {
-        let CommandExecutorOutput { stdout, stderr } =
-            CommandExecutor::new(&self.command).execute()?;
+        let Output { stdout, stderr } = Client::new(&self.command).execute()?;
 
         self.stderr = stderr;
         self.stdout = stdout;

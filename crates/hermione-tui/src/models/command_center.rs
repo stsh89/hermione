@@ -1,5 +1,5 @@
 use crate::{
-    clients::OrganizerClient,
+    clients::organizer::Client,
     data::{Command, Workspace},
     elements::{Input, Selector},
     Result,
@@ -30,7 +30,7 @@ pub enum Message {
 
 pub struct Model<'a> {
     element: Element,
-    organizer: &'a mut OrganizerClient,
+    organizer: &'a mut Client,
     search_bar: Input,
     selector: Option<Selector<Command>>,
     state: State,
@@ -38,7 +38,7 @@ pub struct Model<'a> {
 }
 
 pub struct ModelParameters<'a> {
-    pub organizer: &'a mut OrganizerClient,
+    pub organizer: &'a mut Client,
     pub workspace: Workspace,
 }
 

@@ -1,5 +1,5 @@
 use crate::{
-    clients::OrganizerClient,
+    clients::organizer::Client,
     models::lobby::{Model, ModelParameters},
     runners::lobby::{Runner, RunnerParameters, Signal},
     screens::{CommandCenter, NewWorkspace},
@@ -9,7 +9,7 @@ use ratatui::{prelude::CrosstermBackend, Terminal};
 use std::io::Stdout;
 
 pub struct Lobby<'a> {
-    pub organizer: &'a mut OrganizerClient,
+    pub organizer: &'a mut Client,
     pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 
