@@ -3,13 +3,28 @@ use crate::{
     Result,
 };
 use hermione_memory::{
-    CommandId, Error, Load, LoadOrganizer, NewCommandParameters, NewWorkspaceParameters, Organizer,
-    Save, SaveOrganizer, WorkspaceId,
+    Command, CommandId, Error, Load, LoadOrganizer, NewCommandParameters, NewWorkspaceParameters,
+    Organizer, Save, SaveOrganizer, Workspace, WorkspaceId,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     fs::{File, OpenOptions},
     io::BufReader,
 };
+
+#[derive(Serialize, Deserialize)]
+struct WorkspaceRecord {
+    id: usize,
+    name: String,
+    commands: Vec<CommandRecord>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct CommandRecord {
+    id: usize,
+    name: String,
+    program: String,
+}
 
 pub struct Client {
     inner: Inner,
@@ -65,17 +80,29 @@ impl Client {
             .organizer
             .get_command(&WorkspaceId::new(workspace_id), &CommandId::new(command_id))?;
 
-        Ok(command.into())
+        Ok(from_command(command))
     }
 
-    pub fn get_workspace(&self, id: usize) -> Result<WorkspaceData> {
+    pub fn get_workspace(&self, id: usize) -> Result<(WorkspaceData, Vec<CommandData>)> {
         let workspace = self.organizer.get_workspace(&WorkspaceId::new(id))?;
 
-        Ok(workspace.into())
+        Ok((
+            from_workspace(workspace),
+            workspace.commands().iter().map(from_command).collect(),
+        ))
     }
 
-    pub fn list_workspaces(&self) -> Vec<WorkspaceData> {
-        self.organizer.workspaces().iter().map(Into::into).collect()
+    pub fn list_workspaces(&self) -> Vec<(WorkspaceData, Vec<CommandData>)> {
+        self.organizer
+            .workspaces()
+            .iter()
+            .map(|workspace| {
+                (
+                    from_workspace(workspace),
+                    workspace.commands().iter().map(from_command).collect(),
+                )
+            })
+            .collect()
     }
 
     pub fn new() -> Result<Self> {
@@ -97,7 +124,7 @@ impl Load for Inner {
     fn load(&self) -> Result<Organizer, Error> {
         let file = File::open("hermione.json").map_err(eyre::Report::new)?;
         let reader = BufReader::new(file);
-        let workspaces: Vec<WorkspaceData> =
+        let workspaces: Vec<WorkspaceRecord> =
             serde_json::from_reader(reader).map_err(eyre::Report::new)?;
 
         let mut organizer = Organizer::initialize();
@@ -131,11 +158,46 @@ impl Save for Inner {
             .open("hermione.json")
             .map_err(eyre::Report::new)?;
 
-        let workspaces: Vec<WorkspaceData> =
+        let workspaces: Vec<WorkspaceRecord> =
             organizer.workspaces().iter().map(Into::into).collect();
 
         serde_json::to_writer(&mut file, &workspaces).map_err(eyre::Report::new)?;
 
         Ok(())
+    }
+}
+
+fn from_workspace(value: &Workspace) -> WorkspaceData {
+    WorkspaceData {
+        id: value.id().raw(),
+        name: value.name().to_string(),
+    }
+}
+
+fn from_command(value: &Command) -> CommandData {
+    CommandData {
+        id: value.id().raw(),
+        name: value.name().to_string(),
+        program: value.program().to_string(),
+    }
+}
+
+impl From<&Workspace> for WorkspaceRecord {
+    fn from(value: &Workspace) -> Self {
+        WorkspaceRecord {
+            id: value.id().raw(),
+            name: value.name().to_string(),
+            commands: value.commands().iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<&Command> for CommandRecord {
+    fn from(value: &Command) -> Self {
+        CommandRecord {
+            id: value.id().raw(),
+            name: value.name().to_string(),
+            program: value.program().to_string(),
+        }
     }
 }

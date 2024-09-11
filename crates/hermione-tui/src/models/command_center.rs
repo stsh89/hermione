@@ -1,7 +1,7 @@
-use super::elements::{Input, Selector};
 use crate::{
     clients::OrganizerClient,
     data::{Command, Workspace},
+    elements::{Input, Selector},
     Result,
 };
 use ratatui::{
@@ -40,11 +40,6 @@ pub struct Model<'a> {
 pub struct ModelParameters<'a> {
     pub organizer: &'a mut OrganizerClient,
     pub workspace: Workspace,
-}
-
-pub struct NewCommand {
-    pub name: String,
-    pub program: String,
 }
 
 enum State {
@@ -234,7 +229,7 @@ impl<'a> Model<'a> {
     }
 
     fn update_selector(&mut self) -> Result<()> {
-        let commands = self.organizer.get_workspace(self.workspace.id)?.commands;
+        let (_workspace, commands) = self.organizer.get_workspace(self.workspace.id)?;
         let search_query = self.search_bar.value().to_lowercase();
 
         let selector = if commands.is_empty() {
@@ -270,10 +265,6 @@ impl<'a> Model<'a> {
         };
 
         view.render(frame);
-    }
-
-    pub fn workspace(&self) -> &Workspace {
-        &self.workspace
     }
 }
 

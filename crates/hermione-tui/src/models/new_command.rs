@@ -1,9 +1,10 @@
-use super::elements::Input;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout, Position},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
+
+use crate::elements::Input;
 
 pub struct Model {
     form_input: FormInput,

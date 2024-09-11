@@ -23,7 +23,7 @@ pub struct RunnerParameters<'a> {
 
 pub enum Signal {
     ExecuteCommand(usize),
-    NewCommandRequest(usize),
+    NewCommandRequest,
     Exit,
 }
 
@@ -47,8 +47,12 @@ impl<'a> Runner<'a> {
             }
             KeyCode::Char('d') if self.model.is_selecting() => Some(Message::DeleteCommand),
             KeyCode::Enter => {
-                if let Some(command) = self.model.command().cloned() {
-                    self.execute_command(&command);
+                if let Some(command) = self.model.command() {
+                    self.execute_command(&Command {
+                        id: command.id,
+                        name: command.name.clone(),
+                        program: command.program.clone(),
+                    });
                     None
                 } else {
                     None
@@ -84,7 +88,7 @@ impl<'a> Runner<'a> {
     }
 
     fn request_new_command(&mut self) {
-        self.signal = Some(Signal::NewCommandRequest(self.model.workspace().id));
+        self.signal = Some(Signal::NewCommandRequest);
     }
 
     pub fn run(mut self) -> Result<Signal> {

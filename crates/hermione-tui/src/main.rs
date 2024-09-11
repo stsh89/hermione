@@ -1,24 +1,24 @@
-mod app;
 mod clients;
 mod data;
+mod elements;
 mod models;
 mod runners;
+mod screens;
 
 use anyhow::Result;
-use app::App;
 use clients::OrganizerClient;
 
 fn main() -> Result<()> {
     tui::install_panic_hook();
 
-    let terminal = tui::init_terminal()?;
-    let organizer = OrganizerClient::new()?;
-    let app = App {
-        organizer,
-        terminal,
+    let mut terminal = tui::init_terminal()?;
+    let mut organizer = OrganizerClient::new()?;
+    let lobby = screens::Lobby {
+        organizer: &mut organizer,
+        terminal: &mut terminal,
     };
 
-    app.run()?;
+    lobby.enter()?;
     tui::restore_terminal()?;
 
     Ok(())

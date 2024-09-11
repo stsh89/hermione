@@ -1,8 +1,5 @@
 use crate::{
-    models::{
-        command_center::NewCommand,
-        new_command::{Message, Model},
-    },
+    models::new_command::{Message, Model},
     Result,
 };
 use ratatui::{
@@ -22,6 +19,11 @@ pub struct RunnerParameters<'a> {
     pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 
+pub struct NewCommandParameters {
+    pub name: String,
+    pub program: String,
+}
+
 impl<'a> Runner<'a> {
     pub fn new(parameters: RunnerParameters<'a>) -> Self {
         let RunnerParameters { model, terminal } = parameters;
@@ -29,7 +31,7 @@ impl<'a> Runner<'a> {
         Self { model, terminal }
     }
 
-    pub fn run(mut self) -> Result<Option<NewCommand>> {
+    pub fn run(mut self) -> Result<Option<NewCommandParameters>> {
         loop {
             self.terminal.draw(|frame| self.model.view(frame))?;
 
@@ -42,7 +44,7 @@ impl<'a> Runner<'a> {
             }
 
             if self.model.is_submited() {
-                return Ok(Some(NewCommand {
+                return Ok(Some(NewCommandParameters {
                     name: self.model.name().into(),
                     program: self.model.program().into(),
                 }));

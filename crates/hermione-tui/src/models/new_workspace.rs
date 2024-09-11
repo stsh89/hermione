@@ -1,4 +1,4 @@
-use super::elements::Input;
+use crate::elements::Input;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout, Position},
     widgets::{Block, Borders, Paragraph},

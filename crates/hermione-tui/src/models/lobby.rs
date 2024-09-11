@@ -1,4 +1,10 @@
-use crate::{clients::OrganizerClient, data::Workspace, Result};
+use crate::{
+    clients::OrganizerClient,
+    data::{Command, Workspace},
+    elements::Selector,
+    Result,
+};
+use anyhow::Ok;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
@@ -6,10 +12,8 @@ use ratatui::{
     Frame,
 };
 
-use super::elements::Selector;
-
 pub struct Model<'a> {
-    selector: Selector<Workspace>,
+    selector: Selector<(Workspace, Vec<Command>)>,
     state: State,
     organizer: &'a mut OrganizerClient,
 }
@@ -32,7 +36,7 @@ pub enum Message {
 }
 
 struct View<'a> {
-    selector: &'a Selector<Workspace>,
+    selector: &'a Selector<(Workspace, Vec<Command>)>,
 }
 
 impl Message {
@@ -48,7 +52,7 @@ impl Message {
 
 impl<'a> Model<'a> {
     fn delete_workspace(&mut self) -> Result<()> {
-        self.organizer.delete_workspace(self.selector.item().id)
+        self.organizer.delete_workspace(self.selector.item().0.id)
     }
 
     fn exit(&mut self) {
@@ -93,13 +97,12 @@ impl<'a> Model<'a> {
             Message::Save => self.save()?,
         }
 
-        let selector = if is_idempotent {
-            self.selector
+        if is_idempotent {
+            Ok(self)
         } else {
-            Selector::new(self.organizer.list_workspaces())?
-        };
-
-        Ok(Self { selector, ..self })
+            let selector = Selector::new(self.organizer.list_workspaces())?;
+            Ok(Self { selector, ..self })
+        }
     }
 
     pub fn view(&self, frame: &mut Frame) {
@@ -111,7 +114,7 @@ impl<'a> Model<'a> {
     }
 
     pub fn workspace(&self) -> &Workspace {
-        self.selector.item()
+        &self.selector.item().0
     }
 }
 
@@ -120,16 +123,16 @@ impl<'a> View<'a> {
         self.selector
             .items()
             .iter()
-            .map(|workspace| workspace.name.clone())
+            .map(|(workspace, _commands)| workspace.name.clone())
             .collect()
     }
 
     fn programs(&self) -> Vec<String> {
         self.selector
             .item()
-            .commands
+            .1
             .iter()
-            .map(|command| command.program.to_string())
+            .map(|command| command.program.clone())
             .collect()
     }
 
