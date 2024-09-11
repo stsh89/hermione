@@ -1,73 +1,47 @@
+use crate::Result;
+use anyhow::anyhow;
+
 pub struct Selector<T> {
+    cursor: usize,
     values: Vec<T>,
-    cursor: Option<usize>,
 }
 
 impl<T> Selector<T> {
-    pub fn select_first(&mut self) {
-        if !self.values.is_empty() {
-            self.cursor = Some(0);
-        }
-    }
-
-    pub fn item(&self) -> Option<&T> {
-        self.cursor.and_then(|current| self.values.get(current))
+    pub fn item(&self) -> &T {
+        &self.values[self.cursor]
     }
 
     pub fn items(&self) -> &[T] {
         &self.values
     }
 
-    pub fn item_number(&self) -> Option<usize> {
+    pub fn item_number(&self) -> usize {
         self.cursor
     }
 
-    pub fn select_last(&mut self) {
-        if !self.values.is_empty() {
-            self.cursor = Some(self.values.len() - 1);
+    pub fn new(values: Vec<T>) -> Result<Self> {
+        if values.is_empty() {
+            return Err(anyhow!("Selector cannot be empty"));
         }
-    }
 
-    pub fn new(values: Vec<T>) -> Self {
-        Self {
-            values,
-            cursor: None,
-        }
+        let selector = Self { values, cursor: 0 };
+
+        Ok(selector)
     }
 
     pub fn next(&mut self) {
-        if self.values.is_empty() {
-            return;
-        }
-
-        if let Some(current) = self.cursor {
-            if current < self.values.len() - 1 {
-                self.cursor = Some(current + 1);
-            } else {
-                self.cursor = Some(0);
-            }
+        self.cursor = if self.cursor < self.values.len() - 1 {
+            self.cursor + 1
         } else {
-            self.cursor = Some(0);
+            0
         }
     }
 
-    pub fn prev(&mut self) {
-        if self.values.is_empty() {
-            return;
-        }
-
-        if let Some(current) = self.cursor {
-            if current > 0 {
-                self.cursor = Some(current - 1);
-            } else {
-                self.cursor = Some(self.values.len() - 1);
-            }
+    pub fn previous(&mut self) {
+        self.cursor = if self.cursor > 0 {
+            self.cursor - 1
         } else {
-            self.cursor = Some(self.values.len() - 1);
+            self.values.len() - 1
         }
-    }
-
-    pub fn unselect(&mut self) {
-        self.cursor = None;
     }
 }

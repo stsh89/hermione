@@ -1,9 +1,6 @@
-use super::{
-    elements::{Input, Selector},
-    TableauModel, TableauModelParameters,
-};
+use super::elements::{Input, Selector};
 use crate::{
-    clients::{CommandExecutor, CommandExecutorOutput, CreateCommandParameters, OrganizerClient},
+    clients::OrganizerClient,
     data::{Command, Workspace},
     Result,
 };
@@ -14,14 +11,13 @@ use ratatui::{
     Frame,
 };
 
-enum ActiveElement {
+enum Element {
     Selector,
     SearchBar,
 }
 
 pub enum Message {
     ActivateSearchBar,
-    CreateCommand(NewCommand),
     DeleteChar,
     DeleteCommand,
     EnterChar(char),
@@ -33,10 +29,10 @@ pub enum Message {
 }
 
 pub struct Model<'a> {
-    active_element: ActiveElement,
+    element: Element,
     organizer: &'a mut OrganizerClient,
     search_bar: Input,
-    selector: Selector<Command>,
+    selector: Option<Selector<Command>>,
     state: State,
     workspace: Workspace,
 }
@@ -52,70 +48,75 @@ pub struct NewCommand {
 }
 
 enum State {
+    Editing,
     Exited,
-    Running,
+    Selecting,
 }
 
 struct View<'a> {
-    active_element: &'a ActiveElement,
+    active_element: &'a Element,
     search_bar: &'a Input,
-    selector: &'a Selector<Command>,
+    selector: Option<&'a Selector<Command>>,
     workspace: &'a Workspace,
 }
 
-impl ActiveElement {
+impl Element {
     fn is_search_bar(&self) -> bool {
-        matches!(self, ActiveElement::SearchBar)
+        matches!(self, Element::SearchBar)
     }
 
     fn toggle(&mut self) {
         *self = match *self {
-            ActiveElement::Selector => ActiveElement::SearchBar,
-            ActiveElement::SearchBar => ActiveElement::Selector,
+            Element::Selector => Element::SearchBar,
+            Element::SearchBar => Element::Selector,
         };
     }
 }
 
+impl Message {
+    fn is_idempotent(&self) -> bool {
+        match &self {
+            Self::ActivateSearchBar
+            | Self::DeleteChar
+            | Self::EnterChar(_)
+            | Self::Exit
+            | Self::MoveCusorLeft
+            | Self::MoveCusorRight
+            | Self::SelectNextCommand
+            | Self::SelectPreviousCommand => true,
+            Self::DeleteCommand => false,
+        }
+    }
+}
+
 impl<'a> Model<'a> {
-    fn create_command(&mut self, parameters: NewCommand) -> Result<()> {
-        let NewCommand { name, program } = parameters;
+    fn activate_search_bar(&mut self) {
+        self.element = Element::SearchBar;
+        self.state = State::Editing;
+    }
 
-        self.organizer.create_command(CreateCommandParameters {
-            workspace_id: self.workspace.id,
-            name,
-            program,
-        })?;
+    pub fn command(&self) -> Option<&Command> {
+        self.selector.as_ref().map(|selector| selector.item())
+    }
 
-        self.reload_workspace()?;
-        self.reset_selector();
+    fn delete_command(&mut self) -> Result<()> {
+        if let Some(selector) = &self.selector {
+            self.organizer
+                .delete_command(self.workspace.id, selector.item().id)?;
+        }
 
         Ok(())
     }
 
-    pub fn delete_command(&mut self) -> Result<()> {
-        let Some(command) = self.selector.item() else {
-            return Ok(());
-        };
-
-        self.organizer
-            .delete_command(self.workspace.id, command.id)?;
-        self.reload_workspace()?;
-        self.reset_selector();
-
-        Ok(())
-    }
-
-    pub fn delete_char(&mut self) {
-        if self.active_element.is_search_bar() {
+    fn delete_char(&mut self) {
+        if self.element.is_search_bar() {
             self.search_bar.delete_char();
-            self.update_selector();
         }
     }
 
-    pub fn enter_char(&mut self, new_char: char) {
-        if self.active_element.is_search_bar() {
+    fn enter_char(&mut self, new_char: char) {
+        if self.element.is_search_bar() {
             self.search_bar.enter_char(new_char);
-            self.update_selector();
         }
     }
 
@@ -123,145 +124,161 @@ impl<'a> Model<'a> {
         self.state = State::Exited;
     }
 
-    pub fn has_selected_command(&self) -> bool {
-        self.selector.item().is_some()
-    }
-
-    pub fn in_editor_mode(&self) -> bool {
-        matches!(self.active_element, ActiveElement::SearchBar)
-    }
-
-    pub fn in_normal_mode(&self) -> bool {
-        matches!(self.active_element, ActiveElement::Selector)
+    pub fn is_editing(&self) -> bool {
+        matches!(self.state, State::Editing)
     }
 
     pub fn is_exited(&self) -> bool {
         matches!(self.state, State::Exited)
     }
 
+    pub fn is_selecting(&self) -> bool {
+        matches!(self.state, State::Selecting)
+    }
+
     fn move_cursor_left(&mut self) {
-        if self.active_element.is_search_bar() {
+        if self.element.is_search_bar() {
             self.search_bar.move_cursor_left();
         }
     }
 
     fn move_cursor_right(&mut self) {
-        if self.active_element.is_search_bar() {
+        if self.element.is_search_bar() {
             self.search_bar.move_cursor_right();
         }
     }
 
-    pub fn new(params: ModelParameters<'a>) -> Self {
+    pub fn new(params: ModelParameters<'a>) -> Result<Self> {
         let ModelParameters {
             organizer,
             workspace,
         } = params;
 
-        let mut selector = Selector::new(workspace.commands.clone());
-        selector.select_first();
-
-        Self {
-            active_element: ActiveElement::Selector,
+        let mut model = Self {
+            element: Element::Selector,
             organizer,
             search_bar: Input::default(),
-            selector,
-            state: State::Running,
+            selector: None,
+            state: State::Selecting,
             workspace,
-        }
-    }
-
-    fn activate_search_bar(&mut self) {
-        self.active_element = ActiveElement::SearchBar;
-        self.selector.unselect();
-    }
-
-    fn reload_workspace(&mut self) -> Result<()> {
-        self.workspace = self.organizer.get_workspace(self.workspace.id)?;
-
-        Ok(())
-    }
-
-    fn reset_selector(&mut self) {
-        self.selector = Selector::new(self.workspace.commands.clone());
-    }
-
-    fn select_next(&mut self) {
-        match self.active_element {
-            ActiveElement::Selector => self.selector.next(),
-            ActiveElement::SearchBar => {
-                self.selector.select_first();
-                self.active_element.toggle();
-            }
-        }
-    }
-
-    fn select_prev(&mut self) {
-        match self.active_element {
-            ActiveElement::Selector => self.selector.prev(),
-            ActiveElement::SearchBar => {
-                self.selector.select_last();
-                self.active_element.toggle();
-            }
-        }
-    }
-
-    pub fn tableau(&mut self) -> Result<Option<TableauModel>> {
-        let Some(command) = self.selector.item() else {
-            return Ok(None);
         };
 
-        let CommandExecutorOutput { stdout, stderr } = CommandExecutor::new(command).execute()?;
-        let model = TableauModel::new(TableauModelParameters {
-            command,
-            stdout,
-            stderr,
-        });
+        model.update_selector()?;
 
-        Ok(Some(model))
+        Ok(model)
     }
 
-    pub fn update(&mut self, message: Message) -> Result<()> {
+    fn select_next_command(&mut self) {
+        match self.element {
+            Element::Selector => {
+                if let Some(selector) = &mut self.selector {
+                    selector.next();
+                }
+            }
+            Element::SearchBar => {
+                self.element.toggle();
+                self.state = State::Selecting;
+            }
+        }
+    }
+
+    fn select_previous_command(&mut self) {
+        match self.element {
+            Element::Selector => {
+                if let Some(selector) = &mut self.selector {
+                    selector.previous();
+                }
+            }
+            Element::SearchBar => {
+                self.element.toggle();
+                self.state = State::Selecting;
+            }
+        }
+    }
+
+    pub fn update(mut self, message: Message) -> Result<Self> {
+        let is_idempotent = message.is_idempotent();
+
         match message {
-            Message::CreateCommand(parameters) => self.create_command(parameters)?,
+            Message::ActivateSearchBar => self.activate_search_bar(),
             Message::DeleteChar => self.delete_char(),
             Message::DeleteCommand => self.delete_command()?,
             Message::EnterChar(c) => self.enter_char(c),
             Message::Exit => self.exit(),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
-            Message::SelectNextCommand => self.select_next(),
-            Message::SelectPreviousCommand => self.select_prev(),
-            Message::ActivateSearchBar => self.activate_search_bar(),
+            Message::SelectNextCommand => self.select_next_command(),
+            Message::SelectPreviousCommand => self.select_previous_command(),
         }
 
-        Ok(())
+        let selector = if is_idempotent {
+            self.selector
+        } else {
+            self.update_selector()?;
+            self.selector
+        };
+
+        let model = Self { selector, ..self };
+
+        Ok(model)
     }
 
-    fn update_selector(&mut self) {
-        let search_query = self.search_bar.value();
-        self.selector = Selector::new(
-            self.workspace
-                .commands
-                .clone()
-                .into_iter()
-                .filter(|command| command.program.contains(search_query))
-                .collect(),
-        );
+    fn update_selector(&mut self) -> Result<()> {
+        let commands = self.organizer.get_workspace(self.workspace.id)?.commands;
+
+        let selector = if commands.is_empty() {
+            None
+        } else {
+            Some(Selector::new(commands)?)
+        };
+
+        self.selector = selector;
+
+        Ok(())
     }
 
     pub fn view(&self, frame: &mut Frame) {
         let view = View {
             workspace: &self.workspace,
-            selector: &self.selector,
-            active_element: &self.active_element,
+            selector: self.selector.as_ref(),
+            active_element: &self.element,
             search_bar: &self.search_bar,
         };
 
         view.render(frame);
     }
+
+    pub fn workspace(&self) -> &Workspace {
+        &self.workspace
+    }
 }
 
 impl<'a> View<'a> {
+    fn selected_command_name(&self) -> &str {
+        self.selector
+            .as_ref()
+            .map(|selector| selector.item().name.as_str())
+            .unwrap_or_default()
+    }
+
+    fn selected_command_number(&self) -> Option<usize> {
+        self.selector
+            .as_ref()
+            .map(|selector| selector.item_number())
+    }
+
+    fn programs(&self) -> Vec<String> {
+        let Some(selector) = self.selector else {
+            return Vec::new();
+        };
+
+        selector
+            .items()
+            .iter()
+            .map(|command| command.program.clone())
+            .collect()
+    }
+
     fn render(&self, frame: &mut Frame) {
         let layout = Layout::new(
             Direction::Vertical,
@@ -274,14 +291,7 @@ impl<'a> View<'a> {
         .flex(Flex::Start);
         let [search_bar, programs_list, program_name] = layout.areas(frame.area());
 
-        let values: Vec<&str> = self
-            .selector
-            .items()
-            .iter()
-            .map(|command| command.program.as_str())
-            .collect();
-
-        let list = List::new(values)
+        let list = List::new(self.programs())
             .highlight_style(Style::new().reversed())
             .block(
                 Block::new()
@@ -291,17 +301,11 @@ impl<'a> View<'a> {
             );
         let mut state = ListState::default();
 
-        state.select(self.selector.item_number());
+        state.select(self.selected_command_number());
 
         frame.render_stateful_widget(list, programs_list, &mut state);
 
-        let paragraph = Paragraph::new(
-            self.selector
-                .item()
-                .map(|command| command.name.as_str())
-                .unwrap_or_default(),
-        )
-        .block(
+        let paragraph = Paragraph::new(self.selected_command_name()).block(
             Block::new()
                 .title("Command name")
                 .title_alignment(Alignment::Center)

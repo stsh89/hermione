@@ -1,5 +1,5 @@
 use crate::{
-    models::{TableauMessage, TableauModel},
+    models::command_display::{Message, Model},
     Result,
 };
 use ratatui::{
@@ -7,15 +7,15 @@ use ratatui::{
     prelude::CrosstermBackend,
     Terminal,
 };
-use std::{io::Stdout, time::Duration};
+use std::io::Stdout;
 
 pub struct Runner<'a> {
-    model: TableauModel<'a>,
+    model: Model,
     terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 
 pub struct RunnerParameters<'a> {
-    pub model: TableauModel<'a>,
+    pub model: Model,
     pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 
@@ -35,33 +35,27 @@ impl<'a> Runner<'a> {
             }
 
             if self.model.is_exited() {
-                break;
+                return Ok(());
             }
         }
-
-        Ok(())
     }
 
-    pub fn handle_key(&mut self, key_code: KeyCode) -> Result<Option<TableauMessage>> {
-        let mut message = None;
-
-        match key_code {
-            KeyCode::Esc => message = Some(TableauMessage::Exit),
-            KeyCode::Char('r') => message = Some(TableauMessage::RepeatCommand),
-            _ => {}
-        }
+    pub fn handle_key(&mut self, key_code: KeyCode) -> Result<Option<Message>> {
+        let message = match key_code {
+            KeyCode::Esc => Some(Message::Exit),
+            KeyCode::Char('r') => Some(Message::RepeatCommand),
+            _ => None,
+        };
 
         Ok(message)
     }
 
-    fn handle_event(&mut self) -> Result<Option<TableauMessage>> {
-        if event::poll(Duration::from_millis(250))? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == event::KeyEventKind::Press {
-                    let message = self.handle_key(key.code)?;
+    fn handle_event(&mut self) -> Result<Option<Message>> {
+        if let Event::Key(key) = event::read()? {
+            if key.kind == event::KeyEventKind::Press {
+                let message = self.handle_key(key.code)?;
 
-                    return Ok(message);
-                }
+                return Ok(message);
             }
         }
 

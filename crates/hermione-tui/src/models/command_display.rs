@@ -9,36 +9,44 @@ use ratatui::{
     Frame,
 };
 
-pub struct Model<'a> {
-    command: &'a Command,
+pub struct Model {
+    command: Command,
     stdout: String,
     stderr: String,
     state: State,
 }
 
-pub struct ModelParameters<'a> {
-    pub command: &'a Command,
-    pub stdout: String,
-    pub stderr: String,
+pub struct ModelParameters {
+    pub command: Command,
 }
 
 pub enum Message {
-    RepeatCommand,
     Exit,
+    RepeatCommand,
 }
 
 enum State {
-    Running,
     Exited,
+    Running,
 }
 
 struct View<'a> {
     program: &'a str,
-    stdout: &'a str,
     stderr: &'a str,
+    stdout: &'a str,
 }
 
-impl<'a> Model<'a> {
+impl Model {
+    fn execute_command(&mut self) -> Result<()> {
+        let CommandExecutorOutput { stdout, stderr } =
+            CommandExecutor::new(&self.command).execute()?;
+
+        self.stderr = stderr;
+        self.stdout = stdout;
+
+        Ok(())
+    }
+
     fn exit(&mut self) {
         self.state = State::Exited;
     }
@@ -47,29 +55,23 @@ impl<'a> Model<'a> {
         matches!(self.state, State::Exited)
     }
 
-    pub fn new(parameters: ModelParameters<'a>) -> Self {
-        let ModelParameters {
-            command,
-            stdout,
-            stderr,
-        } = parameters;
+    pub fn new(parameters: ModelParameters) -> Result<Self> {
+        let ModelParameters { command } = parameters;
 
-        Self {
-            stdout,
-            stderr,
+        let mut model = Self {
             command,
             state: State::Running,
-        }
+            stderr: String::new(),
+            stdout: String::new(),
+        };
+
+        model.execute_command()?;
+
+        Ok(model)
     }
 
     fn repeat_command(&mut self) -> Result<()> {
-        let CommandExecutorOutput { stdout, stderr } =
-            CommandExecutor::new(self.command).execute()?;
-
-        self.stderr = stderr;
-        self.stdout = stdout;
-
-        Ok(())
+        self.execute_command()
     }
 
     pub fn update(&mut self, message: Message) -> Result<()> {

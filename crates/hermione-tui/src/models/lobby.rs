@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
 };
 
-use super::{elements::Selector, CommandCenterModel, CommandCenterModelParameters};
+use super::elements::Selector;
 
 pub struct Model<'a> {
     selector: Selector<Workspace>,
@@ -24,7 +24,6 @@ enum State {
 }
 
 pub enum Message {
-    CreateWorkspace(String),
     DeleteWorkspace,
     Exit,
     SelectNextWorkspace,
@@ -36,33 +35,71 @@ struct View<'a> {
     selector: &'a Selector<Workspace>,
 }
 
+impl Message {
+    fn is_idempotent(&self) -> bool {
+        match &self {
+            Self::Exit | Self::Save | Self::SelectNextWorkspace | Self::SelectPreviousWorkspace => {
+                true
+            }
+            Self::DeleteWorkspace => false,
+        }
+    }
+}
+
 impl<'a> Model<'a> {
-    pub fn command_center(&mut self) -> Result<Option<CommandCenterModel>> {
-        let Some(workspace) = self.selector.item() else {
-            return Ok(None);
-        };
+    fn delete_workspace(&mut self) -> Result<()> {
+        self.organizer.delete_workspace(self.selector.item().id)
+    }
 
-        let model = CommandCenterModel::new(CommandCenterModelParameters {
-            workspace: workspace.clone(),
-            organizer: self.organizer,
-        });
+    fn exit(&mut self) {
+        self.state = State::Exited;
+    }
 
-        Ok(Some(model))
+    pub fn is_exited(&self) -> bool {
+        matches!(self.state, State::Exited)
+    }
+
+    pub fn new(parameters: ModelParameters<'a>) -> Result<Self> {
+        let ModelParameters { organizer } = parameters;
+        let workspaces = organizer.list_workspaces();
+
+        Ok(Self {
+            selector: Selector::new(workspaces)?,
+            state: State::Running,
+            organizer,
+        })
     }
 
     fn save(&self) -> Result<()> {
         self.organizer.save()
     }
 
-    pub fn new(parameters: ModelParameters<'a>) -> Self {
-        let ModelParameters { organizer } = parameters;
-        let workspaces = organizer.workspaces();
+    fn select_next_workspace(&mut self) {
+        self.selector.next();
+    }
 
-        Self {
-            selector: Selector::new(workspaces),
-            state: State::Running,
-            organizer,
+    fn select_previous_workspace(&mut self) {
+        self.selector.previous()
+    }
+
+    pub fn update(mut self, message: Message) -> Result<Self> {
+        let is_idempotent = message.is_idempotent();
+
+        match message {
+            Message::DeleteWorkspace => self.delete_workspace()?,
+            Message::Exit => self.exit(),
+            Message::SelectNextWorkspace => self.select_next_workspace(),
+            Message::SelectPreviousWorkspace => self.select_previous_workspace(),
+            Message::Save => self.save()?,
         }
+
+        let selector = if is_idempotent {
+            self.selector
+        } else {
+            Selector::new(self.organizer.list_workspaces())?
+        };
+
+        Ok(Self { selector, ..self })
     }
 
     pub fn view(&self, frame: &mut Frame) {
@@ -73,53 +110,8 @@ impl<'a> Model<'a> {
         view.render(frame);
     }
 
-    fn delete_workspace(&mut self) -> Result<()> {
-        if let Some(workspace) = self.selector.item() {
-            self.organizer.delete_workspace(workspace.id)?;
-            self.reset_selector();
-        }
-
-        Ok(())
-    }
-
-    fn create_workspace(&mut self, name: String) -> Result<()> {
-        self.organizer.create_workspace(name.to_string())?;
-        self.reset_selector();
-
-        Ok(())
-    }
-
-    pub fn reset_selector(&mut self) {
-        self.selector = Selector::new(self.organizer.workspaces());
-    }
-
-    fn select_next(&mut self) {
-        self.selector.next();
-    }
-
-    fn select_prev(&mut self) {
-        self.selector.prev()
-    }
-
-    pub fn is_exited(&self) -> bool {
-        matches!(self.state, State::Exited)
-    }
-
-    fn exit(&mut self) {
-        self.state = State::Exited;
-    }
-
-    pub fn update(&mut self, message: Message) -> Result<()> {
-        match message {
-            Message::CreateWorkspace(name) => self.create_workspace(name)?,
-            Message::DeleteWorkspace => self.delete_workspace()?,
-            Message::Exit => self.exit(),
-            Message::SelectNextWorkspace => self.select_next(),
-            Message::SelectPreviousWorkspace => self.select_prev(),
-            Message::Save => self.save()?,
-        }
-
-        Ok(())
+    pub fn workspace(&self) -> &Workspace {
+        self.selector.item()
     }
 }
 
@@ -133,11 +125,8 @@ impl<'a> View<'a> {
     }
 
     fn programs(&self) -> Vec<String> {
-        let Some(workspace) = self.selector.item() else {
-            return vec![];
-        };
-
-        workspace
+        self.selector
+            .item()
             .commands
             .iter()
             .map(|command| command.program.to_string())
@@ -162,7 +151,7 @@ impl<'a> View<'a> {
             );
         let mut state = ListState::default();
 
-        state.select(self.selector.item_number());
+        state.select(Some(self.selector.item_number()));
 
         frame.render_stateful_widget(list, left, &mut state);
 

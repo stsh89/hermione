@@ -82,6 +82,13 @@ impl Organizer {
         }
     }
 
+    pub fn get_command(&self, w_id: &WorkspaceId, c_id: &CommandId) -> Result<&Command> {
+        self.get_workspace(w_id)?
+            .commands
+            .get(c_id.raw())
+            .ok_or(Error::NotFound("command".into()))
+    }
+
     pub fn get_workspace(&self, id: &WorkspaceId) -> Result<&Workspace> {
         self.workspaces
             .get(id.raw())

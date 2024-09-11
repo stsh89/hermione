@@ -1,4 +1,7 @@
-use crate::{data::Workspace as WorkspaceData, Result};
+use crate::{
+    data::{Command as CommandData, Workspace as WorkspaceData},
+    Result,
+};
 use hermione_memory::{
     CommandId, Error, Load, LoadOrganizer, NewCommandParameters, NewWorkspaceParameters, Organizer,
     Save, SaveOrganizer, WorkspaceId,
@@ -22,7 +25,7 @@ pub struct CreateCommandParameters {
 }
 
 impl Client {
-    pub fn create_command(&mut self, parameters: CreateCommandParameters) -> Result<()> {
+    pub fn add_command(&mut self, parameters: CreateCommandParameters) -> Result<()> {
         let CreateCommandParameters {
             workspace_id,
             name,
@@ -37,6 +40,13 @@ impl Client {
         Ok(())
     }
 
+    pub fn add_workspace(&mut self, name: String) -> Result<()> {
+        self.organizer
+            .add_workspace(NewWorkspaceParameters { name });
+
+        Ok(())
+    }
+
     pub fn delete_command(&mut self, workspace_id: usize, command_id: usize) -> Result<()> {
         self.organizer
             .delete_command(&WorkspaceId::new(workspace_id), &CommandId::new(command_id))?;
@@ -44,10 +54,28 @@ impl Client {
         Ok(())
     }
 
-    pub fn get_workspace(&self, index: usize) -> Result<WorkspaceData> {
-        let workspace = self.organizer.get_workspace(&WorkspaceId::new(index))?;
+    pub fn delete_workspace(&mut self, id: usize) -> Result<()> {
+        self.organizer.delete_workspace(&WorkspaceId::new(id))?;
+
+        Ok(())
+    }
+
+    pub fn get_command(&self, workspace_id: usize, command_id: usize) -> Result<CommandData> {
+        let command = self
+            .organizer
+            .get_command(&WorkspaceId::new(workspace_id), &CommandId::new(command_id))?;
+
+        Ok(command.into())
+    }
+
+    pub fn get_workspace(&self, id: usize) -> Result<WorkspaceData> {
+        let workspace = self.organizer.get_workspace(&WorkspaceId::new(id))?;
 
         Ok(workspace.into())
+    }
+
+    pub fn list_workspaces(&self) -> Vec<WorkspaceData> {
+        self.organizer.workspaces().iter().map(Into::into).collect()
     }
 
     pub fn new() -> Result<Self> {
@@ -62,23 +90,6 @@ impl Client {
         SaveOrganizer { saver: &self.inner }.save(&self.organizer)?;
 
         Ok(())
-    }
-
-    pub fn create_workspace(&mut self, name: String) -> Result<()> {
-        self.organizer
-            .add_workspace(NewWorkspaceParameters { name });
-
-        Ok(())
-    }
-
-    pub fn delete_workspace(&mut self, id: usize) -> Result<()> {
-        self.organizer.delete_workspace(&WorkspaceId::new(id))?;
-
-        Ok(())
-    }
-
-    pub fn workspaces(&self) -> Vec<WorkspaceData> {
-        self.organizer.workspaces().iter().map(Into::into).collect()
     }
 }
 
