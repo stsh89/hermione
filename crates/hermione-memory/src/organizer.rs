@@ -95,12 +95,6 @@ impl Organizer {
             .ok_or(Error::NotFound("workspace".into()))
     }
 
-    fn get_workspace_mut(&mut self, id: &WorkspaceId) -> Result<&mut Workspace> {
-        self.workspaces
-            .get_mut(id.raw())
-            .ok_or(Error::NotFound("workspace".into()))
-    }
-
     pub fn workspaces(&self) -> &[Workspace] {
         &self.workspaces
     }
