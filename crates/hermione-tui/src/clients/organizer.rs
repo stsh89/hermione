@@ -118,6 +118,8 @@ mod inner {
         io::BufReader,
     };
 
+    const DEFAULT_JSON_FILE: &str = "./data/hermione.json";
+
     pub struct Client;
 
     #[derive(Serialize, Deserialize)]
@@ -136,7 +138,7 @@ mod inner {
 
     impl Load for Client {
         fn load(&self) -> Result<Organizer, Error> {
-            let file = File::open("hermione.json").map_err(eyre::Report::new)?;
+            let file = File::open(DEFAULT_JSON_FILE).map_err(eyre::Report::new)?;
             let reader = BufReader::new(file);
             let workspaces: Vec<WorkspaceRecord> =
                 serde_json::from_reader(reader).map_err(eyre::Report::new)?;
@@ -168,7 +170,7 @@ mod inner {
             let mut file = OpenOptions::new()
                 .write(true)
                 .truncate(true)
-                .open("hermione.json")
+                .open(DEFAULT_JSON_FILE)
                 .map_err(eyre::Report::new)?;
 
             let workspaces: Vec<WorkspaceRecord> =
