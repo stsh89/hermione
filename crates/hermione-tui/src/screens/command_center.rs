@@ -1,7 +1,7 @@
 use crate::{
     clients::organizer::Client,
     models::command_center::{Model, ModelParameters},
-    runners::command_center::{Runner, RunnerParameters, Signal},
+    controllers::command_center::{Controller, ControllerParameters, Signal},
     screens::{CommandDisplay, NewCommand},
     Result,
 };
@@ -29,7 +29,7 @@ impl<'a> CommandCenter<'a> {
         loop {
             let workspace = self.organizer.get_workspace(self.workspace_id)?;
 
-            let runner = Runner::new(RunnerParameters {
+            let controller = Controller::new(ControllerParameters {
                 terminal: self.terminal,
                 model: Model::new(ModelParameters {
                     organizer: self.organizer,
@@ -37,7 +37,7 @@ impl<'a> CommandCenter<'a> {
                 })?,
             });
 
-            match runner.run()? {
+            match controller.run()? {
                 Signal::ExecuteCommand(command_id) => self.execute_command(command_id)?,
                 Signal::NewCommandRequest => self.new_command()?,
                 Signal::Exit => break,

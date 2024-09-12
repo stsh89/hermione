@@ -9,13 +9,13 @@ use ratatui::{
 };
 use std::io::Stdout;
 
-pub struct Runner<'a> {
+pub struct Controller<'a> {
     model: Model<'a>,
     terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
     signal: Option<Signal>,
 }
 
-pub struct RunnerParameters<'a> {
+pub struct ControllerParameters<'a> {
     pub model: Model<'a>,
     pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
@@ -26,7 +26,7 @@ pub enum Signal {
     Exit,
 }
 
-impl<'a> Runner<'a> {
+impl<'a> Controller<'a> {
     fn enter_command_center(&mut self) {
         self.signal = Some(Signal::EnterCommandCenter(self.model.workspace().id));
     }
@@ -65,8 +65,8 @@ impl<'a> Runner<'a> {
         Ok(message)
     }
 
-    pub fn new(parameters: RunnerParameters<'a>) -> Self {
-        let RunnerParameters { model, terminal } = parameters;
+    pub fn new(parameters: ControllerParameters<'a>) -> Self {
+        let ControllerParameters { model, terminal } = parameters;
 
         Self {
             model,

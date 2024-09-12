@@ -1,7 +1,7 @@
 use crate::{
     clients::organizer::Client,
     models::command_display::{Model, ModelParameters},
-    runners::command_display::{Runner, RunnerParameters},
+    controllers::command_display::{Controller, ControllerParameters},
     Result,
 };
 use ratatui::{prelude::CrosstermBackend, Terminal};
@@ -19,11 +19,11 @@ impl<'a> CommandDisplay<'a> {
         let command = self
             .organizer
             .get_command(self.workspace_id, self.command_id)?;
-        let runner = Runner::new(RunnerParameters {
+        let controller = Controller::new(ControllerParameters {
             terminal: self.terminal,
             model: Model::new(ModelParameters { command })?,
         });
 
-        runner.run()
+        controller.run()
     }
 }

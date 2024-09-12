@@ -1,5 +1,5 @@
 use crate::{
-    models::command_display::{Message, Model},
+    models::new_workspace::{Message, Model},
     Result,
 };
 use ratatui::{
@@ -9,43 +9,53 @@ use ratatui::{
 };
 use std::io::Stdout;
 
-pub struct Runner<'a> {
+pub struct Controller<'a> {
     model: Model,
     terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 
-pub struct RunnerParameters<'a> {
+pub struct ControllerParameters<'a> {
     pub model: Model,
     pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 
-impl<'a> Runner<'a> {
-    pub fn new(parameters: RunnerParameters<'a>) -> Self {
-        let RunnerParameters { model, terminal } = parameters;
+impl<'a> Controller<'a> {
+    pub fn new(parameters: ControllerParameters<'a>) -> Self {
+        let ControllerParameters { model, terminal } = parameters;
 
         Self { model, terminal }
     }
 
-    pub fn run(mut self) -> Result<()> {
+    pub fn run(mut self) -> Result<Option<String>> {
         loop {
             self.terminal.draw(|frame| self.model.view(frame))?;
 
             if let Some(message) = self.handle_event()? {
-                self.model.update(message)?;
+                self.model.update(message);
             }
 
             if self.model.is_exited() {
-                return Ok(());
+                return Ok(None);
+            }
+
+            if self.model.is_submited() {
+                return Ok(Some(self.model.name().into()));
             }
         }
     }
 
     pub fn handle_key(&mut self, key_code: KeyCode) -> Result<Option<Message>> {
-        let message = match key_code {
-            KeyCode::Esc => Some(Message::Exit),
-            KeyCode::Char('r') => Some(Message::RepeatCommand),
-            _ => None,
-        };
+        let mut message = None;
+
+        match key_code {
+            KeyCode::Left => message = Some(Message::MoveCusorLeft),
+            KeyCode::Right => message = Some(Message::MoveCusorRight),
+            KeyCode::Char(c) => message = Some(Message::EnterChar(c)),
+            KeyCode::Backspace => message = Some(Message::DeleteChar),
+            KeyCode::Enter => message = Some(Message::Submit),
+            KeyCode::Esc => message = Some(Message::Exit),
+            _ => {}
+        }
 
         Ok(message)
     }

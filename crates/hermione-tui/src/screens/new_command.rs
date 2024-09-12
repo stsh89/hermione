@@ -1,7 +1,7 @@
 use crate::{
     clients::organizer::{Client, CreateCommandParameters},
     models::new_command::Model,
-    runners::new_command::{NewCommandParameters, Runner, RunnerParameters},
+    controllers::new_command::{NewCommandParameters, Controller, ControllerParameters},
     Result,
 };
 use ratatui::{prelude::CrosstermBackend, Terminal};
@@ -15,12 +15,12 @@ pub struct NewCommand<'a> {
 
 impl<'a> NewCommand<'a> {
     pub fn enter(&mut self) -> Result<()> {
-        let runner = Runner::new(RunnerParameters {
+        let controller = Controller::new(ControllerParameters {
             terminal: self.terminal,
             model: Model::new(),
         });
 
-        if let Some(new_command) = runner.run()? {
+        if let Some(new_command) = controller.run()? {
             let NewCommandParameters { name, program } = new_command;
 
             self.organizer.add_command(CreateCommandParameters {

@@ -9,12 +9,12 @@ use ratatui::{
 };
 use std::io::Stdout;
 
-pub struct Runner<'a> {
+pub struct Controller<'a> {
     model: Model,
     terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
 
-pub struct RunnerParameters<'a> {
+pub struct ControllerParameters<'a> {
     pub model: Model,
     pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
 }
@@ -24,9 +24,9 @@ pub struct NewCommandParameters {
     pub program: String,
 }
 
-impl<'a> Runner<'a> {
-    pub fn new(parameters: RunnerParameters<'a>) -> Self {
-        let RunnerParameters { model, terminal } = parameters;
+impl<'a> Controller<'a> {
+    pub fn new(parameters: ControllerParameters<'a>) -> Self {
+        let ControllerParameters { model, terminal } = parameters;
 
         Self { model, terminal }
     }

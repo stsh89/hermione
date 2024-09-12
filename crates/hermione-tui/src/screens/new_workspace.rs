@@ -1,7 +1,7 @@
 use crate::{
     clients::organizer::Client,
     models::new_workspace::Model,
-    runners::new_workspace::{Runner, RunnerParameters},
+    controllers::new_workspace::{Controller, ControllerParameters},
     Result,
 };
 use ratatui::{prelude::CrosstermBackend, Terminal};
@@ -14,12 +14,12 @@ pub struct NewWorkspace<'a> {
 
 impl<'a> NewWorkspace<'a> {
     pub fn enter(&mut self) -> Result<()> {
-        let runner = Runner::new(RunnerParameters {
+        let controller = Controller::new(ControllerParameters {
             terminal: self.terminal,
             model: Model::new(),
         });
 
-        if let Some(name) = runner.run()? {
+        if let Some(name) = controller.run()? {
             self.organizer.add_workspace(name)?;
         }
 

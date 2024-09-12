@@ -1,7 +1,7 @@
 use crate::{
     clients::organizer::Client,
     models::lobby::{Model, ModelParameters},
-    runners::lobby::{Runner, RunnerParameters, Signal},
+    controllers::lobby::{Controller, ControllerParameters, Signal},
     screens::{CommandCenter, NewWorkspace},
     Result,
 };
@@ -16,14 +16,14 @@ pub struct Lobby<'a> {
 impl<'a> Lobby<'a> {
     pub fn enter(mut self) -> Result<()> {
         loop {
-            let runner = Runner::new(RunnerParameters {
+            let controller = Controller::new(ControllerParameters {
                 terminal: self.terminal,
                 model: Model::new(ModelParameters {
                     organizer: self.organizer,
                 })?,
             });
 
-            match runner.run()? {
+            match controller.run()? {
                 Signal::EnterCommandCenter(workspace_id) => {
                     self.enter_command_center(workspace_id)?
                 }
