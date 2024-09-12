@@ -1,18 +1,23 @@
 use crate::{
     clients::organizer::Client,
-    models::new_workspace::Model,
     controllers::new_workspace::{Controller, ControllerParameters},
+    models::new_workspace::Model,
     Result,
 };
-use ratatui::{prelude::CrosstermBackend, Terminal};
-use std::io::Stdout;
+use ratatui::{backend::Backend, Terminal};
 
-pub struct NewWorkspace<'a> {
+pub struct NewWorkspace<'a, B>
+where
+    B: Backend,
+{
     pub organizer: &'a mut Client,
-    pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
+    pub terminal: &'a mut Terminal<B>,
 }
 
-impl<'a> NewWorkspace<'a> {
+impl<'a, B> NewWorkspace<'a, B>
+where
+    B: Backend,
+{
     pub fn enter(&mut self) -> Result<()> {
         let controller = Controller::new(ControllerParameters {
             terminal: self.terminal,

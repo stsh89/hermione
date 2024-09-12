@@ -1,8 +1,8 @@
 mod clients;
+mod controllers;
 mod data;
 mod elements;
 mod models;
-mod controllers;
 mod screens;
 
 use anyhow::Result;

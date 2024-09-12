@@ -3,21 +3,26 @@ use crate::{
     Result,
 };
 use ratatui::{
+    backend::Backend,
     crossterm::event::{self, Event, KeyCode},
-    prelude::CrosstermBackend,
     Terminal,
 };
-use std::io::Stdout;
 
-pub struct Controller<'a> {
+pub struct Controller<'a, B>
+where
+    B: Backend,
+{
     model: Model<'a>,
-    terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
+    terminal: &'a mut Terminal<B>,
     signal: Option<Signal>,
 }
 
-pub struct ControllerParameters<'a> {
+pub struct ControllerParameters<'a, B>
+where
+    B: Backend,
+{
     pub model: Model<'a>,
-    pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
+    pub terminal: &'a mut Terminal<B>,
 }
 
 pub enum Signal {
@@ -26,7 +31,10 @@ pub enum Signal {
     Exit,
 }
 
-impl<'a> Controller<'a> {
+impl<'a, B> Controller<'a, B>
+where
+    B: Backend,
+{
     fn enter_command_center(&mut self) {
         self.signal = Some(Signal::EnterCommandCenter(self.model.workspace().id));
     }
@@ -65,7 +73,7 @@ impl<'a> Controller<'a> {
         Ok(message)
     }
 
-    pub fn new(parameters: ControllerParameters<'a>) -> Self {
+    pub fn new(parameters: ControllerParameters<'a, B>) -> Self {
         let ControllerParameters { model, terminal } = parameters;
 
         Self {

@@ -1,24 +1,30 @@
 use crate::{
     clients::organizer::Client,
-    models::command_display::{Model, ModelParameters},
     controllers::command_display::{Controller, ControllerParameters},
+    models::command_display::{Model, ModelParameters},
     Result,
 };
-use ratatui::{prelude::CrosstermBackend, Terminal};
-use std::io::Stdout;
+use ratatui::{backend::Backend, Terminal};
 
-pub struct CommandDisplay<'a> {
+pub struct CommandDisplay<'a, B>
+where
+    B: Backend,
+{
     pub workspace_id: usize,
     pub command_id: usize,
     pub organizer: &'a mut Client,
-    pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
+    pub terminal: &'a mut Terminal<B>,
 }
 
-impl<'a> CommandDisplay<'a> {
+impl<'a, B> CommandDisplay<'a, B>
+where
+    B: Backend,
+{
     pub fn enter(&mut self) -> Result<()> {
         let command = self
             .organizer
             .get_command(self.workspace_id, self.command_id)?;
+
         let controller = Controller::new(ControllerParameters {
             terminal: self.terminal,
             model: Model::new(ModelParameters { command })?,

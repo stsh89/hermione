@@ -1,19 +1,24 @@
 use crate::{
     clients::organizer::Client,
-    models::lobby::{Model, ModelParameters},
     controllers::lobby::{Controller, ControllerParameters, Signal},
+    models::lobby::{Model, ModelParameters},
     screens::{CommandCenter, NewWorkspace},
     Result,
 };
-use ratatui::{prelude::CrosstermBackend, Terminal};
-use std::io::Stdout;
+use ratatui::{backend::Backend, Terminal};
 
-pub struct Lobby<'a> {
+pub struct Lobby<'a, B>
+where
+    B: Backend,
+{
     pub organizer: &'a mut Client,
-    pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
+    pub terminal: &'a mut Terminal<B>,
 }
 
-impl<'a> Lobby<'a> {
+impl<'a, B> Lobby<'a, B>
+where
+    B: Backend,
+{
     pub fn enter(mut self) -> Result<()> {
         loop {
             let controller = Controller::new(ControllerParameters {

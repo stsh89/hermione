@@ -1,20 +1,25 @@
 use crate::{
     clients::organizer::Client,
-    models::command_center::{Model, ModelParameters},
     controllers::command_center::{Controller, ControllerParameters, Signal},
+    models::command_center::{Model, ModelParameters},
     screens::{CommandDisplay, NewCommand},
     Result,
 };
-use ratatui::{prelude::CrosstermBackend, Terminal};
-use std::io::Stdout;
+use ratatui::{backend::Backend, Terminal};
 
-pub struct CommandCenter<'a> {
+pub struct CommandCenter<'a, B>
+where
+    B: Backend,
+{
     pub workspace_id: usize,
     pub organizer: &'a mut Client,
-    pub terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
+    pub terminal: &'a mut Terminal<B>,
 }
 
-impl<'a> CommandCenter<'a> {
+impl<'a, B> CommandCenter<'a, B>
+where
+    B: Backend,
+{
     fn execute_command(&mut self, command_id: usize) -> Result<()> {
         CommandDisplay {
             organizer: self.organizer,
