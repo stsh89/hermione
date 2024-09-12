@@ -1,6 +1,6 @@
 use crate::{
     clients::command_executor::{Client, Output},
-    data::Command,
+    entities::Command,
     Result,
 };
 use ratatui::{

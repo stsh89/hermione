@@ -1,5 +1,5 @@
 use crate::{
-    data::Command,
+    entities::Command,
     models::command_center::{Message, Model},
     Result,
 };

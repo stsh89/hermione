@@ -1,5 +1,5 @@
 use crate::{
-    data::{Command as CommandData, Workspace as WorkspaceData},
+    entities::{Command as CommandEntity, Workspace as WorkspaceEntity},
     Result,
 };
 use hermione_memory::{
@@ -54,7 +54,7 @@ impl Client {
         Ok(())
     }
 
-    pub fn get_command(&self, workspace_id: usize, command_id: usize) -> Result<CommandData> {
+    pub fn get_command(&self, workspace_id: usize, command_id: usize) -> Result<CommandEntity> {
         let command = self
             .organizer
             .get_command(&WorkspaceId::new(workspace_id), &CommandId::new(command_id))?;
@@ -62,13 +62,13 @@ impl Client {
         Ok(from_command(command))
     }
 
-    pub fn get_workspace(&self, id: usize) -> Result<WorkspaceData> {
+    pub fn get_workspace(&self, id: usize) -> Result<WorkspaceEntity> {
         let workspace = self.organizer.get_workspace(&WorkspaceId::new(id))?;
 
         Ok(from_workspace(workspace))
     }
 
-    pub fn list_workspaces(&self) -> Vec<WorkspaceData> {
+    pub fn list_workspaces(&self) -> Vec<WorkspaceEntity> {
         self.organizer
             .workspaces()
             .iter()
@@ -91,16 +91,16 @@ impl Client {
     }
 }
 
-fn from_workspace(value: &Workspace) -> WorkspaceData {
-    WorkspaceData {
+fn from_workspace(value: &Workspace) -> WorkspaceEntity {
+    WorkspaceEntity {
         id: value.id().raw(),
         name: value.name().to_string(),
         commands: value.commands().iter().map(from_command).collect(),
     }
 }
 
-fn from_command(value: &Command) -> CommandData {
-    CommandData {
+fn from_command(value: &Command) -> CommandEntity {
+    CommandEntity {
         id: value.id().raw(),
         name: value.name().to_string(),
         program: value.program().to_string(),

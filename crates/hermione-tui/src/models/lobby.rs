@@ -1,4 +1,4 @@
-use crate::{clients::organizer::Client, data::Workspace, elements::Selector, Result};
+use crate::{clients::organizer::Client, entities::Workspace, elements::Selector, Result};
 use anyhow::Ok;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},

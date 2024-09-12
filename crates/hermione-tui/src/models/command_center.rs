@@ -1,6 +1,6 @@
 use crate::{
     clients::organizer::Client,
-    data::{Command, Workspace},
+    entities::{Command, Workspace},
     elements::{Input, Selector},
     Result,
 };

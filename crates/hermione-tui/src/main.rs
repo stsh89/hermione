@@ -1,6 +1,6 @@
 mod clients;
 mod controllers;
-mod data;
+mod entities;
 mod elements;
 mod models;
 mod screens;
