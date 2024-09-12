@@ -62,25 +62,17 @@ impl Client {
         Ok(from_command(command))
     }
 
-    pub fn get_workspace(&self, id: usize) -> Result<(WorkspaceData, Vec<CommandData>)> {
+    pub fn get_workspace(&self, id: usize) -> Result<WorkspaceData> {
         let workspace = self.organizer.get_workspace(&WorkspaceId::new(id))?;
 
-        Ok((
-            from_workspace(workspace),
-            workspace.commands().iter().map(from_command).collect(),
-        ))
+        Ok(from_workspace(workspace))
     }
 
-    pub fn list_workspaces(&self) -> Vec<(WorkspaceData, Vec<CommandData>)> {
+    pub fn list_workspaces(&self) -> Vec<WorkspaceData> {
         self.organizer
             .workspaces()
             .iter()
-            .map(|workspace| {
-                (
-                    from_workspace(workspace),
-                    workspace.commands().iter().map(from_command).collect(),
-                )
-            })
+            .map(from_workspace)
             .collect()
     }
 
@@ -103,6 +95,7 @@ fn from_workspace(value: &Workspace) -> WorkspaceData {
     WorkspaceData {
         id: value.id().raw(),
         name: value.name().to_string(),
+        commands: value.commands().iter().map(from_command).collect(),
     }
 }
 

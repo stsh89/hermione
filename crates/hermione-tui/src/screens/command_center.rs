@@ -27,7 +27,7 @@ impl<'a> CommandCenter<'a> {
 
     pub fn enter(mut self) -> Result<()> {
         loop {
-            let (workspace, _) = self.organizer.get_workspace(self.workspace_id)?;
+            let workspace = self.organizer.get_workspace(self.workspace_id)?;
 
             let runner = Runner::new(RunnerParameters {
                 terminal: self.terminal,

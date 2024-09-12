@@ -1,9 +1,4 @@
-use crate::{
-    clients::organizer::Client,
-    data::{Command, Workspace},
-    elements::Selector,
-    Result,
-};
+use crate::{clients::organizer::Client, data::Workspace, elements::Selector, Result};
 use anyhow::Ok;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
@@ -13,7 +8,7 @@ use ratatui::{
 };
 
 pub struct Model<'a> {
-    selector: Selector<(Workspace, Vec<Command>)>,
+    selector: Selector<Workspace>,
     state: State,
     organizer: &'a mut Client,
 }
@@ -36,7 +31,7 @@ pub enum Message {
 }
 
 struct View<'a> {
-    selector: &'a Selector<(Workspace, Vec<Command>)>,
+    selector: &'a Selector<Workspace>,
 }
 
 impl Message {
@@ -52,7 +47,7 @@ impl Message {
 
 impl<'a> Model<'a> {
     fn delete_workspace(&mut self) -> Result<()> {
-        self.organizer.delete_workspace(self.selector.item().0.id)
+        self.organizer.delete_workspace(self.selector.item().id)
     }
 
     fn exit(&mut self) {
@@ -114,7 +109,7 @@ impl<'a> Model<'a> {
     }
 
     pub fn workspace(&self) -> &Workspace {
-        &self.selector.item().0
+        self.selector.item()
     }
 }
 
@@ -123,14 +118,14 @@ impl<'a> View<'a> {
         self.selector
             .items()
             .iter()
-            .map(|(workspace, _commands)| workspace.name.clone())
+            .map(|workspace| workspace.name.clone())
             .collect()
     }
 
     fn programs(&self) -> Vec<String> {
         self.selector
             .item()
-            .1
+            .commands
             .iter()
             .map(|command| command.program.clone())
             .collect()

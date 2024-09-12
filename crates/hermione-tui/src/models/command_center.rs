@@ -229,29 +229,26 @@ impl<'a> Model<'a> {
     }
 
     fn update_selector(&mut self) -> Result<()> {
-        let (_workspace, commands) = self.organizer.get_workspace(self.workspace.id)?;
+        let workspace = self.organizer.get_workspace(self.workspace.id)?;
         let search_query = self.search_bar.value().to_lowercase();
 
-        let selector = if commands.is_empty() {
-            None
-        } else {
-            let commands = if search_query.is_empty() {
-                commands
-            } else {
-                commands
-                    .into_iter()
-                    .filter(|command| command.program.to_lowercase().contains(&search_query))
-                    .collect()
-            };
-
-            if commands.is_empty() {
-                None
-            } else {
-                Some(Selector::new(commands)?)
-            }
+        if workspace.commands.is_empty() {
+            self.selector = None;
+            return Ok(());
         };
 
-        self.selector = selector;
+        if search_query.is_empty() {
+            self.selector = Some(Selector::new(workspace.commands)?);
+            return Ok(());
+        }
+
+        let commands = workspace
+            .commands
+            .into_iter()
+            .filter(|command| command.program.to_lowercase().contains(&search_query))
+            .collect();
+
+        self.selector = Some(Selector::new(commands)?);
 
         Ok(())
     }
