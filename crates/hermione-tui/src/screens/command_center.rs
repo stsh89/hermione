@@ -38,7 +38,8 @@ where
                 terminal: self.terminal,
                 model: Model::new(ModelParameters {
                     organizer: self.organizer,
-                    workspace,
+                    workspace_name: workspace.name,
+                    workspace_id: workspace.id,
                 })?,
             });
 

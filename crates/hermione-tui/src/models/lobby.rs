@@ -1,4 +1,6 @@
-use crate::{clients::organizer::Client, entities::Workspace, elements::Selector, Result};
+use crate::{
+    clients::organizer::Client, elements::Selector, entities::Workspace, session::Session, Result,
+};
 use anyhow::Ok;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout},
@@ -11,10 +13,12 @@ pub struct Model<'a> {
     selector: Selector<Workspace>,
     state: State,
     organizer: &'a mut Client,
+    session: &'a mut Session,
 }
 
 pub struct ModelParameters<'a> {
     pub organizer: &'a mut Client,
+    pub session: &'a mut Session,
 }
 
 enum State {
@@ -59,13 +63,14 @@ impl<'a> Model<'a> {
     }
 
     pub fn new(parameters: ModelParameters<'a>) -> Result<Self> {
-        let ModelParameters { organizer } = parameters;
+        let ModelParameters { organizer, session } = parameters;
         let workspaces = organizer.list_workspaces();
 
         Ok(Self {
             selector: Selector::new(workspaces)?,
             state: State::Running,
             organizer,
+            session,
         })
     }
 
@@ -73,12 +78,20 @@ impl<'a> Model<'a> {
         self.organizer.save()
     }
 
-    fn select_next_workspace(&mut self) {
+    fn select_next_workspace(&mut self) -> Result<()> {
         self.selector.next();
+        self.session
+            .set_workspace_id(Some(self.selector.item().id))?;
+
+        Ok(())
     }
 
-    fn select_previous_workspace(&mut self) {
-        self.selector.previous()
+    fn select_previous_workspace(&mut self) -> Result<()> {
+        self.selector.previous();
+        self.session
+            .set_workspace_id(Some(self.selector.item().id))?;
+
+        Ok(())
     }
 
     pub fn update(mut self, message: Message) -> Result<Self> {
@@ -87,8 +100,8 @@ impl<'a> Model<'a> {
         match message {
             Message::DeleteWorkspace => self.delete_workspace()?,
             Message::Exit => self.exit(),
-            Message::SelectNextWorkspace => self.select_next_workspace(),
-            Message::SelectPreviousWorkspace => self.select_previous_workspace(),
+            Message::SelectNextWorkspace => self.select_next_workspace()?,
+            Message::SelectPreviousWorkspace => self.select_previous_workspace()?,
             Message::Save => self.save()?,
         }
 

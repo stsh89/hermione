@@ -1,7 +1,7 @@
 use crate::{
     clients::organizer::Client,
-    entities::{Command, Workspace},
     elements::{Input, Selector},
+    entities::Command,
     Result,
 };
 use ratatui::{
@@ -34,12 +34,14 @@ pub struct Model<'a> {
     search_bar: Input,
     selector: Option<Selector<Command>>,
     state: State,
-    workspace: Workspace,
+    workspace_id: usize,
+    workspace_name: String,
 }
 
 pub struct ModelParameters<'a> {
     pub organizer: &'a mut Client,
-    pub workspace: Workspace,
+    pub workspace_id: usize,
+    pub workspace_name: String,
 }
 
 enum State {
@@ -52,7 +54,7 @@ struct View<'a> {
     active_element: &'a Element,
     search_bar: &'a Input,
     selector: Option<&'a Selector<Command>>,
-    workspace: &'a Workspace,
+    workspace_name: &'a str,
 }
 
 impl Element {
@@ -97,7 +99,7 @@ impl<'a> Model<'a> {
     fn delete_command(&mut self) -> Result<()> {
         if let Some(selector) = &self.selector {
             self.organizer
-                .delete_command(self.workspace.id, selector.item().id)?;
+                .delete_command(self.workspace_id, selector.item().id)?;
         }
 
         Ok(())
@@ -152,7 +154,8 @@ impl<'a> Model<'a> {
     pub fn new(params: ModelParameters<'a>) -> Result<Self> {
         let ModelParameters {
             organizer,
-            workspace,
+            workspace_id,
+            workspace_name,
         } = params;
 
         let mut model = Self {
@@ -161,7 +164,8 @@ impl<'a> Model<'a> {
             search_bar: Input::default(),
             selector: None,
             state: State::Selecting,
-            workspace,
+            workspace_id,
+            workspace_name,
         };
 
         model.update_selector()?;
@@ -229,7 +233,7 @@ impl<'a> Model<'a> {
     }
 
     fn update_selector(&mut self) -> Result<()> {
-        let workspace = self.organizer.get_workspace(self.workspace.id)?;
+        let workspace = self.organizer.get_workspace(self.workspace_id)?;
         let search_query = self.search_bar.value().to_lowercase();
 
         if workspace.commands.is_empty() {
@@ -255,7 +259,7 @@ impl<'a> Model<'a> {
 
     pub fn view(&self, frame: &mut Frame) {
         let view = View {
-            workspace: &self.workspace,
+            workspace_name: &self.workspace_name,
             selector: self.selector.as_ref(),
             active_element: &self.element,
             search_bar: &self.search_bar,
@@ -307,7 +311,7 @@ impl<'a> View<'a> {
             .highlight_style(Style::new().reversed())
             .block(
                 Block::new()
-                    .title(format!("{} commands", self.workspace.name))
+                    .title(format!("{} commands", self.workspace_name))
                     .title_alignment(Alignment::Center)
                     .borders(Borders::all()),
             );

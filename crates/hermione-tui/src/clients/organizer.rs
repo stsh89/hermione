@@ -34,11 +34,12 @@ impl Client {
         Ok(())
     }
 
-    pub fn add_workspace(&mut self, name: String) -> Result<()> {
-        self.organizer
+    pub fn add_workspace(&mut self, name: String) -> Result<WorkspaceEntity> {
+        let workspace = self
+            .organizer
             .add_workspace(NewWorkspaceParameters { name });
 
-        Ok(())
+        Ok(from_workspace(workspace))
     }
 
     pub fn delete_command(&mut self, workspace_id: usize, command_id: usize) -> Result<()> {
@@ -76,8 +77,8 @@ impl Client {
             .collect()
     }
 
-    pub fn new() -> Result<Self> {
-        let inner = inner::Client {};
+    pub fn new(path: String) -> Result<Self> {
+        let inner = inner::Client { path };
         let organizer = LoadOrganizer { loader: &inner }.load()?;
         let client = Self { inner, organizer };
 
@@ -110,7 +111,7 @@ fn from_command(value: &Command) -> CommandEntity {
 mod inner {
     use hermione_memory::{
         Command, Error, Load, NewCommandParameters, NewWorkspaceParameters, Organizer, Save,
-        Workspace,
+        Workspace, WorkspaceId,
     };
     use serde::{Deserialize, Serialize};
     use std::{
@@ -118,9 +119,9 @@ mod inner {
         io::BufReader,
     };
 
-    const DEFAULT_JSON_FILE: &str = "./data/hermione.json";
-
-    pub struct Client;
+    pub struct Client {
+        pub path: String,
+    }
 
     #[derive(Serialize, Deserialize)]
     struct WorkspaceRecord {
@@ -138,7 +139,7 @@ mod inner {
 
     impl Load for Client {
         fn load(&self) -> Result<Organizer, Error> {
-            let file = File::open(DEFAULT_JSON_FILE).map_err(eyre::Report::new)?;
+            let file = File::open(&self.path).map_err(eyre::Report::new)?;
             let reader = BufReader::new(file);
             let workspaces: Vec<WorkspaceRecord> =
                 serde_json::from_reader(reader).map_err(eyre::Report::new)?;
@@ -146,13 +147,15 @@ mod inner {
             let mut organizer = Organizer::initialize();
 
             for workspace in workspaces {
-                let id = organizer.add_workspace(NewWorkspaceParameters {
+                let new_workspace = organizer.add_workspace(NewWorkspaceParameters {
                     name: workspace.name,
                 });
 
+                let workspace_id = WorkspaceId::new(new_workspace.id().raw());
+
                 for command in workspace.commands {
                     organizer.add_command(
-                        &id,
+                        &workspace_id,
                         NewCommandParameters {
                             name: command.name,
                             program: command.program,
@@ -170,7 +173,7 @@ mod inner {
             let mut file = OpenOptions::new()
                 .write(true)
                 .truncate(true)
-                .open(DEFAULT_JSON_FILE)
+                .open(&self.path)
                 .map_err(eyre::Report::new)?;
 
             let workspaces: Vec<WorkspaceRecord> =

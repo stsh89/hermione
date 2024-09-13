@@ -30,7 +30,7 @@ impl Organizer {
         Ok(())
     }
 
-    pub fn add_workspace(&mut self, parameters: NewWorkspaceParameters) -> WorkspaceId {
+    pub fn add_workspace(&mut self, parameters: NewWorkspaceParameters) -> &Workspace {
         let NewWorkspaceParameters { name } = parameters;
         let count = self.workspaces.len();
 
@@ -40,7 +40,7 @@ impl Organizer {
             ..Default::default()
         });
 
-        WorkspaceId::new(count)
+        &self.workspaces[count]
     }
 
     pub fn delete_command(&mut self, w_id: &WorkspaceId, c_id: &CommandId) -> Result<()> {

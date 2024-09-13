@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
+dirs = { workspace = true }
 eyre = { workspace = true }
 ratatui = { workspace = true }
 serde = { workspace = true }

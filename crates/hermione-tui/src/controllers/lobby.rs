@@ -23,6 +23,7 @@ where
 {
     pub model: Model<'a>,
     pub terminal: &'a mut Terminal<B>,
+    pub signal: Option<Signal>,
 }
 
 pub enum Signal {
@@ -74,12 +75,16 @@ where
     }
 
     pub fn new(parameters: ControllerParameters<'a, B>) -> Self {
-        let ControllerParameters { model, terminal } = parameters;
+        let ControllerParameters {
+            model,
+            terminal,
+            signal,
+        } = parameters;
 
         Self {
             model,
             terminal,
-            signal: None,
+            signal,
         }
     }
 
@@ -89,6 +94,10 @@ where
 
     pub fn run(mut self) -> Result<Signal> {
         loop {
+            if let Some(signal) = self.signal {
+                return Ok(signal);
+            }
+
             self.terminal.draw(|frame| self.model.view(frame))?;
 
             if let Some(message) = self.handle_event()? {
@@ -97,10 +106,6 @@ where
 
             if self.model.is_exited() {
                 self.signal = Some(Signal::Exit);
-            }
-
-            if let Some(signal) = self.signal {
-                return Ok(signal);
             }
         }
     }
