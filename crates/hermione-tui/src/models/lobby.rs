@@ -11,9 +11,9 @@ use ratatui::{
 
 pub struct Model<'a> {
     selector: Selector<Workspace>,
-    state: State,
     organizer: &'a mut Client,
     session: &'a mut Session,
+    signal: Option<Signal>,
 }
 
 pub struct ModelParameters<'a> {
@@ -21,17 +21,19 @@ pub struct ModelParameters<'a> {
     pub session: &'a mut Session,
 }
 
-enum State {
-    Running,
-    Exited,
+pub enum Signal {
+    EnterCommandCenter(usize),
+    NewWorkspaceRequest,
+    Exit,
 }
 
 pub enum Message {
     DeleteWorkspace,
+    EnterCommandCenter,
+    NewWorkspaceRequest,
     Exit,
     SelectNextWorkspace,
     SelectPreviousWorkspace,
-    Save,
 }
 
 struct View<'a> {
@@ -41,7 +43,7 @@ struct View<'a> {
 impl Message {
     fn is_idempotent(&self) -> bool {
         match &self {
-            Self::Exit | Self::Save | Self::SelectNextWorkspace | Self::SelectPreviousWorkspace => {
+            Self::Exit | Self::SelectNextWorkspace | Self::SelectPreviousWorkspace | Self::NewWorkspaceRequest | Self::EnterCommandCenter => {
                 true
             }
             Self::DeleteWorkspace => false,
@@ -54,12 +56,8 @@ impl<'a> Model<'a> {
         self.organizer.delete_workspace(self.selector.item().id)
     }
 
-    fn exit(&mut self) {
-        self.state = State::Exited;
-    }
-
-    pub fn is_exited(&self) -> bool {
-        matches!(self.state, State::Exited)
+    pub fn is_running(&self) -> bool {
+        self.signal.is_none()
     }
 
     pub fn new(parameters: ModelParameters<'a>) -> Result<Self> {
@@ -68,14 +66,10 @@ impl<'a> Model<'a> {
 
         Ok(Self {
             selector: Selector::new(workspaces)?,
-            state: State::Running,
+            signal: None,
             organizer,
             session,
         })
-    }
-
-    fn save(&self) -> Result<()> {
-        self.organizer.save()
     }
 
     fn select_next_workspace(&mut self) -> Result<()> {
@@ -94,23 +88,39 @@ impl<'a> Model<'a> {
         Ok(())
     }
 
+    pub unsafe fn signal(self) -> Signal {
+        self.signal.unwrap()
+    }
+
     pub fn update(mut self, message: Message) -> Result<Self> {
         let is_idempotent = message.is_idempotent();
 
         match message {
             Message::DeleteWorkspace => self.delete_workspace()?,
-            Message::Exit => self.exit(),
+            Message::Exit => self.signal = Some(Signal::Exit),
             Message::SelectNextWorkspace => self.select_next_workspace()?,
             Message::SelectPreviousWorkspace => self.select_previous_workspace()?,
-            Message::Save => self.save()?,
+            Message::NewWorkspaceRequest => self.signal = Some(Signal::NewWorkspaceRequest),
+            Message::EnterCommandCenter => self.signal = Some(Signal::EnterCommandCenter(self.selector.item().id)),
         }
 
         if is_idempotent {
-            Ok(self)
-        } else {
-            let selector = Selector::new(self.organizer.list_workspaces())?;
-            Ok(Self { selector, ..self })
+            return Ok(self)
         }
+
+        let workspaces = self.organizer.list_workspaces();
+
+        let model = if workspaces.is_empty() {
+            Self {
+                signal: Some(Signal::NewWorkspaceRequest),
+                ..self
+            }
+        } else {
+            let selector = Selector::new(workspaces)?;
+            Self { selector, ..self }
+        };
+
+        Ok(model)
     }
 
     pub fn view(&self, frame: &mut Frame) {
@@ -119,10 +129,6 @@ impl<'a> Model<'a> {
         };
 
         view.render(frame);
-    }
-
-    pub fn workspace(&self) -> &Workspace {
-        self.selector.item()
     }
 }
 

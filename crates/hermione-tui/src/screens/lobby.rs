@@ -1,8 +1,8 @@
 use crate::{
     clients::organizer::Client,
-    controllers::lobby::{Controller, ControllerParameters, Signal},
+    controllers::lobby::{Controller, ControllerParameters},
     entities::Workspace,
-    models::lobby::{Model, ModelParameters},
+    models::lobby::Signal,
     screens::{CommandCenter, NewWorkspace},
     session::Session,
     Result,
@@ -23,19 +23,11 @@ where
     B: Backend,
 {
     pub fn enter(mut self) -> Result<()> {
-        if self.organizer.list_workspaces().is_empty() && self.new_workspace()?.is_none() {
-            return Ok(());
-        }
-
         loop {
-            let signal = self.signal()?;
             let controller = Controller::new(ControllerParameters {
                 terminal: self.terminal,
-                model: Model::new(ModelParameters {
-                    organizer: self.organizer,
-                    session: self.session,
-                })?,
-                signal,
+                organizer: self.organizer,
+                session: self.session,
             });
 
             match controller.run()? {
@@ -67,15 +59,5 @@ where
             terminal: self.terminal,
         }
         .enter()
-    }
-
-    fn signal(&mut self) -> Result<Option<Signal>> {
-        if self.session.read_only() {
-            if let Some(id) = self.session.get_workspace_id()? {
-                return Ok(Some(Signal::EnterCommandCenter(id)));
-            }
-        }
-
-        Ok(None)
     }
 }
