@@ -43,9 +43,11 @@ struct View<'a> {
 impl Message {
     fn is_idempotent(&self) -> bool {
         match &self {
-            Self::Exit | Self::SelectNextWorkspace | Self::SelectPreviousWorkspace | Self::NewWorkspaceRequest | Self::EnterCommandCenter => {
-                true
-            }
+            Self::Exit
+            | Self::SelectNextWorkspace
+            | Self::SelectPreviousWorkspace
+            | Self::NewWorkspaceRequest
+            | Self::EnterCommandCenter => true,
             Self::DeleteWorkspace => false,
         }
     }
@@ -101,11 +103,13 @@ impl<'a> Model<'a> {
             Message::SelectNextWorkspace => self.select_next_workspace()?,
             Message::SelectPreviousWorkspace => self.select_previous_workspace()?,
             Message::NewWorkspaceRequest => self.signal = Some(Signal::NewWorkspaceRequest),
-            Message::EnterCommandCenter => self.signal = Some(Signal::EnterCommandCenter(self.selector.item().id)),
+            Message::EnterCommandCenter => {
+                self.signal = Some(Signal::EnterCommandCenter(self.selector.item().id))
+            }
         }
 
         if is_idempotent {
-            return Ok(self)
+            return Ok(self);
         }
 
         let workspaces = self.organizer.list_workspaces();

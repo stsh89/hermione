@@ -1,11 +1,13 @@
 use crate::{
-    clients::organizer::Client, models::lobby::{Message, Model, ModelParameters, Signal}, session::Session, Result
+    clients::organizer::Client,
+    key_mappings::lobby_key_mapping,
+    models::lobby::{Model, ModelParameters, Signal},
+    session::Session,
+    Result,
 };
-use ratatui::{
-    backend::Backend,
-    crossterm::event::{self, Event, KeyCode},
-    Terminal,
-};
+use ratatui::{backend::Backend, Terminal};
+
+use super::handle_event;
 
 pub struct Controller<'a, B>
 where
@@ -62,38 +64,11 @@ where
         while model.is_running() {
             self.terminal.draw(|frame| model.view(frame))?;
 
-            if let Some(message) = handle_event()? {
+            if let Some(message) = handle_event(lobby_key_mapping)? {
                 model = model.update(message)?;
             }
         }
 
         Ok(unsafe { model.signal() })
     }
-}
-
-fn handle_event() -> Result<Option<Message>> {
-    if let Event::Key(key) = event::read()? {
-        if key.kind == event::KeyEventKind::Press {
-            let message = handle_key(key.code)?;
-
-            return Ok(message);
-        }
-    }
-
-    Ok(None)
-}
-
-fn handle_key(key_code: KeyCode) -> Result<Option<Message>> {
-    let message = match key_code {
-        KeyCode::Up => Some(Message::SelectPreviousWorkspace),
-        KeyCode::Down => Some(Message::SelectNextWorkspace),
-        KeyCode::Char('n') => Some(Message::NewWorkspaceRequest),
-        KeyCode::Char('d') => Some(Message::DeleteWorkspace),
-        KeyCode::Esc => Some(Message::Exit),
-        KeyCode::Enter => Some(Message::EnterCommandCenter),
-        KeyCode::Char('q') => Some(Message::Exit),
-        _ => None,
-    };
-
-    Ok(message)
 }

@@ -4,6 +4,7 @@ mod controllers;
 mod elements;
 mod entities;
 mod environment;
+mod key_mappings;
 mod models;
 mod screens;
 mod session;
