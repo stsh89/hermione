@@ -1,7 +1,6 @@
 use crate::{
     clients::organizer::Client,
     controllers::lobby::{Controller, ControllerParameters},
-    entities::Workspace,
     models::lobby::Signal,
     screens::{CommandCenter, NewWorkspace},
     session::Session,
@@ -34,7 +33,7 @@ where
                 Signal::EnterCommandCenter(workspace_id) => {
                     self.enter_command_center(workspace_id)?
                 }
-                Signal::NewWorkspaceRequest => self.new_workspace().map(|_| ())?,
+                Signal::NewWorkspaceRequest => self.new_workspace()?,
                 Signal::Exit => break,
             };
         }
@@ -53,7 +52,7 @@ where
         .enter()
     }
 
-    fn new_workspace(&mut self) -> Result<Option<Workspace>> {
+    fn new_workspace(&mut self) -> Result<()> {
         NewWorkspace {
             organizer: self.organizer,
             terminal: self.terminal,

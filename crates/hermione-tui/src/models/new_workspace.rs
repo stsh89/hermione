@@ -7,13 +7,12 @@ use ratatui::{
 
 pub struct Model {
     name: Input,
-    state: State,
+    signal: Option<Signal>,
 }
 
-pub enum State {
-    Editing,
-    Submited,
-    Exited,
+pub enum Signal {
+    Exit,
+    CreateNewWorkspace(String),
 }
 
 pub enum Message {
@@ -34,16 +33,8 @@ impl Model {
         self.name.enter_char(new_char);
     }
 
-    fn exit(&mut self) {
-        self.state = State::Exited;
-    }
-
-    pub fn is_exited(&self) -> bool {
-        matches!(self.state, State::Exited)
-    }
-
-    pub fn is_submited(&self) -> bool {
-        matches!(self.state, State::Submited)
+    pub fn is_running(&self) -> bool {
+        self.signal.is_none()
     }
 
     pub fn move_cursor_left(&mut self) {
@@ -54,30 +45,30 @@ impl Model {
         self.name.move_cursor_right();
     }
 
-    pub fn name(&self) -> &str {
-        self.name.value()
-    }
-
     pub fn new() -> Self {
         Self {
             name: Default::default(),
-            state: State::Editing,
+            signal: None,
         }
     }
 
-    fn submit(&mut self) {
-        self.state = State::Submited;
+    pub unsafe fn signal(self) -> Signal {
+        self.signal.unwrap()
     }
 
-    pub fn update(&mut self, message: Message) {
+    pub fn update(mut self, message: Message) -> Self {
         match message {
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
-            Message::Exit => self.exit(),
+            Message::Exit => self.signal = Some(Signal::Exit),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
-            Message::Submit => self.submit(),
+            Message::Submit => {
+                self.signal = Some(Signal::CreateNewWorkspace(self.name.value().into()))
+            }
         }
+
+        self
     }
 
     pub fn view(&self, frame: &mut Frame) {

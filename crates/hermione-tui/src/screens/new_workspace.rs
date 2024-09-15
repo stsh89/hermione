@@ -1,8 +1,7 @@
 use crate::{
     clients::organizer::Client,
     controllers::new_workspace::{Controller, ControllerParameters},
-    entities::Workspace,
-    models::new_workspace::Model,
+    models::new_workspace::Signal,
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
@@ -19,16 +18,15 @@ impl<'a, B> NewWorkspace<'a, B>
 where
     B: Backend,
 {
-    pub fn enter(&mut self) -> Result<Option<Workspace>> {
+    pub fn enter(&mut self) -> Result<()> {
         let controller = Controller::new(ControllerParameters {
             terminal: self.terminal,
-            model: Model::new(),
         });
 
-        if let Some(name) = controller.run()? {
-            return Ok(Some(self.organizer.add_workspace(name)?));
+        if let Signal::CreateNewWorkspace(name) = controller.run()? {
+            self.organizer.add_workspace(name)?;
         }
 
-        Ok(None)
+        Ok(())
     }
 }
