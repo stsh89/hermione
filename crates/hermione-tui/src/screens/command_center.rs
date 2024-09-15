@@ -1,7 +1,7 @@
 use crate::{
     clients::organizer::Client,
-    controllers::command_center::{Controller, ControllerParameters, Signal},
-    models::command_center::{Model, ModelParameters},
+    controllers::command_center::{Controller, ControllerParameters},
+    models::command_center::Signal,
     screens::{CommandDisplay, NewCommand},
     Result,
 };
@@ -36,11 +36,9 @@ where
 
             let controller = Controller::new(ControllerParameters {
                 terminal: self.terminal,
-                model: Model::new(ModelParameters {
-                    organizer: self.organizer,
-                    workspace_name: workspace.name,
-                    workspace_id: workspace.id,
-                })?,
+                organizer: self.organizer,
+                workspace_name: workspace.name,
+                workspace_id: workspace.id,
             });
 
             match controller.run()? {

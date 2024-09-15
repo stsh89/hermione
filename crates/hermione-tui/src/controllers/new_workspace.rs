@@ -36,7 +36,7 @@ where
         while model.is_running() {
             self.terminal.draw(|frame| model.view(frame))?;
 
-            if let Some(message) = handle_event(new_workspace_key_mapping)? {
+            if let Some(message) = handle_event(new_workspace_key_mapping, model.input_mode())? {
                 model = model.update(message);
             }
         }

@@ -1,4 +1,4 @@
-use crate::elements::Input;
+use crate::{elements::Input, key_mappings::InputMode};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Flex, Layout, Position},
     widgets::{Block, Borders, Paragraph},
@@ -25,23 +25,27 @@ pub enum Message {
 }
 
 impl Model {
-    pub fn delete_char(&mut self) {
+    fn delete_char(&mut self) {
         self.name.delete_char();
     }
 
-    pub fn enter_char(&mut self, new_char: char) {
+    fn enter_char(&mut self, new_char: char) {
         self.name.enter_char(new_char);
+    }
+
+    pub fn input_mode(&self) -> InputMode {
+        InputMode::Editing
     }
 
     pub fn is_running(&self) -> bool {
         self.signal.is_none()
     }
 
-    pub fn move_cursor_left(&mut self) {
+    fn move_cursor_left(&mut self) {
         self.name.move_cursor_left();
     }
 
-    pub fn move_cursor_right(&mut self) {
+    fn move_cursor_right(&mut self) {
         self.name.move_cursor_right();
     }
 

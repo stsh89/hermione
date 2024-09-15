@@ -2,6 +2,7 @@ use crate::{
     clients::organizer::Client,
     elements::{Input, Selector},
     entities::Command,
+    key_mappings::InputMode,
     Result,
 };
 use ratatui::{
@@ -21,9 +22,11 @@ pub enum Message {
     DeleteChar,
     DeleteCommand,
     EnterChar(char),
+    ExecuteCommand,
     Exit,
     MoveCusorLeft,
     MoveCusorRight,
+    NewCommandRequest,
     SelectNextCommand,
     SelectPreviousCommand,
 }
@@ -33,7 +36,7 @@ pub struct Model<'a> {
     organizer: &'a mut Client,
     search_bar: Input,
     selector: Option<Selector<Command>>,
-    state: State,
+    signal: Option<Signal>,
     workspace_id: usize,
     workspace_name: String,
 }
@@ -44,10 +47,10 @@ pub struct ModelParameters<'a> {
     pub workspace_name: String,
 }
 
-enum State {
-    Editing,
-    Exited,
-    Selecting,
+pub enum Signal {
+    ExecuteCommand(usize),
+    Exit,
+    NewCommandRequest,
 }
 
 struct View<'a> {
@@ -80,6 +83,8 @@ impl Message {
             | Self::MoveCusorLeft
             | Self::MoveCusorRight
             | Self::SelectNextCommand
+            | Self::NewCommandRequest
+            | Self::ExecuteCommand
             | Self::SelectPreviousCommand => true,
             Self::DeleteCommand => false,
         }
@@ -89,7 +94,6 @@ impl Message {
 impl<'a> Model<'a> {
     fn activate_search_bar(&mut self) {
         self.element = Element::SearchBar;
-        self.state = State::Editing;
     }
 
     pub fn command(&self) -> Option<&Command> {
@@ -123,20 +127,16 @@ impl<'a> Model<'a> {
         Ok(())
     }
 
-    fn exit(&mut self) {
-        self.state = State::Exited;
+    pub fn is_running(&self) -> bool {
+        self.signal.is_none()
     }
 
-    pub fn is_editing(&self) -> bool {
-        matches!(self.state, State::Editing)
-    }
-
-    pub fn is_exited(&self) -> bool {
-        matches!(self.state, State::Exited)
-    }
-
-    pub fn is_selecting(&self) -> bool {
-        matches!(self.state, State::Selecting)
+    pub fn input_mode(&self) -> InputMode {
+        if self.element.is_search_bar() {
+            InputMode::Editing
+        } else {
+            InputMode::Normal
+        }
     }
 
     fn move_cursor_left(&mut self) {
@@ -163,7 +163,7 @@ impl<'a> Model<'a> {
             organizer,
             search_bar: Input::default(),
             selector: None,
-            state: State::Selecting,
+            signal: None,
             workspace_id,
             workspace_name,
         };
@@ -183,7 +183,6 @@ impl<'a> Model<'a> {
             Element::SearchBar => {
                 if self.selector.is_some() {
                     self.element.toggle();
-                    self.state = State::Selecting;
                 }
             }
         }
@@ -199,10 +198,13 @@ impl<'a> Model<'a> {
             Element::SearchBar => {
                 if self.selector.is_some() {
                     self.element.toggle();
-                    self.state = State::Selecting;
                 }
             }
         }
+    }
+
+    pub unsafe fn signal(self) -> Signal {
+        self.signal.unwrap()
     }
 
     pub fn update(mut self, message: Message) -> Result<Self> {
@@ -213,11 +215,17 @@ impl<'a> Model<'a> {
             Message::DeleteChar => self.delete_char()?,
             Message::DeleteCommand => self.delete_command()?,
             Message::EnterChar(c) => self.enter_char(c)?,
-            Message::Exit => self.exit(),
+            Message::Exit => self.signal = Some(Signal::Exit),
+            Message::NewCommandRequest => self.signal = Some(Signal::NewCommandRequest),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::SelectNextCommand => self.select_next_command(),
             Message::SelectPreviousCommand => self.select_previous_command(),
+            Message::ExecuteCommand => {
+                if let Some(command) = self.command() {
+                    self.signal = Some(Signal::ExecuteCommand(command.id));
+                }
+            }
         }
 
         let selector = if is_idempotent {

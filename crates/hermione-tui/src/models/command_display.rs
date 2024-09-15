@@ -1,6 +1,7 @@
 use crate::{
     clients::command_executor::{Client, Output},
     entities::Command,
+    key_mappings::InputMode,
     Result,
 };
 use ratatui::{
@@ -43,6 +44,10 @@ impl Model {
         self.stdout = stdout;
 
         Ok(())
+    }
+
+    pub fn input_mode(&self) -> InputMode {
+        InputMode::Normal
     }
 
     pub fn is_running(&self) -> bool {

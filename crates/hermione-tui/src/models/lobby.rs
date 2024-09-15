@@ -1,5 +1,6 @@
 use crate::{
-    clients::organizer::Client, elements::Selector, entities::Workspace, session::Session, Result,
+    clients::organizer::Client, elements::Selector, entities::Workspace, key_mappings::InputMode,
+    session::Session, Result,
 };
 use anyhow::Ok;
 use ratatui::{
@@ -56,6 +57,10 @@ impl Message {
 impl<'a> Model<'a> {
     fn delete_workspace(&mut self) -> Result<()> {
         self.organizer.delete_workspace(self.selector.item().id)
+    }
+
+    pub fn input_mode(&self) -> InputMode {
+        InputMode::Normal
     }
 
     pub fn is_running(&self) -> bool {
