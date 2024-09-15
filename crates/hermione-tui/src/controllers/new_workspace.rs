@@ -1,11 +1,10 @@
+use super::handle_event;
 use crate::{
     key_mappings::new_workspace_key_mapping,
     models::new_workspace::{Model, Signal},
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
-
-use super::handle_event;
 
 pub struct Controller<'a, B>
 where

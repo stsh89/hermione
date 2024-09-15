@@ -1,3 +1,4 @@
+use super::handle_event;
 use crate::{
     clients::organizer::Client,
     key_mappings::lobby_key_mapping,
@@ -6,8 +7,6 @@ use crate::{
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
-
-use super::handle_event;
 
 pub struct Controller<'a, B>
 where

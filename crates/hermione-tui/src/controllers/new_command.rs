@@ -1,18 +1,15 @@
+use super::handle_event;
 use crate::{
-    models::new_command::{Message, Model},
+    key_mappings::new_command_key_mapping,
+    models::new_command::{Model, Signal},
     Result,
 };
-use ratatui::{
-    backend::Backend,
-    crossterm::event::{self, Event, KeyCode},
-    Terminal,
-};
+use ratatui::{backend::Backend, Terminal};
 
 pub struct Controller<'a, B>
 where
     B: Backend,
 {
-    model: Model,
     terminal: &'a mut Terminal<B>,
 }
 
@@ -20,13 +17,7 @@ pub struct ControllerParameters<'a, B>
 where
     B: Backend,
 {
-    pub model: Model,
     pub terminal: &'a mut Terminal<B>,
-}
-
-pub struct NewCommandParameters {
-    pub name: String,
-    pub program: String,
 }
 
 impl<'a, B> Controller<'a, B>
@@ -34,58 +25,22 @@ where
     B: Backend,
 {
     pub fn new(parameters: ControllerParameters<'a, B>) -> Self {
-        let ControllerParameters { model, terminal } = parameters;
+        let ControllerParameters { terminal } = parameters;
 
-        Self { model, terminal }
+        Self { terminal }
     }
 
-    pub fn run(mut self) -> Result<Option<NewCommandParameters>> {
-        loop {
-            self.terminal.draw(|frame| self.model.view(frame))?;
+    pub fn run(self) -> Result<Signal> {
+        let mut model = Model::new();
 
-            if let Some(message) = self.handle_event()? {
-                self.model.update(message);
-            }
+        while model.is_running() {
+            self.terminal.draw(|frame| model.view(frame))?;
 
-            if self.model.is_exited() {
-                return Ok(None);
-            }
-
-            if self.model.is_submited() {
-                return Ok(Some(NewCommandParameters {
-                    name: self.model.name().into(),
-                    program: self.model.program().into(),
-                }));
-            }
-        }
-    }
-
-    pub fn handle_key(&mut self, key_code: KeyCode) -> Result<Option<Message>> {
-        let mut message = None;
-
-        match key_code {
-            KeyCode::Left => message = Some(Message::MoveCusorLeft),
-            KeyCode::Right => message = Some(Message::MoveCusorRight),
-            KeyCode::Char(c) => message = Some(Message::EnterChar(c)),
-            KeyCode::Backspace => message = Some(Message::DeleteChar),
-            KeyCode::Enter => message = Some(Message::Submit),
-            KeyCode::Esc => message = Some(Message::Exit),
-            KeyCode::Tab => message = Some(Message::ToggleFormInput),
-            _ => {}
-        }
-
-        Ok(message)
-    }
-
-    fn handle_event(&mut self) -> Result<Option<Message>> {
-        if let Event::Key(key) = event::read()? {
-            if key.kind == event::KeyEventKind::Press {
-                let message = self.handle_key(key.code)?;
-
-                return Ok(message);
+            if let Some(message) = handle_event(new_command_key_mapping)? {
+                model = model.update(message);
             }
         }
 
-        Ok(None)
+        Ok(unsafe { model.signal() })
     }
 }

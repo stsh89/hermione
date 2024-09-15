@@ -10,7 +10,7 @@ pub struct Model {
     form_input: FormInput,
     name: Input,
     program: Input,
-    state: State,
+    singnal: Option<Signal>,
 }
 
 enum FormInput {
@@ -18,10 +18,14 @@ enum FormInput {
     Program,
 }
 
-enum State {
-    Edit,
-    Submited,
-    Exited,
+pub enum Signal {
+    Exit,
+    CreateNewCommand(NewCommandParameters),
+}
+
+pub struct NewCommandParameters {
+    pub name: String,
+    pub program: String,
 }
 
 pub enum Message {
@@ -64,16 +68,8 @@ impl Model {
         }
     }
 
-    fn exit(&mut self) {
-        self.state = State::Exited;
-    }
-
-    pub fn is_submited(&self) -> bool {
-        matches!(self.state, State::Submited)
-    }
-
-    pub fn is_exited(&self) -> bool {
-        matches!(self.state, State::Exited)
+    pub fn is_running(&self) -> bool {
+        self.singnal.is_none()
     }
 
     pub fn move_cursor_left(&mut self) {
@@ -90,41 +86,40 @@ impl Model {
         }
     }
 
-    pub fn name(&self) -> &str {
-        self.name.value()
-    }
-
     pub fn new() -> Self {
         Self {
+            form_input: FormInput::Program,
             name: Default::default(),
             program: Default::default(),
-            state: State::Edit,
-            form_input: FormInput::Program,
+            singnal: None,
         }
     }
 
-    pub fn program(&self) -> &str {
-        self.program.value()
-    }
-
-    fn submit(&mut self) {
-        self.state = State::Submited;
+    pub unsafe fn signal(self) -> Signal {
+        self.singnal.unwrap()
     }
 
     fn toggle_form_input(&mut self) {
         self.form_input.toggle();
     }
 
-    pub fn update(&mut self, message: Message) {
+    pub fn update(mut self, message: Message) -> Self {
         match message {
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
-            Message::Exit => self.exit(),
+            Message::Exit => self.singnal = Some(Signal::Exit),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
-            Message::Submit => self.submit(),
+            Message::Submit => {
+                self.singnal = Some(Signal::CreateNewCommand(NewCommandParameters {
+                    name: self.name.value().into(),
+                    program: self.program.value().into(),
+                }))
+            }
             Message::ToggleFormInput => self.toggle_form_input(),
         }
+
+        self
     }
 
     pub fn view(&self, frame: &mut Frame) {

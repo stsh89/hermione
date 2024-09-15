@@ -1,5 +1,8 @@
 use crate::{
-    models::{lobby::Message as LobbyMessage, new_workspace::Message as NewWorkspaceMessage},
+    models::{
+        lobby::Message as LobbyMessage, new_command::Message as NewCommandMessage,
+        new_workspace::Message as NewWorkspaceMessage,
+    },
     Result,
 };
 use ratatui::crossterm::event::KeyCode;
@@ -31,6 +34,23 @@ pub fn new_workspace_key_mapping(key_code: KeyCode) -> Result<Option<NewWorkspac
         KeyCode::Backspace => Some(NWM::DeleteChar),
         KeyCode::Enter => Some(NWM::Submit),
         KeyCode::Esc => Some(NWM::Exit),
+        _ => None,
+    };
+
+    Ok(message)
+}
+
+pub fn new_command_key_mapping(key_code: KeyCode) -> Result<Option<NewCommandMessage>> {
+    use NewCommandMessage as NCM;
+
+    let message = match key_code {
+        KeyCode::Left => Some(NCM::MoveCusorLeft),
+        KeyCode::Right => Some(NCM::MoveCusorRight),
+        KeyCode::Char(c) => Some(NCM::EnterChar(c)),
+        KeyCode::Backspace => Some(NCM::DeleteChar),
+        KeyCode::Enter => Some(NCM::Submit),
+        KeyCode::Esc => Some(NCM::Exit),
+        KeyCode::Tab => Some(NCM::ToggleFormInput),
         _ => None,
     };
 
