@@ -1,18 +1,18 @@
 use crate::{
-    models::command_display::{Message, Model},
+    entities::Command,
+    key_mappings::command_display_key_mapping,
+    models::command_display::{Model, ModelParameters, Signal},
     Result,
 };
-use ratatui::{
-    backend::Backend,
-    crossterm::event::{self, Event, KeyCode},
-    Terminal,
-};
+use ratatui::{backend::Backend, Terminal};
+
+use super::handle_event;
 
 pub struct Controller<'a, B>
 where
     B: Backend,
 {
-    model: Model,
+    command: Command,
     terminal: &'a mut Terminal<B>,
 }
 
@@ -20,7 +20,7 @@ pub struct ControllerParameters<'a, B>
 where
     B: Backend,
 {
-    pub model: Model,
+    pub command: Command,
     pub terminal: &'a mut Terminal<B>,
 }
 
@@ -29,44 +29,24 @@ where
     B: Backend,
 {
     pub fn new(parameters: ControllerParameters<'a, B>) -> Self {
-        let ControllerParameters { model, terminal } = parameters;
+        let ControllerParameters { command, terminal } = parameters;
 
-        Self { model, terminal }
+        Self { command, terminal }
     }
 
-    pub fn run(mut self) -> Result<()> {
-        loop {
-            self.terminal.draw(|frame| self.model.view(frame))?;
+    pub fn run(self) -> Result<Signal> {
+        let mut model = Model::new(ModelParameters {
+            command: self.command,
+        })?;
 
-            if let Some(message) = self.handle_event()? {
-                self.model.update(message)?;
-            }
+        while model.is_running() {
+            self.terminal.draw(|frame| model.view(frame))?;
 
-            if self.model.is_exited() {
-                return Ok(());
-            }
-        }
-    }
-
-    pub fn handle_key(&mut self, key_code: KeyCode) -> Result<Option<Message>> {
-        let message = match key_code {
-            KeyCode::Esc => Some(Message::Exit),
-            KeyCode::Char('r') => Some(Message::RepeatCommand),
-            _ => None,
-        };
-
-        Ok(message)
-    }
-
-    fn handle_event(&mut self) -> Result<Option<Message>> {
-        if let Event::Key(key) = event::read()? {
-            if key.kind == event::KeyEventKind::Press {
-                let message = self.handle_key(key.code)?;
-
-                return Ok(message);
+            if let Some(message) = handle_event(command_display_key_mapping)? {
+                model = model.update(message)?;
             }
         }
 
-        Ok(None)
+        Ok(unsafe { model.signal() })
     }
 }

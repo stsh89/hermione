@@ -13,7 +13,7 @@ pub struct Model {
     command: Command,
     stdout: String,
     stderr: String,
-    state: State,
+    signal: Option<Signal>,
 }
 
 pub struct ModelParameters {
@@ -25,9 +25,8 @@ pub enum Message {
     RepeatCommand,
 }
 
-enum State {
-    Exited,
-    Running,
+pub enum Signal {
+    Exit,
 }
 
 struct View<'a> {
@@ -46,12 +45,8 @@ impl Model {
         Ok(())
     }
 
-    fn exit(&mut self) {
-        self.state = State::Exited;
-    }
-
-    pub fn is_exited(&self) -> bool {
-        matches!(self.state, State::Exited)
+    pub fn is_running(&self) -> bool {
+        self.signal.is_none()
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
@@ -59,7 +54,7 @@ impl Model {
 
         let mut model = Self {
             command,
-            state: State::Running,
+            signal: None,
             stderr: String::new(),
             stdout: String::new(),
         };
@@ -73,13 +68,17 @@ impl Model {
         self.execute_command()
     }
 
-    pub fn update(&mut self, message: Message) -> Result<()> {
+    pub unsafe fn signal(self) -> Signal {
+        self.signal.unwrap()
+    }
+
+    pub fn update(mut self, message: Message) -> Result<Self> {
         match message {
             Message::RepeatCommand => self.repeat_command()?,
-            Message::Exit => self.exit(),
+            Message::Exit => self.signal = Some(Signal::Exit),
         }
 
-        Ok(())
+        Ok(self)
     }
 
     pub fn view(&self, frame: &mut Frame) {

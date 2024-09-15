@@ -1,7 +1,6 @@
 use crate::{
     clients::organizer::Client,
     controllers::command_display::{Controller, ControllerParameters},
-    models::command_display::{Model, ModelParameters},
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
@@ -27,9 +26,11 @@ where
 
         let controller = Controller::new(ControllerParameters {
             terminal: self.terminal,
-            model: Model::new(ModelParameters { command })?,
+            command,
         });
 
-        controller.run()
+        controller.run()?;
+
+        Ok(())
     }
 }

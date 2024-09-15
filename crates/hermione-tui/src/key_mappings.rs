@@ -1,7 +1,7 @@
 use crate::{
     models::{
-        lobby::Message as LobbyMessage, new_command::Message as NewCommandMessage,
-        new_workspace::Message as NewWorkspaceMessage,
+        command_display::Message as CommandDisplayMessage, lobby::Message as LobbyMessage,
+        new_command::Message as NewCommandMessage, new_workspace::Message as NewWorkspaceMessage,
     },
     Result,
 };
@@ -51,6 +51,18 @@ pub fn new_command_key_mapping(key_code: KeyCode) -> Result<Option<NewCommandMes
         KeyCode::Enter => Some(NCM::Submit),
         KeyCode::Esc => Some(NCM::Exit),
         KeyCode::Tab => Some(NCM::ToggleFormInput),
+        _ => None,
+    };
+
+    Ok(message)
+}
+
+pub fn command_display_key_mapping(key_code: KeyCode) -> Result<Option<CommandDisplayMessage>> {
+    use CommandDisplayMessage as CDM;
+
+    let message = match key_code {
+        KeyCode::Esc => Some(CDM::Exit),
+        KeyCode::Char('r') => Some(CDM::RepeatCommand),
         _ => None,
     };
 
