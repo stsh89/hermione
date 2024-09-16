@@ -1,4 +1,4 @@
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Id(usize);
 
 impl Id {
@@ -8,5 +8,11 @@ impl Id {
 
     pub fn raw(&self) -> usize {
         self.0
+    }
+}
+
+impl PartialEq<usize> for Id {
+    fn eq(&self, other: &usize) -> bool {
+        self.0 == *other
     }
 }
