@@ -3,6 +3,7 @@ use crate::{
     controllers::command_center::{Controller, ControllerParameters},
     models::command_center::Signal,
     screens::{CommandDisplay, NewCommand},
+    session::Session,
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
@@ -14,6 +15,7 @@ where
     pub workspace_id: usize,
     pub organizer: &'a mut Client,
     pub terminal: &'a mut Terminal<B>,
+    pub session: &'a mut Session,
 }
 
 impl<'a, B> CommandCenter<'a, B>
@@ -31,6 +33,9 @@ where
     }
 
     pub fn enter(mut self) -> Result<()> {
+        self.session.set_workspace_id(Some(self.workspace_id))?;
+        self.organizer.promote_workspace(self.workspace_id)?;
+
         loop {
             let workspace = self.organizer.get_workspace(self.workspace_id)?;
 

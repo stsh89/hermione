@@ -125,8 +125,9 @@ impl Organizer {
     }
 }
 
+#[cfg(test)]
 mod tests {
-    use super::{Result, NewWorkspaceParameters, Organizer, WorkspaceId, WorkspaceName, Workspace};
+    use super::{NewWorkspaceParameters, Organizer, Result, WorkspaceId};
 
     fn empty_organizer() -> Organizer {
         Organizer::initialize()
@@ -136,25 +137,18 @@ mod tests {
         let mut organizer = empty_organizer();
 
         organizer.add_workspace(NewWorkspaceParameters {
-            name: "Test Workspace 0".into(),
+            name: "Wksp 0".into(),
         });
 
         organizer.add_workspace(NewWorkspaceParameters {
-            name: "Test Workspace 1".into(),
+            name: "Wksp 1".into(),
         });
 
         organizer.add_workspace(NewWorkspaceParameters {
-            name: "Test Workspace 2".into(),
+            name: "Wksp 2".into(),
         });
 
         organizer
-    }
-
-    fn workspace_names(workspaces: &[Workspace]) -> Vec<&WorkspaceName> {
-        workspaces
-            .iter()
-            .map(|workspace| workspace.name())
-            .collect()
     }
 
     #[test]
@@ -162,11 +156,11 @@ mod tests {
         let mut organizer = empty_organizer();
 
         let workspace = organizer.add_workspace(NewWorkspaceParameters {
-            name: "Test Workspace".into(),
+            name: "Wksp".into(),
         });
 
         assert_eq!(workspace.id(), &0);
-        assert_eq!(workspace.name(), "Test Workspace");
+        assert_eq!(workspace.name(), "Wksp");
     }
 
     #[test]
@@ -174,17 +168,17 @@ mod tests {
         let mut organizer = filled_organizer();
         let workspace = organizer.get_workspace(&WorkspaceId::new(1))?;
 
-        assert_eq!(workspace.name(), "Test Workspace 1");
+        assert_eq!(workspace.name(), "Wksp 1");
         assert_eq!(workspace.id(), &1);
 
         organizer.promote_workspace(&WorkspaceId::new(1))?;
 
-        assert_eq!(organizer.workspace_names(), ["Test Workspace 1", "Test Workspace 0", "Test Workspace 2"]);
-        assert_eq!(organizer.workspace_ids(), [&0,&1,&2]);
+        assert_eq!(organizer.workspace_names(), ["Wksp 1", "Wksp 0", "Wksp 2"]);
+        assert_eq!(organizer.workspace_ids(), [&0, &1, &2]);
 
         let workspace = organizer.get_workspace(&WorkspaceId::new(0))?;
 
-        assert_eq!(workspace.name(), "Test Workspace 1");
+        assert_eq!(workspace.name(), "Wksp 1");
         assert_eq!(workspace.id(), &0);
 
         Ok(())

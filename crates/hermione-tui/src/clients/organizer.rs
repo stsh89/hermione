@@ -85,6 +85,12 @@ impl Client {
         Ok(client)
     }
 
+    pub fn promote_workspace(&mut self, id: usize) -> Result<()> {
+        self.organizer.promote_workspace(&WorkspaceId::new(id))?;
+
+        Ok(())
+    }
+
     pub fn save(&self) -> Result<()> {
         SaveOrganizer { saver: &self.inner }.save(&self.organizer)?;
 
