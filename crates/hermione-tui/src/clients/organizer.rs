@@ -85,6 +85,13 @@ impl Client {
         Ok(client)
     }
 
+    pub fn promote_command(&mut self, workspace_id: usize, command_id: usize) -> Result<()> {
+        self.organizer
+            .promote_command(&WorkspaceId::new(workspace_id), &CommandId::new(command_id))?;
+
+        Ok(())
+    }
+
     pub fn promote_workspace(&mut self, id: usize) -> Result<()> {
         self.organizer.promote_workspace(&WorkspaceId::new(id))?;
 

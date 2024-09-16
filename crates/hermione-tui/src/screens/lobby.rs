@@ -42,11 +42,13 @@ where
     }
 
     fn enter_command_center(&mut self, workspace_id: usize) -> Result<()> {
+        self.organizer.promote_workspace(workspace_id)?;
+        self.session.set_workspace_id(Some(0))?;
+
         CommandCenter {
             organizer: self.organizer,
-            session: self.session,
             terminal: self.terminal,
-            workspace_id,
+            workspace_id: 0,
         }
         .enter()
     }
