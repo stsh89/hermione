@@ -76,12 +76,6 @@ impl Organizer {
         Ok(())
     }
 
-    pub fn initialize() -> Self {
-        Self {
-            workspaces: Vec::new(),
-        }
-    }
-
     pub fn get_command(&self, w_id: &WorkspaceId, c_id: &CommandId) -> Result<&Command> {
         self.get_workspace(w_id)?
             .commands
@@ -99,6 +93,12 @@ impl Organizer {
         self.workspaces
             .get_mut(id.raw())
             .ok_or(Error::NotFound("workspace".into()))
+    }
+
+    pub fn initialize() -> Self {
+        Self {
+            workspaces: Vec::new(),
+        }
     }
 
     pub fn workspaces(&self) -> &[Workspace] {
