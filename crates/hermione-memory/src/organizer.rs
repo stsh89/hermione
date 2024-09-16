@@ -87,10 +87,23 @@ impl Organizer {
         }
     }
 
+    pub fn promote_command(&mut self, w_id: &WorkspaceId, c_id: &CommandId) -> Result<()> {
+        self.get_command(w_id, c_id)?;
+
+        let workspace = self.get_workspace_mut(w_id)?;
+        let command = workspace.commands.remove(c_id.raw());
+
+        workspace.commands.insert(0, command);
+        workspace.update_command_ids();
+
+        Ok(())
+    }
+
     pub fn promote_workspace(&mut self, id: &WorkspaceId) -> Result<()> {
         self.get_workspace(id)?;
 
         let workspace = self.workspaces.remove(id.raw());
+
         self.workspaces.insert(0, workspace);
         self.update_workspace_ids();
 
