@@ -44,34 +44,20 @@ impl Organizer {
     }
 
     pub fn delete_command(&mut self, w_id: &WorkspaceId, c_id: &CommandId) -> Result<()> {
-        let workspace = self.get_workspace_mut(w_id)?;
+        self.get_command(w_id, c_id)?;
 
-        if let Some(_command) = workspace.commands.get(c_id.raw()) {
-            workspace.commands.remove(c_id.raw());
-            workspace
-                .commands
-                .iter_mut()
-                .enumerate()
-                .for_each(|(index, command)| {
-                    command.id = CommandId::new(index);
-                })
-        } else {
-            return Err(Error::NotFound("command".into()));
-        }
+        let workspace = self.get_workspace_mut(w_id)?;
+        workspace.commands.remove(c_id.raw());
+        workspace.update_command_ids();
 
         Ok(())
     }
 
     pub fn delete_workspace(&mut self, id: &WorkspaceId) -> Result<()> {
         self.get_workspace_mut(id)?;
-        self.workspaces.remove(id.raw());
 
-        self.workspaces
-            .iter_mut()
-            .enumerate()
-            .for_each(|(index, workspace)| {
-                workspace.id = WorkspaceId::new(index);
-            });
+        self.workspaces.remove(id.raw());
+        self.update_workspace_ids();
 
         Ok(())
     }
@@ -99,6 +85,25 @@ impl Organizer {
         Self {
             workspaces: Vec::new(),
         }
+    }
+
+    pub fn promote_workspace(&mut self, id: &WorkspaceId) -> Result<()> {
+        self.get_workspace(id)?;
+
+        let workspace = self.workspaces.remove(id.raw());
+        self.workspaces.insert(0, workspace);
+        self.update_workspace_ids();
+
+        Ok(())
+    }
+
+    fn update_workspace_ids(&mut self) {
+        self.workspaces
+            .iter_mut()
+            .enumerate()
+            .for_each(|(index, workspace)| {
+                workspace.id = WorkspaceId::new(index);
+            });
     }
 
     pub fn workspaces(&self) -> &[Workspace] {

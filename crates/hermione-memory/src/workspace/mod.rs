@@ -1,7 +1,7 @@
 mod id;
 mod name;
 
-use crate::Command;
+use crate::{Command, CommandId};
 pub use id::Id;
 pub use name::Name;
 
@@ -23,5 +23,14 @@ impl Workspace {
 
     pub fn name(&self) -> &Name {
         &self.name
+    }
+
+    pub(crate) fn update_command_ids(&mut self) {
+        self.commands
+            .iter_mut()
+            .enumerate()
+            .for_each(|(index, command)| {
+                command.id = CommandId::new(index);
+            });
     }
 }
