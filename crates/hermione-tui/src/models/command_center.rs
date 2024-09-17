@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::{
     clients::{organizer::Client, windows_terminal_executor::Client as WindowsTerminalExecutor},
     elements::{Input, Selector},
@@ -40,6 +42,7 @@ pub struct Model<'a> {
     signal: Option<Signal>,
     workspace_number: usize,
     workspace_name: String,
+    current_dir: String,
 }
 
 pub struct ModelParameters<'a> {
@@ -59,6 +62,7 @@ struct View<'a> {
     search_bar: &'a Input,
     selector: Option<&'a Selector<Command>>,
     workspace_name: &'a str,
+    current_dir: String,
 }
 
 impl Element {
@@ -165,6 +169,7 @@ impl<'a> Model<'a> {
             search_bar: Input::default(),
             selector: None,
             signal: None,
+            current_dir: env::current_dir()?.display().to_string(),
             workspace_number,
             workspace_name,
         };
@@ -294,6 +299,7 @@ impl<'a> Model<'a> {
             selector: self.selector.as_ref(),
             active_element: &self.element,
             search_bar: &self.search_bar,
+            current_dir: self.current_dir.clone(),
         };
 
         view.render(frame);
@@ -333,10 +339,11 @@ impl<'a> View<'a> {
                 Constraint::Min(3),
                 Constraint::Percentage(100),
                 Constraint::Min(3),
+                Constraint::Min(3),
             ],
         )
         .flex(Flex::Start);
-        let [search_bar, programs_list, program_name] = layout.areas(frame.area());
+        let [search_bar, programs_list, program_name, directory] = layout.areas(frame.area());
 
         let list = List::new(self.programs())
             .highlight_style(Style::new().reversed())
@@ -377,5 +384,13 @@ impl<'a> View<'a> {
                 search_bar.y + 1,
             ));
         }
+
+        let paragraph = Paragraph::new(self.current_dir.as_str()).block(
+            Block::new()
+                .title("Directory")
+                .title_alignment(Alignment::Center)
+                .borders(Borders::all()),
+        );
+        frame.render_widget(paragraph, directory);
     }
 }
