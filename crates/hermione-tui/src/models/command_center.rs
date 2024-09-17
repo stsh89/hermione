@@ -391,7 +391,7 @@ impl<'a> View<'a> {
 
         let paragraph = Paragraph::new(self.location).block(
             Block::new()
-                .title("Directory")
+                .title("Location")
                 .title_alignment(Alignment::Center)
                 .borders(Borders::all()),
         );
