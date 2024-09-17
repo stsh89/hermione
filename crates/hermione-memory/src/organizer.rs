@@ -1,6 +1,4 @@
-use crate::{
-    Command, CommandId, CommandName, Error, Program, Result, Workspace, WorkspaceId, WorkspaceName,
-};
+use crate::{Command, CommandName, Error, Number, Program, Result, Workspace, WorkspaceName};
 
 pub struct Organizer {
     workspaces: Vec<Workspace>,
@@ -16,13 +14,13 @@ pub struct NewCommandParameters {
 }
 
 impl Organizer {
-    pub fn add_command(&mut self, id: &WorkspaceId, command: NewCommandParameters) -> Result<()> {
+    pub fn add_command(&mut self, number: Number, command: NewCommandParameters) -> Result<()> {
         let NewCommandParameters { name, program } = command;
-        let workspace = self.get_workspace_mut(id)?;
+        let workspace = self.get_workspace_mut(number)?;
         let count = workspace.commands.len();
 
         workspace.commands.push(Command {
-            id: CommandId::new(count),
+            number: count.into(),
             name: CommandName::new(name),
             program: Program::new(program),
         });
@@ -35,49 +33,49 @@ impl Organizer {
         let count = self.workspaces.len();
 
         self.workspaces.push(Workspace {
-            id: WorkspaceId::new(count),
+            number: count.into(),
             name: WorkspaceName::new(name),
-            ..Default::default()
+            commands: vec![],
         });
 
         &self.workspaces[count]
     }
 
-    pub fn delete_command(&mut self, w_id: &WorkspaceId, c_id: &CommandId) -> Result<()> {
-        self.get_command(w_id, c_id)?;
+    pub fn delete_command(&mut self, w_number: Number, c_number: Number) -> Result<()> {
+        self.get_command(w_number, c_number)?;
 
-        let workspace = self.get_workspace_mut(w_id)?;
-        workspace.commands.remove(c_id.raw());
-        workspace.update_command_ids();
-
-        Ok(())
-    }
-
-    pub fn delete_workspace(&mut self, id: &WorkspaceId) -> Result<()> {
-        self.get_workspace_mut(id)?;
-
-        self.workspaces.remove(id.raw());
-        self.update_workspace_ids();
+        let workspace = self.get_workspace_mut(w_number)?;
+        workspace.commands.remove(c_number.into());
+        workspace.update_command_numbers();
 
         Ok(())
     }
 
-    pub fn get_command(&self, w_id: &WorkspaceId, c_id: &CommandId) -> Result<&Command> {
-        self.get_workspace(w_id)?
+    pub fn delete_workspace(&mut self, number: Number) -> Result<()> {
+        self.get_workspace_mut(number)?;
+
+        self.workspaces.remove(number.into());
+        self.update_workspace_numbers();
+
+        Ok(())
+    }
+
+    pub fn get_command(&self, w_number: Number, c_number: Number) -> Result<&Command> {
+        self.get_workspace(w_number)?
             .commands
-            .get(c_id.raw())
+            .get::<usize>(c_number.into())
             .ok_or(Error::NotFound("command".into()))
     }
 
-    pub fn get_workspace(&self, id: &WorkspaceId) -> Result<&Workspace> {
+    pub fn get_workspace(&self, number: Number) -> Result<&Workspace> {
         self.workspaces
-            .get(id.raw())
+            .get::<usize>(number.into())
             .ok_or(Error::NotFound("workspace".into()))
     }
 
-    fn get_workspace_mut(&mut self, id: &WorkspaceId) -> Result<&mut Workspace> {
+    fn get_workspace_mut(&mut self, number: Number) -> Result<&mut Workspace> {
         self.workspaces
-            .get_mut(id.raw())
+            .get_mut::<usize>(number.into())
             .ok_or(Error::NotFound("workspace".into()))
     }
 
@@ -87,47 +85,40 @@ impl Organizer {
         }
     }
 
-    pub fn promote_command(&mut self, w_id: &WorkspaceId, c_id: &CommandId) -> Result<()> {
-        self.get_command(w_id, c_id)?;
+    pub fn promote_command(&mut self, w_number: Number, c_number: Number) -> Result<()> {
+        self.get_command(w_number, c_number)?;
 
-        let workspace = self.get_workspace_mut(w_id)?;
-        let command = workspace.commands.remove(c_id.raw());
+        let workspace = self.get_workspace_mut(w_number)?;
+        let command = workspace.commands.remove(c_number.into());
 
         workspace.commands.insert(0, command);
-        workspace.update_command_ids();
+        workspace.update_command_numbers();
 
         Ok(())
     }
 
-    pub fn promote_workspace(&mut self, id: &WorkspaceId) -> Result<()> {
-        self.get_workspace(id)?;
+    pub fn promote_workspace(&mut self, number: Number) -> Result<()> {
+        self.get_workspace(number)?;
 
-        let workspace = self.workspaces.remove(id.raw());
+        let workspace = self.workspaces.remove(number.into());
 
         self.workspaces.insert(0, workspace);
-        self.update_workspace_ids();
+        self.update_workspace_numbers();
 
         Ok(())
     }
 
-    fn update_workspace_ids(&mut self) {
+    fn update_workspace_numbers(&mut self) {
         self.workspaces
             .iter_mut()
             .enumerate()
             .for_each(|(index, workspace)| {
-                workspace.id = WorkspaceId::new(index);
+                workspace.number = index.into();
             });
     }
 
     pub fn workspaces(&self) -> &[Workspace] {
         &self.workspaces
-    }
-
-    pub fn workspace_ids(&self) -> Vec<&WorkspaceId> {
-        self.workspaces
-            .iter()
-            .map(|workspace| workspace.id())
-            .collect()
     }
 
     pub fn workspace_names(&self) -> Vec<&WorkspaceName> {
@@ -140,7 +131,7 @@ impl Organizer {
 
 #[cfg(test)]
 mod tests {
-    use super::{NewWorkspaceParameters, Organizer, Result, WorkspaceId};
+    use super::{NewWorkspaceParameters, Organizer, Result};
 
     fn empty_organizer() -> Organizer {
         Organizer::initialize()
@@ -172,27 +163,25 @@ mod tests {
             name: "Wksp".into(),
         });
 
-        assert_eq!(workspace.id(), &0);
+        assert_eq!(workspace.number(), 0.into());
         assert_eq!(workspace.name(), "Wksp");
     }
 
     #[test]
     fn test_promote_workspace() -> Result<()> {
         let mut organizer = filled_organizer();
-        let workspace = organizer.get_workspace(&WorkspaceId::new(1))?;
+        let workspace = organizer.get_workspace(1.into())?;
 
         assert_eq!(workspace.name(), "Wksp 1");
-        assert_eq!(workspace.id(), &1);
+        assert_eq!(workspace.number(), 1.into());
 
-        organizer.promote_workspace(&WorkspaceId::new(1))?;
+        organizer.promote_workspace(1.into())?;
 
         assert_eq!(organizer.workspace_names(), ["Wksp 1", "Wksp 0", "Wksp 2"]);
-        assert_eq!(organizer.workspace_ids(), [&0, &1, &2]);
 
-        let workspace = organizer.get_workspace(&WorkspaceId::new(0))?;
+        let workspace = organizer.get_workspace(0.into())?;
 
         assert_eq!(workspace.name(), "Wksp 1");
-        assert_eq!(workspace.id(), &0);
 
         Ok(())
     }

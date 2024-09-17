@@ -12,7 +12,7 @@ where
     B: Backend,
 {
     organizer: &'a mut Client,
-    workspace_id: usize,
+    workspace_number: usize,
     workspace_name: String,
     terminal: &'a mut Terminal<B>,
 }
@@ -22,7 +22,7 @@ where
     B: Backend,
 {
     pub organizer: &'a mut Client,
-    pub workspace_id: usize,
+    pub workspace_number: usize,
     pub workspace_name: String,
     pub terminal: &'a mut Terminal<B>,
 }
@@ -35,13 +35,13 @@ where
         let ControllerParameters {
             organizer,
             terminal,
-            workspace_id,
+            workspace_number,
             workspace_name,
         } = params;
 
         Self {
             organizer,
-            workspace_id,
+            workspace_number,
             workspace_name,
             terminal,
         }
@@ -50,7 +50,7 @@ where
     pub fn run(self) -> Result<Signal> {
         let mut model = Model::new(ModelParameters {
             organizer: self.organizer,
-            workspace_id: self.workspace_id,
+            workspace_number: self.workspace_number,
             workspace_name: self.workspace_name,
         })?;
 

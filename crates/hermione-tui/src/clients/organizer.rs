@@ -3,8 +3,8 @@ use crate::{
     Result,
 };
 use hermione_memory::{
-    Command, CommandId, LoadOrganizer, NewCommandParameters, NewWorkspaceParameters, Organizer,
-    SaveOrganizer, Workspace, WorkspaceId,
+    Command, LoadOrganizer, NewCommandParameters, NewWorkspaceParameters, Organizer, SaveOrganizer,
+    Workspace,
 };
 
 pub struct Client {
@@ -13,7 +13,7 @@ pub struct Client {
 }
 
 pub struct CreateCommandParameters {
-    pub workspace_id: usize,
+    pub workspace_number: usize,
     pub name: String,
     pub program: String,
 }
@@ -21,13 +21,13 @@ pub struct CreateCommandParameters {
 impl Client {
     pub fn add_command(&mut self, parameters: CreateCommandParameters) -> Result<()> {
         let CreateCommandParameters {
-            workspace_id,
+            workspace_number,
             name,
             program,
         } = parameters;
 
         self.organizer.add_command(
-            &WorkspaceId::new(workspace_id),
+            workspace_number.into(),
             NewCommandParameters { name, program },
         )?;
 
@@ -42,29 +42,33 @@ impl Client {
         Ok(from_workspace(workspace))
     }
 
-    pub fn delete_command(&mut self, workspace_id: usize, command_id: usize) -> Result<()> {
+    pub fn delete_command(&mut self, workspace_number: usize, command_number: usize) -> Result<()> {
         self.organizer
-            .delete_command(&WorkspaceId::new(workspace_id), &CommandId::new(command_id))?;
+            .delete_command(workspace_number.into(), command_number.into())?;
 
         Ok(())
     }
 
-    pub fn delete_workspace(&mut self, id: usize) -> Result<()> {
-        self.organizer.delete_workspace(&WorkspaceId::new(id))?;
+    pub fn delete_workspace(&mut self, number: usize) -> Result<()> {
+        self.organizer.delete_workspace(number.into())?;
 
         Ok(())
     }
 
-    pub fn get_command(&self, workspace_id: usize, command_id: usize) -> Result<CommandEntity> {
+    pub fn get_command(
+        &self,
+        workspace_number: usize,
+        command_number: usize,
+    ) -> Result<CommandEntity> {
         let command = self
             .organizer
-            .get_command(&WorkspaceId::new(workspace_id), &CommandId::new(command_id))?;
+            .get_command(workspace_number.into(), command_number.into())?;
 
         Ok(from_command(command))
     }
 
-    pub fn get_workspace(&self, id: usize) -> Result<WorkspaceEntity> {
-        let workspace = self.organizer.get_workspace(&WorkspaceId::new(id))?;
+    pub fn get_workspace(&self, number: usize) -> Result<WorkspaceEntity> {
+        let workspace = self.organizer.get_workspace(number.into())?;
 
         Ok(from_workspace(workspace))
     }
@@ -85,15 +89,19 @@ impl Client {
         Ok(client)
     }
 
-    pub fn promote_command(&mut self, workspace_id: usize, command_id: usize) -> Result<()> {
+    pub fn promote_command(
+        &mut self,
+        workspace_number: usize,
+        command_number: usize,
+    ) -> Result<()> {
         self.organizer
-            .promote_command(&WorkspaceId::new(workspace_id), &CommandId::new(command_id))?;
+            .promote_command(workspace_number.into(), command_number.into())?;
 
         Ok(())
     }
 
-    pub fn promote_workspace(&mut self, id: usize) -> Result<()> {
-        self.organizer.promote_workspace(&WorkspaceId::new(id))?;
+    pub fn promote_workspace(&mut self, number: usize) -> Result<()> {
+        self.organizer.promote_workspace(number.into())?;
 
         Ok(())
     }
@@ -107,7 +115,7 @@ impl Client {
 
 fn from_workspace(value: &Workspace) -> WorkspaceEntity {
     WorkspaceEntity {
-        id: value.id().raw(),
+        number: value.number().into(),
         name: value.name().to_string(),
         commands: value.commands().iter().map(from_command).collect(),
     }
@@ -115,7 +123,7 @@ fn from_workspace(value: &Workspace) -> WorkspaceEntity {
 
 fn from_command(value: &Command) -> CommandEntity {
     CommandEntity {
-        id: value.id().raw(),
+        number: value.number().into(),
         name: value.name().to_string(),
         program: value.program().to_string(),
     }
@@ -124,7 +132,7 @@ fn from_command(value: &Command) -> CommandEntity {
 mod inner {
     use hermione_memory::{
         Command, Error, Load, NewCommandParameters, NewWorkspaceParameters, Organizer, Save,
-        Workspace, WorkspaceId,
+        Workspace,
     };
     use serde::{Deserialize, Serialize};
     use std::{
@@ -138,14 +146,14 @@ mod inner {
 
     #[derive(Serialize, Deserialize)]
     struct WorkspaceRecord {
-        id: usize,
+        number: usize,
         name: String,
         commands: Vec<CommandRecord>,
     }
 
     #[derive(Serialize, Deserialize)]
     struct CommandRecord {
-        id: usize,
+        number: usize,
         name: String,
         program: String,
     }
@@ -160,15 +168,15 @@ mod inner {
             let mut organizer = Organizer::initialize();
 
             for workspace in workspaces {
-                let new_workspace = organizer.add_workspace(NewWorkspaceParameters {
-                    name: workspace.name,
-                });
-
-                let workspace_id = WorkspaceId::new(new_workspace.id().raw());
+                let number = organizer
+                    .add_workspace(NewWorkspaceParameters {
+                        name: workspace.name,
+                    })
+                    .number();
 
                 for command in workspace.commands {
                     organizer.add_command(
-                        &workspace_id,
+                        number,
                         NewCommandParameters {
                             name: command.name,
                             program: command.program,
@@ -201,7 +209,7 @@ mod inner {
     impl From<&Workspace> for WorkspaceRecord {
         fn from(value: &Workspace) -> Self {
             WorkspaceRecord {
-                id: value.id().raw(),
+                number: value.number().into(),
                 name: value.name().to_string(),
                 commands: value.commands().iter().map(Into::into).collect(),
             }
@@ -211,7 +219,7 @@ mod inner {
     impl From<&Command> for CommandRecord {
         fn from(value: &Command) -> Self {
             CommandRecord {
-                id: value.id().raw(),
+                number: value.number().into(),
                 name: value.name().to_string(),
                 program: value.program().to_string(),
             }

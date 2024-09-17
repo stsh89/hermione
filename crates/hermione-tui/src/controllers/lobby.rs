@@ -50,8 +50,8 @@ where
         }
 
         if self.session.read_only() {
-            if let Some(workspace_id) = self.session.get_workspace_id()? {
-                return Ok(Signal::EnterCommandCenter(workspace_id));
+            if let Some(workspace_number) = self.session.get_workspace_number()? {
+                return Ok(Signal::EnterCommandCenter(workspace_number));
             }
         }
 

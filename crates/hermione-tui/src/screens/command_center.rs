@@ -11,7 +11,7 @@ pub struct CommandCenter<'a, B>
 where
     B: Backend,
 {
-    pub workspace_id: usize,
+    pub workspace_number: usize,
     pub organizer: &'a mut Client,
     pub terminal: &'a mut Terminal<B>,
 }
@@ -20,32 +20,32 @@ impl<'a, B> CommandCenter<'a, B>
 where
     B: Backend,
 {
-    fn execute_command(&mut self, command_id: usize) -> Result<()> {
+    fn execute_command(&mut self, command_number: usize) -> Result<()> {
         self.organizer
-            .promote_command(self.workspace_id, command_id)?;
+            .promote_command(self.workspace_number, command_number)?;
 
         CommandDisplay {
-            command_id: 0,
+            command_number: 0,
             organizer: self.organizer,
             terminal: self.terminal,
-            workspace_id: self.workspace_id,
+            workspace_number: self.workspace_number,
         }
         .enter()
     }
 
     pub fn enter(mut self) -> Result<()> {
         loop {
-            let workspace = self.organizer.get_workspace(self.workspace_id)?;
+            let workspace = self.organizer.get_workspace(self.workspace_number)?;
 
             let controller = Controller::new(ControllerParameters {
                 terminal: self.terminal,
                 organizer: self.organizer,
                 workspace_name: workspace.name,
-                workspace_id: workspace.id,
+                workspace_number: workspace.number,
             });
 
             match controller.run()? {
-                Signal::ExecuteCommand(command_id) => self.execute_command(command_id)?,
+                Signal::ExecuteCommand(command_number) => self.execute_command(command_number)?,
                 Signal::NewCommandRequest => self.new_command()?,
                 Signal::Exit => break,
             };
@@ -57,7 +57,7 @@ where
     fn new_command(&mut self) -> Result<()> {
         NewCommand {
             terminal: self.terminal,
-            workspace_id: self.workspace_id,
+            workspace_number: self.workspace_number,
             organizer: self.organizer,
         }
         .enter()

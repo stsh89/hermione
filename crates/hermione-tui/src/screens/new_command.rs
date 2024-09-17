@@ -10,7 +10,7 @@ pub struct NewCommand<'a, B>
 where
     B: Backend,
 {
-    pub workspace_id: usize,
+    pub workspace_number: usize,
     pub organizer: &'a mut Client,
     pub terminal: &'a mut Terminal<B>,
 }
@@ -28,7 +28,7 @@ where
             let NewCommandParameters { name, program } = new_command;
 
             self.organizer.add_command(CreateCommandParameters {
-                workspace_id: self.workspace_id,
+                workspace_number: self.workspace_number,
                 name,
                 program,
             })?;

@@ -1,15 +1,12 @@
-mod id;
 mod name;
 
-use crate::{Command, CommandId};
-pub use id::Id;
+use crate::{Command, Number};
 pub use name::Name;
 
-#[derive(Default)]
 pub struct Workspace {
     pub(crate) commands: Vec<Command>,
-    pub(crate) id: Id,
     pub(crate) name: Name,
+    pub(crate) number: Number,
 }
 
 impl Workspace {
@@ -17,20 +14,20 @@ impl Workspace {
         &self.commands
     }
 
-    pub fn id(&self) -> &Id {
-        &self.id
-    }
-
     pub fn name(&self) -> &Name {
         &self.name
     }
 
-    pub(crate) fn update_command_ids(&mut self) {
+    pub fn number(&self) -> Number {
+        self.number
+    }
+
+    pub(crate) fn update_command_numbers(&mut self) {
         self.commands
             .iter_mut()
             .enumerate()
             .for_each(|(index, command)| {
-                command.id = CommandId::new(index);
+                command.number = index.into();
             });
     }
 }

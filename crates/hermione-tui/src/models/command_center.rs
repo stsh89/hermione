@@ -37,13 +37,13 @@ pub struct Model<'a> {
     search_bar: Input,
     selector: Option<Selector<Command>>,
     signal: Option<Signal>,
-    workspace_id: usize,
+    workspace_number: usize,
     workspace_name: String,
 }
 
 pub struct ModelParameters<'a> {
     pub organizer: &'a mut Client,
-    pub workspace_id: usize,
+    pub workspace_number: usize,
     pub workspace_name: String,
 }
 
@@ -103,7 +103,7 @@ impl<'a> Model<'a> {
     fn delete_command(&mut self) -> Result<()> {
         if let Some(selector) = &self.selector {
             self.organizer
-                .delete_command(self.workspace_id, selector.item().id)?;
+                .delete_command(self.workspace_number, selector.item().number)?;
         }
 
         Ok(())
@@ -154,7 +154,7 @@ impl<'a> Model<'a> {
     pub fn new(params: ModelParameters<'a>) -> Result<Self> {
         let ModelParameters {
             organizer,
-            workspace_id,
+            workspace_number,
             workspace_name,
         } = params;
 
@@ -164,7 +164,7 @@ impl<'a> Model<'a> {
             search_bar: Input::default(),
             selector: None,
             signal: None,
-            workspace_id,
+            workspace_number,
             workspace_name,
         };
 
@@ -223,7 +223,7 @@ impl<'a> Model<'a> {
             Message::SelectPreviousCommand => self.select_previous_command(),
             Message::ExecuteCommand => {
                 if let Some(command) = self.command() {
-                    self.signal = Some(Signal::ExecuteCommand(command.id));
+                    self.signal = Some(Signal::ExecuteCommand(command.number));
                 }
             }
         }
@@ -241,7 +241,7 @@ impl<'a> Model<'a> {
     }
 
     fn update_selector(&mut self) -> Result<()> {
-        let workspace = self.organizer.get_workspace(self.workspace_id)?;
+        let workspace = self.organizer.get_workspace(self.workspace_number)?;
         let search_query = self.search_bar.value().to_lowercase();
 
         if workspace.commands.is_empty() {

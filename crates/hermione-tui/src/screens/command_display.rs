@@ -9,8 +9,8 @@ pub struct CommandDisplay<'a, B>
 where
     B: Backend,
 {
-    pub workspace_id: usize,
-    pub command_id: usize,
+    pub workspace_number: usize,
+    pub command_number: usize,
     pub organizer: &'a mut Client,
     pub terminal: &'a mut Terminal<B>,
 }
@@ -22,7 +22,7 @@ where
     pub fn enter(&mut self) -> Result<()> {
         let command = self
             .organizer
-            .get_command(self.workspace_id, self.command_id)?;
+            .get_command(self.workspace_number, self.command_number)?;
 
         let controller = Controller::new(ControllerParameters {
             terminal: self.terminal,

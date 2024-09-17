@@ -30,9 +30,7 @@ where
             });
 
             match controller.run()? {
-                Signal::EnterCommandCenter(workspace_id) => {
-                    self.enter_command_center(workspace_id)?
-                }
+                Signal::EnterCommandCenter(number) => self.enter_command_center(number)?,
                 Signal::NewWorkspaceRequest => self.new_workspace()?,
                 Signal::Exit => break,
             };
@@ -41,14 +39,14 @@ where
         Ok(())
     }
 
-    fn enter_command_center(&mut self, workspace_id: usize) -> Result<()> {
-        self.organizer.promote_workspace(workspace_id)?;
-        self.session.set_workspace_id(Some(0))?;
+    fn enter_command_center(&mut self, number: usize) -> Result<()> {
+        self.organizer.promote_workspace(number)?;
+        self.session.set_workspace_number(Some(0))?;
 
         CommandCenter {
             organizer: self.organizer,
             terminal: self.terminal,
-            workspace_id: 0,
+            workspace_number: 0,
         }
         .enter()
     }

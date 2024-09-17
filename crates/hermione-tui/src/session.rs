@@ -4,8 +4,8 @@ use std::collections::HashSet;
 const RESTORE_PROPERTIES_NUMBER: usize = 1;
 
 pub struct Session {
-    /// Workspace ID of the current session
-    workspace_id: Option<usize>,
+    /// Workspace number of the current session
+    workspace_number: Option<usize>,
 
     /// State of the session
     state: State,
@@ -14,8 +14,8 @@ pub struct Session {
 }
 
 pub struct SessionParameters {
-    /// Workspace ID of the last session
-    pub workspace_id: Option<usize>,
+    /// Workspace number of the last session
+    pub workspace_number: Option<usize>,
 }
 
 enum State {
@@ -24,38 +24,38 @@ enum State {
 }
 
 pub struct Properties {
-    pub workspace_id: Option<usize>,
+    pub workspace_number: Option<usize>,
 }
 
 #[derive(Eq, Hash, PartialEq)]
 enum RestoreProperty {
-    WorkspaceId,
+    WorkspaceNumber,
 }
 
 impl Session {
-    pub fn get_workspace_id(&mut self) -> Result<Option<usize>> {
+    pub fn get_workspace_number(&mut self) -> Result<Option<usize>> {
         if self.write_only() {
             return Err(anyhow::anyhow!("attempt to read write-only session"));
         }
 
-        self.restore_property(RestoreProperty::WorkspaceId);
+        self.restore_property(RestoreProperty::WorkspaceNumber);
 
-        Ok(self.workspace_id)
+        Ok(self.workspace_number)
     }
 
     pub fn new(parameters: SessionParameters) -> Self {
-        let SessionParameters { workspace_id } = parameters;
+        let SessionParameters { workspace_number } = parameters;
 
         Self {
             properties: HashSet::new(),
             state: State::ReadOnly,
-            workspace_id,
+            workspace_number,
         }
     }
 
     pub fn properties(self) -> Properties {
         Properties {
-            workspace_id: self.workspace_id,
+            workspace_number: self.workspace_number,
         }
     }
 
@@ -71,12 +71,12 @@ impl Session {
         }
     }
 
-    pub fn set_workspace_id(&mut self, id: Option<usize>) -> Result<()> {
+    pub fn set_workspace_number(&mut self, number: Option<usize>) -> Result<()> {
         if self.read_only() {
             return Err(anyhow::anyhow!("attempt to modify read-only session"));
         }
 
-        self.workspace_id = id;
+        self.workspace_number = number;
 
         Ok(())
     }

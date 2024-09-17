@@ -56,7 +56,7 @@ impl Message {
 
 impl<'a> Model<'a> {
     fn delete_workspace(&mut self) -> Result<()> {
-        self.organizer.delete_workspace(self.selector.item().id)
+        self.organizer.delete_workspace(self.selector.item().number)
     }
 
     pub fn input_mode(&self) -> InputMode {
@@ -82,7 +82,7 @@ impl<'a> Model<'a> {
     fn select_next_workspace(&mut self) -> Result<()> {
         self.selector.next();
         self.session
-            .set_workspace_id(Some(self.selector.item().id))?;
+            .set_workspace_number(Some(self.selector.item().number))?;
 
         Ok(())
     }
@@ -90,7 +90,7 @@ impl<'a> Model<'a> {
     fn select_previous_workspace(&mut self) -> Result<()> {
         self.selector.previous();
         self.session
-            .set_workspace_id(Some(self.selector.item().id))?;
+            .set_workspace_number(Some(self.selector.item().number))?;
 
         Ok(())
     }
@@ -109,7 +109,7 @@ impl<'a> Model<'a> {
             Message::SelectPreviousWorkspace => self.select_previous_workspace()?,
             Message::NewWorkspaceRequest => self.signal = Some(Signal::NewWorkspaceRequest),
             Message::EnterCommandCenter => {
-                self.signal = Some(Signal::EnterCommandCenter(self.selector.item().id))
+                self.signal = Some(Signal::EnterCommandCenter(self.selector.item().number))
             }
         }
 

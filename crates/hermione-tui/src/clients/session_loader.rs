@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 struct SessionRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
-    workspace_id: Option<usize>,
+    workspace_number: Option<usize>,
 }
 
 pub struct Client {
@@ -47,13 +47,13 @@ impl Client {
 }
 
 fn into_session(session_record: SessionRecord) -> Session {
-    let SessionRecord { workspace_id } = session_record;
+    let SessionRecord { workspace_number } = session_record;
 
-    Session::new(SessionParameters { workspace_id })
+    Session::new(SessionParameters { workspace_number })
 }
 
 fn into_session_record(session: Session) -> SessionRecord {
-    let Properties { workspace_id } = session.properties();
+    let Properties { workspace_number } = session.properties();
 
-    SessionRecord { workspace_id }
+    SessionRecord { workspace_number }
 }
