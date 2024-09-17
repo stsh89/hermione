@@ -197,8 +197,9 @@ impl<'a> Model<'a> {
                 }
             }
             Element::SearchBar => {
-                if self.selector.is_some() {
+                if let Some(selector) = &mut self.selector {
                     self.element.toggle();
+                    selector.next();
                 }
             }
         }
@@ -212,8 +213,9 @@ impl<'a> Model<'a> {
                 }
             }
             Element::SearchBar => {
-                if self.selector.is_some() {
+                if let Some(selector) = &mut self.selector {
                     self.element.toggle();
+                    selector.previous();
                 }
             }
         }
@@ -271,13 +273,17 @@ impl<'a> Model<'a> {
             return Ok(());
         }
 
-        let commands = workspace
+        let commands: Vec<Command> = workspace
             .commands
             .into_iter()
             .filter(|command| command.program.to_lowercase().contains(&search_query))
             .collect();
 
-        self.selector = Some(Selector::new(commands)?);
+        self.selector = if commands.is_empty() {
+            None
+        } else {
+            Some(Selector::new(commands)?)
+        };
 
         Ok(())
     }
