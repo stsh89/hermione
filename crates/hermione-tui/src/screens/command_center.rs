@@ -2,7 +2,7 @@ use crate::{
     clients::organizer::Client,
     controllers::command_center::{Controller, ControllerParameters},
     models::command_center::Signal,
-    screens::{CommandDisplay, NewCommand},
+    screens::{ChangeLocation, CommandDisplay, NewCommand},
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
@@ -47,6 +47,7 @@ where
             match controller.run()? {
                 Signal::ExecuteCommand(command_number) => self.execute_command(command_number)?,
                 Signal::NewCommandRequest => self.new_command()?,
+                Signal::ChangeLocationRequest => self.change_location()?,
                 Signal::Exit => break,
             };
         }
@@ -59,6 +60,13 @@ where
             terminal: self.terminal,
             workspace_number: self.workspace_number,
             organizer: self.organizer,
+        }
+        .enter()
+    }
+
+    fn change_location(&mut self) -> Result<()> {
+        ChangeLocation {
+            terminal: self.terminal,
         }
         .enter()
     }

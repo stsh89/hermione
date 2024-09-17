@@ -65,6 +65,16 @@ impl Input {
         new_cursor_pos.clamp(0, self.value.chars().count())
     }
 
+    pub fn new(value: String) -> Self {
+        let mut input = Self::default();
+
+        for c in value.chars() {
+            input.enter_char(c);
+        }
+
+        input
+    }
+
     pub fn value(&self) -> &str {
         &self.value
     }

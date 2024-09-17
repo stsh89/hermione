@@ -1,4 +1,4 @@
-use std::{io::Write, process::Stdio};
+use std::{env, io::Write, process::Stdio};
 
 use crate::{entities::Command, Result};
 
@@ -8,7 +8,8 @@ pub struct Client<'a> {
 
 impl<'a> Client<'a> {
     pub fn execute(&self) -> Result<()> {
-        let program = format!("wt pwsh -Command {{{}; Read-Host}}", self.command.program);
+        let location = env::current_dir()?.display().to_string();
+        let program = format!("wt pwsh -Command {{cd {}; {}; Read-Host \"Press any key...\"}}", location, self.command.program);
         let mut cmd = std::process::Command::new("PowerShell");
         cmd.stdin(Stdio::piped());
         cmd.stdout(Stdio::piped());

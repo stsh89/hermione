@@ -1,5 +1,6 @@
 use crate::{
     models::{
+        change_location::Message as ChangeLocationMessage,
         command_center::Message as CommandCenterMessage,
         command_display::Message as CommandDisplayMessage, lobby::Message as LobbyMessage,
         new_command::Message as NewCommandMessage, new_workspace::Message as NewWorkspaceMessage,
@@ -49,6 +50,25 @@ pub fn new_workspace_key_mapping(
         KeyCode::Backspace => Some(NWM::DeleteChar),
         KeyCode::Enter => Some(NWM::Submit),
         KeyCode::Esc => Some(NWM::Exit),
+        _ => None,
+    };
+
+    Ok(message)
+}
+
+pub fn change_location_key_mapping(
+    key_event: KeyEvent,
+    _mode: InputMode,
+) -> Result<Option<ChangeLocationMessage>> {
+    use ChangeLocationMessage as CLM;
+
+    let message = match key_event.code {
+        KeyCode::Left => Some(CLM::MoveCusorLeft),
+        KeyCode::Right => Some(CLM::MoveCusorRight),
+        KeyCode::Char(c) => Some(CLM::EnterChar(c)),
+        KeyCode::Backspace => Some(CLM::DeleteChar),
+        KeyCode::Enter => Some(CLM::Submit),
+        KeyCode::Esc => Some(CLM::Exit),
         _ => None,
     };
 
@@ -106,6 +126,7 @@ pub fn command_center_key_mapping(
         KeyCode::Esc => Some(CCM::Exit),
         KeyCode::Char('n') => Some(CCM::NewCommandRequest),
         KeyCode::Char('d') => Some(CCM::DeleteCommand),
+        KeyCode::Char('c') => Some(CCM::ChangeLocationRequest),
         KeyCode::Enter if key_event.modifiers.contains(event::KeyModifiers::CONTROL) => {
             Some(CCM::RunCommand)
         }

@@ -30,6 +30,7 @@ pub enum Message {
     MoveCusorLeft,
     MoveCusorRight,
     NewCommandRequest,
+    ChangeLocationRequest,
     SelectNextCommand,
     SelectPreviousCommand,
 }
@@ -55,6 +56,7 @@ pub enum Signal {
     ExecuteCommand(usize),
     Exit,
     NewCommandRequest,
+    ChangeLocationRequest,
 }
 
 struct View<'a> {
@@ -62,7 +64,7 @@ struct View<'a> {
     search_bar: &'a Input,
     selector: Option<&'a Selector<Command>>,
     workspace_name: &'a str,
-    current_dir: String,
+    current_dir: &'a str,
 }
 
 impl Element {
@@ -90,6 +92,7 @@ impl Message {
             | Self::SelectNextCommand
             | Self::NewCommandRequest
             | Self::ExecuteCommand
+            | Self::ChangeLocationRequest
             | Self::SelectPreviousCommand => true,
             Self::DeleteCommand | Self::RunCommand => false,
         }
@@ -245,6 +248,7 @@ impl<'a> Model<'a> {
             Message::RunCommand => self.run_command()?,
             Message::SelectNextCommand => self.select_next_command(),
             Message::SelectPreviousCommand => self.select_previous_command(),
+            Message::ChangeLocationRequest => self.signal = Some(Signal::ChangeLocationRequest),
             Message::ExecuteCommand => {
                 if let Some(command) = self.command() {
                     self.signal = Some(Signal::ExecuteCommand(command.number));
@@ -299,7 +303,7 @@ impl<'a> Model<'a> {
             selector: self.selector.as_ref(),
             active_element: &self.element,
             search_bar: &self.search_bar,
-            current_dir: self.current_dir.clone(),
+            current_dir: &self.current_dir,
         };
 
         view.render(frame);
@@ -385,7 +389,7 @@ impl<'a> View<'a> {
             ));
         }
 
-        let paragraph = Paragraph::new(self.current_dir.as_str()).block(
+        let paragraph = Paragraph::new(self.current_dir).block(
             Block::new()
                 .title("Directory")
                 .title_alignment(Alignment::Center)

@@ -1,5 +1,5 @@
 use crate::{entities::Command, Result};
-use std::{io::Write, process::Stdio};
+use std::{env, io::Write, process::Stdio};
 
 pub struct Client<'a> {
     pub command: &'a Command,
@@ -12,7 +12,8 @@ pub struct Output {
 
 impl<'a> Client<'a> {
     pub fn execute(&self) -> Result<Output> {
-        let mut cmd = std::process::Command::new("PowerShell");
+        let location = env::current_dir()?.display().to_string();
+        let mut cmd = std::process::Command::new("pwsh");
         cmd.stdin(Stdio::piped());
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
@@ -21,8 +22,10 @@ impl<'a> Client<'a> {
             .stdin
             .as_mut()
             .ok_or(anyhow::anyhow!("stdin access failure"))?;
-        writeln!(stdin, "{}", self.command.program).unwrap();
-        let out = process.wait_with_output().unwrap();
+
+        let program = format!("cd {}; {}", location, self.command.program);
+        writeln!(stdin, "{}", program)?;
+        let out = process.wait_with_output()?;
         let stderr = std::str::from_utf8(out.stderr.as_slice())?.to_string();
         let stdout = std::str::from_utf8(out.stdout.as_slice())?.to_string();
         let output = Output { stderr, stdout };
