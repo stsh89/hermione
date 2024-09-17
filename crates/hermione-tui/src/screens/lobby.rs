@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::{
     clients::organizer::Client,
     controllers::lobby::{Controller, ControllerParameters},
@@ -47,6 +49,7 @@ where
             organizer: self.organizer,
             terminal: self.terminal,
             workspace_number: 0,
+            location: env::current_dir()?.display().to_string(),
         }
         .enter()
     }

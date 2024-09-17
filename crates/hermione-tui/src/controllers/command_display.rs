@@ -12,6 +12,7 @@ where
     B: Backend,
 {
     command: Command,
+    location: String,
     terminal: &'a mut Terminal<B>,
 }
 
@@ -20,6 +21,7 @@ where
     B: Backend,
 {
     pub command: Command,
+    pub location: String,
     pub terminal: &'a mut Terminal<B>,
 }
 
@@ -28,14 +30,23 @@ where
     B: Backend,
 {
     pub fn new(parameters: ControllerParameters<'a, B>) -> Self {
-        let ControllerParameters { command, terminal } = parameters;
+        let ControllerParameters {
+            command,
+            terminal,
+            location,
+        } = parameters;
 
-        Self { command, terminal }
+        Self {
+            command,
+            terminal,
+            location,
+        }
     }
 
     pub fn run(self) -> Result<Signal> {
         let mut model = Model::new(ModelParameters {
             command: self.command,
+            location: self.location,
         })?;
 
         while model.is_running() {

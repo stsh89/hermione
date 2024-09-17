@@ -1,5 +1,3 @@
-use std::env;
-
 use crate::{
     controllers::change_location::{Controller, ControllerParameters},
     models::change_location::Signal,
@@ -11,6 +9,7 @@ pub struct ChangeLocation<'a, B>
 where
     B: Backend,
 {
+    pub location: String,
     pub terminal: &'a mut Terminal<B>,
 }
 
@@ -18,15 +17,12 @@ impl<'a, B> ChangeLocation<'a, B>
 where
     B: Backend,
 {
-    pub fn enter(&mut self) -> Result<()> {
+    pub fn enter(self) -> Result<Signal> {
         let controller = Controller::new(ControllerParameters {
+            location: self.location,
             terminal: self.terminal,
         });
 
-        if let Signal::ChangeLocation(name) = controller.run()? {
-            env::set_current_dir(&name)?;
-        }
-
-        Ok(())
+        controller.run()
     }
 }

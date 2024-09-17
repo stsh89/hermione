@@ -15,6 +15,7 @@ where
     workspace_number: usize,
     workspace_name: String,
     terminal: &'a mut Terminal<B>,
+    location: String,
 }
 
 pub struct ControllerParameters<'a, B>
@@ -25,6 +26,7 @@ where
     pub workspace_number: usize,
     pub workspace_name: String,
     pub terminal: &'a mut Terminal<B>,
+    pub location: String,
 }
 
 impl<'a, B> Controller<'a, B>
@@ -37,6 +39,7 @@ where
             terminal,
             workspace_number,
             workspace_name,
+            location,
         } = params;
 
         Self {
@@ -44,12 +47,14 @@ where
             workspace_number,
             workspace_name,
             terminal,
+            location,
         }
     }
 
     pub fn run(self) -> Result<Signal> {
         let mut model = Model::new(ModelParameters {
             organizer: self.organizer,
+            location: self.location,
             workspace_number: self.workspace_number,
             workspace_name: self.workspace_name,
         })?;

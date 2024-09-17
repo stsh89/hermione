@@ -1,8 +1,9 @@
 use crate::{entities::Command, Result};
-use std::{env, io::Write, process::Stdio};
+use std::{io::Write, process::Stdio};
 
 pub struct Client<'a> {
     pub command: &'a Command,
+    pub location: &'a str,
 }
 
 pub struct Output {
@@ -12,7 +13,6 @@ pub struct Output {
 
 impl<'a> Client<'a> {
     pub fn execute(&self) -> Result<Output> {
-        let location = env::current_dir()?.display().to_string();
         let mut cmd = std::process::Command::new("pwsh");
         cmd.stdin(Stdio::piped());
         cmd.stdout(Stdio::piped());
@@ -23,7 +23,7 @@ impl<'a> Client<'a> {
             .as_mut()
             .ok_or(anyhow::anyhow!("stdin access failure"))?;
 
-        let program = format!("cd {}; {}", location, self.command.program);
+        let program = format!("cd {}; {}", self.location, self.command.program);
         writeln!(stdin, "{}", program)?;
         let out = process.wait_with_output()?;
         let stderr = std::str::from_utf8(out.stderr.as_slice())?.to_string();
@@ -33,7 +33,7 @@ impl<'a> Client<'a> {
         Ok(output)
     }
 
-    pub fn new(command: &'a Command) -> Self {
-        Self { command }
+    pub fn new(command: &'a Command, location: &'a str) -> Self {
+        Self { command, location }
     }
 }

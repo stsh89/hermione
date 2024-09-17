@@ -1,5 +1,3 @@
-use std::env;
-
 use super::handle_event;
 use crate::{
     key_mappings::change_location_key_mapping,
@@ -12,6 +10,7 @@ pub struct Controller<'a, B>
 where
     B: Backend,
 {
+    location: String,
     terminal: &'a mut Terminal<B>,
 }
 
@@ -19,6 +18,7 @@ pub struct ControllerParameters<'a, B>
 where
     B: Backend,
 {
+    pub location: String,
     pub terminal: &'a mut Terminal<B>,
 }
 
@@ -27,13 +27,13 @@ where
     B: Backend,
 {
     pub fn new(parameters: ControllerParameters<'a, B>) -> Self {
-        let ControllerParameters { terminal } = parameters;
+        let ControllerParameters { terminal, location } = parameters;
 
-        Self { terminal }
+        Self { terminal, location }
     }
 
     pub fn run(self) -> Result<Signal> {
-        let mut model = Model::new(env::current_dir()?.display().to_string());
+        let mut model = Model::new(self.location);
 
         while model.is_running() {
             self.terminal.draw(|frame| model.view(frame))?;

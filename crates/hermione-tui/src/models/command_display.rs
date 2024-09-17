@@ -15,10 +15,12 @@ pub struct Model {
     stdout: String,
     stderr: String,
     signal: Option<Signal>,
+    location: String,
 }
 
 pub struct ModelParameters {
     pub command: Command,
+    pub location: String,
 }
 
 pub enum Message {
@@ -38,7 +40,7 @@ struct View<'a> {
 
 impl Model {
     fn execute_command(&mut self) -> Result<()> {
-        let Output { stdout, stderr } = Client::new(&self.command).execute()?;
+        let Output { stdout, stderr } = Client::new(&self.command, &self.location).execute()?;
 
         self.stderr = stderr;
         self.stdout = stdout;
@@ -55,10 +57,11 @@ impl Model {
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
-        let ModelParameters { command } = parameters;
+        let ModelParameters { command, location } = parameters;
 
         let mut model = Self {
             command,
+            location,
             signal: None,
             stderr: String::new(),
             stdout: String::new(),

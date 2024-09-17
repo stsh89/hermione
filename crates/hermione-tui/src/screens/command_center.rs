@@ -12,6 +12,7 @@ where
     B: Backend,
 {
     pub workspace_number: usize,
+    pub location: String,
     pub organizer: &'a mut Client,
     pub terminal: &'a mut Terminal<B>,
 }
@@ -29,6 +30,7 @@ where
             organizer: self.organizer,
             terminal: self.terminal,
             workspace_number: self.workspace_number,
+            location: self.location.clone(),
         }
         .enter()
     }
@@ -42,6 +44,7 @@ where
                 organizer: self.organizer,
                 workspace_name: workspace.name,
                 workspace_number: workspace.number,
+                location: self.location.clone(),
             });
 
             match controller.run()? {
@@ -65,9 +68,18 @@ where
     }
 
     fn change_location(&mut self) -> Result<()> {
-        ChangeLocation {
+        use crate::models::change_location::Signal as CLS;
+
+        let signal = ChangeLocation {
             terminal: self.terminal,
+            location: self.location.clone(),
         }
-        .enter()
+        .enter()?;
+
+        if let CLS::ChangeLocation(location) = signal {
+            self.location = location;
+        }
+
+        Ok(())
     }
 }

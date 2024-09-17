@@ -1,5 +1,3 @@
-use std::env;
-
 use crate::{
     clients::{organizer::Client, windows_terminal_executor::Client as WindowsTerminalExecutor},
     elements::{Input, Selector},
@@ -43,13 +41,14 @@ pub struct Model<'a> {
     signal: Option<Signal>,
     workspace_number: usize,
     workspace_name: String,
-    current_dir: String,
+    location: String,
 }
 
 pub struct ModelParameters<'a> {
     pub organizer: &'a mut Client,
     pub workspace_number: usize,
     pub workspace_name: String,
+    pub location: String,
 }
 
 pub enum Signal {
@@ -64,7 +63,7 @@ struct View<'a> {
     search_bar: &'a Input,
     selector: Option<&'a Selector<Command>>,
     workspace_name: &'a str,
-    current_dir: &'a str,
+    location: &'a str,
 }
 
 impl Element {
@@ -164,6 +163,7 @@ impl<'a> Model<'a> {
             organizer,
             workspace_number,
             workspace_name,
+            location,
         } = params;
 
         let mut model = Self {
@@ -172,7 +172,7 @@ impl<'a> Model<'a> {
             search_bar: Input::default(),
             selector: None,
             signal: None,
-            current_dir: env::current_dir()?.display().to_string(),
+            location,
             workspace_number,
             workspace_name,
         };
@@ -192,7 +192,7 @@ impl<'a> Model<'a> {
         self.organizer
             .promote_command(self.workspace_number, command.number)?;
 
-        WindowsTerminalExecutor::new(command).execute()?;
+        WindowsTerminalExecutor::new(command, &self.location).execute()?;
 
         Ok(())
     }
@@ -303,7 +303,7 @@ impl<'a> Model<'a> {
             selector: self.selector.as_ref(),
             active_element: &self.element,
             search_bar: &self.search_bar,
-            current_dir: &self.current_dir,
+            location: &self.location,
         };
 
         view.render(frame);
@@ -389,7 +389,7 @@ impl<'a> View<'a> {
             ));
         }
 
-        let paragraph = Paragraph::new(self.current_dir).block(
+        let paragraph = Paragraph::new(self.location).block(
             Block::new()
                 .title("Directory")
                 .title_alignment(Alignment::Center)
