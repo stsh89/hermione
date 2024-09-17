@@ -1,5 +1,5 @@
 use crate::{
-    clients::organizer::Client,
+    clients::{organizer::Client, windows_terminal_executor::Client as WindowsTerminalExecutor},
     elements::{Input, Selector},
     entities::Command,
     key_mappings::InputMode,
@@ -23,6 +23,7 @@ pub enum Message {
     DeleteCommand,
     EnterChar(char),
     ExecuteCommand,
+    RunCommand,
     Exit,
     MoveCusorLeft,
     MoveCusorRight,
@@ -86,7 +87,7 @@ impl Message {
             | Self::NewCommandRequest
             | Self::ExecuteCommand
             | Self::SelectPreviousCommand => true,
-            Self::DeleteCommand => false,
+            Self::DeleteCommand | Self::RunCommand => false,
         }
     }
 }
@@ -173,6 +174,21 @@ impl<'a> Model<'a> {
         Ok(model)
     }
 
+    fn run_command(&mut self) -> Result<()> {
+        let Some(selector) = &self.selector else {
+            return Ok(());
+        };
+
+        let command = selector.item();
+
+        self.organizer
+            .promote_command(self.workspace_number, command.number)?;
+
+        WindowsTerminalExecutor::new(command).execute()?;
+
+        Ok(())
+    }
+
     fn select_next_command(&mut self) {
         match self.element {
             Element::Selector => {
@@ -219,6 +235,7 @@ impl<'a> Model<'a> {
             Message::NewCommandRequest => self.signal = Some(Signal::NewCommandRequest),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
+            Message::RunCommand => self.run_command()?,
             Message::SelectNextCommand => self.select_next_command(),
             Message::SelectPreviousCommand => self.select_previous_command(),
             Message::ExecuteCommand => {

@@ -6,7 +6,7 @@ use crate::{
     },
     Result,
 };
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{self, KeyCode, KeyEvent};
 
 pub enum InputMode {
     Normal,
@@ -19,10 +19,10 @@ impl InputMode {
     }
 }
 
-pub fn lobby_key_mapping(code: KeyCode, _mode: InputMode) -> Result<Option<LobbyMessage>> {
+pub fn lobby_key_mapping(key_event: KeyEvent, _mode: InputMode) -> Result<Option<LobbyMessage>> {
     use LobbyMessage as LM;
 
-    let message = match code {
+    let message = match key_event.code {
         KeyCode::Up => Some(LM::SelectPreviousWorkspace),
         KeyCode::Down => Some(LM::SelectNextWorkspace),
         KeyCode::Char('n') => Some(LM::NewWorkspaceRequest),
@@ -37,12 +37,12 @@ pub fn lobby_key_mapping(code: KeyCode, _mode: InputMode) -> Result<Option<Lobby
 }
 
 pub fn new_workspace_key_mapping(
-    code: KeyCode,
+    key_event: KeyEvent,
     _mode: InputMode,
 ) -> Result<Option<NewWorkspaceMessage>> {
     use NewWorkspaceMessage as NWM;
 
-    let message = match code {
+    let message = match key_event.code {
         KeyCode::Left => Some(NWM::MoveCusorLeft),
         KeyCode::Right => Some(NWM::MoveCusorRight),
         KeyCode::Char(c) => Some(NWM::EnterChar(c)),
@@ -56,12 +56,12 @@ pub fn new_workspace_key_mapping(
 }
 
 pub fn new_command_key_mapping(
-    code: KeyCode,
+    key_event: KeyEvent,
     _mode: InputMode,
 ) -> Result<Option<NewCommandMessage>> {
     use NewCommandMessage as NCM;
 
-    let message = match code {
+    let message = match key_event.code {
         KeyCode::Left => Some(NCM::MoveCusorLeft),
         KeyCode::Right => Some(NCM::MoveCusorRight),
         KeyCode::Char(c) => Some(NCM::EnterChar(c)),
@@ -76,12 +76,12 @@ pub fn new_command_key_mapping(
 }
 
 pub fn command_display_key_mapping(
-    code: KeyCode,
+    key_event: KeyEvent,
     _mode: InputMode,
 ) -> Result<Option<CommandDisplayMessage>> {
     use CommandDisplayMessage as CDM;
 
-    let message = match code {
+    let message = match key_event.code {
         KeyCode::Esc => Some(CDM::Exit),
         KeyCode::Char('r') => Some(CDM::RepeatCommand),
         _ => None,
@@ -91,12 +91,12 @@ pub fn command_display_key_mapping(
 }
 
 pub fn command_center_key_mapping(
-    code: KeyCode,
+    key_event: KeyEvent,
     mode: InputMode,
 ) -> Result<Option<CommandCenterMessage>> {
     use CommandCenterMessage as CCM;
 
-    let message = match code {
+    let message = match key_event.code {
         KeyCode::Char(c) if mode.is_editing() => Some(CCM::EnterChar(c)),
         KeyCode::Left if mode.is_editing() => Some(CCM::MoveCusorLeft),
         KeyCode::Right if mode.is_editing() => Some(CCM::MoveCusorRight),
@@ -106,6 +106,9 @@ pub fn command_center_key_mapping(
         KeyCode::Esc => Some(CCM::Exit),
         KeyCode::Char('n') => Some(CCM::NewCommandRequest),
         KeyCode::Char('d') => Some(CCM::DeleteCommand),
+        KeyCode::Enter if key_event.modifiers.contains(event::KeyModifiers::CONTROL) => {
+            Some(CCM::RunCommand)
+        }
         KeyCode::Enter => Some(CCM::ExecuteCommand),
         KeyCode::Char('s') => Some(CCM::ActivateSearchBar),
         _ => None,
