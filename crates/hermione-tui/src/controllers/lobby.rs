@@ -3,7 +3,6 @@ use crate::{
     clients::organizer::Client,
     key_mappings::lobby_key_mapping,
     models::lobby::{Model, ModelParameters, Signal},
-    session::Session,
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
@@ -13,8 +12,8 @@ where
     B: Backend,
 {
     organizer: &'a mut Client,
-    session: &'a mut Session,
     terminal: &'a mut Terminal<B>,
+    skip_lobby: bool,
 }
 
 pub struct ControllerParameters<'a, B>
@@ -22,8 +21,8 @@ where
     B: Backend,
 {
     pub organizer: &'a mut Client,
-    pub session: &'a mut Session,
     pub terminal: &'a mut Terminal<B>,
+    pub skip_lobby: bool,
 }
 
 impl<'a, B> Controller<'a, B>
@@ -33,14 +32,14 @@ where
     pub fn new(parameters: ControllerParameters<'a, B>) -> Self {
         let ControllerParameters {
             organizer,
-            session,
             terminal,
+            skip_lobby,
         } = parameters;
 
         Self {
             organizer,
-            session,
             terminal,
+            skip_lobby,
         }
     }
 
@@ -49,15 +48,12 @@ where
             return Ok(Signal::NewWorkspaceRequest);
         }
 
-        if self.session.read_only() {
-            if let Some(workspace_number) = self.session.get_workspace_number()? {
-                return Ok(Signal::EnterCommandCenter(workspace_number));
-            }
+        if self.skip_lobby {
+            return Ok(Signal::EnterCommandCenter(0));
         }
 
         let mut model = Model::new(ModelParameters {
             organizer: self.organizer,
-            session: self.session,
         })?;
 
         while model.is_running() {

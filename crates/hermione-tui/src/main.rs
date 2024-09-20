@@ -7,11 +7,10 @@ mod environment;
 mod key_mappings;
 mod models;
 mod screens;
-mod session;
 
 use anyhow::Result;
 use app::App;
-use clients::{organizer::Client as Organizer, session_loader::Client as SessionLoader};
+use clients::organizer::Client as Organizer;
 use environment::Environment;
 
 fn main() -> Result<()> {
@@ -20,11 +19,9 @@ fn main() -> Result<()> {
     let environment = Environment::setup()?;
     let terminal = tui::init_terminal()?;
     let organizer = Organizer::new(environment.organizer_path()?)?;
-    let session_loader = SessionLoader::new(environment.session_path()?);
 
     let app = App {
         organizer,
-        session_loader,
         terminal,
     };
 

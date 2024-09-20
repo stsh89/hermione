@@ -1,6 +1,6 @@
 use crate::{
     clients::organizer::Client, elements::Selector, entities::Workspace, key_mappings::InputMode,
-    session::Session, Result,
+    Result,
 };
 use anyhow::Ok;
 use ratatui::{
@@ -13,13 +13,11 @@ use ratatui::{
 pub struct Model<'a> {
     selector: Selector<Workspace>,
     organizer: &'a mut Client,
-    session: &'a mut Session,
     signal: Option<Signal>,
 }
 
 pub struct ModelParameters<'a> {
     pub organizer: &'a mut Client,
-    pub session: &'a mut Session,
 }
 
 pub enum Signal {
@@ -70,31 +68,22 @@ impl<'a> Model<'a> {
     }
 
     pub fn new(parameters: ModelParameters<'a>) -> Result<Self> {
-        let ModelParameters { organizer, session } = parameters;
+        let ModelParameters { organizer } = parameters;
         let workspaces = organizer.list_workspaces();
 
         Ok(Self {
             selector: Selector::new(workspaces)?,
             signal: None,
             organizer,
-            session,
         })
     }
 
-    fn select_next_workspace(&mut self) -> Result<()> {
+    fn select_next_workspace(&mut self) {
         self.selector.next();
-        self.session
-            .set_workspace_number(Some(self.selector.item().number))?;
-
-        Ok(())
     }
 
-    fn select_previous_workspace(&mut self) -> Result<()> {
+    fn select_previous_workspace(&mut self) {
         self.selector.previous();
-        self.session
-            .set_workspace_number(Some(self.selector.item().number))?;
-
-        Ok(())
     }
 
     pub unsafe fn signal(self) -> Signal {
@@ -107,8 +96,8 @@ impl<'a> Model<'a> {
         match message {
             Message::DeleteWorkspace => self.delete_workspace()?,
             Message::Exit => self.signal = Some(Signal::Exit),
-            Message::SelectNextWorkspace => self.select_next_workspace()?,
-            Message::SelectPreviousWorkspace => self.select_previous_workspace()?,
+            Message::SelectNextWorkspace => self.select_next_workspace(),
+            Message::SelectPreviousWorkspace => self.select_previous_workspace(),
             Message::NewWorkspaceRequest => self.signal = Some(Signal::NewWorkspaceRequest),
             Message::RenameWorkspace => {
                 self.signal = Some(Signal::RenameWorkspace(self.selector.item().number))

@@ -5,7 +5,6 @@ use crate::{
     controllers::lobby::{Controller, ControllerParameters},
     models::{lobby::Signal, workspace_editor::Signal as WorkspaceEditorSignal},
     screens::{CommandCenter, WorkspaceEditor},
-    session::Session,
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
@@ -16,7 +15,6 @@ where
 {
     pub organizer: &'a mut Client,
     pub terminal: &'a mut Terminal<B>,
-    pub session: &'a mut Session,
 }
 
 impl<'a, B> Lobby<'a, B>
@@ -24,11 +22,13 @@ where
     B: Backend,
 {
     pub fn enter(mut self) -> Result<()> {
+        let mut skip_lobby = true;
+
         loop {
             let controller = Controller::new(ControllerParameters {
                 terminal: self.terminal,
                 organizer: self.organizer,
-                session: self.session,
+                skip_lobby,
             });
 
             match controller.run()? {
@@ -37,6 +37,8 @@ where
                 Signal::RenameWorkspace(number) => self.rename_workspace(number)?,
                 Signal::Exit => break,
             };
+
+            skip_lobby = false;
         }
 
         Ok(())
@@ -44,7 +46,6 @@ where
 
     fn enter_command_center(&mut self, number: usize) -> Result<()> {
         self.organizer.promote_workspace(number)?;
-        self.session.set_workspace_number(Some(0))?;
 
         CommandCenter {
             organizer: self.organizer,
