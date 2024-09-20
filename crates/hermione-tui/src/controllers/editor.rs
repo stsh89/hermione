@@ -38,15 +38,9 @@ where
     F: FormModel,
 {
     pub fn new(parameters: ControllerParameters<'a, B, F>) -> Self {
-        let ControllerParameters {
-            terminal,
-            model: form_model,
-        } = parameters;
+        let ControllerParameters { terminal, model } = parameters;
 
-        Self {
-            terminal,
-            model: form_model,
-        }
+        Self { terminal, model }
     }
 
     pub fn run(mut self) -> Result<F::Signal> {

@@ -1,11 +1,14 @@
-use super::handle_event;
 use crate::{
     clients::organizer::Client,
-    key_mappings::command_center_key_mapping,
-    models::command_center::{Model, ModelParameters, Signal},
+    controllers::event_handler,
+    models::command_center::{Message, Model, ModelParameters, Signal},
     Result,
 };
-use ratatui::{backend::Backend, Terminal};
+use ratatui::{
+    backend::Backend,
+    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
+    Terminal,
+};
 
 pub struct Controller<'a, B>
 where
@@ -59,14 +62,50 @@ where
             workspace_name: self.workspace_name,
         })?;
 
-        while model.is_running() {
+        loop {
             self.terminal.draw(|frame| model.view(frame))?;
 
-            if let Some(message) = handle_event(command_center_key_mapping, model.input_mode())? {
-                model = model.update(message)?;
+            let maybe_message = event_handler(|event| from_event(event, &model));
+
+            if let Some(message) = maybe_message? {
+                if let Some(signal) = model.update(message)? {
+                    return Ok(signal);
+                }
             }
         }
-
-        Ok(unsafe { model.signal() })
     }
+}
+
+pub fn from_event(event: KeyEvent, model: &Model) -> Option<Message> {
+    let message = match event.code {
+        KeyCode::Char(c) => {
+            if model.is_editing() {
+                Message::EnterChar(c)
+            } else {
+                match c {
+                    'c' => Message::ChangeLocationRequest,
+                    'd' => Message::DeleteCommand,
+                    'n' => Message::NewCommandRequest,
+                    's' => Message::ActivateSearchBar,
+                    _ => return None,
+                }
+            }
+        }
+        KeyCode::Left if model.is_editing() => Message::MoveCusorLeft,
+        KeyCode::Right if model.is_editing() => Message::MoveCusorRight,
+        KeyCode::Up => Message::SelectPreviousCommand,
+        KeyCode::Down => Message::SelectNextCommand,
+        KeyCode::Esc => Message::Exit,
+        KeyCode::Enter => match event.modifiers {
+            KeyModifiers::CONTROL => Message::RunCommand,
+            _ => Message::ExecuteCommand,
+        },
+        KeyCode::Backspace => match event.modifiers {
+            KeyModifiers::CONTROL => Message::DeleteAllChars,
+            _ => Message::DeleteChar,
+        },
+        _ => return None,
+    };
+
+    Some(message)
 }

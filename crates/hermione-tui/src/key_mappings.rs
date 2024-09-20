@@ -1,23 +1,16 @@
 use crate::{
     models::{
         change_location::Message as ChangeLocationMessage,
-        command_center::Message as CommandCenterMessage,
         command_display::Message as CommandDisplayMessage, lobby::Message as LobbyMessage,
         new_command::Message as NewCommandMessage,
     },
     Result,
 };
-use ratatui::crossterm::event::{self, KeyCode, KeyEvent};
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 
 pub enum InputMode {
     Normal,
     Editing,
-}
-
-impl InputMode {
-    pub fn is_editing(&self) -> bool {
-        matches!(self, InputMode::Editing)
-    }
 }
 
 pub fn lobby_key_mapping(key_event: KeyEvent, _mode: InputMode) -> Result<Option<LobbyMessage>> {
@@ -86,34 +79,6 @@ pub fn command_display_key_mapping(
     let message = match key_event.code {
         KeyCode::Esc => Some(CDM::Exit),
         KeyCode::Char('r') => Some(CDM::RepeatCommand),
-        _ => None,
-    };
-
-    Ok(message)
-}
-
-pub fn command_center_key_mapping(
-    key_event: KeyEvent,
-    mode: InputMode,
-) -> Result<Option<CommandCenterMessage>> {
-    use CommandCenterMessage as CCM;
-
-    let message = match key_event.code {
-        KeyCode::Char(c) if mode.is_editing() => Some(CCM::EnterChar(c)),
-        KeyCode::Left if mode.is_editing() => Some(CCM::MoveCusorLeft),
-        KeyCode::Right if mode.is_editing() => Some(CCM::MoveCusorRight),
-        KeyCode::Backspace if mode.is_editing() => Some(CCM::DeleteChar),
-        KeyCode::Up => Some(CCM::SelectPreviousCommand),
-        KeyCode::Down => Some(CCM::SelectNextCommand),
-        KeyCode::Esc => Some(CCM::Exit),
-        KeyCode::Char('n') => Some(CCM::NewCommandRequest),
-        KeyCode::Char('d') => Some(CCM::DeleteCommand),
-        KeyCode::Char('c') => Some(CCM::ChangeLocationRequest),
-        KeyCode::Enter if key_event.modifiers.contains(event::KeyModifiers::CONTROL) => {
-            Some(CCM::RunCommand)
-        }
-        KeyCode::Enter => Some(CCM::ExecuteCommand),
-        KeyCode::Char('s') => Some(CCM::ActivateSearchBar),
         _ => None,
     };
 

@@ -2,7 +2,6 @@ use crate::{
     clients::{organizer::Client, windows_terminal_executor::Client as WindowsTerminalExecutor},
     elements::{Input, Selector},
     entities::Command,
-    key_mappings::InputMode,
     Result,
 };
 use ratatui::{
@@ -20,6 +19,7 @@ enum Element {
 pub enum Message {
     ActivateSearchBar,
     DeleteChar,
+    DeleteAllChars,
     DeleteCommand,
     EnterChar(char),
     ExecuteCommand,
@@ -38,7 +38,6 @@ pub struct Model<'a> {
     organizer: &'a mut Client,
     search_bar: Input,
     selector: Option<Selector<Command>>,
-    signal: Option<Signal>,
     workspace_number: usize,
     workspace_name: String,
     location: String,
@@ -83,8 +82,6 @@ impl Message {
     fn is_idempotent(&self) -> bool {
         match &self {
             Self::ActivateSearchBar
-            | Self::DeleteChar
-            | Self::EnterChar(_)
             | Self::Exit
             | Self::MoveCusorLeft
             | Self::MoveCusorRight
@@ -92,8 +89,11 @@ impl Message {
             | Self::NewCommandRequest
             | Self::ExecuteCommand
             | Self::ChangeLocationRequest
+            | Self::RunCommand
             | Self::SelectPreviousCommand => true,
-            Self::DeleteCommand | Self::RunCommand => false,
+            Self::DeleteCommand | Self::DeleteAllChars | Self::DeleteChar | Self::EnterChar(_) => {
+                false
+            }
         }
     }
 }
@@ -116,34 +116,26 @@ impl<'a> Model<'a> {
         Ok(())
     }
 
-    fn delete_char(&mut self) -> Result<()> {
+    fn delete_all_chars(&mut self) {
+        if self.element.is_search_bar() {
+            self.search_bar.delete_all_chars();
+        }
+    }
+
+    fn delete_char(&mut self) {
         if self.element.is_search_bar() {
             self.search_bar.delete_char();
-            self.update_selector()?;
         }
-
-        Ok(())
     }
 
-    fn enter_char(&mut self, new_char: char) -> Result<()> {
+    fn enter_char(&mut self, new_char: char) {
         if self.element.is_search_bar() {
             self.search_bar.enter_char(new_char);
-            self.update_selector()?;
         }
-
-        Ok(())
     }
 
-    pub fn is_running(&self) -> bool {
-        self.signal.is_none()
-    }
-
-    pub fn input_mode(&self) -> InputMode {
-        if self.element.is_search_bar() {
-            InputMode::Editing
-        } else {
-            InputMode::Normal
-        }
+    pub fn is_editing(&self) -> bool {
+        self.element.is_search_bar()
     }
 
     fn move_cursor_left(&mut self) {
@@ -171,7 +163,6 @@ impl<'a> Model<'a> {
             organizer,
             search_bar: Input::default(),
             selector: None,
-            signal: None,
             location,
             workspace_number,
             workspace_name,
@@ -229,43 +220,35 @@ impl<'a> Model<'a> {
         }
     }
 
-    pub unsafe fn signal(self) -> Signal {
-        self.signal.unwrap()
-    }
-
-    pub fn update(mut self, message: Message) -> Result<Self> {
+    pub fn update(&mut self, message: Message) -> Result<Option<Signal>> {
         let is_idempotent = message.is_idempotent();
 
         match message {
             Message::ActivateSearchBar => self.activate_search_bar(),
-            Message::DeleteChar => self.delete_char()?,
+            Message::DeleteAllChars => self.delete_all_chars(),
+            Message::DeleteChar => self.delete_char(),
             Message::DeleteCommand => self.delete_command()?,
-            Message::EnterChar(c) => self.enter_char(c)?,
-            Message::Exit => self.signal = Some(Signal::Exit),
-            Message::NewCommandRequest => self.signal = Some(Signal::NewCommandRequest),
+            Message::EnterChar(c) => self.enter_char(c),
+            Message::Exit => return Ok(Some(Signal::Exit)),
+            Message::NewCommandRequest => return Ok(Some(Signal::NewCommandRequest)),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::RunCommand => self.run_command()?,
             Message::SelectNextCommand => self.select_next_command(),
             Message::SelectPreviousCommand => self.select_previous_command(),
-            Message::ChangeLocationRequest => self.signal = Some(Signal::ChangeLocationRequest),
+            Message::ChangeLocationRequest => return Ok(Some(Signal::ChangeLocationRequest)),
             Message::ExecuteCommand => {
                 if let Some(command) = self.command() {
-                    self.signal = Some(Signal::ExecuteCommand(command.number));
+                    return Ok(Some(Signal::ExecuteCommand(command.number)));
                 }
             }
         }
 
-        let selector = if is_idempotent {
-            self.selector
-        } else {
+        if !is_idempotent {
             self.update_selector()?;
-            self.selector
         };
 
-        let model = Self { selector, ..self };
-
-        Ok(model)
+        Ok(None)
     }
 
     fn update_selector(&mut self) -> Result<()> {
