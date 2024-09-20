@@ -3,8 +3,8 @@ use std::env;
 use crate::{
     clients::organizer::Client,
     controllers::lobby::{Controller, ControllerParameters},
-    models::lobby::Signal,
-    screens::{CommandCenter, NewWorkspace},
+    models::{lobby::Signal, workspace_editor::Signal as WorkspaceEditorSignal},
+    screens::{CommandCenter, WorkspaceEditor},
     session::Session,
     Result,
 };
@@ -34,6 +34,7 @@ where
             match controller.run()? {
                 Signal::EnterCommandCenter(number) => self.enter_command_center(number)?,
                 Signal::NewWorkspaceRequest => self.new_workspace()?,
+                Signal::RenameWorkspace(number) => self.rename_workspace(number)?,
                 Signal::Exit => break,
             };
         }
@@ -55,10 +56,33 @@ where
     }
 
     fn new_workspace(&mut self) -> Result<()> {
-        NewWorkspace {
-            organizer: self.organizer,
+        let signal = WorkspaceEditor {
+            workspace: None,
             terminal: self.terminal,
         }
-        .enter()
+        .enter()?;
+
+        if let WorkspaceEditorSignal::Submit(workspace_form) = signal {
+            self.organizer.add_workspace(workspace_form.name)?;
+        };
+
+        Ok(())
+    }
+
+    fn rename_workspace(&mut self, number: usize) -> Result<()> {
+        let workspace = self.organizer.get_workspace(number)?;
+
+        let signal = WorkspaceEditor {
+            workspace: Some(&workspace),
+            terminal: self.terminal,
+        }
+        .enter()?;
+
+        if let WorkspaceEditorSignal::Submit(workspace_form) = signal {
+            self.organizer
+                .rename_workspace(number, workspace_form.name)?;
+        };
+
+        Ok(())
     }
 }

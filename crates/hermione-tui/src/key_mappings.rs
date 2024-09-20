@@ -3,7 +3,7 @@ use crate::{
         change_location::Message as ChangeLocationMessage,
         command_center::Message as CommandCenterMessage,
         command_display::Message as CommandDisplayMessage, lobby::Message as LobbyMessage,
-        new_command::Message as NewCommandMessage, new_workspace::Message as NewWorkspaceMessage,
+        new_command::Message as NewCommandMessage,
     },
     Result,
 };
@@ -31,25 +31,7 @@ pub fn lobby_key_mapping(key_event: KeyEvent, _mode: InputMode) -> Result<Option
         KeyCode::Esc => Some(LM::Exit),
         KeyCode::Enter => Some(LM::EnterCommandCenter),
         KeyCode::Char('q') => Some(LM::Exit),
-        _ => None,
-    };
-
-    Ok(message)
-}
-
-pub fn new_workspace_key_mapping(
-    key_event: KeyEvent,
-    _mode: InputMode,
-) -> Result<Option<NewWorkspaceMessage>> {
-    use NewWorkspaceMessage as NWM;
-
-    let message = match key_event.code {
-        KeyCode::Left => Some(NWM::MoveCusorLeft),
-        KeyCode::Right => Some(NWM::MoveCusorRight),
-        KeyCode::Char(c) => Some(NWM::EnterChar(c)),
-        KeyCode::Backspace => Some(NWM::DeleteChar),
-        KeyCode::Enter => Some(NWM::Submit),
-        KeyCode::Esc => Some(NWM::Exit),
+        KeyCode::Char('e') => Some(LM::RenameWorkspace),
         _ => None,
     };
 

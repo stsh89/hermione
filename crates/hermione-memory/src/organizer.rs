@@ -85,6 +85,13 @@ impl Organizer {
         }
     }
 
+    pub fn rename_workspace(&mut self, number: Number, name: WorkspaceName) -> Result<()> {
+        let workspace = self.get_workspace_mut(number)?;
+        workspace.name = name;
+
+        Ok(())
+    }
+
     pub fn promote_command(&mut self, w_number: Number, c_number: Number) -> Result<()> {
         self.get_command(w_number, c_number)?;
 

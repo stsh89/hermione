@@ -61,6 +61,11 @@ impl Input {
         }
     }
 
+    pub fn delete_all_chars(&mut self) {
+        self.value.clear();
+        self.character_index = 0;
+    }
+
     pub fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
         new_cursor_pos.clamp(0, self.value.chars().count())
     }

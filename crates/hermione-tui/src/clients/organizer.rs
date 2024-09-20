@@ -4,7 +4,7 @@ use crate::{
 };
 use hermione_memory::{
     Command, LoadOrganizer, NewCommandParameters, NewWorkspaceParameters, Organizer, SaveOrganizer,
-    Workspace,
+    Workspace, WorkspaceName,
 };
 
 pub struct Client {
@@ -102,6 +102,13 @@ impl Client {
 
     pub fn promote_workspace(&mut self, number: usize) -> Result<()> {
         self.organizer.promote_workspace(number.into())?;
+
+        Ok(())
+    }
+
+    pub fn rename_workspace(&mut self, number: usize, name: String) -> Result<()> {
+        self.organizer
+            .rename_workspace(number.into(), WorkspaceName::new(name))?;
 
         Ok(())
     }

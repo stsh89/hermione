@@ -25,14 +25,16 @@ pub struct ModelParameters<'a> {
 pub enum Signal {
     EnterCommandCenter(usize),
     NewWorkspaceRequest,
+    RenameWorkspace(usize),
     Exit,
 }
 
 pub enum Message {
     DeleteWorkspace,
     EnterCommandCenter,
-    NewWorkspaceRequest,
     Exit,
+    NewWorkspaceRequest,
+    RenameWorkspace,
     SelectNextWorkspace,
     SelectPreviousWorkspace,
 }
@@ -49,7 +51,7 @@ impl Message {
             | Self::SelectPreviousWorkspace
             | Self::NewWorkspaceRequest
             | Self::EnterCommandCenter => true,
-            Self::DeleteWorkspace => false,
+            Self::DeleteWorkspace | Self::RenameWorkspace => false,
         }
     }
 }
@@ -108,6 +110,9 @@ impl<'a> Model<'a> {
             Message::SelectNextWorkspace => self.select_next_workspace()?,
             Message::SelectPreviousWorkspace => self.select_previous_workspace()?,
             Message::NewWorkspaceRequest => self.signal = Some(Signal::NewWorkspaceRequest),
+            Message::RenameWorkspace => {
+                self.signal = Some(Signal::RenameWorkspace(self.selector.item().number))
+            }
             Message::EnterCommandCenter => {
                 self.signal = Some(Signal::EnterCommandCenter(self.selector.item().number))
             }
