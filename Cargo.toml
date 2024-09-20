@@ -3,7 +3,7 @@ resolver = "2"
 members = [ "crates/hermione-tui", "crates/hermione-memory"]
 
 [workspace.dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.89"
 dirs = "5.0.1"
 eyre = "0.6.12"
 ratatui = "0.28.1"
