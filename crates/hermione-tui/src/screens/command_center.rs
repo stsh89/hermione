@@ -1,8 +1,8 @@
 use crate::{
-    clients::organizer::Client,
+    clients::organizer::{Client, CommandParameters},
     controllers::command_center::{Controller, ControllerParameters},
-    models::command_center::Signal,
-    screens::{ChangeLocation, CommandDisplay, NewCommand},
+    models::{command_center::Signal, command_editor::Signal as CommandEditorSignal},
+    screens::{ChangeLocation, CommandDisplay, CommandEditor},
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
@@ -50,6 +50,7 @@ where
             match controller.run()? {
                 Signal::ExecuteCommand(command_number) => self.execute_command(command_number)?,
                 Signal::NewCommandRequest => self.new_command()?,
+                Signal::EditCommand(command_number) => self.edit_command(command_number)?,
                 Signal::ChangeLocationRequest => self.change_location()?,
                 Signal::Exit => break,
             };
@@ -59,12 +60,44 @@ where
     }
 
     fn new_command(&mut self) -> Result<()> {
-        NewCommand {
+        let signal = CommandEditor {
+            command: None,
             terminal: self.terminal,
-            workspace_number: self.workspace_number,
-            organizer: self.organizer,
         }
-        .enter()
+        .enter()?;
+
+        if let CommandEditorSignal::Submit(command_form) = signal {
+            self.organizer.add_command(CommandParameters {
+                workspace_number: self.workspace_number,
+                name: command_form.name,
+                program: command_form.program,
+            })?;
+        };
+
+        Ok(())
+    }
+
+    fn edit_command(&mut self, number: usize) -> Result<()> {
+        let command = self.organizer.get_command(self.workspace_number, number)?;
+
+        let signal = CommandEditor {
+            command: Some(&command),
+            terminal: self.terminal,
+        }
+        .enter()?;
+
+        if let CommandEditorSignal::Submit(command_form) = signal {
+            self.organizer.update_command(
+                number,
+                CommandParameters {
+                    workspace_number: self.workspace_number,
+                    name: command_form.name,
+                    program: command_form.program,
+                },
+            )?;
+        };
+
+        Ok(())
     }
 
     fn change_location(&mut self) -> Result<()> {

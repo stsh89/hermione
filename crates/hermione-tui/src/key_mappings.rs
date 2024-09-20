@@ -2,7 +2,6 @@ use crate::{
     models::{
         change_location::Message as ChangeLocationMessage,
         command_display::Message as CommandDisplayMessage, lobby::Message as LobbyMessage,
-        new_command::Message as NewCommandMessage,
     },
     Result,
 };
@@ -44,26 +43,6 @@ pub fn change_location_key_mapping(
         KeyCode::Backspace => Some(CLM::DeleteChar),
         KeyCode::Enter => Some(CLM::Submit),
         KeyCode::Esc => Some(CLM::Exit),
-        _ => None,
-    };
-
-    Ok(message)
-}
-
-pub fn new_command_key_mapping(
-    key_event: KeyEvent,
-    _mode: InputMode,
-) -> Result<Option<NewCommandMessage>> {
-    use NewCommandMessage as NCM;
-
-    let message = match key_event.code {
-        KeyCode::Left => Some(NCM::MoveCusorLeft),
-        KeyCode::Right => Some(NCM::MoveCusorRight),
-        KeyCode::Char(c) => Some(NCM::EnterChar(c)),
-        KeyCode::Backspace => Some(NCM::DeleteChar),
-        KeyCode::Enter => Some(NCM::Submit),
-        KeyCode::Esc => Some(NCM::Exit),
-        KeyCode::Tab => Some(NCM::ToggleFormInput),
         _ => None,
     };
 

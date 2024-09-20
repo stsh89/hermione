@@ -85,6 +85,7 @@ pub fn from_event(event: KeyEvent, model: &Model) -> Option<Message> {
                 match c {
                     'c' => Message::ChangeLocationRequest,
                     'd' => Message::DeleteCommand,
+                    'e' => Message::EditCommand,
                     'n' => Message::NewCommandRequest,
                     's' => Message::ActivateSearchBar,
                     _ => return None,

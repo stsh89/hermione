@@ -26,6 +26,7 @@ pub enum Message {
     RunCommand,
     Exit,
     MoveCusorLeft,
+    EditCommand,
     MoveCusorRight,
     NewCommandRequest,
     ChangeLocationRequest,
@@ -51,6 +52,7 @@ pub struct ModelParameters<'a> {
 }
 
 pub enum Signal {
+    EditCommand(usize),
     ExecuteCommand(usize),
     Exit,
     NewCommandRequest,
@@ -91,9 +93,11 @@ impl Message {
             | Self::ChangeLocationRequest
             | Self::RunCommand
             | Self::SelectPreviousCommand => true,
-            Self::DeleteCommand | Self::DeleteAllChars | Self::DeleteChar | Self::EnterChar(_) => {
-                false
-            }
+            Self::DeleteCommand
+            | Self::DeleteAllChars
+            | Self::DeleteChar
+            | Self::EnterChar(_)
+            | Self::EditCommand => false,
         }
     }
 }
@@ -229,6 +233,11 @@ impl<'a> Model<'a> {
             Message::DeleteChar => self.delete_char(),
             Message::DeleteCommand => self.delete_command()?,
             Message::EnterChar(c) => self.enter_char(c),
+            Message::EditCommand => {
+                if let Some(command) = self.command() {
+                    return Ok(Some(Signal::EditCommand(command.number)));
+                }
+            }
             Message::Exit => return Ok(Some(Signal::Exit)),
             Message::NewCommandRequest => return Ok(Some(Signal::NewCommandRequest)),
             Message::MoveCusorLeft => self.move_cursor_left(),

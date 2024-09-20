@@ -9,7 +9,7 @@ pub use command::{Command, Name as CommandName, Program};
 pub use error::Error;
 pub use number::Number;
 pub use operation::{Load, LoadOrganizer, Save, SaveOrganizer};
-pub use organizer::{NewCommandParameters, NewWorkspaceParameters, Organizer};
+pub use organizer::{CommandParameters, NewWorkspaceParameters, Organizer};
 pub use workspace::{Name as WorkspaceName, Workspace};
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -3,8 +3,8 @@ use crate::{
     Result,
 };
 use hermione_memory::{
-    Command, LoadOrganizer, NewCommandParameters, NewWorkspaceParameters, Organizer, SaveOrganizer,
-    Workspace, WorkspaceName,
+    Command, CommandParameters as HermioneCommandParameters, LoadOrganizer, NewWorkspaceParameters,
+    Organizer, SaveOrganizer, Workspace, WorkspaceName,
 };
 
 pub struct Client {
@@ -12,15 +12,15 @@ pub struct Client {
     organizer: Organizer,
 }
 
-pub struct CreateCommandParameters {
+pub struct CommandParameters {
     pub workspace_number: usize,
     pub name: String,
     pub program: String,
 }
 
 impl Client {
-    pub fn add_command(&mut self, parameters: CreateCommandParameters) -> Result<()> {
-        let CreateCommandParameters {
+    pub fn add_command(&mut self, parameters: CommandParameters) -> Result<()> {
+        let CommandParameters {
             workspace_number,
             name,
             program,
@@ -28,7 +28,7 @@ impl Client {
 
         self.organizer.add_command(
             workspace_number.into(),
-            NewCommandParameters { name, program },
+            HermioneCommandParameters { name, program },
         )?;
 
         Ok(())
@@ -113,6 +113,26 @@ impl Client {
         Ok(())
     }
 
+    pub fn update_command(
+        &mut self,
+        command_number: usize,
+        parameters: CommandParameters,
+    ) -> Result<()> {
+        let CommandParameters {
+            workspace_number,
+            name,
+            program,
+        } = parameters;
+
+        self.organizer.update_command(
+            workspace_number.into(),
+            command_number.into(),
+            HermioneCommandParameters { name, program },
+        )?;
+
+        Ok(())
+    }
+
     pub fn save(&self) -> Result<()> {
         SaveOrganizer { saver: &self.inner }.save(&self.organizer)?;
 
@@ -138,8 +158,7 @@ fn from_command(value: &Command) -> CommandEntity {
 
 mod inner {
     use hermione_memory::{
-        Command, Error, Load, NewCommandParameters, NewWorkspaceParameters, Organizer, Save,
-        Workspace,
+        Command, CommandParameters, Error, Load, NewWorkspaceParameters, Organizer, Save, Workspace,
     };
     use serde::{Deserialize, Serialize};
     use std::{
@@ -184,7 +203,7 @@ mod inner {
                 for command in workspace.commands {
                     organizer.add_command(
                         number,
-                        NewCommandParameters {
+                        CommandParameters {
                             name: command.name,
                             program: command.program,
                         },

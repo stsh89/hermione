@@ -8,14 +8,14 @@ pub struct NewWorkspaceParameters {
     pub name: String,
 }
 
-pub struct NewCommandParameters {
+pub struct CommandParameters {
     pub name: String,
     pub program: String,
 }
 
 impl Organizer {
-    pub fn add_command(&mut self, number: Number, command: NewCommandParameters) -> Result<()> {
-        let NewCommandParameters { name, program } = command;
+    pub fn add_command(&mut self, number: Number, command: CommandParameters) -> Result<()> {
+        let CommandParameters { name, program } = command;
         let workspace = self.get_workspace_mut(number)?;
         let count = workspace.commands.len();
 
@@ -65,6 +65,15 @@ impl Organizer {
             .commands
             .get::<usize>(c_number.into())
             .ok_or(Error::NotFound("command".into()))
+    }
+
+    fn get_coomand_mut(&mut self, w_number: Number, c_number: Number) -> Result<&mut Command> {
+        let workspace = self.get_workspace_mut(w_number)?;
+
+        workspace
+            .commands
+            .get_mut::<usize>(c_number.into())
+            .ok_or(Error::NotFound("workspace".into()))
     }
 
     pub fn get_workspace(&self, number: Number) -> Result<&Workspace> {
@@ -122,6 +131,21 @@ impl Organizer {
             .for_each(|(index, workspace)| {
                 workspace.number = index.into();
             });
+    }
+
+    pub fn update_command(
+        &mut self,
+        w_n: Number,
+        c_n: Number,
+        command: CommandParameters,
+    ) -> Result<()> {
+        let CommandParameters { name, program } = command;
+        let command = self.get_coomand_mut(w_n, c_n)?;
+
+        command.name = CommandName::new(name);
+        command.program = Program::new(program);
+
+        Ok(())
     }
 
     pub fn workspaces(&self) -> &[Workspace] {

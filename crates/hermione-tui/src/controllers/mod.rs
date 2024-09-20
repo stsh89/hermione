@@ -3,7 +3,6 @@ pub mod command_center;
 pub mod command_display;
 pub mod editor;
 pub mod lobby;
-pub mod new_command;
 
 use crate::{key_mappings::InputMode, Result};
 use ratatui::crossterm::event::{self, Event, KeyEvent};
