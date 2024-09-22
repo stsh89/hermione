@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "crates/hermione-tui", "crates/hermione-memory"]
+members = [ "crates/hermione-tui", "crates/hermione-memory", "crates/hermione-eyes"]
 
 [workspace.dependencies]
 anyhow = "1.0.89"
