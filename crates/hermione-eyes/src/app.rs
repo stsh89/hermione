@@ -1,6 +1,6 @@
 use crate::{
-    models::{ListWorkspacesModel, ListWorkspacesModelParameters, Model},
-    router::Router,
+    models::{ListWorkspacesModel, ListWorkspacesModelParameters, Model, NewWorkspaceModel},
+    router::{CreateWorkspaceParameters, Router},
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
@@ -11,6 +11,13 @@ pub struct App {
 }
 
 impl App {
+    fn create_workspace(&mut self, parameters: CreateWorkspaceParameters) -> &mut Model {
+        let CreateWorkspaceParameters { name } = parameters;
+        let _ = format!("{name}");
+
+        todo!()
+    }
+
     fn list_workspaces(&mut self) -> &mut Model {
         if matches!(self.model, Model::ListWorkspaces(_)) {
             return &mut self.model;
@@ -21,9 +28,21 @@ impl App {
         &mut self.model
     }
 
+    fn new_workspace(&mut self) -> &mut Model {
+        if matches!(self.model, Model::NewWorkspace(_)) {
+            return &mut self.model;
+        }
+
+        self.model = new_workspace();
+
+        &mut self.model
+    }
+
     fn model(&mut self, route: Router) -> &mut Model {
         match route {
             Router::ListWorkspaces => self.list_workspaces(),
+            Router::NewWorkspace => self.new_workspace(),
+            Router::CreateWorkspace(parameters) => self.create_workspace(parameters),
         }
     }
 
@@ -35,8 +54,8 @@ impl App {
     }
 
     pub fn run(mut self, terminal: &mut Terminal<impl Backend>) -> Result<()> {
-        while let Some(route) = self.route {
-            let model = self.model(route);
+        while let Some(route) = self.route.as_ref() {
+            let model = self.model(route.clone());
 
             // Render the current view
             terminal.draw(|f| model.view(f))?;
@@ -49,7 +68,7 @@ impl App {
                 current_msg = model.update(current_msg.unwrap())?;
             }
 
-            self.route = model.route();
+            self.route = model.route().cloned();
         }
 
         Ok(())
@@ -60,4 +79,10 @@ fn list_workspaces() -> Model {
     let model = ListWorkspacesModel::new(ListWorkspacesModelParameters { workspaces: vec![] });
 
     Model::ListWorkspaces(model)
+}
+
+fn new_workspace() -> Model {
+    let model = NewWorkspaceModel::new();
+
+    Model::NewWorkspace(model)
 }
