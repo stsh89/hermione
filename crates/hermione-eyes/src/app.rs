@@ -12,7 +12,7 @@ pub struct App {
 }
 
 impl App {
-    fn create_workspace(&mut self, parameters: CreateWorkspaceParameters) -> &mut Model {
+    fn create_workspace(&mut self, parameters: &CreateWorkspaceParameters) -> &mut Model {
         let CreateWorkspaceParameters { name } = parameters;
         let _ = format!("{name}");
 
@@ -43,7 +43,7 @@ impl App {
         match route {
             Router::ListWorkspaces => self.list_workspaces(),
             Router::NewWorkspace => self.new_workspace(),
-            Router::CreateWorkspace(parameters) => self.create_workspace(parameters.clone()),
+            Router::CreateWorkspace(parameters) => self.create_workspace(parameters),
         }
     }
 
