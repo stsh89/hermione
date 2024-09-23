@@ -157,6 +157,7 @@ impl NewWorkspaceModel {
                     self.status = Some(Status::Submit);
                 }
             }
+            _ => {}
         }
 
         Ok(None)

@@ -1,5 +1,6 @@
 use crate::{
-    models::{Model, Redirect},
+    clients,
+    models::{CreateWorkspaceModel, CreateWorkspaceModelParameters, Model, Redirect},
     router::{CreateWorkspaceParameters, Router},
     Result,
 };
@@ -7,14 +8,24 @@ use ratatui::{backend::Backend, Terminal};
 
 pub struct App {
     model: Model,
+    organizer: clients::organizer::Client,
+}
+
+pub struct AppParameters {
+    pub organizer: clients::organizer::Client,
 }
 
 impl App {
-    fn create_workspace(&mut self, parameters: &CreateWorkspaceParameters) -> &mut Model {
+    fn create_workspace(&mut self, parameters: &CreateWorkspaceParameters) -> Result<&mut Model> {
         let CreateWorkspaceParameters { name } = parameters;
-        let _ = format!("{name}");
+        self.organizer.add_workspace(name.to_string())?;
 
-        todo!()
+        self.model =
+            Model::CreateWorkspace(CreateWorkspaceModel::new(CreateWorkspaceModelParameters {
+                name: name.to_string(),
+            }));
+
+        Ok(&mut self.model)
     }
 
     fn list_workspaces(&mut self) -> &mut Model {
@@ -22,22 +33,27 @@ impl App {
             return &mut self.model;
         }
 
-        self.model = Model::list_workspaces(vec![]);
+        let workspaces = self.organizer.list_workspaces();
+        self.model = Model::list_workspaces(workspaces);
 
         &mut self.model
     }
 
-    fn model(&mut self, route: &Router) -> &mut Model {
+    fn model(&mut self, route: &Router) -> Result<&mut Model> {
         match route {
-            Router::ListWorkspaces => self.list_workspaces(),
-            Router::NewWorkspace => self.new_workspace(),
+            Router::ListWorkspaces => Ok(self.list_workspaces()),
+            Router::NewWorkspace => Ok(self.new_workspace()),
             Router::CreateWorkspace(parameters) => self.create_workspace(parameters),
         }
     }
 
-    pub fn new() -> Self {
+    pub fn new(parameters: AppParameters) -> Self {
+        let AppParameters { organizer } = parameters;
+        let workspaces = organizer.list_workspaces();
+
         Self {
-            model: Model::list_workspaces(vec![]),
+            model: Model::list_workspaces(workspaces),
+            organizer,
         }
     }
 
@@ -55,7 +71,7 @@ impl App {
         let mut router = Some(Router::ListWorkspaces);
 
         while let Some(route) = router.as_ref() {
-            let model = self.model(route);
+            let model = self.model(route)?;
 
             terminal.draw(|f| model.view(f))?;
 
@@ -72,6 +88,8 @@ impl App {
                 }
             }
         }
+
+        self.organizer.save()?;
 
         Ok(())
     }

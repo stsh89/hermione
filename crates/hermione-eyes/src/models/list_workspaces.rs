@@ -93,9 +93,13 @@ impl ListWorkspacesModel {
         }
 
         let items: Vec<ListItem> = self.workspaces.iter().map(ListItem::from).collect();
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(highlight_style());
+        let mut list = List::new(items).block(block);
+
+        list = if self.menu.is_active() {
+            list
+        } else {
+            list.highlight_style(highlight_style())
+        };
 
         frame.render_stateful_widget(list, layout[1], &mut self.workspaces_state);
     }
@@ -106,6 +110,7 @@ impl ListWorkspacesModel {
 
     pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
+            Message::CreateWorkspace => self.status = Some(Status::CreateWorkspace),
             Message::HighlightMenu => {
                 self.menu.activate();
             }
@@ -132,9 +137,7 @@ impl ListWorkspacesModel {
                     if let Some(item) = self.menu.item() {
                         match item {
                             MenuItem::Exit => self.status = Some(Status::Exit),
-                            MenuItem::CreateWorkspace => {
-                                self.status = Some(Status::CreateWorkspace)
-                            }
+                            MenuItem::CreateWorkspace => return Ok(Some(Message::CreateWorkspace)),
                             _ => {}
                         }
                     }
@@ -161,6 +164,7 @@ fn message(key_event: KeyEvent) -> Option<Message> {
             KeyModifiers::ALT => Message::HighlightContent,
             _ => return None,
         },
+        KeyCode::Char('c') => Message::CreateWorkspace,
         _ => return None,
     };
 

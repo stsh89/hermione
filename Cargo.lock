@@ -177,7 +177,12 @@ name = "hermione-eyes"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dirs",
+ "eyre",
+ "hermione-memory",
  "ratatui",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

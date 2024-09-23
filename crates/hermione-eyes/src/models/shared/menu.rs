@@ -15,9 +15,9 @@ pub enum MenuItem {
 impl<'a> From<&MenuItem> for ListItem<'a> {
     fn from(menu_item: &MenuItem) -> Self {
         let name = match menu_item {
-            MenuItem::Exit => "Exit",
-            MenuItem::CreateWorkspace => "Create workspace",
             MenuItem::Back => "Back",
+            MenuItem::CreateWorkspace => "reate workspace",
+            MenuItem::Exit => "Exit",
         };
 
         ListItem::new(name)

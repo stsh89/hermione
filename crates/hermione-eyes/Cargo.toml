@@ -6,4 +6,11 @@ default-run = "hermione-eyes"
 
 [dependencies]
 anyhow = { workspace = true }
+dirs = { workspace = true }
+eyre = { workspace = true }
 ratatui = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+hermione-memory = { workspace = true }
+
