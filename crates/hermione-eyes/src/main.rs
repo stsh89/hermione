@@ -10,10 +10,10 @@ use app::App;
 fn main() -> Result<()> {
     tui::install_panic_hook();
 
-    let mut terminal = tui::init_terminal()?;
+    let terminal = tui::init_terminal()?;
     let app = App::new();
 
-    app.run(&mut terminal)?;
+    app.run(terminal)?;
     tui::restore_terminal()?;
 
     Ok(())

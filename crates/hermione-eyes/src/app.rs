@@ -1,5 +1,7 @@
 use crate::{
-    models::{ListWorkspacesModel, ListWorkspacesModelParameters, Model, NewWorkspaceModel},
+    models::{
+        ListWorkspacesModel, ListWorkspacesModelParameters, Model, NewWorkspaceModel, Redirect,
+    },
     router::{CreateWorkspaceParameters, Router},
     Result,
 };
@@ -7,7 +9,6 @@ use ratatui::{backend::Backend, Terminal};
 
 pub struct App {
     model: Model,
-    route: Option<Router>,
 }
 
 impl App {
@@ -38,24 +39,25 @@ impl App {
         &mut self.model
     }
 
-    fn model(&mut self, route: Router) -> &mut Model {
+    fn model(&mut self, route: &Router) -> &mut Model {
         match route {
             Router::ListWorkspaces => self.list_workspaces(),
             Router::NewWorkspace => self.new_workspace(),
-            Router::CreateWorkspace(parameters) => self.create_workspace(parameters),
+            Router::CreateWorkspace(parameters) => self.create_workspace(parameters.clone()),
         }
     }
 
     pub fn new() -> Self {
         Self {
-            route: Some(Router::ListWorkspaces),
             model: list_workspaces(),
         }
     }
 
-    pub fn run(mut self, terminal: &mut Terminal<impl Backend>) -> Result<()> {
-        while let Some(route) = self.route.as_ref() {
-            let model = self.model(route.clone());
+    pub fn run(mut self, mut terminal: Terminal<impl Backend>) -> Result<()> {
+        let mut router = Some(Router::ListWorkspaces);
+
+        while let Some(route) = router.as_ref() {
+            let model = self.model(route);
 
             // Render the current view
             terminal.draw(|f| model.view(f))?;
@@ -68,7 +70,12 @@ impl App {
                 current_msg = model.update(current_msg.unwrap())?;
             }
 
-            self.route = model.route().cloned();
+            if let Some(redirect) = model.redirect() {
+                match redirect {
+                    Redirect::Exit => router = None,
+                    Redirect::Route(route) => router = Some(route),
+                }
+            }
         }
 
         Ok(())

@@ -83,16 +83,16 @@ pub enum Message {
     ToggleFocus,
 }
 
-enum State {
-    Running(Router),
-    Exited(Option<Router>),
+pub enum Redirect {
+    Exit,
+    Route(Router),
 }
 
 impl Model {
-    pub fn route(&self) -> Option<&Router> {
+    pub fn redirect(&self) -> Option<Redirect> {
         match self {
-            Model::ListWorkspaces(model) => model.route(),
-            Model::NewWorkspace(model) => model.route(),
+            Model::ListWorkspaces(model) => model.redirect(),
+            Model::NewWorkspace(model) => model.redirect(),
         }
     }
 

@@ -1,6 +1,6 @@
 use crate::{
     models::{
-        handle_event, highlight_style, shared::Input, Menu, MenuItem, Message, Router, State,
+        handle_event, highlight_style, shared::Input, Menu, MenuItem, Message, Redirect, Router,
     },
     router::CreateWorkspaceParameters,
     Result,
@@ -14,29 +14,38 @@ use ratatui::{
 
 pub struct NewWorkspaceModel {
     input: Input,
-    state: State,
     menu: Menu,
+    status: Option<Status>,
+}
+
+enum Status {
+    Back,
+    Exit,
+    Submit,
 }
 
 impl NewWorkspaceModel {
     pub fn new() -> Self {
         Self {
             input: Input::active(),
-            state: State::Running(Router::NewWorkspace),
+            status: None,
             menu: Menu::new(vec![MenuItem::Back, MenuItem::Exit]),
         }
     }
 
-    pub fn route(&self) -> Option<&Router> {
-        match &self.state {
-            State::Running(route) => Some(route),
-            State::Exited(route) => route.as_ref(),
-        }
+    pub fn redirect(&self) -> Option<Redirect> {
+        self.status.as_ref().map(|status| match status {
+            Status::Back => Redirect::Route(Router::ListWorkspaces),
+            Status::Exit => Redirect::Exit,
+            Status::Submit => Redirect::Route(Router::CreateWorkspace(CreateWorkspaceParameters {
+                name: self.input.value().to_string(),
+            })),
+        })
     }
 
     pub fn view(&mut self, frame: &mut Frame) {
         let layout = Layout::default()
-            .direction(Direction::Vertical)
+            .direction(Direction::Horizontal)
             .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
             .split(frame.area());
 
@@ -116,8 +125,8 @@ impl NewWorkspaceModel {
                     self.input.move_cursor_right();
                 }
             }
-            Message::Exit => self.state = State::Exited(None),
-            Message::Back => self.state = State::Exited(Some(Router::ListWorkspaces)),
+            Message::Exit => self.status = Some(Status::Exit),
+            Message::Back => self.status = Some(Status::Back),
             Message::ToggleFocus => {
                 self.menu.toggle_focus();
                 self.input.toggle_focus();
@@ -126,20 +135,15 @@ impl NewWorkspaceModel {
                 if self.menu.is_active {
                     if let Some(index) = self.menu.state.selected() {
                         match self.menu.items[index] {
-                            MenuItem::Exit => self.state = State::Exited(None),
-                            MenuItem::Back => {
-                                self.state = State::Exited(Some(Router::ListWorkspaces))
-                            }
+                            MenuItem::Exit => self.status = Some(Status::Exit),
+                            MenuItem::Back => self.status = Some(Status::Back),
                             _ => {}
                         }
                     }
                 }
 
                 if self.input.is_active() {
-                    self.state =
-                        State::Exited(Some(Router::CreateWorkspace(CreateWorkspaceParameters {
-                            name: self.input.value().to_string(),
-                        })));
+                    self.status = Some(Status::Submit);
                 }
             }
         }

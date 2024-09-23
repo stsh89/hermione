@@ -1,6 +1,6 @@
 use crate::{
     entities::Workspace,
-    models::{handle_event, highlight_style, Menu, MenuItem, Message, State},
+    models::{handle_event, highlight_style, Menu, MenuItem, Message, Redirect},
     router::Router,
     Result,
 };
@@ -13,7 +13,7 @@ use ratatui::{
 
 pub struct ListWorkspacesModel {
     workspaces: Vec<Workspace>,
-    state: State,
+    status: Option<Status>,
     workspaces_state: ListState,
     menu: Menu,
 }
@@ -22,13 +22,18 @@ pub struct ListWorkspacesModelParameters {
     pub workspaces: Vec<Workspace>,
 }
 
+enum Status {
+    Exit,
+    CreateWorkspace,
+}
+
 impl ListWorkspacesModel {
     pub fn new(parameters: ListWorkspacesModelParameters) -> Self {
         let ListWorkspacesModelParameters { workspaces } = parameters;
 
         let mut model = Self {
             workspaces,
-            state: State::Running(Router::ListWorkspaces),
+            status: None,
             workspaces_state: ListState::default(),
             menu: Menu::new(vec![MenuItem::Exit, MenuItem::CreateWorkspace]),
         };
@@ -40,11 +45,11 @@ impl ListWorkspacesModel {
         model
     }
 
-    pub fn route(&self) -> Option<&Router> {
-        match &self.state {
-            State::Running(route) => Some(route),
-            State::Exited(route) => route.as_ref(),
-        }
+    pub fn redirect(&self) -> Option<Redirect> {
+        self.status.as_ref().map(|status| match status {
+            Status::Exit => Redirect::Exit,
+            Status::CreateWorkspace => Redirect::Route(Router::NewWorkspace),
+        })
     }
 
     pub fn view(&mut self, frame: &mut Frame) {
@@ -107,15 +112,15 @@ impl ListWorkspacesModel {
                     self.workspaces_state.select_previous()
                 }
             }
-            Message::Exit => self.state = State::Exited(None),
+            Message::Exit => self.status = Some(Status::Exit),
             Message::ToggleFocus => self.menu.toggle_focus(),
             Message::Sumbit => {
                 if self.menu.is_active {
                     if let Some(index) = self.menu.state.selected() {
                         match self.menu.items[index] {
-                            MenuItem::Exit => self.state = State::Exited(None),
+                            MenuItem::Exit => self.status = Some(Status::Exit),
                             MenuItem::CreateWorkspace => {
-                                self.state = State::Exited(Some(Router::NewWorkspace))
+                                self.status = Some(Status::CreateWorkspace)
                             }
                             _ => {}
                         }
