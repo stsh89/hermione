@@ -21,7 +21,6 @@ pub enum Model {
 }
 
 pub enum Message {
-    CreateWorkspace,
     Back,
     DeleteAllChars,
     DeleteChar,
@@ -34,6 +33,7 @@ pub enum Message {
     MoveCusorLeft,
     MoveCusorRight,
     Sumbit,
+    ToggleForcus,
 }
 
 pub enum Redirect {
