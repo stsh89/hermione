@@ -44,6 +44,14 @@ impl Model {
         }
     }
 
+    pub fn is_list_workspaces(&self) -> bool {
+        matches!(self, Model::ListWorkspaces(_))
+    }
+
+    pub fn is_new_workspace(&self) -> bool {
+        matches!(self, Model::NewWorkspace(_))
+    }
+
     pub fn list_workspaces(workspaces: Vec<Workspace>) -> Self {
         let model = ListWorkspacesModel::new(ListWorkspacesModelParameters { workspaces });
 
@@ -54,14 +62,6 @@ impl Model {
         let model = NewWorkspaceModel::new();
 
         Model::NewWorkspace(model)
-    }
-
-    pub fn is_list_workspaces(&self) -> bool {
-        matches!(self, Model::ListWorkspaces(_))
-    }
-
-    pub fn is_new_workspace(&self) -> bool {
-        matches!(self, Model::NewWorkspace(_))
     }
 
     pub fn redirect(&self) -> Option<Redirect> {
