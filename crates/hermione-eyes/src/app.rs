@@ -1,7 +1,5 @@
 use crate::{
-    models::{
-        ListWorkspacesModel, ListWorkspacesModelParameters, Model, NewWorkspaceModel, Redirect,
-    },
+    models::{Model, Redirect},
     router::{CreateWorkspaceParameters, Router},
     Result,
 };
@@ -20,21 +18,11 @@ impl App {
     }
 
     fn list_workspaces(&mut self) -> &mut Model {
-        if matches!(self.model, Model::ListWorkspaces(_)) {
+        if self.model.is_list_workspaces() {
             return &mut self.model;
         }
 
-        self.model = list_workspaces();
-
-        &mut self.model
-    }
-
-    fn new_workspace(&mut self) -> &mut Model {
-        if matches!(self.model, Model::NewWorkspace(_)) {
-            return &mut self.model;
-        }
-
-        self.model = new_workspace();
+        self.model = Model::list_workspaces(vec![]);
 
         &mut self.model
     }
@@ -49,8 +37,18 @@ impl App {
 
     pub fn new() -> Self {
         Self {
-            model: list_workspaces(),
+            model: Model::list_workspaces(vec![]),
         }
+    }
+
+    fn new_workspace(&mut self) -> &mut Model {
+        if self.model.is_new_workspace() {
+            return &mut self.model;
+        }
+
+        self.model = Model::new_workspace();
+
+        &mut self.model
     }
 
     pub fn run(mut self, mut terminal: Terminal<impl Backend>) -> Result<()> {
@@ -59,13 +57,10 @@ impl App {
         while let Some(route) = router.as_ref() {
             let model = self.model(route);
 
-            // Render the current view
             terminal.draw(|f| model.view(f))?;
 
-            // Handle events and map to a Message
             let mut current_msg = model.handle_event()?;
 
-            // Process updates as long as they return a non-None message
             while current_msg.is_some() {
                 current_msg = model.update(current_msg.unwrap())?;
             }
@@ -80,16 +75,4 @@ impl App {
 
         Ok(())
     }
-}
-
-fn list_workspaces() -> Model {
-    let model = ListWorkspacesModel::new(ListWorkspacesModelParameters { workspaces: vec![] });
-
-    Model::ListWorkspaces(model)
-}
-
-fn new_workspace() -> Model {
-    let model = NewWorkspaceModel::new();
-
-    Model::NewWorkspace(model)
 }

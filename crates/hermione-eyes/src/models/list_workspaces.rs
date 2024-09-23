@@ -1,6 +1,10 @@
 use crate::{
     entities::Workspace,
-    models::{handle_event, highlight_style, Menu, MenuItem, Message, Redirect},
+    models::{
+        handle_event, highlight_style,
+        shared::{Menu, MenuItem},
+        Message, Redirect,
+    },
     router::Router,
     Result,
 };
@@ -59,24 +63,24 @@ impl ListWorkspacesModel {
             .split(frame.area());
 
         let mut block = Block::default().borders(Borders::all());
-        block = if self.menu.is_active {
+        block = if self.menu.is_active() {
             block.border_style(highlight_style())
         } else {
             block
         };
-        let items: Vec<ListItem> = self.menu.items.iter().map(ListItem::from).collect();
+        let items: Vec<ListItem> = self.menu.items().iter().map(ListItem::from).collect();
         let mut list = List::new(items).block(block);
 
-        list = if self.menu.is_active {
+        list = if self.menu.is_active() {
             list.highlight_style(highlight_style())
         } else {
             list
         };
 
-        frame.render_stateful_widget(list, layout[0], &mut self.menu.state);
+        frame.render_stateful_widget(list, layout[0], self.menu.state());
 
         let mut block = Block::default().borders(Borders::all());
-        block = if !self.menu.is_active {
+        block = if !self.menu.is_active() {
             block.border_style(highlight_style())
         } else {
             block
@@ -103,20 +107,20 @@ impl ListWorkspacesModel {
     pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
             Message::HighlightMenu => {
-                self.menu.is_active = true;
+                self.menu.activate();
             }
             Message::HighlightContent => {
-                self.menu.is_active = false;
+                self.menu.deactivate();
             }
             Message::HighlightNext => {
-                if self.menu.is_active {
+                if self.menu.is_active() {
                     self.menu.select_next();
                 } else {
                     self.workspaces_state.select_next()
                 }
             }
             Message::HighlightPrevious => {
-                if self.menu.is_active {
+                if self.menu.is_active() {
                     self.menu.select_previous();
                 } else {
                     self.workspaces_state.select_previous()
@@ -124,9 +128,9 @@ impl ListWorkspacesModel {
             }
             Message::Exit => self.status = Some(Status::Exit),
             Message::Sumbit => {
-                if self.menu.is_active {
-                    if let Some(index) = self.menu.state.selected() {
-                        match self.menu.items[index] {
+                if self.menu.is_active() {
+                    if let Some(item) = self.menu.item() {
+                        match item {
                             MenuItem::Exit => self.status = Some(Status::Exit),
                             MenuItem::CreateWorkspace => {
                                 self.status = Some(Status::CreateWorkspace)

@@ -2,13 +2,12 @@ mod list_workspaces;
 mod new_workspace;
 mod shared;
 
-use crate::{router::Router, Result};
+use crate::{entities::Workspace, router::Router, Result};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
 pub use new_workspace::NewWorkspaceModel;
 use ratatui::{
     crossterm::event,
     style::{Style, Stylize},
-    widgets::{ListItem, ListState},
     Frame,
 };
 
@@ -17,62 +16,14 @@ pub enum Model {
     NewWorkspace(NewWorkspaceModel),
 }
 
-enum MenuItem {
-    Back,
-    CreateWorkspace,
-    Exit,
-}
-
-struct Menu {
-    items: Vec<MenuItem>,
-    state: ListState,
-    is_active: bool,
-}
-
-impl<'a> From<&MenuItem> for ListItem<'a> {
-    fn from(menu_item: &MenuItem) -> Self {
-        let name = match menu_item {
-            MenuItem::Exit => "Exit",
-            MenuItem::CreateWorkspace => "Create workspace",
-            MenuItem::Back => "Back",
-        };
-
-        ListItem::new(name)
-    }
-}
-
-impl Menu {
-    fn new(items: Vec<MenuItem>) -> Self {
-        let mut menu = Self {
-            items,
-            state: ListState::default(),
-            is_active: false,
-        };
-
-        if !menu.items.is_empty() {
-            menu.state.select_first();
-        }
-
-        menu
-    }
-
-    fn select_next(&mut self) {
-        self.state.select_next();
-    }
-
-    fn select_previous(&mut self) {
-        self.state.select_previous();
-    }
-}
-
 pub enum Message {
-    HighlightMenu,
-    HighlightContent,
     Back,
     DeleteAllChars,
     DeleteChar,
     EnterChar(char),
     Exit,
+    HighlightContent,
+    HighlightMenu,
     HighlightNext,
     HighlightPrevious,
     MoveCusorLeft,
@@ -86,20 +37,6 @@ pub enum Redirect {
 }
 
 impl Model {
-    pub fn redirect(&self) -> Option<Redirect> {
-        match self {
-            Model::ListWorkspaces(model) => model.redirect(),
-            Model::NewWorkspace(model) => model.redirect(),
-        }
-    }
-
-    pub fn view(&mut self, frame: &mut Frame) {
-        match self {
-            Model::ListWorkspaces(model) => model.view(frame),
-            Model::NewWorkspace(model) => model.view(frame),
-        }
-    }
-
     pub fn handle_event(&self) -> Result<Option<Message>> {
         match self {
             Model::ListWorkspaces(model) => model.handle_event(),
@@ -107,10 +44,44 @@ impl Model {
         }
     }
 
+    pub fn list_workspaces(workspaces: Vec<Workspace>) -> Self {
+        let model = ListWorkspacesModel::new(ListWorkspacesModelParameters { workspaces });
+
+        Model::ListWorkspaces(model)
+    }
+
+    pub fn new_workspace() -> Self {
+        let model = NewWorkspaceModel::new();
+
+        Model::NewWorkspace(model)
+    }
+
+    pub fn is_list_workspaces(&self) -> bool {
+        matches!(self, Model::ListWorkspaces(_))
+    }
+
+    pub fn is_new_workspace(&self) -> bool {
+        matches!(self, Model::NewWorkspace(_))
+    }
+
+    pub fn redirect(&self) -> Option<Redirect> {
+        match self {
+            Model::ListWorkspaces(model) => model.redirect(),
+            Model::NewWorkspace(model) => model.redirect(),
+        }
+    }
+
     pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match self {
             Model::ListWorkspaces(model) => model.update(message),
             Model::NewWorkspace(model) => model.update(message),
+        }
+    }
+
+    pub fn view(&mut self, frame: &mut Frame) {
+        match self {
+            Model::ListWorkspaces(model) => model.view(frame),
+            Model::NewWorkspace(model) => model.view(frame),
         }
     }
 }
