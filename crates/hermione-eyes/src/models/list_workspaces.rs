@@ -5,7 +5,7 @@ use crate::{
     Result,
 };
 use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent},
+    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame,
@@ -35,7 +35,7 @@ impl ListWorkspacesModel {
             workspaces,
             status: None,
             workspaces_state: ListState::default(),
-            menu: Menu::new(vec![MenuItem::Exit, MenuItem::CreateWorkspace]),
+            menu: Menu::new(vec![MenuItem::CreateWorkspace, MenuItem::Exit]),
         };
 
         if !model.workspaces.is_empty() {
@@ -65,9 +65,13 @@ impl ListWorkspacesModel {
             block
         };
         let items: Vec<ListItem> = self.menu.items.iter().map(ListItem::from).collect();
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(highlight_style());
+        let mut list = List::new(items).block(block);
+
+        list = if self.menu.is_active {
+            list.highlight_style(highlight_style())
+        } else {
+            list
+        };
 
         frame.render_stateful_widget(list, layout[0], &mut self.menu.state);
 
@@ -98,6 +102,12 @@ impl ListWorkspacesModel {
 
     pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
+            Message::HighlightMenu => {
+                self.menu.is_active = true;
+            }
+            Message::HighlightContent => {
+                self.menu.is_active = false;
+            }
             Message::HighlightNext => {
                 if self.menu.is_active {
                     self.menu.select_next();
@@ -113,7 +123,6 @@ impl ListWorkspacesModel {
                 }
             }
             Message::Exit => self.status = Some(Status::Exit),
-            Message::ToggleFocus => self.menu.toggle_focus(),
             Message::Sumbit => {
                 if self.menu.is_active {
                     if let Some(index) = self.menu.state.selected() {
@@ -139,8 +148,15 @@ fn message(key_event: KeyEvent) -> Option<Message> {
         KeyCode::Up => Message::HighlightPrevious,
         KeyCode::Down => Message::HighlightNext,
         KeyCode::Esc => Message::Exit,
-        KeyCode::Tab => Message::ToggleFocus,
         KeyCode::Enter => Message::Sumbit,
+        KeyCode::Left => match key_event.modifiers {
+            KeyModifiers::ALT => Message::HighlightMenu,
+            _ => return None,
+        },
+        KeyCode::Right => match key_event.modifiers {
+            KeyModifiers::ALT => Message::HighlightContent,
+            _ => return None,
+        },
         _ => return None,
     };
 

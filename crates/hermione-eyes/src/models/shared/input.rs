@@ -8,8 +8,12 @@ pub struct Input {
 }
 
 impl Input {
-    pub fn toggle_focus(&mut self) {
-        self.is_active = !self.is_active;
+    pub fn activate(&mut self) {
+        self.is_active = true;
+    }
+
+    pub fn deactivate(&mut self) {
+        self.is_active = false;
     }
 
     pub fn character_index(&self) -> usize {

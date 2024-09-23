@@ -56,9 +56,13 @@ impl NewWorkspaceModel {
             block
         };
         let items: Vec<ListItem> = self.menu.items.iter().map(ListItem::from).collect();
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(highlight_style());
+        let mut list = List::new(items).block(block);
+
+        list = if self.menu.is_active {
+            list.highlight_style(highlight_style())
+        } else {
+            list
+        };
 
         frame.render_stateful_widget(list, layout[0], &mut self.menu.state);
 
@@ -127,9 +131,13 @@ impl NewWorkspaceModel {
             }
             Message::Exit => self.status = Some(Status::Exit),
             Message::Back => self.status = Some(Status::Back),
-            Message::ToggleFocus => {
-                self.menu.toggle_focus();
-                self.input.toggle_focus();
+            Message::HighlightMenu => {
+                self.menu.is_active = true;
+                self.input.deactivate();
+            }
+            Message::HighlightContent => {
+                self.menu.is_active = false;
+                self.input.activate();
             }
             Message::Sumbit => {
                 if self.menu.is_active {
@@ -160,10 +168,15 @@ fn message(key_event: KeyEvent) -> Option<Message> {
             _ => Message::DeleteChar,
         },
         KeyCode::Esc => Message::Back,
-        KeyCode::Tab => Message::ToggleFocus,
         KeyCode::Enter => Message::Sumbit,
-        KeyCode::Left => Message::MoveCusorLeft,
-        KeyCode::Right => Message::MoveCusorRight,
+        KeyCode::Left => match key_event.modifiers {
+            KeyModifiers::ALT => Message::HighlightMenu,
+            _ => Message::MoveCusorLeft,
+        },
+        KeyCode::Right => match key_event.modifiers {
+            KeyModifiers::ALT => Message::HighlightContent,
+            _ => Message::MoveCusorRight,
+        },
         KeyCode::Up => Message::HighlightPrevious,
         KeyCode::Down => Message::HighlightNext,
         _ => return None,

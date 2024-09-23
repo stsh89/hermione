@@ -63,13 +63,11 @@ impl Menu {
     fn select_previous(&mut self) {
         self.state.select_previous();
     }
-
-    fn toggle_focus(&mut self) {
-        self.is_active = !self.is_active;
-    }
 }
 
 pub enum Message {
+    HighlightMenu,
+    HighlightContent,
     Back,
     DeleteAllChars,
     DeleteChar,
@@ -80,7 +78,6 @@ pub enum Message {
     MoveCusorLeft,
     MoveCusorRight,
     Sumbit,
-    ToggleFocus,
 }
 
 pub enum Redirect {
