@@ -12,6 +12,12 @@ pub enum Router {
     /// Delete workspace
     DeleteWorkspace,
 
+    /// Delete command
+    DeleteCommand,
+
+    /// Get command
+    GetCommand(GetCommandParameters),
+
     /// New command
     NewCommand,
 
@@ -50,4 +56,9 @@ pub struct CommandPaletteParameters {
 pub struct GetWorkspaceParameters {
     pub number: usize,
     pub commands_search_query: String,
+}
+
+#[derive(Clone)]
+pub struct GetCommandParameters {
+    pub number: usize,
 }

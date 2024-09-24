@@ -4,13 +4,13 @@ use crate::{
     models::{
         command_palette::{self, CommandPaletteModel, CommandPaletteModelParameters},
         CreateCommandModel, CreateCommandModelParameters, CreateWorkspaceModel,
-        CreateWorkspaceModelParameters, GetWorkspaceModel, GetWorkspaceModelParameters,
-        ListWorkspacesModel, ListWorkspacesModelParameters, Model, NewCommandModel,
-        NewWorkspaceModel,
+        CreateWorkspaceModelParameters, GetCommandModel, GetCommandModelParameters,
+        GetWorkspaceModel, GetWorkspaceModelParameters, ListWorkspacesModel,
+        ListWorkspacesModelParameters, Model, NewCommandModel, NewWorkspaceModel,
     },
     router::{
         CommandPaletteParameters, CreateCommandParameters, CreateWorkspaceParameters,
-        GetWorkspaceParameters, ListWorkspacesParameters, Router,
+        GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router,
     },
     Result,
 };
@@ -90,6 +90,15 @@ impl App {
                     search_query: String::new(),
                 }))
             }
+            Router::DeleteCommand => {
+                self.organizer.delete_command(0, 0)?;
+                let workspace = self.organizer.get_workspace(0)?;
+
+                Model::GetWorkspace(GetWorkspaceModel::new(GetWorkspaceModelParameters {
+                    workspace,
+                    commands_search_query: String::new(),
+                }))
+            }
             Router::GetWorkspace(parameters) => {
                 let GetWorkspaceParameters {
                     number,
@@ -120,6 +129,15 @@ impl App {
                     workspace,
                     commands_search_query,
                 }))
+            }
+            Router::GetCommand(parameters) => {
+                let GetCommandParameters { number } = parameters;
+
+                let command = self.organizer.get_command(0, number)?;
+
+                self.organizer.promote_command(0, command.number)?;
+
+                Model::GetCommand(GetCommandModel::new(GetCommandModelParameters { command }))
             }
         };
 

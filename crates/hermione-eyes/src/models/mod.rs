@@ -2,6 +2,7 @@ pub mod command_palette;
 
 mod create_command;
 mod create_workspace;
+mod get_command;
 mod get_workspace;
 mod list_workspaces;
 mod new_command;
@@ -18,6 +19,7 @@ use ratatui::{
 
 pub use create_command::{CreateCommandModel, CreateCommandModelParameters};
 pub use create_workspace::{CreateWorkspaceModel, CreateWorkspaceModelParameters};
+pub use get_command::{GetCommandModel, GetCommandModelParameters};
 pub use get_workspace::{GetWorkspaceModel, GetWorkspaceModelParameters};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
 pub use new_command::NewCommandModel;
@@ -30,6 +32,7 @@ pub enum Model {
     GetWorkspace(GetWorkspaceModel),
     ListWorkspaces(ListWorkspacesModel),
     NewCommand(NewCommandModel),
+    GetCommand(GetCommandModel),
     NewWorkspace(NewWorkspaceModel),
 }
 
@@ -60,6 +63,7 @@ impl Model {
             Model::GetWorkspace(model) => model.handle_event(),
             Model::NewCommand(model) => model.handle_event(),
             Model::CreateCommand(model) => model.handle_event(),
+            Model::GetCommand(model) => model.handle_event(),
         }
     }
 
@@ -72,6 +76,7 @@ impl Model {
             Model::GetWorkspace(model) => model.is_running(),
             Model::NewCommand(model) => model.is_running(),
             Model::CreateCommand(model) => model.is_running(),
+            Model::GetCommand(model) => model.is_running(),
         }
     }
 
@@ -84,6 +89,7 @@ impl Model {
             Model::GetWorkspace(model) => model.redirect(),
             Model::NewCommand(model) => model.redirect(),
             Model::CreateCommand(model) => model.redirect(),
+            Model::GetCommand(model) => model.redirect(),
         }
     }
 
@@ -96,6 +102,7 @@ impl Model {
             Model::GetWorkspace(model) => model.update(message),
             Model::NewCommand(model) => model.update(message),
             Model::CreateCommand(model) => model.update(message),
+            Model::GetCommand(model) => model.update(message),
         }
     }
 
@@ -108,6 +115,7 @@ impl Model {
             Model::GetWorkspace(model) => model.view(frame),
             Model::NewCommand(model) => model.view(frame),
             Model::CreateCommand(model) => model.view(frame),
+            Model::GetCommand(model) => model.view(frame),
         }
     }
 }

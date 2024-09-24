@@ -13,7 +13,7 @@ use crate::{
         shared::{Input, InputParameters},
         Message,
     },
-    router::{CommandPaletteParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router},
+    router::{CommandPaletteParameters, GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router},
     Result,
 };
 
@@ -91,7 +91,19 @@ impl GetWorkspaceModel {
         }))
     }
 
-    fn submit(&mut self) {}
+    fn submit(&mut self) {
+        let Some(command) = self
+            .commands_state
+            .selected()
+            .and_then(|i| self.workspace.commands.get(i))
+        else {
+            return;
+        };
+
+        self.redirect = Some(Router::GetCommand(GetCommandParameters {
+            number: command.number,
+        }));
+    }
 
     fn select_next(&mut self) {
         self.commands_state.select_next();

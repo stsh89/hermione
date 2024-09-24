@@ -14,6 +14,7 @@ pub const NEW_WORKSPACE: &str = "New workspace";
 pub const NEW_COMMAND: &str = "New command";
 pub const DELETE_WORKSPACE: &str = "Delete workspace";
 pub const RENAME_WORKSPACE: &str = "Rename workspace";
+pub const DELETE_COMMAND: &str = "Delete command";
 
 pub struct CommandPaletteModel {
     actions: Vec<Action>,
@@ -34,6 +35,7 @@ pub enum Action {
     NewWorkspace,
     NewCommand,
     DeleteWorkspace,
+    DeleteCommand,
 }
 
 impl Action {
@@ -42,6 +44,7 @@ impl Action {
             Action::NewWorkspace => NEW_WORKSPACE,
             Action::NewCommand => NEW_COMMAND,
             Action::DeleteWorkspace => DELETE_WORKSPACE,
+            Action::DeleteCommand => DELETE_COMMAND,
         }
     }
 }
@@ -125,6 +128,7 @@ impl CommandPaletteModel {
             Action::NewWorkspace => self.redirect = Some(Router::NewWorkspace),
             Action::NewCommand => self.redirect = Some(Router::NewCommand),
             Action::DeleteWorkspace => self.redirect = Some(Router::DeleteWorkspace),
+            Action::DeleteCommand => self.redirect = Some(Router::DeleteCommand),
         }
     }
 
@@ -226,6 +230,7 @@ impl TryFrom<String> for Action {
             NEW_WORKSPACE => Ok(Action::NewWorkspace),
             NEW_COMMAND => Ok(Action::NewCommand),
             DELETE_WORKSPACE => Ok(Action::DeleteWorkspace),
+            DELETE_COMMAND => Ok(Action::DeleteCommand),
             _ => Err(anyhow::anyhow!("Unknown command: {}", value)),
         }
     }
