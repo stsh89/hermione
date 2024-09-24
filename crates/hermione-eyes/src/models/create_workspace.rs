@@ -8,14 +8,12 @@ use crate::{
 
 pub struct CreateWorkspaceModel {
     name: String,
-    route: Router,
     is_running: bool,
     redirect: Option<Router>,
 }
 
 pub struct CreateWorkspaceModelParameters {
     pub name: String,
-    pub route: Router,
 }
 
 impl CreateWorkspaceModel {
@@ -24,11 +22,10 @@ impl CreateWorkspaceModel {
     }
 
     pub fn new(parameters: CreateWorkspaceModelParameters) -> Self {
-        let CreateWorkspaceModelParameters { name, route } = parameters;
+        let CreateWorkspaceModelParameters { name } = parameters;
 
         Self {
             name,
-            route,
             is_running: true,
             redirect: Some(Router::ListWorkspaces(ListWorkspacesParameters::default())),
         }
@@ -40,10 +37,6 @@ impl CreateWorkspaceModel {
 
     pub fn redirect(&self) -> Option<&Router> {
         self.redirect.as_ref()
-    }
-
-    pub fn route(&self) -> &Router {
-        &self.route
     }
 
     pub fn update(&mut self, _message: Message) -> Result<Option<Message>> {

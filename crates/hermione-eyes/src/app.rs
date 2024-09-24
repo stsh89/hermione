@@ -2,7 +2,7 @@ use crate::{
     clients,
     models::{
         CreateWorkspaceModel, CreateWorkspaceModelParameters, ListWorkspacesModel,
-        ListWorkspacesModelParameters, Model, NewWorkspaceModel, NewWorkspaceModelParameters,
+        ListWorkspacesModelParameters, Model, NewWorkspaceModel,
     },
     router::{CreateWorkspaceParameters, ListWorkspacesParameters, Router},
     Result,
@@ -21,8 +21,6 @@ pub struct AppParameters {
 
 impl App {
     fn update_model(&mut self) -> Result<&mut Model> {
-        let route = self.route.clone();
-
         let model = match &self.route {
             Router::ListWorkspaces(parameters) => {
                 let ListWorkspacesParameters { search_query } = parameters;
@@ -37,21 +35,15 @@ impl App {
 
                 Model::ListWorkspaces(ListWorkspacesModel::new(ListWorkspacesModelParameters {
                     workspaces,
-                    route,
                 }))
             }
-            Router::NewWorkspace => {
-                Model::NewWorkspace(NewWorkspaceModel::new(NewWorkspaceModelParameters {
-                    route,
-                }))
-            }
+            Router::NewWorkspace => Model::NewWorkspace(NewWorkspaceModel::new()),
             Router::CreateWorkspace(parameters) => {
                 let CreateWorkspaceParameters { name } = parameters;
                 self.organizer.add_workspace(name.to_string())?;
 
                 Model::CreateWorkspace(CreateWorkspaceModel::new(CreateWorkspaceModelParameters {
                     name: name.to_string(),
-                    route,
                 }))
             }
         };
@@ -65,10 +57,7 @@ impl App {
         let AppParameters { organizer } = parameters;
         let workspaces = organizer.list_workspaces();
         let route = Router::ListWorkspaces(ListWorkspacesParameters::default());
-        let model = ListWorkspacesModel::new(ListWorkspacesModelParameters {
-            workspaces,
-            route: route.clone(),
-        });
+        let model = ListWorkspacesModel::new(ListWorkspacesModelParameters { workspaces });
 
         Self {
             model: Model::ListWorkspaces(model),

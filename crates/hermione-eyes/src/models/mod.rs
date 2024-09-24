@@ -3,7 +3,7 @@ mod list_workspaces;
 mod new_workspace;
 mod shared;
 
-use crate::{entities::Workspace, router::Router, Result};
+use crate::{router::Router, Result};
 use ratatui::{
     crossterm::event,
     style::{Style, Stylize},
@@ -13,7 +13,6 @@ use ratatui::{
 pub use create_workspace::{CreateWorkspaceModel, CreateWorkspaceModelParameters};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
 pub use new_workspace::NewWorkspaceModel;
-pub use new_workspace::NewWorkspaceModelParameters;
 
 pub enum Model {
     ListWorkspaces(ListWorkspacesModel),
@@ -63,14 +62,6 @@ impl Model {
             Model::ListWorkspaces(model) => model.redirect(),
             Model::NewWorkspace(model) => model.redirect(),
             Model::CreateWorkspace(model) => model.redirect(),
-        }
-    }
-
-    pub fn route(&self) -> &Router {
-        match self {
-            Model::ListWorkspaces(model) => model.route(),
-            Model::NewWorkspace(model) => model.route(),
-            Model::CreateWorkspace(model) => model.route(),
         }
     }
 

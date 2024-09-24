@@ -21,14 +21,12 @@ pub struct ListWorkspacesModel {
     workspaces_state: ListState,
     menu: Menu,
     search: Input,
-    route: Router,
     is_running: bool,
     redirect: Option<Router>,
 }
 
 pub struct ListWorkspacesModelParameters {
     pub workspaces: Vec<Workspace>,
-    pub route: Router,
 }
 
 impl ListWorkspacesModel {
@@ -37,7 +35,7 @@ impl ListWorkspacesModel {
     }
 
     pub fn new(parameters: ListWorkspacesModelParameters) -> Self {
-        let ListWorkspacesModelParameters { route, workspaces } = parameters;
+        let ListWorkspacesModelParameters { workspaces } = parameters;
 
         let mut model = Self {
             workspaces,
@@ -45,7 +43,6 @@ impl ListWorkspacesModel {
             workspaces_state: ListState::default(),
             menu: Menu::new(vec![MenuItem::CreateWorkspace, MenuItem::Exit]),
             search: Input::active(),
-            route,
             is_running: true,
         };
 
@@ -54,10 +51,6 @@ impl ListWorkspacesModel {
         }
 
         model
-    }
-
-    pub fn route(&self) -> &Router {
-        &self.route
     }
 
     pub fn redirect(&self) -> Option<&Router> {

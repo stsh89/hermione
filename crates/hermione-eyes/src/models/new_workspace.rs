@@ -18,33 +18,21 @@ pub struct NewWorkspaceModel {
     input: Input,
     menu: Menu,
     redirect: Option<Router>,
-    route: Router,
     is_running: bool,
-}
-
-pub struct NewWorkspaceModelParameters {
-    pub route: Router,
 }
 
 impl NewWorkspaceModel {
     pub fn is_running(&self) -> bool {
-        true
+        self.is_running
     }
 
-    pub fn new(parameters: NewWorkspaceModelParameters) -> Self {
-        let NewWorkspaceModelParameters { route } = parameters;
-
+    pub fn new() -> Self {
         Self {
             input: Input::active(),
             redirect: None,
             menu: Menu::new(vec![MenuItem::Back, MenuItem::Exit]),
-            route,
             is_running: true,
         }
-    }
-
-    pub fn route(&self) -> &Router {
-        &self.route
     }
 
     pub fn redirect(&self) -> Option<&Router> {
