@@ -1,11 +1,10 @@
 use crate::{
     models::{
         handle_event, highlight_style,
-        shared::Input,
-        shared::{Menu, MenuItem},
+        shared::{Input, Menu, MenuItem},
         Message, Redirect, Router,
     },
-    router::CreateWorkspaceParameters,
+    router::{CreateWorkspaceParameters, ListWorkspacesParameters},
     Result,
 };
 use ratatui::{
@@ -18,32 +17,38 @@ use ratatui::{
 pub struct NewWorkspaceModel {
     input: Input,
     menu: Menu,
-    status: Option<Status>,
+    redirect: Option<Router>,
+    route: Router,
+    is_running: bool,
 }
 
-enum Status {
-    Back,
-    Exit,
-    Submit,
+pub struct NewWorkspaceModelParameters {
+    pub route: Router,
 }
 
 impl NewWorkspaceModel {
-    pub fn new() -> Self {
+    pub fn is_running(&self) -> bool {
+        true
+    }
+
+    pub fn new(parameters: NewWorkspaceModelParameters) -> Self {
+        let NewWorkspaceModelParameters { route } = parameters;
+
         Self {
             input: Input::active(),
-            status: None,
+            redirect: None,
             menu: Menu::new(vec![MenuItem::Back, MenuItem::Exit]),
+            route,
+            is_running: true,
         }
     }
 
-    pub fn redirect(&self) -> Option<Redirect> {
-        self.status.as_ref().map(|status| match status {
-            Status::Back => Redirect::Route(Router::ListWorkspaces),
-            Status::Exit => Redirect::Exit,
-            Status::Submit => Redirect::Route(Router::CreateWorkspace(CreateWorkspaceParameters {
-                name: self.input.value().to_string(),
-            })),
-        })
+    pub fn route(&self) -> &Router {
+        &self.route
+    }
+
+    pub fn redirect(&self) -> Option<&Router> {
+        self.redirect.as_ref()
     }
 
     pub fn view(&mut self, frame: &mut Frame) {
@@ -132,8 +137,10 @@ impl NewWorkspaceModel {
                     self.input.move_cursor_right();
                 }
             }
-            Message::Exit => self.status = Some(Status::Exit),
-            Message::Back => self.status = Some(Status::Back),
+            Message::Exit => self.is_running = false,
+            Message::Back => {
+                self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters::default()))
+            }
             Message::HighlightMenu => {
                 self.menu.activate();
                 self.input.deactivate();
@@ -146,15 +153,21 @@ impl NewWorkspaceModel {
                 if self.menu.is_active() {
                     if let Some(item) = self.menu.item() {
                         match item {
-                            MenuItem::Exit => self.status = Some(Status::Exit),
-                            MenuItem::Back => self.status = Some(Status::Back),
+                            MenuItem::Exit => self.is_running = false,
+                            MenuItem::Back => {
+                                self.redirect = Some(Router::ListWorkspaces(
+                                    ListWorkspacesParameters::default(),
+                                ))
+                            }
                             _ => {}
                         }
                     }
                 }
 
                 if self.input.is_active() {
-                    self.status = Some(Status::Submit);
+                    self.redirect = Some(Router::CreateWorkspace(CreateWorkspaceParameters {
+                        name: self.input.value().to_string(),
+                    }));
                 }
             }
             _ => {}

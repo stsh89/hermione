@@ -13,6 +13,7 @@ use ratatui::{
 pub use create_workspace::{CreateWorkspaceModel, CreateWorkspaceModelParameters};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
 pub use new_workspace::NewWorkspaceModel;
+pub use new_workspace::NewWorkspaceModelParameters;
 
 pub enum Model {
     ListWorkspaces(ListWorkspacesModel),
@@ -36,9 +37,8 @@ pub enum Message {
     ToggleForcus,
 }
 
-pub enum Redirect {
-    Exit,
-    Route(Router),
+pub struct Redirect {
+    route: Router,
 }
 
 impl Model {
@@ -50,31 +50,27 @@ impl Model {
         }
     }
 
-    pub fn is_list_workspaces(&self) -> bool {
-        matches!(self, Model::ListWorkspaces(_))
+    pub fn is_running(&self) -> bool {
+        match self {
+            Model::ListWorkspaces(model) => model.is_running(),
+            Model::NewWorkspace(model) => model.is_running(),
+            Model::CreateWorkspace(model) => model.is_running(),
+        }
     }
 
-    pub fn is_new_workspace(&self) -> bool {
-        matches!(self, Model::NewWorkspace(_))
-    }
-
-    pub fn list_workspaces(workspaces: Vec<Workspace>) -> Self {
-        let model = ListWorkspacesModel::new(ListWorkspacesModelParameters { workspaces });
-
-        Model::ListWorkspaces(model)
-    }
-
-    pub fn new_workspace() -> Self {
-        let model = NewWorkspaceModel::new();
-
-        Model::NewWorkspace(model)
-    }
-
-    pub fn redirect(&self) -> Option<Redirect> {
+    pub fn redirect(&self) -> Option<&Router> {
         match self {
             Model::ListWorkspaces(model) => model.redirect(),
             Model::NewWorkspace(model) => model.redirect(),
             Model::CreateWorkspace(model) => model.redirect(),
+        }
+    }
+
+    pub fn route(&self) -> &Router {
+        match self {
+            Model::ListWorkspaces(model) => model.route(),
+            Model::NewWorkspace(model) => model.route(),
+            Model::CreateWorkspace(model) => model.route(),
         }
     }
 

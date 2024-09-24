@@ -18,31 +18,35 @@ use ratatui::{
 
 pub struct ListWorkspacesModel {
     workspaces: Vec<Workspace>,
-    status: Option<Status>,
     workspaces_state: ListState,
     menu: Menu,
     search: Input,
+    route: Router,
+    is_running: bool,
+    redirect: Option<Router>,
 }
 
 pub struct ListWorkspacesModelParameters {
     pub workspaces: Vec<Workspace>,
-}
-
-enum Status {
-    Exit,
-    CreateWorkspace,
+    pub route: Router,
 }
 
 impl ListWorkspacesModel {
+    pub fn is_running(&self) -> bool {
+        self.is_running
+    }
+
     pub fn new(parameters: ListWorkspacesModelParameters) -> Self {
-        let ListWorkspacesModelParameters { workspaces } = parameters;
+        let ListWorkspacesModelParameters { route, workspaces } = parameters;
 
         let mut model = Self {
             workspaces,
-            status: None,
+            redirect: None,
             workspaces_state: ListState::default(),
             menu: Menu::new(vec![MenuItem::CreateWorkspace, MenuItem::Exit]),
             search: Input::active(),
+            route,
+            is_running: true,
         };
 
         if !model.workspaces.is_empty() {
@@ -52,11 +56,12 @@ impl ListWorkspacesModel {
         model
     }
 
-    pub fn redirect(&self) -> Option<Redirect> {
-        self.status.as_ref().map(|status| match status {
-            Status::Exit => Redirect::Exit,
-            Status::CreateWorkspace => Redirect::Route(Router::NewWorkspace),
-        })
+    pub fn route(&self) -> &Router {
+        &self.route
+    }
+
+    pub fn redirect(&self) -> Option<&Router> {
+        self.redirect.as_ref()
     }
 
     pub fn view(&mut self, frame: &mut Frame) {
@@ -184,7 +189,7 @@ impl ListWorkspacesModel {
                     self.workspaces_state.select_previous()
                 }
             }
-            Message::Exit => self.status = Some(Status::Exit),
+            Message::Exit => self.is_running = false,
             Message::ToggleForcus => {
                 if self.search.is_active() {
                     self.search.deactivate();
@@ -229,8 +234,8 @@ impl ListWorkspacesModel {
                 if self.menu.is_active() {
                     if let Some(item) = self.menu.item() {
                         match item {
-                            MenuItem::Exit => self.status = Some(Status::Exit),
-                            MenuItem::CreateWorkspace => self.status = Some(Status::CreateWorkspace),
+                            MenuItem::Exit => self.is_running = false,
+                            MenuItem::CreateWorkspace => self.redirect = Some(Router::NewWorkspace),
                             _ => {}
                         }
                     }
