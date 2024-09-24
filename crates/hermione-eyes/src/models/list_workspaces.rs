@@ -4,7 +4,7 @@ use crate::{
         handle_event, highlight_style,
         shared::Input,
         shared::{Menu, MenuItem},
-        Message, Redirect,
+        Message,
     },
     router::Router,
     Result,

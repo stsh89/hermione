@@ -36,10 +36,6 @@ pub enum Message {
     ToggleForcus,
 }
 
-pub struct Redirect {
-    route: Router,
-}
-
 impl Model {
     pub fn handle_event(&self) -> Result<Option<Message>> {
         match self {
