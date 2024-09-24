@@ -1,15 +1,16 @@
 use crate::{
-    clients,
+    clients::{self, organizer::CommandParameters},
     entities::Workspace,
     models::{
         command_palette::{self, CommandPaletteModel, CommandPaletteModelParameters},
-        CreateWorkspaceModel, CreateWorkspaceModelParameters, GetWorkspaceModel,
-        GetWorkspaceModelParameters, ListWorkspacesModel, ListWorkspacesModelParameters, Model,
-        NewCommandModel, NewWorkspaceModel,
+        CreateCommandModel, CreateCommandModelParameters, CreateWorkspaceModel,
+        CreateWorkspaceModelParameters, GetWorkspaceModel, GetWorkspaceModelParameters,
+        ListWorkspacesModel, ListWorkspacesModelParameters, Model, NewCommandModel,
+        NewWorkspaceModel,
     },
     router::{
-        CommandPaletteParameters, CreateWorkspaceParameters, GetWorkspaceParameters,
-        ListWorkspacesParameters, Router,
+        CommandPaletteParameters, CreateCommandParameters, CreateWorkspaceParameters,
+        GetWorkspaceParameters, ListWorkspacesParameters, Router,
     },
     Result,
 };
@@ -53,6 +54,19 @@ impl App {
 
                 Model::CreateWorkspace(CreateWorkspaceModel::new(CreateWorkspaceModelParameters {
                     name: name.to_string(),
+                }))
+            }
+            Router::CreateCommand(parameters) => {
+                let CreateCommandParameters { name, program } = parameters;
+                self.organizer.add_command(CommandParameters {
+                    workspace_number: 0,
+                    name: name.clone(),
+                    program: program.clone(),
+                })?;
+
+                Model::CreateCommand(CreateCommandModel::new(CreateCommandModelParameters {
+                    name,
+                    program,
                 }))
             }
             Router::CommandPalette(paarameters) => {

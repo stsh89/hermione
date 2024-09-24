@@ -4,7 +4,7 @@ use crate::{
         shared::{Input, Menu, MenuItem},
         Message, Router,
     },
-    router::{CreateWorkspaceParameters, GetWorkspaceParameters, ListWorkspacesParameters},
+    router::{CreateCommandParameters, CreateWorkspaceParameters, GetWorkspaceParameters, ListWorkspacesParameters},
     Result,
 };
 use ratatui::{
@@ -149,7 +149,12 @@ impl NewCommandModel {
         }
     }
 
-    fn submit(&mut self) {}
+    fn submit(&mut self) {
+        self.redirect = Some(Router::CreateCommand(CreateCommandParameters {
+            name: self.name.value().to_string(),
+            program: self.program.value().to_string(),
+        }));
+    }
 
     pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {

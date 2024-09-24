@@ -15,6 +15,9 @@ pub enum Router {
     /// Create workspace
     CreateWorkspace(CreateWorkspaceParameters),
 
+    /// Create command
+    CreateCommand(CreateCommandParameters),
+
     /// Command palette
     CommandPalette(CommandPaletteParameters),
 }
@@ -22,6 +25,12 @@ pub enum Router {
 #[derive(Clone)]
 pub struct CreateWorkspaceParameters {
     pub name: String,
+}
+
+#[derive(Clone)]
+pub struct CreateCommandParameters {
+    pub name: String,
+    pub program: String,
 }
 
 #[derive(Clone, Default)]

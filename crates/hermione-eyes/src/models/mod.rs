@@ -1,5 +1,6 @@
 pub mod command_palette;
 
+mod create_command;
 mod create_workspace;
 mod get_workspace;
 mod list_workspaces;
@@ -15,6 +16,7 @@ use ratatui::{
     Frame,
 };
 
+pub use create_command::{CreateCommandModel, CreateCommandModelParameters};
 pub use create_workspace::{CreateWorkspaceModel, CreateWorkspaceModelParameters};
 pub use get_workspace::{GetWorkspaceModel, GetWorkspaceModelParameters};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
@@ -22,12 +24,13 @@ pub use new_command::NewCommandModel;
 pub use new_workspace::NewWorkspaceModel;
 
 pub enum Model {
-    NewCommand(NewCommandModel),
+    CommandPalette(CommandPaletteModel),
+    CreateCommand(CreateCommandModel),
+    CreateWorkspace(CreateWorkspaceModel),
     GetWorkspace(GetWorkspaceModel),
     ListWorkspaces(ListWorkspacesModel),
+    NewCommand(NewCommandModel),
     NewWorkspace(NewWorkspaceModel),
-    CreateWorkspace(CreateWorkspaceModel),
-    CommandPalette(CommandPaletteModel),
 }
 
 pub enum Message {
@@ -56,6 +59,7 @@ impl Model {
             Model::CommandPalette(model) => model.handle_event(),
             Model::GetWorkspace(model) => model.handle_event(),
             Model::NewCommand(model) => model.handle_event(),
+            Model::CreateCommand(model) => model.handle_event(),
         }
     }
 
@@ -67,6 +71,7 @@ impl Model {
             Model::CommandPalette(model) => model.is_running(),
             Model::GetWorkspace(model) => model.is_running(),
             Model::NewCommand(model) => model.is_running(),
+            Model::CreateCommand(model) => model.is_running(),
         }
     }
 
@@ -78,6 +83,7 @@ impl Model {
             Model::CommandPalette(model) => model.redirect(),
             Model::GetWorkspace(model) => model.redirect(),
             Model::NewCommand(model) => model.redirect(),
+            Model::CreateCommand(model) => model.redirect(),
         }
     }
 
@@ -89,6 +95,7 @@ impl Model {
             Model::CommandPalette(model) => model.update(message),
             Model::GetWorkspace(model) => model.update(message),
             Model::NewCommand(model) => model.update(message),
+            Model::CreateCommand(model) => model.update(message),
         }
     }
 
@@ -100,6 +107,7 @@ impl Model {
             Model::CommandPalette(model) => model.view(frame),
             Model::GetWorkspace(model) => model.view(frame),
             Model::NewCommand(model) => model.view(frame),
+            Model::CreateCommand(model) => model.view(frame),
         }
     }
 }
