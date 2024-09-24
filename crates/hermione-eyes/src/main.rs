@@ -17,7 +17,7 @@ fn main() -> Result<()> {
     let settings = Settings::setup()?;
     let organizer = clients::organizer::Client::new(settings.organizer_path()?)?;
 
-    let app = App::new(AppParameters { organizer });
+    let app = App::new(AppParameters { organizer })?;
 
     app.run(terminal)?;
     tui::restore_terminal()?;

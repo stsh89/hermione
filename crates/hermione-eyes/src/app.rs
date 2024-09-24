@@ -147,20 +147,37 @@ impl App {
         Ok(&mut self.model)
     }
 
-    pub fn new(parameters: AppParameters) -> Self {
+    pub fn new(parameters: AppParameters) -> Result<Self> {
         let AppParameters { organizer } = parameters;
         let workspaces = organizer.list_workspaces();
-        let route = Router::ListWorkspaces(ListWorkspacesParameters::default());
-        let model = ListWorkspacesModel::new(ListWorkspacesModelParameters {
-            workspaces,
-            search_query: String::new(),
-        });
 
-        Self {
-            model: Model::ListWorkspaces(model),
+        let (route, model) = if workspaces.is_empty() {
+            let route = Router::ListWorkspaces(ListWorkspacesParameters::default());
+            let model = ListWorkspacesModel::new(ListWorkspacesModelParameters {
+                workspaces,
+                search_query: String::new(),
+            });
+
+            (route, Model::ListWorkspaces(model))
+        } else {
+            let workspace = organizer.get_workspace(0)?;
+            let route = Router::GetWorkspace(GetWorkspaceParameters {
+                number: 0,
+                commands_search_query: String::new(),
+            });
+            let model = GetWorkspaceModel::new(GetWorkspaceModelParameters {
+                workspace,
+                commands_search_query: String::new(),
+            });
+
+            (route, Model::GetWorkspace(model))
+        };
+
+        Ok(Self {
+            model,
             route,
             organizer,
-        }
+        })
     }
 
     pub fn run(mut self, mut terminal: Terminal<impl Backend>) -> Result<()> {

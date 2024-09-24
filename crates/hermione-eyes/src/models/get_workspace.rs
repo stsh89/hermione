@@ -13,7 +13,10 @@ use crate::{
         shared::{Input, InputParameters},
         Message,
     },
-    router::{CommandPaletteParameters, GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router},
+    router::{
+        CommandPaletteParameters, GetCommandParameters, GetWorkspaceParameters,
+        ListWorkspacesParameters, Router,
+    },
     Result,
 };
 
