@@ -1,6 +1,6 @@
 use crate::{
-    models::{handle_event, Message},
-    router::{Command, Router},
+    models::{handle_event, highlight_style, shared::Input, Message},
+    router::Router,
     Result,
 };
 use ratatui::{
@@ -10,7 +10,7 @@ use ratatui::{
     Frame,
 };
 
-use super::{highlight_style, shared::Input};
+pub const NEW_WORKSPACE: &str = "New workspace";
 
 pub struct CommandPaletteModel {
     commands: Vec<Command>,
@@ -24,6 +24,19 @@ pub struct CommandPaletteModel {
 pub struct CommandPaletteModelParameters {
     pub commands: Vec<Command>,
     pub back: Router,
+}
+
+#[derive(Clone, Copy)]
+pub enum Command {
+    NewWorkspace,
+}
+
+impl Command {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Command::NewWorkspace => NEW_WORKSPACE,
+        }
+    }
 }
 
 impl CommandPaletteModel {
@@ -193,5 +206,16 @@ fn message(key_event: KeyEvent) -> Option<Message> {
 impl<'a> From<&Command> for ListItem<'a> {
     fn from(command: &Command) -> Self {
         ListItem::new(command.as_str().to_string())
+    }
+}
+
+impl TryFrom<String> for Command {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            NEW_WORKSPACE => Ok(Command::NewWorkspace),
+            _ => Err(anyhow::anyhow!("Unknown command: {}", value)),
+        }
     }
 }

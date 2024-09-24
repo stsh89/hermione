@@ -25,18 +25,5 @@ pub struct ListWorkspacesParameters {
 
 #[derive(Clone)]
 pub struct CommandPaletteParameters {
-    pub commands: Vec<Command>,
-}
-
-#[derive(Clone, Copy)]
-pub enum Command {
-    NewWorkspace,
-}
-
-impl Command {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Command::NewWorkspace => "New workspace",
-        }
-    }
+    pub commands: Vec<String>,
 }

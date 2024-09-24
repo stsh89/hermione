@@ -1,7 +1,8 @@
 use crate::{
     clients,
     models::{
-        CommandPaletteModel, CommandPaletteModelParameters, CreateWorkspaceModel,
+        command_palette, command_palette::CommandPaletteModel,
+        command_palette::CommandPaletteModelParameters, CreateWorkspaceModel,
         CreateWorkspaceModelParameters, ListWorkspacesModel, ListWorkspacesModelParameters, Model,
         NewWorkspaceModel,
     },
@@ -53,9 +54,13 @@ impl App {
             }
             Router::CommandPalette(paarameters) => {
                 let CommandPaletteParameters { commands } = paarameters;
+                let commands = commands
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .collect::<Result<Vec<command_palette::Command>>>()?;
 
                 Model::CommandPalette(CommandPaletteModel::new(CommandPaletteModelParameters {
-                    commands: commands.clone(),
+                    commands,
                     back: self.route.clone(),
                 }))
             }

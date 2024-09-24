@@ -1,11 +1,12 @@
 use crate::{
     entities::Workspace,
     models::{
+        command_palette::NEW_WORKSPACE,
         handle_event, highlight_style,
         shared::{Input, InputParameters},
         Message,
     },
-    router::{Command, CommandPaletteParameters, ListWorkspacesParameters, Router},
+    router::{CommandPaletteParameters, ListWorkspacesParameters, Router},
     Result,
 };
 use ratatui::{
@@ -163,7 +164,7 @@ impl ListWorkspacesModel {
 
     fn redirect_to_command_palette(&mut self) {
         self.redirect = Some(Router::CommandPalette(CommandPaletteParameters {
-            commands: vec![Command::NewWorkspace],
+            commands: vec![NEW_WORKSPACE.to_string()],
         }))
     }
 }

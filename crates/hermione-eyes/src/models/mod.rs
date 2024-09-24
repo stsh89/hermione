@@ -1,17 +1,18 @@
-mod command_palette;
+pub mod command_palette;
+
 mod create_workspace;
 mod list_workspaces;
 mod new_workspace;
 mod shared;
 
 use crate::{router::Router, Result};
+use command_palette::CommandPaletteModel;
 use ratatui::{
     crossterm::event,
     style::{Style, Stylize},
     Frame,
 };
 
-pub use command_palette::{CommandPaletteModel, CommandPaletteModelParameters};
 pub use create_workspace::{CreateWorkspaceModel, CreateWorkspaceModelParameters};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
 pub use new_workspace::NewWorkspaceModel;
