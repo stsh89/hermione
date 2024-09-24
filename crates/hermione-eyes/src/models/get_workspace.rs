@@ -41,7 +41,7 @@ impl GetWorkspaceModel {
             commands_search_query,
         } = parameters;
 
-        Self {
+        let mut model = Self {
             workspace,
             is_running: true,
             redirect: None,
@@ -50,7 +50,13 @@ impl GetWorkspaceModel {
                 is_active: true,
             }),
             commands_state: ListState::default(),
+        };
+
+        if !model.workspace.commands.is_empty() {
+            model.commands_state.select_first();
         }
+
+        model
     }
 
     pub fn handle_event(&self) -> Result<Option<Message>> {
@@ -136,7 +142,7 @@ impl GetWorkspaceModel {
 
     fn redirect_to_command_palette(&mut self) {
         self.redirect = Some(Router::CommandPalette(CommandPaletteParameters {
-            actions: vec![NEW_COMMAND.to_string()],
+            actions: vec![NEW_COMMAND.to_string(), DELETE_WORKSPACE.to_string()],
         }))
     }
 

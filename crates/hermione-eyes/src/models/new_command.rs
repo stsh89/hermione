@@ -4,7 +4,10 @@ use crate::{
         shared::{Input, Menu, MenuItem},
         Message, Router,
     },
-    router::{CreateCommandParameters, CreateWorkspaceParameters, GetWorkspaceParameters, ListWorkspacesParameters},
+    router::{
+        CreateCommandParameters, CreateWorkspaceParameters, GetWorkspaceParameters,
+        ListWorkspacesParameters,
+    },
     Result,
 };
 use ratatui::{

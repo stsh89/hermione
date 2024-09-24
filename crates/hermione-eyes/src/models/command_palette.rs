@@ -33,6 +33,7 @@ pub struct CommandPaletteModelParameters {
 pub enum Action {
     NewWorkspace,
     NewCommand,
+    DeleteWorkspace,
 }
 
 impl Action {
@@ -40,6 +41,7 @@ impl Action {
         match self {
             Action::NewWorkspace => NEW_WORKSPACE,
             Action::NewCommand => NEW_COMMAND,
+            Action::DeleteWorkspace => DELETE_WORKSPACE,
         }
     }
 }
@@ -122,6 +124,7 @@ impl CommandPaletteModel {
         match command {
             Action::NewWorkspace => self.redirect = Some(Router::NewWorkspace),
             Action::NewCommand => self.redirect = Some(Router::NewCommand),
+            Action::DeleteWorkspace => self.redirect = Some(Router::DeleteWorkspace),
         }
     }
 
@@ -222,6 +225,7 @@ impl TryFrom<String> for Action {
         match value.as_str() {
             NEW_WORKSPACE => Ok(Action::NewWorkspace),
             NEW_COMMAND => Ok(Action::NewCommand),
+            DELETE_WORKSPACE => Ok(Action::DeleteWorkspace),
             _ => Err(anyhow::anyhow!("Unknown command: {}", value)),
         }
     }

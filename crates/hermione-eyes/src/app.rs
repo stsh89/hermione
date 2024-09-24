@@ -81,6 +81,15 @@ impl App {
                     back: self.route.clone(),
                 }))
             }
+            Router::DeleteWorkspace => {
+                self.organizer.delete_workspace(0)?;
+                let workspaces = self.organizer.list_workspaces();
+
+                Model::ListWorkspaces(ListWorkspacesModel::new(ListWorkspacesModelParameters {
+                    workspaces,
+                    search_query: String::new(),
+                }))
+            }
             Router::GetWorkspace(parameters) => {
                 let GetWorkspaceParameters {
                     number,

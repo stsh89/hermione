@@ -9,6 +9,9 @@ pub enum Router {
     /// New workspace
     NewWorkspace,
 
+    /// Delete workspace
+    DeleteWorkspace,
+
     /// New command
     NewCommand,
 
