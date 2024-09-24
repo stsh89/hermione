@@ -1,7 +1,7 @@
 use ratatui::Frame;
 
 use crate::{
-    models::{Message, Redirect},
+    models::Message,
     router::{ListWorkspacesParameters, Router},
     Result,
 };

@@ -2,7 +2,7 @@ use crate::{
     models::{
         handle_event, highlight_style,
         shared::{Input, Menu, MenuItem},
-        Message, Redirect, Router,
+        Message, Router,
     },
     router::{CreateWorkspaceParameters, ListWorkspacesParameters},
     Result,
