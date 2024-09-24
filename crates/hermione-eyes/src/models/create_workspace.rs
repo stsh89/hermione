@@ -18,7 +18,7 @@ pub struct CreateWorkspaceModelParameters {
 
 impl CreateWorkspaceModel {
     pub fn is_running(&self) -> bool {
-        true
+        self.is_running
     }
 
     pub fn new(parameters: CreateWorkspaceModelParameters) -> Self {

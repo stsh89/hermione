@@ -90,12 +90,12 @@ impl NewWorkspaceModel {
 
     pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::HighlightNext => {
+            Message::SelectNext => {
                 if self.menu.is_active() {
                     self.menu.select_next();
                 }
             }
-            Message::HighlightPrevious => {
+            Message::SelectPrevious => {
                 if self.menu.is_active() {
                     self.menu.select_previous();
                 }
@@ -182,8 +182,8 @@ fn message(key_event: KeyEvent) -> Option<Message> {
             KeyModifiers::ALT => Message::HighlightContent,
             _ => Message::MoveCusorRight,
         },
-        KeyCode::Up => Message::HighlightPrevious,
-        KeyCode::Down => Message::HighlightNext,
+        KeyCode::Up => Message::SelectPrevious,
+        KeyCode::Down => Message::SelectNext,
         _ => return None,
     };
 

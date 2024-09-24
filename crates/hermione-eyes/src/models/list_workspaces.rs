@@ -2,11 +2,10 @@ use crate::{
     entities::Workspace,
     models::{
         handle_event, highlight_style,
-        shared::Input,
-        shared::{Menu, MenuItem},
+        shared::{Input, Menu, MenuItem},
         Message,
     },
-    router::Router,
+    router::{Command, CommandPaletteParameters, Router},
     Result,
 };
 use ratatui::{
@@ -126,15 +125,7 @@ impl ListWorkspacesModel {
         };
 
         let search_query = self.search.value().to_lowercase();
-        let items: Vec<ListItem> = if self.workspaces.is_empty() {
-            self.workspaces.iter().map(ListItem::from).collect()
-        } else {
-            self.workspaces
-                .iter()
-                .filter(|workspace| workspace.name.to_lowercase().contains(&search_query))
-                .map(ListItem::from)
-                .collect()
-        };
+        let items: Vec<ListItem> = self.workspaces.iter().map(ListItem::from).collect();
 
         let mut list = List::new(items).block(block);
 
@@ -160,7 +151,7 @@ impl ListWorkspacesModel {
             Message::HighlightContent => {
                 self.menu.deactivate();
             }
-            Message::HighlightNext => {
+            Message::SelectNext => {
                 if self.menu.is_active() {
                     self.menu.select_next();
                 }
@@ -171,7 +162,7 @@ impl ListWorkspacesModel {
                     self.workspaces_state.select_next()
                 }
             }
-            Message::HighlightPrevious => {
+            Message::SelectPrevious => {
                 if self.menu.is_active() {
                     self.menu.select_previous();
                 }
@@ -234,6 +225,11 @@ impl ListWorkspacesModel {
                     }
                 }
             }
+            Message::ActivateCommandPalette => {
+                self.redirect = Some(Router::CommandPalette(CommandPaletteParameters {
+                    commands: vec![Command::NewWorkspace],
+                }))
+            }
             _ => {}
         }
 
@@ -243,8 +239,8 @@ impl ListWorkspacesModel {
 
 fn message(key_event: KeyEvent) -> Option<Message> {
     let message = match key_event.code {
-        KeyCode::Up => Message::HighlightPrevious,
-        KeyCode::Down => Message::HighlightNext,
+        KeyCode::Up => Message::SelectPrevious,
+        KeyCode::Down => Message::SelectNext,
         KeyCode::Esc => Message::Exit,
         KeyCode::Enter => Message::Sumbit,
         KeyCode::Left => match key_event.modifiers {
@@ -259,7 +255,13 @@ fn message(key_event: KeyEvent) -> Option<Message> {
             KeyModifiers::CONTROL => Message::DeleteAllChars,
             _ => Message::DeleteChar,
         },
-        KeyCode::Char(c) => Message::EnterChar(c),
+        KeyCode::Char(c) => match key_event.modifiers {
+            KeyModifiers::CONTROL => match c {
+                'k' => Message::ActivateCommandPalette,
+                _ => return None,
+            },
+            _ => Message::EnterChar(c),
+        },
         KeyCode::Tab => Message::ToggleForcus,
         _ => return None,
     };

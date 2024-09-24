@@ -1,10 +1,13 @@
 use crate::{
     clients,
     models::{
-        CreateWorkspaceModel, CreateWorkspaceModelParameters, ListWorkspacesModel,
-        ListWorkspacesModelParameters, Model, NewWorkspaceModel,
+        CommandPaletteModel, CommandPaletteModelParameters, CreateWorkspaceModel,
+        CreateWorkspaceModelParameters, ListWorkspacesModel, ListWorkspacesModelParameters, Model,
+        NewWorkspaceModel,
     },
-    router::{CreateWorkspaceParameters, ListWorkspacesParameters, Router},
+    router::{
+        CommandPaletteParameters, CreateWorkspaceParameters, ListWorkspacesParameters, Router,
+    },
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
@@ -20,8 +23,8 @@ pub struct AppParameters {
 }
 
 impl App {
-    fn update_model(&mut self) -> Result<&mut Model> {
-        let model = match &self.route {
+    fn update_model_and_route(&mut self, route: Router) -> Result<&mut Model> {
+        let model = match route.clone() {
             Router::ListWorkspaces(parameters) => {
                 let ListWorkspacesParameters { search_query } = parameters;
                 let mut workspaces = self.organizer.list_workspaces();
@@ -29,7 +32,7 @@ impl App {
                 if !search_query.is_empty() {
                     workspaces = workspaces
                         .into_iter()
-                        .filter(|w| w.name.to_lowercase().contains(search_query))
+                        .filter(|w| w.name.to_lowercase().contains(&search_query))
                         .collect();
                 }
 
@@ -46,9 +49,18 @@ impl App {
                     name: name.to_string(),
                 }))
             }
+            Router::CommandPalette(paarameters) => {
+                let CommandPaletteParameters { commands } = paarameters;
+
+                Model::CommandPalette(CommandPaletteModel::new(CommandPaletteModelParameters {
+                    commands: commands.clone(),
+                    back: self.route.clone(),
+                }))
+            }
         };
 
         self.model = model;
+        self.route = route;
 
         Ok(&mut self.model)
     }
@@ -77,8 +89,7 @@ impl App {
             }
 
             if let Some(route) = self.model.redirect() {
-                self.route = route.clone();
-                self.update_model()?;
+                self.update_model_and_route(route.clone())?;
             }
         }
 
