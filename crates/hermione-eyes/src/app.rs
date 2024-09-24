@@ -112,7 +112,7 @@ impl App {
                     workspace
                         .commands
                         .into_iter()
-                        .filter(|c| c.name.to_lowercase().contains(&filter))
+                        .filter(|c| c.program.to_lowercase().contains(&filter))
                         .collect()
                 } else {
                     workspace.commands
