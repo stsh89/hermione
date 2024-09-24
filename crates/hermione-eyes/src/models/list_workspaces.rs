@@ -177,7 +177,7 @@ impl ListWorkspacesModel {
 
     fn redirect_to_command_palette(&mut self) {
         self.redirect = Some(Router::CommandPalette(CommandPaletteParameters {
-            commands: vec![NEW_WORKSPACE.to_string()],
+            actions: vec![NEW_WORKSPACE.to_string()],
         }))
     }
 }

@@ -56,11 +56,11 @@ impl App {
                 }))
             }
             Router::CommandPalette(paarameters) => {
-                let CommandPaletteParameters { commands } = paarameters;
+                let CommandPaletteParameters { actions: commands } = paarameters;
                 let commands = commands
                     .into_iter()
                     .map(TryInto::try_into)
-                    .collect::<Result<Vec<command_palette::Command>>>()?;
+                    .collect::<Result<Vec<command_palette::Action>>>()?;
 
                 Model::CommandPalette(CommandPaletteModel::new(CommandPaletteModelParameters {
                     commands,

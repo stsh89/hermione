@@ -31,7 +31,7 @@ pub struct ListWorkspacesParameters {
 
 #[derive(Clone)]
 pub struct CommandPaletteParameters {
-    pub commands: Vec<String>,
+    pub actions: Vec<String>,
 }
 
 #[derive(Clone)]

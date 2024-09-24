@@ -16,7 +16,7 @@ pub const DELETE_WORKSPACE: &str = "Delete workspace";
 pub const RENAME_WORKSPACE: &str = "Rename workspace";
 
 pub struct CommandPaletteModel {
-    commands: Vec<Command>,
+    actions: Vec<Action>,
     is_running: bool,
     redirect: Option<Router>,
     back: Router,
@@ -25,21 +25,21 @@ pub struct CommandPaletteModel {
 }
 
 pub struct CommandPaletteModelParameters {
-    pub commands: Vec<Command>,
+    pub commands: Vec<Action>,
     pub back: Router,
 }
 
 #[derive(Clone, Copy)]
-pub enum Command {
+pub enum Action {
     NewWorkspace,
     NewCommand,
 }
 
-impl Command {
+impl Action {
     pub fn as_str(&self) -> &'static str {
         match self {
-            Command::NewWorkspace => NEW_WORKSPACE,
-            Command::NewCommand => NEW_COMMAND,
+            Action::NewWorkspace => NEW_WORKSPACE,
+            Action::NewCommand => NEW_COMMAND,
         }
     }
 }
@@ -53,7 +53,7 @@ impl CommandPaletteModel {
         let CommandPaletteModelParameters { commands, back } = parameters;
 
         Self {
-            commands,
+            actions: commands,
             is_running: true,
             redirect: None,
             back,
@@ -100,7 +100,7 @@ impl CommandPaletteModel {
 
     fn sumbit(&mut self) {
         let search_query = self.input.value().to_lowercase();
-        let mut commands = self.commands.clone();
+        let mut commands = self.actions.clone();
 
         commands = if search_query.is_empty() {
             commands
@@ -120,8 +120,8 @@ impl CommandPaletteModel {
         };
 
         match command {
-            Command::NewWorkspace => self.redirect = Some(Router::NewWorkspace),
-            Command::NewCommand => self.redirect = Some(Router::NewCommand),
+            Action::NewWorkspace => self.redirect = Some(Router::NewWorkspace),
+            Action::NewCommand => self.redirect = Some(Router::NewCommand),
         }
     }
 
@@ -157,7 +157,7 @@ impl CommandPaletteModel {
             ])
             .areas(frame.area());
 
-        let paragraph = Paragraph::new("Welcome to hermione").alignment(Alignment::Center);
+        let paragraph = Paragraph::new("Welcome to command palette").alignment(Alignment::Center);
         frame.render_widget(paragraph, header);
 
         let block = Block::default().borders(Borders::all()).title("Search");
@@ -169,13 +169,13 @@ impl CommandPaletteModel {
             search.y + 1,
         ));
 
-        let block = Block::default().borders(Borders::all()).title("Commands");
+        let block = Block::default().borders(Borders::all()).title("Actions");
         let search_query = self.input.value().to_lowercase();
 
         let items: Vec<ListItem> = if search_query.is_empty() {
-            self.commands.iter().map(ListItem::from).collect()
+            self.actions.iter().map(ListItem::from).collect()
         } else {
-            self.commands
+            self.actions
                 .iter()
                 .filter(|command| command.as_str().to_lowercase().contains(&search_query))
                 .map(ListItem::from)
@@ -209,19 +209,19 @@ fn message(key_event: KeyEvent) -> Option<Message> {
     Some(message)
 }
 
-impl<'a> From<&Command> for ListItem<'a> {
-    fn from(command: &Command) -> Self {
+impl<'a> From<&Action> for ListItem<'a> {
+    fn from(command: &Action) -> Self {
         ListItem::new(command.as_str().to_string())
     }
 }
 
-impl TryFrom<String> for Command {
+impl TryFrom<String> for Action {
     type Error = anyhow::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match value.as_str() {
-            NEW_WORKSPACE => Ok(Command::NewWorkspace),
-            NEW_COMMAND => Ok(Command::NewCommand),
+            NEW_WORKSPACE => Ok(Action::NewWorkspace),
+            NEW_COMMAND => Ok(Action::NewCommand),
             _ => Err(anyhow::anyhow!("Unknown command: {}", value)),
         }
     }
