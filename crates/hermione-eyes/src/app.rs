@@ -28,16 +28,18 @@ impl App {
             Router::ListWorkspaces(parameters) => {
                 let ListWorkspacesParameters { search_query } = parameters;
                 let mut workspaces = self.organizer.list_workspaces();
+                let filter = search_query.to_lowercase();
 
                 if !search_query.is_empty() {
                     workspaces = workspaces
                         .into_iter()
-                        .filter(|w| w.name.to_lowercase().contains(&search_query))
+                        .filter(|w| w.name.to_lowercase().contains(&filter))
                         .collect();
                 }
 
                 Model::ListWorkspaces(ListWorkspacesModel::new(ListWorkspacesModelParameters {
                     workspaces,
+                    search_query,
                 }))
             }
             Router::NewWorkspace => Model::NewWorkspace(NewWorkspaceModel::new()),
@@ -69,7 +71,10 @@ impl App {
         let AppParameters { organizer } = parameters;
         let workspaces = organizer.list_workspaces();
         let route = Router::ListWorkspaces(ListWorkspacesParameters::default());
-        let model = ListWorkspacesModel::new(ListWorkspacesModelParameters { workspaces });
+        let model = ListWorkspacesModel::new(ListWorkspacesModelParameters {
+            workspaces,
+            search_query: String::new(),
+        });
 
         Self {
             model: Model::ListWorkspaces(model),

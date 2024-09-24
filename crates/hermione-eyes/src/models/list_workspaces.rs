@@ -2,30 +2,30 @@ use crate::{
     entities::Workspace,
     models::{
         handle_event, highlight_style,
-        shared::{Input, Menu, MenuItem},
+        shared::{Input, InputParameters},
         Message,
     },
-    router::{Command, CommandPaletteParameters, Router},
+    router::{Command, CommandPaletteParameters, ListWorkspacesParameters, Router},
     Result,
 };
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
-    layout::{Constraint, Direction, Layout, Position},
+    layout::{Alignment, Constraint, Direction, Layout, Position},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame,
 };
 
 pub struct ListWorkspacesModel {
-    workspaces: Vec<Workspace>,
-    workspaces_state: ListState,
-    menu: Menu,
-    search: Input,
     is_running: bool,
     redirect: Option<Router>,
+    search: Input,
+    workspaces_state: ListState,
+    workspaces: Vec<Workspace>,
 }
 
 pub struct ListWorkspacesModelParameters {
     pub workspaces: Vec<Workspace>,
+    pub search_query: String,
 }
 
 impl ListWorkspacesModel {
@@ -34,14 +34,19 @@ impl ListWorkspacesModel {
     }
 
     pub fn new(parameters: ListWorkspacesModelParameters) -> Self {
-        let ListWorkspacesModelParameters { workspaces } = parameters;
+        let ListWorkspacesModelParameters {
+            workspaces,
+            search_query,
+        } = parameters;
 
         let mut model = Self {
             workspaces,
             redirect: None,
             workspaces_state: ListState::default(),
-            menu: Menu::new(vec![MenuItem::CreateWorkspace, MenuItem::Exit]),
-            search: Input::active(),
+            search: Input::new(InputParameters {
+                value: search_query,
+                is_active: true,
+            }),
             is_running: true,
         };
 
@@ -57,85 +62,35 @@ impl ListWorkspacesModel {
     }
 
     pub fn view(&mut self, frame: &mut Frame) {
-        let [menu, content] = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Percentage(20), Constraint::Percentage(80)])
+        let [header, search, commands] = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![
+                Constraint::Max(1),
+                Constraint::Max(3),
+                Constraint::Min(3),
+            ])
             .areas(frame.area());
 
-        let mut block = Block::default().borders(Borders::all());
-        block = if self.menu.is_active() {
-            block.border_style(highlight_style())
-        } else {
-            block
-        };
-        let items: Vec<ListItem> = self.menu.items().iter().map(ListItem::from).collect();
-        let mut list = List::new(items).block(block);
+        let paragraph = Paragraph::new("List workspaces").alignment(Alignment::Center);
+        frame.render_widget(paragraph, header);
 
-        list = if self.menu.is_active() {
-            list.highlight_style(highlight_style())
-        } else {
-            list
-        };
-
-        frame.render_stateful_widget(list, menu, self.menu.state());
-
-        let mut block = Block::default().borders(Borders::all());
-        block = if !self.menu.is_active() {
-            block.border_style(highlight_style())
-        } else {
-            block
-        };
-
-        if self.workspaces.is_empty() {
-            let paragraph = Paragraph::new("Start by creating a workspace").block(block);
-            frame.render_widget(paragraph, content);
-            return;
-        }
-
-        let [search, search_items] = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Max(3), Constraint::Min(3)])
-            .areas(content);
-
-        let mut block = Block::default().borders(Borders::all());
-        block = if self.search.is_active() {
-            block.border_style(highlight_style())
-        } else {
-            block
-        };
-
+        let block = Block::default().borders(Borders::all()).title("Search");
         let paragraph = Paragraph::new(self.search.value()).block(block);
+
         frame.render_widget(paragraph, search);
+        frame.set_cursor_position(Position::new(
+            search.x + self.search.character_index() as u16 + 1,
+            search.y + 1,
+        ));
 
-        if self.search.is_active() {
-            frame.set_cursor_position(Position::new(
-                // Draw the cursor at the current position in the input field.
-                // This position is can be controlled via the left and right arrow key
-                search.x + self.search.character_index() as u16 + 1,
-                // Move one line down, from the border to the input line
-                search.y + 1,
-            ));
-        }
-
-        let mut block = Block::default().borders(Borders::all());
-        block = if self.search.is_active() {
-            block
-        } else {
-            block.border_style(highlight_style())
-        };
-
-        let search_query = self.search.value().to_lowercase();
+        let block = Block::default().borders(Borders::all()).title("Workspaces");
         let items: Vec<ListItem> = self.workspaces.iter().map(ListItem::from).collect();
 
-        let mut list = List::new(items).block(block);
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(highlight_style());
 
-        list = if self.search.is_active() {
-            list
-        } else {
-            list.highlight_style(highlight_style())
-        };
-
-        frame.render_stateful_widget(list, search_items, &mut self.workspaces_state);
+        frame.render_stateful_widget(list, commands, &mut self.workspaces_state);
     }
 
     pub fn handle_event(&self) -> Result<Option<Message>> {
@@ -144,96 +99,72 @@ impl ListWorkspacesModel {
 
     pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::HighlightMenu => {
-                self.menu.activate();
-                self.search.deactivate();
-            }
-            Message::HighlightContent => {
-                self.menu.deactivate();
-            }
-            Message::SelectNext => {
-                if self.menu.is_active() {
-                    self.menu.select_next();
-                }
-
-                if self.search.is_active() {
-                    self.search.deactivate();
-                } else {
-                    self.workspaces_state.select_next()
-                }
-            }
-            Message::SelectPrevious => {
-                if self.menu.is_active() {
-                    self.menu.select_previous();
-                }
-
-                if self.search.is_active() {
-                    self.search.deactivate();
-                } else {
-                    self.workspaces_state.select_previous()
-                }
-            }
+            Message::SelectNext => self.select_next(),
+            Message::SelectPrevious => self.select_previous(),
             Message::Exit => self.is_running = false,
-            Message::ToggleForcus => {
-                if self.search.is_active() {
-                    self.search.deactivate();
-                } else {
-                    self.search.activate();
-                }
-            }
-            Message::EnterChar(c) => {
-                if !self.menu.is_active() {
-                    self.workspaces_state.select_first();
-                    self.search.activate();
-                    self.search.enter_char(c);
-                }
-            }
-            Message::DeleteChar => {
-                if !self.menu.is_active() {
-                    self.workspaces_state.select_first();
-                    self.search.activate();
-                    self.search.delete_char();
-                }
-            }
-            Message::DeleteAllChars => {
-                if !self.menu.is_active() {
-                    self.workspaces_state.select_first();
-                    self.search.activate();
-                    self.search.delete_all_chars();
-                }
-            }
-            Message::MoveCusorLeft => {
-                if !self.menu.is_active() {
-                    self.search.activate();
-                    self.search.move_cursor_left();
-                }
-            }
-            Message::MoveCusorRight => {
-                if !self.menu.is_active() {
-                    self.search.activate();
-                    self.search.move_cursor_right();
-                }
-            }
-            Message::Sumbit => {
-                if self.menu.is_active() {
-                    if let Some(item) = self.menu.item() {
-                        match item {
-                            MenuItem::Exit => self.is_running = false,
-                            MenuItem::CreateWorkspace => self.redirect = Some(Router::NewWorkspace),
-                            _ => {}
-                        }
-                    }
-                }
-            }
-            Message::ActivateCommandPalette => {
-                self.redirect = Some(Router::CommandPalette(CommandPaletteParameters {
-                    commands: vec![Command::NewWorkspace],
-                }))
-            }
+            Message::EnterChar(c) => self.enter_char(c),
+            Message::DeleteChar => self.delete_char(),
+            Message::DeleteAllChars => self.delete_all_chars(),
+            Message::MoveCusorLeft => self.move_cursor_left(),
+            Message::MoveCusorRight => self.move_cursor_right(),
+            Message::Sumbit => self.submit(),
+            Message::ActivateCommandPalette => self.redirect_to_command_palette(),
             _ => {}
         }
 
         Ok(None)
+    }
+
+    fn submit(&mut self) {}
+
+    fn select_next(&mut self) {
+        self.workspaces_state.select_next();
+    }
+
+    fn select_previous(&mut self) {
+        self.workspaces_state.select_previous();
+    }
+
+    fn enter_char(&mut self, c: char) {
+        self.search.enter_char(c);
+
+        self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters {
+            search_query: self.search_query(),
+        }));
+    }
+
+    fn search_query(&self) -> String {
+        self.search.value().to_string()
+    }
+
+    fn delete_char(&mut self) {
+        self.search.delete_char();
+
+        self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters {
+            search_query: self.search_query(),
+        }));
+    }
+
+    fn delete_all_chars(&mut self) {
+        self.search.delete_all_chars();
+
+        self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters {
+            search_query: self.search_query(),
+        }));
+    }
+
+    fn move_cursor_left(&mut self) {
+        self.search.move_cursor_left();
+    }
+
+    fn move_cursor_right(&mut self) {
+        self.search.move_cursor_right();
+    }
+
+    fn redirect_to_command_palette(&mut self) {
+        self.redirect = Some(Router::CommandPalette(CommandPaletteParameters {
+            commands: vec![Command::NewWorkspace],
+        }))
     }
 }
 
@@ -243,14 +174,8 @@ fn message(key_event: KeyEvent) -> Option<Message> {
         KeyCode::Down => Message::SelectNext,
         KeyCode::Esc => Message::Exit,
         KeyCode::Enter => Message::Sumbit,
-        KeyCode::Left => match key_event.modifiers {
-            KeyModifiers::ALT => Message::HighlightMenu,
-            _ => Message::MoveCusorLeft,
-        },
-        KeyCode::Right => match key_event.modifiers {
-            KeyModifiers::ALT => Message::HighlightContent,
-            _ => Message::MoveCusorRight,
-        },
+        KeyCode::Left => Message::MoveCusorLeft,
+        KeyCode::Right => Message::MoveCusorRight,
         KeyCode::Backspace => match key_event.modifiers {
             KeyModifiers::CONTROL => Message::DeleteAllChars,
             _ => Message::DeleteChar,
@@ -262,7 +187,6 @@ fn message(key_event: KeyEvent) -> Option<Message> {
             },
             _ => Message::EnterChar(c),
         },
-        KeyCode::Tab => Message::ToggleForcus,
         _ => return None,
     };
 

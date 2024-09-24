@@ -1,6 +1,6 @@
 use crate::{
     models::{handle_event, Message},
-    router::{Command, CommandPaletteParameters, Router},
+    router::{Command, Router},
     Result,
 };
 use ratatui::{

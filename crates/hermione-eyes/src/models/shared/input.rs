@@ -7,7 +7,28 @@ pub struct Input {
     is_active: bool,
 }
 
+pub struct InputParameters {
+    pub value: String,
+    pub is_active: bool,
+}
+
 impl Input {
+    pub fn new(parameters: InputParameters) -> Self {
+        let InputParameters { value, is_active } = parameters;
+
+        let mut input = Self {
+            value: String::new(),
+            character_index: 0,
+            is_active,
+        };
+
+        for c in value.chars() {
+            input.enter_char(c);
+        }
+
+        input
+    }
+
     pub fn activate(&mut self) {
         self.is_active = true;
     }

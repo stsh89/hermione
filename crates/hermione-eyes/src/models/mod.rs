@@ -103,5 +103,5 @@ where
 }
 
 fn highlight_style() -> Style {
-    Style::default().green()
+    Style::default().on_light_blue()
 }
