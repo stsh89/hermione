@@ -1,5 +1,8 @@
 #[derive(Clone)]
 pub enum Router {
+    /// Get workspace
+    GetWorkspace(GetWorkspaceParameters),
+
     /// List workspaces filtered by search query
     ListWorkspaces(ListWorkspacesParameters),
 
@@ -26,4 +29,10 @@ pub struct ListWorkspacesParameters {
 #[derive(Clone)]
 pub struct CommandPaletteParameters {
     pub commands: Vec<String>,
+}
+
+#[derive(Clone)]
+pub struct GetWorkspaceParameters {
+    pub number: usize,
+    pub commands_search_query: String,
 }

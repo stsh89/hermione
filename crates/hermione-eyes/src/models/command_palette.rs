@@ -11,6 +11,9 @@ use ratatui::{
 };
 
 pub const NEW_WORKSPACE: &str = "New workspace";
+pub const NEW_COMMAND: &str = "New command";
+pub const DELETE_WORKSPACE: &str = "Delete workspace";
+pub const RENAME_WORKSPACE: &str = "Rename workspace";
 
 pub struct CommandPaletteModel {
     commands: Vec<Command>,

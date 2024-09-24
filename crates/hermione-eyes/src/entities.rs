@@ -17,3 +17,9 @@ impl<'a> From<&Workspace> for ListItem<'a> {
         ListItem::new(workspace.name.clone())
     }
 }
+
+impl<'a> From<&Command> for ListItem<'a> {
+    fn from(command: &Command) -> Self {
+        ListItem::new(command.program.clone())
+    }
+}

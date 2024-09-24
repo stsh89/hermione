@@ -6,7 +6,7 @@ use crate::{
         shared::{Input, InputParameters},
         Message,
     },
-    router::{CommandPaletteParameters, ListWorkspacesParameters, Router},
+    router::{CommandPaletteParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router},
     Result,
 };
 use ratatui::{
@@ -116,7 +116,20 @@ impl ListWorkspacesModel {
         Ok(None)
     }
 
-    fn submit(&mut self) {}
+    fn submit(&mut self) {
+        let Some(workspace) = self
+            .workspaces_state
+            .selected()
+            .and_then(|i| self.workspaces.get(i))
+        else {
+            return;
+        };
+
+        self.redirect = Some(Router::GetWorkspace(GetWorkspaceParameters {
+            number: workspace.number,
+            commands_search_query: String::new(),
+        }));
+    }
 
     fn select_next(&mut self) {
         self.workspaces_state.select_next();

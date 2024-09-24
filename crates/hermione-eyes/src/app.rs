@@ -1,13 +1,15 @@
 use crate::{
     clients,
+    entities::Workspace,
     models::{
-        command_palette, command_palette::CommandPaletteModel,
-        command_palette::CommandPaletteModelParameters, CreateWorkspaceModel,
-        CreateWorkspaceModelParameters, ListWorkspacesModel, ListWorkspacesModelParameters, Model,
+        command_palette::{self, CommandPaletteModel, CommandPaletteModelParameters},
+        CreateWorkspaceModel, CreateWorkspaceModelParameters, GetWorkspaceModel,
+        GetWorkspaceModelParameters, ListWorkspacesModel, ListWorkspacesModelParameters, Model,
         NewWorkspaceModel,
     },
     router::{
-        CommandPaletteParameters, CreateWorkspaceParameters, ListWorkspacesParameters, Router,
+        CommandPaletteParameters, CreateWorkspaceParameters, GetWorkspaceParameters,
+        ListWorkspacesParameters, Router,
     },
     Result,
 };
@@ -31,7 +33,7 @@ impl App {
                 let mut workspaces = self.organizer.list_workspaces();
                 let filter = search_query.to_lowercase();
 
-                if !search_query.is_empty() {
+                if !filter.is_empty() {
                     workspaces = workspaces
                         .into_iter()
                         .filter(|w| w.name.to_lowercase().contains(&filter))
@@ -62,6 +64,37 @@ impl App {
                 Model::CommandPalette(CommandPaletteModel::new(CommandPaletteModelParameters {
                     commands,
                     back: self.route.clone(),
+                }))
+            }
+            Router::GetWorkspace(parameters) => {
+                let GetWorkspaceParameters {
+                    number,
+                    commands_search_query,
+                } = parameters;
+
+                let workspace = self.organizer.get_workspace(number)?;
+                let filter = commands_search_query.to_lowercase();
+
+                let commands = if !filter.is_empty() {
+                    workspace
+                        .commands
+                        .into_iter()
+                        .filter(|c| c.name.to_lowercase().contains(&filter))
+                        .collect()
+                } else {
+                    workspace.commands
+                };
+
+                let workspace = Workspace {
+                    commands,
+                    ..workspace
+                };
+
+                self.organizer.promote_workspace(workspace.number)?;
+
+                Model::GetWorkspace(GetWorkspaceModel::new(GetWorkspaceModelParameters {
+                    workspace,
+                    commands_search_query,
                 }))
             }
         };
