@@ -32,12 +32,14 @@ pub struct CommandPaletteModelParameters {
 #[derive(Clone, Copy)]
 pub enum Command {
     NewWorkspace,
+    NewCommand,
 }
 
 impl Command {
     pub fn as_str(&self) -> &'static str {
         match self {
             Command::NewWorkspace => NEW_WORKSPACE,
+            Command::NewCommand => NEW_COMMAND,
         }
     }
 }
@@ -119,6 +121,7 @@ impl CommandPaletteModel {
 
         match command {
             Command::NewWorkspace => self.redirect = Some(Router::NewWorkspace),
+            Command::NewCommand => self.redirect = Some(Router::NewCommand),
         }
     }
 
@@ -218,6 +221,7 @@ impl TryFrom<String> for Command {
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match value.as_str() {
             NEW_WORKSPACE => Ok(Command::NewWorkspace),
+            NEW_COMMAND => Ok(Command::NewCommand),
             _ => Err(anyhow::anyhow!("Unknown command: {}", value)),
         }
     }

@@ -136,11 +136,7 @@ impl GetWorkspaceModel {
 
     fn redirect_to_command_palette(&mut self) {
         self.redirect = Some(Router::CommandPalette(CommandPaletteParameters {
-            commands: vec![
-                NEW_COMMAND.to_string(),
-                DELETE_WORKSPACE.to_string(),
-                RENAME_WORKSPACE.to_string(),
-            ],
+            commands: vec![NEW_COMMAND.to_string()],
         }))
     }
 

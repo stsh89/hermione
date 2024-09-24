@@ -5,7 +5,7 @@ use crate::{
         command_palette::{self, CommandPaletteModel, CommandPaletteModelParameters},
         CreateWorkspaceModel, CreateWorkspaceModelParameters, GetWorkspaceModel,
         GetWorkspaceModelParameters, ListWorkspacesModel, ListWorkspacesModelParameters, Model,
-        NewWorkspaceModel,
+        NewCommandModel, NewWorkspaceModel,
     },
     router::{
         CommandPaletteParameters, CreateWorkspaceParameters, GetWorkspaceParameters,
@@ -46,6 +46,7 @@ impl App {
                 }))
             }
             Router::NewWorkspace => Model::NewWorkspace(NewWorkspaceModel::new()),
+            Router::NewCommand => Model::NewCommand(NewCommandModel::new()),
             Router::CreateWorkspace(parameters) => {
                 let CreateWorkspaceParameters { name } = parameters;
                 self.organizer.add_workspace(name.to_string())?;
