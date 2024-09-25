@@ -6,7 +6,7 @@ use crate::{
     router::{
         CreateCommandParameters, CreateWorkspaceParameters, ExecuteCommandParameters,
         GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router,
-        UpdateWorkspaceParameters,
+        UpdateCommandParameters, UpdateWorkspaceParameters,
     },
     Result,
 };
@@ -64,6 +64,14 @@ impl App {
         Ok(Box::new(model))
     }
 
+    fn edit_command(&mut self) -> Result<Box<dyn Model>> {
+        let command = self.organizer.get_command(0, 0)?;
+
+        let model = handlers::edit_command::Handler { command }.handle();
+
+        Ok(Box::new(model))
+    }
+
     fn edit_workspace(&mut self) -> Result<Box<dyn Model>> {
         let workspace = self.organizer.get_workspace(0)?;
 
@@ -76,6 +84,16 @@ impl App {
         let model = handlers::execute_command::Handler {
             parameters,
             organizer: &mut self.organizer,
+        }
+        .handle()?;
+
+        Ok(Box::new(model))
+    }
+
+    fn update_command(&mut self, parameters: UpdateCommandParameters) -> Result<Box<dyn Model>> {
+        let model = handlers::update_command::Handler {
+            organizer: &mut self.organizer,
+            parameters,
         }
         .handle()?;
 
@@ -143,6 +161,7 @@ impl App {
             Router::CreateWorkspace(parameters) => self.create_workspace(parameters)?,
             Router::DeleteCommand => self.delete_command()?,
             Router::DeleteWorkspace => self.delete_workspace()?,
+            Router::EditCommand => self.edit_command()?,
             Router::EditWorkspace => self.edit_workspace()?,
             Router::ExecuteCommand(parameters) => self.execute_command(parameters)?,
             Router::GetCommand(parameters) => self.get_command(parameters)?,
@@ -150,6 +169,7 @@ impl App {
             Router::ListWorkspaces(parameters) => self.list_workspaces(parameters)?,
             Router::NewCommand => self.new_command(),
             Router::NewWorkspace => self.new_workspace(),
+            Router::UpdateCommand(parameters) => self.update_command(parameters)?,
             Router::UpdateWorkspace(parameters) => self.update_workspace(parameters)?,
         };
 

@@ -5,6 +5,7 @@ pub enum Router {
     DeleteCommand,
     DeleteWorkspace,
     EditWorkspace,
+    EditCommand,
     ExecuteCommand(ExecuteCommandParameters),
     GetCommand(GetCommandParameters),
     GetWorkspace(GetWorkspaceParameters),
@@ -12,6 +13,7 @@ pub enum Router {
     NewCommand,
     NewWorkspace,
     UpdateWorkspace(UpdateWorkspaceParameters),
+    UpdateCommand(UpdateCommandParameters),
 }
 
 #[derive(Clone)]
@@ -51,4 +53,10 @@ pub struct GetCommandParameters {
 pub struct UpdateWorkspaceParameters {
     pub name: String,
     pub location: String,
+}
+
+#[derive(Clone)]
+pub struct UpdateCommandParameters {
+    pub name: String,
+    pub program: String,
 }

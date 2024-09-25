@@ -18,6 +18,7 @@ pub struct CommandPaletteParameters {
 pub enum Action {
     DeleteCommand,
     DeleteWorkspace,
+    EditCommand,
     EditWorkspace,
     ListWorkspaces,
     NewCommand,
@@ -85,6 +86,7 @@ impl<'a> From<&Action> for ListItem<'a> {
         let content = match action {
             Action::DeleteCommand => "Delete command",
             Action::DeleteWorkspace => "Delete workspace",
+            Action::EditCommand => "Edit command",
             Action::EditWorkspace => "Edit workspace",
             Action::ListWorkspaces => "List workspaces",
             Action::NewCommand => "New command",

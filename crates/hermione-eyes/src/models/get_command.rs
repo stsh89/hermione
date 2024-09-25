@@ -34,6 +34,8 @@ impl Model for GetCommandModel {
             Message::Back => self.back(),
             Message::ToggleCommandPalette => self.toggle_command_palette(),
             Message::Submit => self.submit(),
+            Message::SelectNext => self.select_next(),
+            Message::SelectPrevious => self.select_previous(),
             _ => {}
         }
 
@@ -68,8 +70,10 @@ impl GetCommandModel {
             return;
         };
 
-        if let CPA::DeleteCommand = action {
-            self.redirect = Some(Router::DeleteCommand)
+        match action {
+            CPA::DeleteCommand => self.redirect = Some(Router::DeleteCommand),
+            CPA::EditCommand => self.redirect = Some(Router::EditCommand),
+            _ => {}
         }
     }
 
@@ -95,9 +99,21 @@ impl GetCommandModel {
             command,
             redirect: None,
             command_palette: CommandPalette::new(CommandPaletteParameters {
-                actions: vec![CPA::DeleteCommand],
+                actions: vec![CPA::DeleteCommand, CPA::EditCommand],
             })?,
         })
+    }
+
+    fn select_next(&mut self) {
+        if self.command_palette.is_active() {
+            self.command_palette.select_next();
+        }
+    }
+
+    fn select_previous(&mut self) {
+        if self.command_palette.is_active() {
+            self.command_palette.select_previous();
+        }
     }
 
     fn submit(&mut self) {

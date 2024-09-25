@@ -1,3 +1,4 @@
+mod edit_command;
 mod edit_workspace;
 mod get_command;
 mod get_workspace;
@@ -13,6 +14,7 @@ use ratatui::{
     Frame,
 };
 
+pub use edit_command::{EditCommandModel, EditCommandModelParameters};
 pub use edit_workspace::{EditWorkspaceModel, EditWorkspaceModelParameters};
 pub use get_command::{GetCommandModel, GetCommandModelParameters};
 pub use get_workspace::{GetWorkspaceModel, GetWorkspaceModelParameters};
