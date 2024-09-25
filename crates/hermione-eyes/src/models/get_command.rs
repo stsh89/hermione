@@ -1,25 +1,18 @@
 use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
-    layout::{Alignment, Constraint, Direction, Layout, Position},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    layout::{Alignment, Constraint, Direction, Layout},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
 use crate::{
-    entities::{Command, Workspace},
-    models::{
-        command_palette::DELETE_COMMAND,
-        handle_event, highlight_style,
-        shared::{Input, InputParameters},
-        Message,
-    },
-    router::{CommandPaletteParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router},
+    entities::Command,
+    models::{command_palette::DELETE_COMMAND, Message, Model},
+    router::{CommandPaletteParameters, GetWorkspaceParameters, Router},
     Result,
 };
 
 pub struct GetCommandModel {
     command: Command,
-    is_running: bool,
     redirect: Option<Router>,
 }
 
@@ -27,53 +20,22 @@ pub struct GetCommandModelParameters {
     pub command: Command,
 }
 
-impl GetCommandModel {
-    pub fn is_running(&self) -> bool {
-        self.is_running
-    }
-
-    pub fn new(parameters: GetCommandModelParameters) -> Self {
-        let GetCommandModelParameters { command } = parameters;
-
-        Self {
-            command,
-            is_running: true,
-            redirect: None,
-        }
-    }
-
-    pub fn handle_event(&self) -> Result<Option<Message>> {
-        handle_event(message)
-    }
-
-    pub fn redirect(&self) -> Option<&Router> {
+impl Model for GetCommandModel {
+    fn redirect(&self) -> Option<&Router> {
         self.redirect.as_ref()
     }
 
-    pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
+    fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::Back => self.redirect_to_workspace(),
-            Message::ActivateCommandPalette => self.redirect_to_command_palette(),
+            Message::Back => self.back(),
+            Message::ActivateCommandPalette => self.activate_command_palette(),
             _ => {}
         }
 
         Ok(None)
     }
 
-    fn redirect_to_workspace(&mut self) {
-        self.redirect = Some(Router::GetWorkspace(GetWorkspaceParameters {
-            number: 0,
-            commands_search_query: String::new(),
-        }))
-    }
-
-    fn redirect_to_command_palette(&mut self) {
-        self.redirect = Some(Router::CommandPalette(CommandPaletteParameters {
-            actions: vec![DELETE_COMMAND.to_string()],
-        }))
-    }
-
-    pub fn view(&mut self, frame: &mut Frame) {
+    fn view(&mut self, frame: &mut Frame) {
         let [header, program] = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![Constraint::Max(1), Constraint::Min(3)])
@@ -89,14 +51,30 @@ impl GetCommandModel {
     }
 }
 
-fn message(key_event: KeyEvent) -> Option<Message> {
-    let message = match key_event.code {
-        KeyCode::Esc => Message::Back,
-        KeyCode::Char('k') if key_event.modifiers == KeyModifiers::CONTROL => {
-            Message::ActivateCommandPalette
-        }
-        _ => return None,
-    };
+impl GetCommandModel {
+    fn activate_command_palette(&mut self) {
+        let route = Router::CommandPalette(CommandPaletteParameters {
+            actions: vec![DELETE_COMMAND.to_string()],
+        });
 
-    Some(message)
+        self.redirect = Some(route)
+    }
+
+    fn back(&mut self) {
+        let route = Router::GetWorkspace(GetWorkspaceParameters {
+            number: 0,
+            commands_search_query: String::new(),
+        });
+
+        self.redirect = Some(route)
+    }
+
+    pub fn new(parameters: GetCommandModelParameters) -> Self {
+        let GetCommandModelParameters { command } = parameters;
+
+        Self {
+            command,
+            redirect: None,
+        }
+    }
 }

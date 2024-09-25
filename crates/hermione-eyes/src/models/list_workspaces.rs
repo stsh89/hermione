@@ -2,15 +2,13 @@ use crate::{
     entities::Workspace,
     models::{
         command_palette::NEW_WORKSPACE,
-        handle_event, highlight_style,
-        shared::{Input, InputParameters},
-        Message,
+        helpers::{Input, InputParameters},
+        highlight_style, Message, Model,
     },
     router::{CommandPaletteParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router},
     Result,
 };
 use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
     layout::{Alignment, Constraint, Direction, Layout, Position},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame,
@@ -29,40 +27,34 @@ pub struct ListWorkspacesModelParameters {
     pub search_query: String,
 }
 
-impl ListWorkspacesModel {
-    pub fn is_running(&self) -> bool {
+impl Model for ListWorkspacesModel {
+    fn is_running(&self) -> bool {
         self.is_running
     }
 
-    pub fn new(parameters: ListWorkspacesModelParameters) -> Self {
-        let ListWorkspacesModelParameters {
-            workspaces,
-            search_query,
-        } = parameters;
-
-        let mut model = Self {
-            workspaces,
-            redirect: None,
-            workspaces_state: ListState::default(),
-            search: Input::new(InputParameters {
-                value: search_query,
-                is_active: true,
-            }),
-            is_running: true,
-        };
-
-        if !model.workspaces.is_empty() {
-            model.workspaces_state.select_first();
-        }
-
-        model
-    }
-
-    pub fn redirect(&self) -> Option<&Router> {
+    fn redirect(&self) -> Option<&Router> {
         self.redirect.as_ref()
     }
 
-    pub fn view(&mut self, frame: &mut Frame) {
+    fn update(&mut self, message: Message) -> Result<Option<Message>> {
+        match message {
+            Message::ActivateCommandPalette => self.activate_command_palette(),
+            Message::DeleteAllChars => self.delete_all_chars(),
+            Message::DeleteChar => self.delete_char(),
+            Message::EnterChar(c) => self.enter_char(c),
+            Message::Back => self.exit(),
+            Message::MoveCusorLeft => self.move_cursor_left(),
+            Message::MoveCusorRight => self.move_cursor_right(),
+            Message::SelectNext => self.select_next(),
+            Message::SelectPrevious => self.select_previous(),
+            Message::Sumbit => self.submit(),
+            _ => {}
+        }
+
+        Ok(None)
+    }
+
+    fn view(&mut self, frame: &mut Frame) {
         let [header, search, commands] = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![
@@ -93,42 +85,53 @@ impl ListWorkspacesModel {
 
         frame.render_stateful_widget(list, commands, &mut self.workspaces_state);
     }
+}
 
-    pub fn handle_event(&self) -> Result<Option<Message>> {
-        handle_event(message)
+impl ListWorkspacesModel {
+    fn exit(&mut self) {
+        self.is_running = false;
     }
 
-    pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
-        match message {
-            Message::SelectNext => self.select_next(),
-            Message::SelectPrevious => self.select_previous(),
-            Message::Exit => self.is_running = false,
-            Message::EnterChar(c) => self.enter_char(c),
-            Message::DeleteChar => self.delete_char(),
-            Message::DeleteAllChars => self.delete_all_chars(),
-            Message::MoveCusorLeft => self.move_cursor_left(),
-            Message::MoveCusorRight => self.move_cursor_right(),
-            Message::Sumbit => self.submit(),
-            Message::ActivateCommandPalette => self.redirect_to_command_palette(),
-            _ => {}
+    pub fn new(parameters: ListWorkspacesModelParameters) -> Self {
+        let ListWorkspacesModelParameters {
+            workspaces,
+            search_query,
+        } = parameters;
+
+        let mut model = Self {
+            workspaces,
+            redirect: None,
+            workspaces_state: ListState::default(),
+            search: Input::new(InputParameters {
+                value: search_query,
+                is_active: true,
+            }),
+            is_running: true,
+        };
+
+        if !model.workspaces.is_empty() {
+            model.workspaces_state.select_first();
         }
 
-        Ok(None)
+        model
     }
 
     fn submit(&mut self) {
-        let Some(workspace) = self
+        let maybe_workspace = self
             .workspaces_state
             .selected()
-            .and_then(|i| self.workspaces.get(i))
-        else {
+            .and_then(|i| self.workspaces.get(i));
+
+        let Some(workspace) = maybe_workspace else {
             return;
         };
 
-        self.redirect = Some(Router::GetWorkspace(GetWorkspaceParameters {
+        let route = Router::GetWorkspace(GetWorkspaceParameters {
             number: workspace.number,
             commands_search_query: String::new(),
-        }));
+        });
+
+        self.redirect = Some(route);
     }
 
     fn select_next(&mut self) {
@@ -175,34 +178,11 @@ impl ListWorkspacesModel {
         self.search.move_cursor_right();
     }
 
-    fn redirect_to_command_palette(&mut self) {
-        self.redirect = Some(Router::CommandPalette(CommandPaletteParameters {
+    fn activate_command_palette(&mut self) {
+        let route = Router::CommandPalette(CommandPaletteParameters {
             actions: vec![NEW_WORKSPACE.to_string()],
-        }))
+        });
+
+        self.redirect = Some(route)
     }
-}
-
-fn message(key_event: KeyEvent) -> Option<Message> {
-    let message = match key_event.code {
-        KeyCode::Up => Message::SelectPrevious,
-        KeyCode::Down => Message::SelectNext,
-        KeyCode::Esc => Message::Exit,
-        KeyCode::Enter => Message::Sumbit,
-        KeyCode::Left => Message::MoveCusorLeft,
-        KeyCode::Right => Message::MoveCusorRight,
-        KeyCode::Backspace => match key_event.modifiers {
-            KeyModifiers::CONTROL => Message::DeleteAllChars,
-            _ => Message::DeleteChar,
-        },
-        KeyCode::Char(c) => match key_event.modifiers {
-            KeyModifiers::CONTROL => match c {
-                'k' => Message::ActivateCommandPalette,
-                _ => return None,
-            },
-            _ => Message::EnterChar(c),
-        },
-        _ => return None,
-    };
-
-    Some(message)
 }

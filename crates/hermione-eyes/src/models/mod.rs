@@ -1,39 +1,43 @@
-pub mod command_palette;
-
-mod create_command;
-mod create_workspace;
+mod command_palette;
 mod get_command;
 mod get_workspace;
+mod helpers;
 mod list_workspaces;
 mod new_command;
 mod new_workspace;
-mod shared;
 
 use crate::{router::Router, Result};
-use command_palette::CommandPaletteModel;
 use ratatui::{
-    crossterm::event,
+    crossterm::event::{self, KeyCode, KeyEvent, KeyModifiers},
     style::{Style, Stylize},
     Frame,
 };
 
-pub use create_command::{CreateCommandModel, CreateCommandModelParameters};
-pub use create_workspace::{CreateWorkspaceModel, CreateWorkspaceModelParameters};
+pub use command_palette::{Action, CommandPaletteModel, CommandPaletteModelParameters};
 pub use get_command::{GetCommandModel, GetCommandModelParameters};
 pub use get_workspace::{GetWorkspaceModel, GetWorkspaceModelParameters};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
 pub use new_command::NewCommandModel;
 pub use new_workspace::NewWorkspaceModel;
 
-pub enum Model {
-    CommandPalette(CommandPaletteModel),
-    CreateCommand(CreateCommandModel),
-    CreateWorkspace(CreateWorkspaceModel),
-    GetWorkspace(GetWorkspaceModel),
-    ListWorkspaces(ListWorkspacesModel),
-    NewCommand(NewCommandModel),
-    GetCommand(GetCommandModel),
-    NewWorkspace(NewWorkspaceModel),
+pub trait Model {
+    fn handle_event(&self) -> Result<Option<Message>> {
+        EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
+    }
+
+    fn is_running(&self) -> bool {
+        true
+    }
+
+    fn redirect(&self) -> Option<&Router> {
+        None
+    }
+
+    fn update(&mut self, _message: Message) -> Result<Option<Message>> {
+        Ok(None)
+    }
+
+    fn view(&mut self, _frame: &mut Frame) {}
 }
 
 pub enum Message {
@@ -42,97 +46,80 @@ pub enum Message {
     DeleteAllChars,
     DeleteChar,
     EnterChar(char),
-    Exit,
-    HighlightContent,
-    HighlightMenu,
-    SelectNext,
-    SelectPrevious,
     MoveCusorLeft,
     MoveCusorRight,
+    SelectNext,
+    SelectPrevious,
     Sumbit,
-    ToggleForcus,
+    ToggleFocus,
 }
 
-impl Model {
-    pub fn handle_event(&self) -> Result<Option<Message>> {
-        match self {
-            Model::ListWorkspaces(model) => model.handle_event(),
-            Model::NewWorkspace(model) => model.handle_event(),
-            Model::CreateWorkspace(model) => model.handle_event(),
-            Model::CommandPalette(model) => model.handle_event(),
-            Model::GetWorkspace(model) => model.handle_event(),
-            Model::NewCommand(model) => model.handle_event(),
-            Model::CreateCommand(model) => model.handle_event(),
-            Model::GetCommand(model) => model.handle_event(),
-        }
-    }
-
-    pub fn is_running(&self) -> bool {
-        match self {
-            Model::ListWorkspaces(model) => model.is_running(),
-            Model::NewWorkspace(model) => model.is_running(),
-            Model::CreateWorkspace(model) => model.is_running(),
-            Model::CommandPalette(model) => model.is_running(),
-            Model::GetWorkspace(model) => model.is_running(),
-            Model::NewCommand(model) => model.is_running(),
-            Model::CreateCommand(model) => model.is_running(),
-            Model::GetCommand(model) => model.is_running(),
-        }
-    }
-
-    pub fn redirect(&self) -> Option<&Router> {
-        match self {
-            Model::ListWorkspaces(model) => model.redirect(),
-            Model::NewWorkspace(model) => model.redirect(),
-            Model::CreateWorkspace(model) => model.redirect(),
-            Model::CommandPalette(model) => model.redirect(),
-            Model::GetWorkspace(model) => model.redirect(),
-            Model::NewCommand(model) => model.redirect(),
-            Model::CreateCommand(model) => model.redirect(),
-            Model::GetCommand(model) => model.redirect(),
-        }
-    }
-
-    pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
-        match self {
-            Model::ListWorkspaces(model) => model.update(message),
-            Model::NewWorkspace(model) => model.update(message),
-            Model::CreateWorkspace(model) => model.update(message),
-            Model::CommandPalette(model) => model.update(message),
-            Model::GetWorkspace(model) => model.update(message),
-            Model::NewCommand(model) => model.update(message),
-            Model::CreateCommand(model) => model.update(message),
-            Model::GetCommand(model) => model.update(message),
-        }
-    }
-
-    pub fn view(&mut self, frame: &mut Frame) {
-        match self {
-            Model::ListWorkspaces(model) => model.view(frame),
-            Model::NewWorkspace(model) => model.view(frame),
-            Model::CreateWorkspace(model) => model.view(frame),
-            Model::CommandPalette(model) => model.view(frame),
-            Model::GetWorkspace(model) => model.view(frame),
-            Model::NewCommand(model) => model.view(frame),
-            Model::CreateCommand(model) => model.view(frame),
-            Model::GetCommand(model) => model.view(frame),
-        }
-    }
-}
-
-fn handle_event<F>(f: F) -> Result<Option<Message>>
+struct EventHandler<F>
 where
     F: Fn(event::KeyEvent) -> Option<Message>,
 {
-    if let event::Event::Key(key) = event::read()? {
-        if key.kind == event::KeyEventKind::Press {
-            let message = f(key);
+    f: F,
+}
 
-            return Ok(message);
-        }
+impl<F> EventHandler<F>
+where
+    F: Fn(event::KeyEvent) -> Option<Message>,
+{
+    fn new(f: F) -> Self {
+        Self { f }
     }
 
-    Ok(None)
+    fn handle_event(self) -> Result<Option<Message>> {
+        if let event::Event::Key(key) = event::read()? {
+            if key.kind == event::KeyEventKind::Press {
+                let message = (self.f)(key);
+
+                return Ok(message);
+            }
+        }
+
+        Ok(None)
+    }
+}
+
+impl TryFrom<KeyEvent> for Message {
+    type Error = anyhow::Error;
+
+    fn try_from(key_event: KeyEvent) -> Result<Self> {
+        let message = match key_event.code {
+            KeyCode::Tab => Message::ToggleFocus,
+            KeyCode::Up => Message::SelectPrevious,
+            KeyCode::Down => Message::SelectNext,
+            KeyCode::Esc => Message::Back,
+            KeyCode::Enter => Message::Sumbit,
+            KeyCode::Left => Message::MoveCusorLeft,
+            KeyCode::Right => Message::MoveCusorRight,
+            KeyCode::Backspace => match key_event.modifiers {
+                KeyModifiers::CONTROL => Message::DeleteAllChars,
+                _ => Message::DeleteChar,
+            },
+            KeyCode::Char(c) => match key_event.modifiers {
+                KeyModifiers::CONTROL => match c {
+                    'k' => Message::ActivateCommandPalette,
+                    _ => {
+                        return Err(anyhow::anyhow!(
+                            "Unsupported key code: {:?}",
+                            key_event.code
+                        ))
+                    }
+                },
+                _ => Message::EnterChar(c),
+            },
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Unsupported key code: {:?}",
+                    key_event.code
+                ))
+            }
+        };
+
+        Ok(message)
+    }
 }
 
 fn highlight_style() -> Style {

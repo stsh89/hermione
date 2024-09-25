@@ -1,5 +1,4 @@
 use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
     layout::{Alignment, Constraint, Direction, Layout, Position},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame,
@@ -8,10 +7,9 @@ use ratatui::{
 use crate::{
     entities::Workspace,
     models::{
-        command_palette::{DELETE_WORKSPACE, NEW_COMMAND, RENAME_WORKSPACE},
-        handle_event, highlight_style,
-        shared::{Input, InputParameters},
-        Message,
+        command_palette::{DELETE_WORKSPACE, NEW_COMMAND},
+        helpers::{Input, InputParameters},
+        highlight_style, Message, Model,
     },
     router::{
         CommandPaletteParameters, GetCommandParameters, GetWorkspaceParameters,
@@ -22,7 +20,6 @@ use crate::{
 
 pub struct GetWorkspaceModel {
     workspace: Workspace,
-    is_running: bool,
     redirect: Option<Router>,
     search: Input,
     commands_state: ListState,
@@ -33,11 +30,63 @@ pub struct GetWorkspaceModelParameters {
     pub commands_search_query: String,
 }
 
-impl GetWorkspaceModel {
-    pub fn is_running(&self) -> bool {
-        self.is_running
+impl Model for GetWorkspaceModel {
+    fn redirect(&self) -> Option<&Router> {
+        self.redirect.as_ref()
     }
 
+    fn update(&mut self, message: Message) -> Result<Option<Message>> {
+        match message {
+            Message::ActivateCommandPalette => self.activate_command_palette(),
+            Message::Back => self.back(),
+            Message::DeleteAllChars => self.delete_all_chars(),
+            Message::DeleteChar => self.delete_char(),
+            Message::EnterChar(c) => self.enter_char(c),
+            Message::MoveCusorLeft => self.move_cursor_left(),
+            Message::MoveCusorRight => self.move_cursor_right(),
+            Message::SelectNext => self.select_next(),
+            Message::SelectPrevious => self.select_previous(),
+            Message::Sumbit => self.submit(),
+            _ => {}
+        }
+
+        Ok(None)
+    }
+
+    fn view(&mut self, frame: &mut Frame) {
+        let [header, search, commands] = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![
+                Constraint::Max(1),
+                Constraint::Max(3),
+                Constraint::Min(3),
+            ])
+            .areas(frame.area());
+
+        let paragraph = Paragraph::new(self.workspace.name.as_str()).alignment(Alignment::Center);
+        frame.render_widget(paragraph, header);
+
+        let block = Block::default().borders(Borders::all()).title("Search");
+        let paragraph = Paragraph::new(self.search.value()).block(block);
+
+        frame.render_widget(paragraph, search);
+        frame.set_cursor_position(Position::new(
+            search.x + self.search.character_index() as u16 + 1,
+            search.y + 1,
+        ));
+
+        let block = Block::default().borders(Borders::all()).title("Commands");
+        let items: Vec<ListItem> = self.workspace.commands.iter().map(ListItem::from).collect();
+
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(highlight_style());
+
+        frame.render_stateful_widget(list, commands, &mut self.commands_state);
+    }
+}
+
+impl GetWorkspaceModel {
     pub fn new(parameters: GetWorkspaceModelParameters) -> Self {
         let GetWorkspaceModelParameters {
             workspace,
@@ -46,7 +95,6 @@ impl GetWorkspaceModel {
 
         let mut model = Self {
             workspace,
-            is_running: true,
             redirect: None,
             search: Input::new(InputParameters {
                 value: commands_search_query,
@@ -62,36 +110,12 @@ impl GetWorkspaceModel {
         model
     }
 
-    pub fn handle_event(&self) -> Result<Option<Message>> {
-        handle_event(message)
-    }
-
-    pub fn redirect(&self) -> Option<&Router> {
-        self.redirect.as_ref()
-    }
-
-    pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
-        match message {
-            Message::SelectNext => self.select_next(),
-            Message::SelectPrevious => self.select_previous(),
-            Message::Back => self.redirect_to_list_workspaces(),
-            Message::EnterChar(c) => self.enter_char(c),
-            Message::DeleteChar => self.delete_char(),
-            Message::DeleteAllChars => self.delete_all_chars(),
-            Message::MoveCusorLeft => self.move_cursor_left(),
-            Message::MoveCusorRight => self.move_cursor_right(),
-            Message::Sumbit => self.submit(),
-            Message::ActivateCommandPalette => self.redirect_to_command_palette(),
-            _ => {}
-        }
-
-        Ok(None)
-    }
-
-    fn redirect_to_list_workspaces(&mut self) {
-        self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters {
+    fn back(&mut self) {
+        let route = Router::ListWorkspaces(ListWorkspacesParameters {
             search_query: String::new(),
-        }))
+        });
+
+        self.redirect = Some(route)
     }
 
     fn submit(&mut self) {
@@ -155,66 +179,11 @@ impl GetWorkspaceModel {
         self.search.move_cursor_right();
     }
 
-    fn redirect_to_command_palette(&mut self) {
-        self.redirect = Some(Router::CommandPalette(CommandPaletteParameters {
+    fn activate_command_palette(&mut self) {
+        let route = Router::CommandPalette(CommandPaletteParameters {
             actions: vec![NEW_COMMAND.to_string(), DELETE_WORKSPACE.to_string()],
-        }))
+        });
+
+        self.redirect = Some(route)
     }
-
-    pub fn view(&mut self, frame: &mut Frame) {
-        let [header, search, commands] = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(vec![
-                Constraint::Max(1),
-                Constraint::Max(3),
-                Constraint::Min(3),
-            ])
-            .areas(frame.area());
-
-        let paragraph = Paragraph::new(self.workspace.name.as_str()).alignment(Alignment::Center);
-        frame.render_widget(paragraph, header);
-
-        let block = Block::default().borders(Borders::all()).title("Search");
-        let paragraph = Paragraph::new(self.search.value()).block(block);
-
-        frame.render_widget(paragraph, search);
-        frame.set_cursor_position(Position::new(
-            search.x + self.search.character_index() as u16 + 1,
-            search.y + 1,
-        ));
-
-        let block = Block::default().borders(Borders::all()).title("Commands");
-        let items: Vec<ListItem> = self.workspace.commands.iter().map(ListItem::from).collect();
-
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(highlight_style());
-
-        frame.render_stateful_widget(list, commands, &mut self.commands_state);
-    }
-}
-
-fn message(key_event: KeyEvent) -> Option<Message> {
-    let message = match key_event.code {
-        KeyCode::Up => Message::SelectPrevious,
-        KeyCode::Down => Message::SelectNext,
-        KeyCode::Esc => Message::Back,
-        KeyCode::Enter => Message::Sumbit,
-        KeyCode::Left => Message::MoveCusorLeft,
-        KeyCode::Right => Message::MoveCusorRight,
-        KeyCode::Backspace => match key_event.modifiers {
-            KeyModifiers::CONTROL => Message::DeleteAllChars,
-            _ => Message::DeleteChar,
-        },
-        KeyCode::Char(c) => match key_event.modifiers {
-            KeyModifiers::CONTROL => match c {
-                'k' => Message::ActivateCommandPalette,
-                _ => return None,
-            },
-            _ => Message::EnterChar(c),
-        },
-        _ => return None,
-    };
-
-    Some(message)
 }

@@ -1,30 +1,21 @@
 use crate::{
     models::{
-        handle_event, highlight_style,
-        shared::{Input, Menu, MenuItem},
-        Message, Router,
+        helpers::{Input, InputParameters},
+        Message, Model, Router,
     },
-    router::{
-        CreateCommandParameters, CreateWorkspaceParameters, GetWorkspaceParameters,
-        ListWorkspacesParameters,
-    },
+    router::{CreateCommandParameters, GetWorkspaceParameters},
     Result,
 };
 use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
     layout::{Alignment, Constraint, Direction, Layout, Position},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
-
-use super::shared::InputParameters;
 
 pub struct NewCommandModel {
     name: Input,
     program: Input,
-    menu: Menu,
     redirect: Option<Router>,
-    is_running: bool,
     active_input: CommandProperty,
 }
 
@@ -33,33 +24,28 @@ enum CommandProperty {
     Program,
 }
 
-impl NewCommandModel {
-    pub fn is_running(&self) -> bool {
-        self.is_running
-    }
-
-    pub fn new() -> Self {
-        Self {
-            name: Input::new(InputParameters {
-                value: String::new(),
-                is_active: true,
-            }),
-            program: Input::new(InputParameters {
-                value: String::new(),
-                is_active: false,
-            }),
-            redirect: None,
-            menu: Menu::new(vec![MenuItem::Back, MenuItem::Exit]),
-            is_running: true,
-            active_input: CommandProperty::Name,
-        }
-    }
-
-    pub fn redirect(&self) -> Option<&Router> {
+impl Model for NewCommandModel {
+    fn redirect(&self) -> Option<&Router> {
         self.redirect.as_ref()
     }
 
-    pub fn view(&mut self, frame: &mut Frame) {
+    fn update(&mut self, message: Message) -> Result<Option<Message>> {
+        match message {
+            Message::Back => self.back(),
+            Message::DeleteAllChars => self.delete_all_chars(),
+            Message::DeleteChar => self.delete_char(),
+            Message::EnterChar(c) => self.enter_char(c),
+            Message::MoveCusorLeft => self.move_cursor_left(),
+            Message::MoveCusorRight => self.move_cursor_right(),
+            Message::Sumbit => self.submit(),
+            Message::ToggleFocus => self.toggle_focus(),
+            _ => {}
+        }
+
+        Ok(None)
+    }
+
+    fn view(&mut self, frame: &mut Frame) {
         let [header, name, program] = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![
@@ -95,26 +81,49 @@ impl NewCommandModel {
             ));
         }
     }
+}
 
-    pub fn handle_event(&self) -> Result<Option<Message>> {
-        handle_event(message)
+impl NewCommandModel {
+    fn back(&mut self) {
+        let route = Router::GetWorkspace(GetWorkspaceParameters {
+            number: 0,
+            commands_search_query: String::new(),
+        });
+
+        self.redirect = Some(route);
     }
 
-    fn toggle_forcus(&mut self) {
-        self.active_input = match self.active_input {
-            CommandProperty::Name => {
-                self.name.deactivate();
-                self.program.activate();
+    pub fn new() -> Self {
+        Self {
+            name: Input::new(InputParameters {
+                value: String::new(),
+                is_active: true,
+            }),
+            program: Input::new(InputParameters {
+                value: String::new(),
+                is_active: false,
+            }),
+            redirect: None,
+            active_input: CommandProperty::Name,
+        }
+    }
 
-                CommandProperty::Program
-            }
-            CommandProperty::Program => {
+    fn toggle_focus(&mut self) {
+        self.active_input = match self.active_input {
+            CommandProperty::Name => CommandProperty::Program,
+            CommandProperty::Program => CommandProperty::Name,
+        };
+
+        match self.active_input {
+            CommandProperty::Name => {
                 self.program.deactivate();
                 self.name.activate();
-
-                CommandProperty::Name
             }
-        };
+            CommandProperty::Program => {
+                self.name.deactivate();
+                self.program.activate();
+            }
+        }
     }
 
     fn enter_char(&mut self, c: char) {
@@ -153,48 +162,11 @@ impl NewCommandModel {
     }
 
     fn submit(&mut self) {
-        self.redirect = Some(Router::CreateCommand(CreateCommandParameters {
+        let route = Router::CreateCommand(CreateCommandParameters {
             name: self.name.value().to_string(),
             program: self.program.value().to_string(),
-        }));
+        });
+
+        self.redirect = Some(route);
     }
-
-    pub fn update(&mut self, message: Message) -> Result<Option<Message>> {
-        match message {
-            Message::EnterChar(c) => self.enter_char(c),
-            Message::DeleteChar => self.delete_char(),
-            Message::DeleteAllChars => self.delete_all_chars(),
-            Message::MoveCusorLeft => self.move_cursor_left(),
-            Message::MoveCusorRight => self.move_cursor_right(),
-            Message::ToggleForcus => self.toggle_forcus(),
-            Message::Back => {
-                self.redirect = Some(Router::GetWorkspace(GetWorkspaceParameters {
-                    number: 0,
-                    commands_search_query: String::new(),
-                }))
-            }
-            Message::Sumbit => self.submit(),
-            _ => {}
-        }
-
-        Ok(None)
-    }
-}
-
-fn message(key_event: KeyEvent) -> Option<Message> {
-    let message = match key_event.code {
-        KeyCode::Char(c) => Message::EnterChar(c),
-        KeyCode::Backspace => match key_event.modifiers {
-            KeyModifiers::CONTROL => Message::DeleteAllChars,
-            _ => Message::DeleteChar,
-        },
-        KeyCode::Esc => Message::Back,
-        KeyCode::Enter => Message::Sumbit,
-        KeyCode::Left => Message::MoveCusorLeft,
-        KeyCode::Right => Message::MoveCusorRight,
-        KeyCode::Tab => Message::ToggleForcus,
-        _ => return None,
-    };
-
-    Some(message)
 }

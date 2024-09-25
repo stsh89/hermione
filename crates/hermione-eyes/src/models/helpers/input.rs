@@ -1,9 +1,6 @@
 pub struct Input {
-    /// Current value of the input box
     value: String,
-    /// Position of cursor in the editor area.
     character_index: usize,
-
     is_active: bool,
 }
 
