@@ -18,6 +18,7 @@ pub struct CommandPaletteParameters {
 pub enum Action {
     DeleteCommand,
     DeleteWorkspace,
+    ListWorkspaces,
     NewCommand,
     NewWorkspace,
 }
@@ -85,6 +86,7 @@ impl<'a> From<&Action> for ListItem<'a> {
             Action::DeleteWorkspace => "Delete workspace",
             Action::NewCommand => "New command",
             Action::NewWorkspace => "New workspace",
+            Action::ListWorkspaces => "List workspaces",
         };
 
         ListItem::new(content)

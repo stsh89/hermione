@@ -20,6 +20,7 @@ pub struct GetWorkspaceModel {
     search: Input,
     commands_state: ListState,
     command_palette: CommandPalette,
+    is_running: bool,
 }
 
 pub struct GetWorkspaceModelParameters {
@@ -28,6 +29,10 @@ pub struct GetWorkspaceModelParameters {
 }
 
 impl Model for GetWorkspaceModel {
+    fn is_running(&self) -> bool {
+        self.is_running
+    }
+
     fn redirect(&self) -> Option<&Router> {
         self.redirect.as_ref()
     }
@@ -98,6 +103,9 @@ impl GetWorkspaceModel {
         match action {
             CPA::DeleteWorkspace => self.redirect = Some(Router::DeleteWorkspace),
             CPA::NewCommand => self.redirect = Some(Router::NewCommand),
+            CPA::ListWorkspaces => {
+                self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters::default()))
+            }
             _ => {}
         }
     }
@@ -117,6 +125,7 @@ impl GetWorkspaceModel {
         }
 
         let model = Self {
+            is_running: true,
             workspace,
             redirect: None,
             search: Input::new(InputParameters {
@@ -125,7 +134,7 @@ impl GetWorkspaceModel {
             }),
             commands_state,
             command_palette: CommandPalette::new(CommandPaletteParameters {
-                actions: vec![CPA::NewCommand, CPA::DeleteWorkspace],
+                actions: vec![CPA::DeleteWorkspace, CPA::ListWorkspaces, CPA::NewCommand],
             })?,
         };
 
@@ -139,11 +148,7 @@ impl GetWorkspaceModel {
             return;
         }
 
-        let route = Router::ListWorkspaces(ListWorkspacesParameters {
-            search_query: String::new(),
-        });
-
-        self.redirect = Some(route)
+        self.is_running = false;
     }
 
     fn select_next(&mut self) {
