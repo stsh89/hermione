@@ -1,4 +1,7 @@
-use crate::{Command, CommandName, Error, Number, Program, Result, Workspace, WorkspaceName};
+use crate::{
+    workspace::Location, Command, CommandName, Error, Number, Program, Result, Workspace,
+    WorkspaceName,
+};
 
 pub struct Organizer {
     workspaces: Vec<Workspace>,
@@ -36,6 +39,7 @@ impl Organizer {
             number: count.into(),
             name: WorkspaceName::new(name),
             commands: vec![],
+            location: None,
         });
 
         &self.workspaces[count]
@@ -97,6 +101,13 @@ impl Organizer {
     pub fn rename_workspace(&mut self, number: Number, name: WorkspaceName) -> Result<()> {
         let workspace = self.get_workspace_mut(number)?;
         workspace.name = name;
+
+        Ok(())
+    }
+
+    pub fn set_workspace_location(&mut self, number: Number, location: Location) -> Result<()> {
+        let workspace = self.get_workspace_mut(number)?;
+        workspace.location = Some(location);
 
         Ok(())
     }

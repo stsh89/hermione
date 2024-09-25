@@ -12,8 +12,10 @@ pub struct Handler<'a> {
 
 impl<'a> Handler<'a> {
     pub fn handle(self) -> Result<ListWorkspacesModel> {
-        let CreateWorkspaceParameters { name } = self.parameters;
-        self.organizer.add_workspace(name.to_string())?;
+        let CreateWorkspaceParameters { name, location } = self.parameters;
+        let workspace = self.organizer.add_workspace(name.to_string())?;
+        self.organizer
+            .set_workspace_location(workspace.number, location)?;
 
         let workspaces = self.organizer.list_workspaces();
 

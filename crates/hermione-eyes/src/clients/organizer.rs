@@ -3,8 +3,8 @@ use crate::{
     Result,
 };
 use hermione_memory::{
-    Command, CommandParameters as HermioneCommandParameters, LoadOrganizer, NewWorkspaceParameters,
-    Organizer, SaveOrganizer, Workspace, WorkspaceName,
+    Command, CommandParameters as HermioneCommandParameters, LoadOrganizer, Location,
+    NewWorkspaceParameters, Organizer, SaveOrganizer, Workspace, WorkspaceName,
 };
 
 pub struct Client {
@@ -113,6 +113,13 @@ impl Client {
         Ok(())
     }
 
+    pub fn set_workspace_location(&mut self, number: usize, location: String) -> Result<()> {
+        self.organizer
+            .set_workspace_location(number.into(), Location::new(location))?;
+
+        Ok(())
+    }
+
     pub fn update_command(
         &mut self,
         command_number: usize,
@@ -145,6 +152,10 @@ fn from_workspace(value: &Workspace) -> WorkspaceEntity {
         number: value.number().into(),
         name: value.name().to_string(),
         commands: value.commands().iter().map(from_command).collect(),
+        location: value
+            .location()
+            .map(ToString::to_string)
+            .unwrap_or_default(),
     }
 }
 
@@ -175,6 +186,9 @@ mod inner {
         number: usize,
         name: String,
         commands: Vec<CommandRecord>,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
+        location: Option<String>,
     }
 
     #[derive(Serialize, Deserialize)]
@@ -238,6 +252,7 @@ mod inner {
                 number: value.number().into(),
                 name: value.name().to_string(),
                 commands: value.commands().iter().map(Into::into).collect(),
+                location: value.location().map(ToString::to_string),
             }
         }
     }

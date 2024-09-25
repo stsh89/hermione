@@ -31,6 +31,7 @@ pub enum Router {
 #[derive(Clone)]
 pub struct CreateWorkspaceParameters {
     pub name: String,
+    pub location: String,
 }
 
 #[derive(Clone)]

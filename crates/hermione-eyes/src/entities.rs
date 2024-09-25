@@ -4,6 +4,7 @@ pub struct Workspace {
     pub number: usize,
     pub name: String,
     pub commands: Vec<Command>,
+    pub location: String,
 }
 
 pub struct Command {

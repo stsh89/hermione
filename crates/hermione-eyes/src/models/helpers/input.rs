@@ -97,14 +97,6 @@ impl Input {
         new_cursor_pos.clamp(0, self.value.chars().count())
     }
 
-    pub fn active() -> Self {
-        Self {
-            value: String::new(),
-            character_index: 0,
-            is_active: true,
-        }
-    }
-
     pub fn is_active(&self) -> bool {
         self.is_active
     }

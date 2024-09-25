@@ -1,5 +1,8 @@
 use crate::{
-    models::{helpers::Input, Message, Model, Router},
+    models::{
+        helpers::{Input, InputParameters},
+        Message, Model, Router,
+    },
     router::{CreateWorkspaceParameters, ListWorkspacesParameters},
     Result,
 };
@@ -10,8 +13,15 @@ use ratatui::{
 };
 
 pub struct NewWorkspaceModel {
+    active_input: WorkspaceProperty,
+    location: Input,
     name: Input,
     redirect: Option<Router>,
+}
+
+enum WorkspaceProperty {
+    Name,
+    Program,
 }
 
 impl Model for NewWorkspaceModel {
@@ -22,6 +32,7 @@ impl Model for NewWorkspaceModel {
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
             Message::Back => self.back(),
+            Message::ToggleFocus => self.toggle_focus(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
@@ -62,37 +73,79 @@ impl NewWorkspaceModel {
     }
 
     fn delete_char(&mut self) {
-        self.name.delete_char();
+        match self.active_input {
+            WorkspaceProperty::Name => self.name.delete_char(),
+            WorkspaceProperty::Program => self.location.delete_char(),
+        }
     }
 
     fn delete_all_chars(&mut self) {
-        self.name.delete_all_chars();
+        match self.active_input {
+            WorkspaceProperty::Name => self.name.delete_all_chars(),
+            WorkspaceProperty::Program => self.location.delete_all_chars(),
+        }
     }
 
     fn enter_char(&mut self, c: char) {
-        self.name.enter_char(c);
+        match self.active_input {
+            WorkspaceProperty::Name => self.name.enter_char(c),
+            WorkspaceProperty::Program => self.location.enter_char(c),
+        }
     }
 
     fn move_cursor_left(&mut self) {
-        self.name.move_cursor_left();
+        match self.active_input {
+            WorkspaceProperty::Name => self.name.move_cursor_left(),
+            WorkspaceProperty::Program => self.location.move_cursor_left(),
+        }
     }
 
     fn move_cursor_right(&mut self) {
-        self.name.move_cursor_right();
+        match self.active_input {
+            WorkspaceProperty::Name => self.name.move_cursor_right(),
+            WorkspaceProperty::Program => self.location.move_cursor_right(),
+        }
     }
 
     pub fn new() -> Self {
         Self {
-            name: Input::active(),
+            name: Input::new(InputParameters {
+                value: String::new(),
+                is_active: true,
+            }),
             redirect: None,
+            active_input: WorkspaceProperty::Name,
+            location: Input::new(InputParameters {
+                value: String::new(),
+                is_active: false,
+            }),
         }
     }
 
     fn submit(&mut self) {
         let route = Router::CreateWorkspace(CreateWorkspaceParameters {
             name: self.name.value().to_string(),
+            location: self.location.value().to_string(),
         });
 
         self.redirect = Some(route);
+    }
+
+    fn toggle_focus(&mut self) {
+        self.active_input = match self.active_input {
+            WorkspaceProperty::Name => WorkspaceProperty::Program,
+            WorkspaceProperty::Program => WorkspaceProperty::Name,
+        };
+
+        match self.active_input {
+            WorkspaceProperty::Name => {
+                self.name.activate();
+                self.location.deactivate();
+            }
+            WorkspaceProperty::Program => {
+                self.name.activate();
+                self.location.deactivate();
+            }
+        }
     }
 }

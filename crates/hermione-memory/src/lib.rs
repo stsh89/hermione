@@ -10,6 +10,6 @@ pub use error::Error;
 pub use number::Number;
 pub use operation::{Load, LoadOrganizer, Save, SaveOrganizer};
 pub use organizer::{CommandParameters, NewWorkspaceParameters, Organizer};
-pub use workspace::{Name as WorkspaceName, Workspace};
+pub use workspace::{Location, Name as WorkspaceName, Workspace};
 
 pub type Result<T> = std::result::Result<T, Error>;
