@@ -1,3 +1,4 @@
+mod edit_workspace;
 mod get_command;
 mod get_workspace;
 mod helpers;
@@ -12,6 +13,7 @@ use ratatui::{
     Frame,
 };
 
+pub use edit_workspace::{EditWorkspaceModel, EditWorkspaceModelParameters};
 pub use get_command::{GetCommandModel, GetCommandModelParameters};
 pub use get_workspace::{GetWorkspaceModel, GetWorkspaceModelParameters};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
@@ -39,7 +41,6 @@ pub trait Model {
 }
 
 pub enum Message {
-    ToggleCommandPalette,
     Back,
     DeleteAllChars,
     DeleteChar,
@@ -49,7 +50,9 @@ pub enum Message {
     SelectNext,
     SelectPrevious,
     Submit,
+    ToggleCommandPalette,
     ToggleFocus,
+    ExecuteCommand,
 }
 
 struct EventHandler<F>
@@ -89,7 +92,10 @@ impl TryFrom<KeyEvent> for Message {
             KeyCode::Up => Message::SelectPrevious,
             KeyCode::Down => Message::SelectNext,
             KeyCode::Esc => Message::Back,
-            KeyCode::Enter => Message::Submit,
+            KeyCode::Enter => match key_event.modifiers {
+                KeyModifiers::CONTROL => Message::ExecuteCommand,
+                _ => Message::Submit,
+            },
             KeyCode::Left => Message::MoveCusorLeft,
             KeyCode::Right => Message::MoveCusorRight,
             KeyCode::Backspace => match key_event.modifiers {

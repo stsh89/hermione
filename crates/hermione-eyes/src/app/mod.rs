@@ -4,8 +4,9 @@ use crate::{
     clients,
     models::Model,
     router::{
-        CreateCommandParameters, CreateWorkspaceParameters, GetCommandParameters,
-        GetWorkspaceParameters, ListWorkspacesParameters, Router,
+        CreateCommandParameters, CreateWorkspaceParameters, ExecuteCommandParameters,
+        GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router,
+        UpdateWorkspaceParameters,
     },
     Result,
 };
@@ -63,6 +64,37 @@ impl App {
         Ok(Box::new(model))
     }
 
+    fn edit_workspace(&mut self) -> Result<Box<dyn Model>> {
+        let workspace = self.organizer.get_workspace(0)?;
+
+        let model = handlers::edit_workspace::Handler { workspace }.handle();
+
+        Ok(Box::new(model))
+    }
+
+    fn execute_command(&mut self, parameters: ExecuteCommandParameters) -> Result<Box<dyn Model>> {
+        let model = handlers::execute_command::Handler {
+            parameters,
+            organizer: &mut self.organizer,
+        }
+        .handle()?;
+
+        Ok(Box::new(model))
+    }
+
+    fn update_workspace(
+        &mut self,
+        parameters: UpdateWorkspaceParameters,
+    ) -> Result<Box<dyn Model>> {
+        let model = handlers::update_workspace::Handler {
+            organizer: &mut self.organizer,
+            parameters,
+        }
+        .handle()?;
+
+        Ok(Box::new(model))
+    }
+
     fn get_command(&mut self, parameters: GetCommandParameters) -> Result<Box<dyn Model>> {
         let model = handlers::get_command::Handler {
             organizer: &mut self.organizer,
@@ -111,11 +143,14 @@ impl App {
             Router::CreateWorkspace(parameters) => self.create_workspace(parameters)?,
             Router::DeleteCommand => self.delete_command()?,
             Router::DeleteWorkspace => self.delete_workspace()?,
+            Router::EditWorkspace => self.edit_workspace()?,
+            Router::ExecuteCommand(parameters) => self.execute_command(parameters)?,
             Router::GetCommand(parameters) => self.get_command(parameters)?,
             Router::GetWorkspace(parameters) => self.get_workspace(parameters)?,
             Router::ListWorkspaces(parameters) => self.list_workspaces(parameters)?,
             Router::NewCommand => self.new_command(),
             Router::NewWorkspace => self.new_workspace(),
+            Router::UpdateWorkspace(parameters) => self.update_workspace(parameters)?,
         };
 
         self.model = model;

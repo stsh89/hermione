@@ -169,7 +169,8 @@ fn from_command(value: &Command) -> CommandEntity {
 
 mod inner {
     use hermione_memory::{
-        Command, CommandParameters, Error, Load, NewWorkspaceParameters, Organizer, Save, Workspace,
+        Command, CommandParameters, Error, Load, Location, NewWorkspaceParameters, Organizer, Save,
+        Workspace,
     };
     use serde::{Deserialize, Serialize};
     use std::{
@@ -213,6 +214,10 @@ mod inner {
                         name: workspace.name,
                     })
                     .number();
+
+                if let Some(location) = workspace.location {
+                    organizer.set_workspace_location(number, Location::new(location))?;
+                }
 
                 for command in workspace.commands {
                     organizer.add_command(

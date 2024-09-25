@@ -10,7 +10,10 @@ use crate::{
         helpers::{CommandPalette, CommandPaletteParameters, Input, InputParameters},
         highlight_style, Message, Model,
     },
-    router::{GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router},
+    router::{
+        ExecuteCommandParameters, GetCommandParameters, GetWorkspaceParameters,
+        ListWorkspacesParameters, Router,
+    },
     Result,
 };
 
@@ -41,6 +44,7 @@ impl Model for GetWorkspaceModel {
         match message {
             Message::ToggleCommandPalette => self.toggle_command_palette(),
             Message::Back => self.back(),
+            Message::ExecuteCommand => self.execute_command(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
@@ -93,6 +97,20 @@ impl Model for GetWorkspaceModel {
 }
 
 impl GetWorkspaceModel {
+    fn execute_command(&mut self) {
+        let Some(command) = self
+            .commands_state
+            .selected()
+            .and_then(|i| self.workspace.commands.get(i))
+        else {
+            return;
+        };
+
+        self.redirect = Some(Router::ExecuteCommand(ExecuteCommandParameters {
+            number: command.number,
+        }));
+    }
+
     fn handle_command_palette_action(&mut self) {
         use crate::models::helpers::CommandPaletteAction as CPA;
 
@@ -106,6 +124,7 @@ impl GetWorkspaceModel {
             CPA::ListWorkspaces => {
                 self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters::default()))
             }
+            CPA::EditWorkspace => self.redirect = Some(Router::EditWorkspace),
             _ => {}
         }
     }
@@ -134,7 +153,12 @@ impl GetWorkspaceModel {
             }),
             commands_state,
             command_palette: CommandPalette::new(CommandPaletteParameters {
-                actions: vec![CPA::DeleteWorkspace, CPA::ListWorkspaces, CPA::NewCommand],
+                actions: vec![
+                    CPA::DeleteWorkspace,
+                    CPA::EditWorkspace,
+                    CPA::ListWorkspaces,
+                    CPA::NewCommand,
+                ],
             })?,
         };
 

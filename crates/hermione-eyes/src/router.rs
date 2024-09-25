@@ -1,31 +1,17 @@
 #[derive(Clone)]
 pub enum Router {
-    /// Get workspace
-    GetWorkspace(GetWorkspaceParameters),
-
-    /// List workspaces filtered by search query
-    ListWorkspaces(ListWorkspacesParameters),
-
-    /// New workspace
-    NewWorkspace,
-
-    /// Delete workspace
-    DeleteWorkspace,
-
-    /// Delete command
-    DeleteCommand,
-
-    /// Get command
-    GetCommand(GetCommandParameters),
-
-    /// New command
-    NewCommand,
-
-    /// Create workspace
-    CreateWorkspace(CreateWorkspaceParameters),
-
-    /// Create command
     CreateCommand(CreateCommandParameters),
+    CreateWorkspace(CreateWorkspaceParameters),
+    DeleteCommand,
+    DeleteWorkspace,
+    EditWorkspace,
+    ExecuteCommand(ExecuteCommandParameters),
+    GetCommand(GetCommandParameters),
+    GetWorkspace(GetWorkspaceParameters),
+    ListWorkspaces(ListWorkspacesParameters),
+    NewCommand,
+    NewWorkspace,
+    UpdateWorkspace(UpdateWorkspaceParameters),
 }
 
 #[derive(Clone)]
@@ -38,6 +24,11 @@ pub struct CreateWorkspaceParameters {
 pub struct CreateCommandParameters {
     pub name: String,
     pub program: String,
+}
+
+#[derive(Clone)]
+pub struct ExecuteCommandParameters {
+    pub number: usize,
 }
 
 #[derive(Clone, Default)]
@@ -54,4 +45,10 @@ pub struct GetWorkspaceParameters {
 #[derive(Clone)]
 pub struct GetCommandParameters {
     pub number: usize,
+}
+
+#[derive(Clone)]
+pub struct UpdateWorkspaceParameters {
+    pub name: String,
+    pub location: String,
 }

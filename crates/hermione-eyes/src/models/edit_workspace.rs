@@ -1,9 +1,10 @@
 use crate::{
+    entities::Workspace,
     models::{
         helpers::{Input, InputParameters},
         Message, Model, Router,
     },
-    router::{CreateWorkspaceParameters, ListWorkspacesParameters},
+    router::{GetWorkspaceParameters, UpdateWorkspaceParameters},
     Result,
 };
 use ratatui::{
@@ -12,11 +13,15 @@ use ratatui::{
     Frame,
 };
 
-pub struct NewWorkspaceModel {
+pub struct EditWorkspaceModel {
     active_input: WorkspaceProperty,
     location: Input,
     name: Input,
     redirect: Option<Router>,
+}
+
+pub struct EditWorkspaceModelParameters {
+    pub workspace: Workspace,
 }
 
 enum WorkspaceProperty {
@@ -24,7 +29,7 @@ enum WorkspaceProperty {
     Location,
 }
 
-impl Model for NewWorkspaceModel {
+impl Model for EditWorkspaceModel {
     fn redirect(&self) -> Option<&Router> {
         self.redirect.as_ref()
     }
@@ -55,7 +60,7 @@ impl Model for NewWorkspaceModel {
             ])
             .areas(frame.area());
 
-        let paragraph = Paragraph::new("New workspace").alignment(Alignment::Center);
+        let paragraph = Paragraph::new("Edit workspace").alignment(Alignment::Center);
         frame.render_widget(paragraph, header);
 
         let block = Block::default().borders(Borders::all()).title("Name");
@@ -83,9 +88,12 @@ impl Model for NewWorkspaceModel {
     }
 }
 
-impl NewWorkspaceModel {
+impl EditWorkspaceModel {
     fn back(&mut self) {
-        let route = Router::ListWorkspaces(ListWorkspacesParameters::default());
+        let route = Router::GetWorkspace(GetWorkspaceParameters {
+            number: 0,
+            commands_search_query: String::new(),
+        });
 
         self.redirect = Some(route);
     }
@@ -125,23 +133,25 @@ impl NewWorkspaceModel {
         }
     }
 
-    pub fn new() -> Self {
+    pub fn new(parameters: EditWorkspaceModelParameters) -> Self {
+        let EditWorkspaceModelParameters { workspace } = parameters;
+
         Self {
             name: Input::new(InputParameters {
-                value: String::new(),
+                value: workspace.name,
                 is_active: true,
             }),
             redirect: None,
             active_input: WorkspaceProperty::Name,
             location: Input::new(InputParameters {
-                value: String::new(),
+                value: workspace.location,
                 is_active: false,
             }),
         }
     }
 
     fn submit(&mut self) {
-        let route = Router::CreateWorkspace(CreateWorkspaceParameters {
+        let route = Router::UpdateWorkspace(UpdateWorkspaceParameters {
             name: self.name.value().to_string(),
             location: self.location.value().to_string(),
         });
