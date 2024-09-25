@@ -1,4 +1,3 @@
-mod command_palette;
 mod get_command;
 mod get_workspace;
 mod helpers;
@@ -13,7 +12,6 @@ use ratatui::{
     Frame,
 };
 
-pub use command_palette::{Action, CommandPaletteModel, CommandPaletteModelParameters};
 pub use get_command::{GetCommandModel, GetCommandModelParameters};
 pub use get_workspace::{GetWorkspaceModel, GetWorkspaceModelParameters};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};

@@ -6,14 +6,18 @@ use ratatui::{
 
 use crate::{
     entities::Command,
-    models::{command_palette::DELETE_COMMAND, Message, Model},
-    router::{CommandPaletteParameters, GetWorkspaceParameters, Router},
+    models::{
+        helpers::{CommandPalette, CommandPaletteParameters},
+        Message, Model,
+    },
+    router::{GetWorkspaceParameters, Router},
     Result,
 };
 
 pub struct GetCommandModel {
     command: Command,
     redirect: Option<Router>,
+    command_palette: CommandPalette,
 }
 
 pub struct GetCommandModelParameters {
@@ -28,7 +32,8 @@ impl Model for GetCommandModel {
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
             Message::Back => self.back(),
-            Message::ToggleCommandPalette => self.activate_command_palette(),
+            Message::ToggleCommandPalette => self.toggle_command_palette(),
+            Message::Submit => self.submit(),
             _ => {}
         }
 
@@ -48,16 +53,28 @@ impl Model for GetCommandModel {
         let paragraph = Paragraph::new(self.command.program.as_str()).block(block);
 
         frame.render_widget(paragraph, program);
+
+        if self.command_palette.is_active() {
+            self.command_palette.render(frame, frame.area());
+        }
     }
 }
 
 impl GetCommandModel {
-    fn activate_command_palette(&mut self) {
-        let route = Router::CommandPalette(CommandPaletteParameters {
-            actions: vec![DELETE_COMMAND.to_string()],
-        });
+    fn handle_command_palette_action(&mut self) {
+        use crate::models::helpers::CommandPaletteAction as CPA;
 
-        self.redirect = Some(route)
+        let Some(action) = self.command_palette.action() else {
+            return;
+        };
+
+        if let CPA::DeleteCommand = action {
+            self.redirect = Some(Router::DeleteCommand)
+        }
+    }
+
+    fn toggle_command_palette(&mut self) {
+        self.command_palette.toggle();
     }
 
     fn back(&mut self) {
@@ -69,12 +86,23 @@ impl GetCommandModel {
         self.redirect = Some(route)
     }
 
-    pub fn new(parameters: GetCommandModelParameters) -> Self {
+    pub fn new(parameters: GetCommandModelParameters) -> Result<Self> {
+        use crate::models::helpers::CommandPaletteAction as CPA;
+
         let GetCommandModelParameters { command } = parameters;
 
-        Self {
+        Ok(Self {
             command,
             redirect: None,
+            command_palette: CommandPalette::new(CommandPaletteParameters {
+                actions: vec![CPA::DeleteCommand],
+            })?,
+        })
+    }
+
+    fn submit(&mut self) {
+        if self.command_palette.is_active() {
+            self.handle_command_palette_action();
         }
     }
 }

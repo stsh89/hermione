@@ -48,7 +48,9 @@ impl CommandPalette {
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let block = Block::bordered().title("Command palette").padding(Padding::proportional(1));
+        let block = Block::bordered()
+            .title("Command palette")
+            .padding(Padding::proportional(1));
 
         let items: Vec<ListItem> = self.actions.iter().map(ListItem::from).collect();
 

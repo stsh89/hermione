@@ -95,9 +95,11 @@ impl ListWorkspacesModel {
     fn back(&mut self) {
         if self.command_palette.is_active() {
             self.command_palette.toggle();
-        } else {
-            self.is_running = false;
+
+            return;
         }
+
+        self.is_running = false;
     }
 
     fn handle_command_palette_action(&mut self) {
@@ -107,9 +109,8 @@ impl ListWorkspacesModel {
             return;
         };
 
-        match action {
-            CPA::NewWorkspace => self.redirect = Some(Router::NewWorkspace),
-            _ => {}
+        if let CPA::NewWorkspace = action {
+            self.redirect = Some(Router::NewWorkspace)
         }
     }
 
@@ -144,7 +145,7 @@ impl ListWorkspacesModel {
         if self.command_palette.is_active() {
             self.handle_command_palette_action();
 
-            return
+            return;
         }
 
         let maybe_workspace = self

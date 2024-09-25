@@ -1,14 +1,11 @@
 mod handlers;
 
 use crate::{
-    clients::{self, organizer},
-    models::{
-        GetWorkspaceModel, GetWorkspaceModelParameters, ListWorkspacesModel,
-        ListWorkspacesModelParameters, Model,
-    },
+    clients,
+    models::Model,
     router::{
-        CommandPaletteParameters, CreateCommandParameters, CreateWorkspaceParameters,
-        GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router,
+        CreateCommandParameters, CreateWorkspaceParameters, GetCommandParameters,
+        GetWorkspaceParameters, ListWorkspacesParameters, Router,
     },
     Result,
 };
@@ -25,16 +22,6 @@ pub struct AppParameters {
 }
 
 impl App {
-    fn command_palette(&self, parameters: CommandPaletteParameters) -> Result<Box<dyn Model>> {
-        let model = handlers::command_palette::Handler {
-            parameters,
-            route: self.route.clone(),
-        }
-        .handle()?;
-
-        Ok(Box::new(model))
-    }
-
     fn create_command(&mut self, parameters: CreateCommandParameters) -> Result<Box<dyn Model>> {
         let model = handlers::create_command::Handler {
             organizer: &mut self.organizer,
@@ -120,7 +107,6 @@ impl App {
 
     fn handle(&mut self, route: Router) -> Result<()> {
         let model: Box<dyn Model> = match route.clone() {
-            Router::CommandPalette(parameters) => self.command_palette(parameters)?,
             Router::CreateCommand(parameters) => self.create_command(parameters)?,
             Router::CreateWorkspace(parameters) => self.create_workspace(parameters)?,
             Router::DeleteCommand => self.delete_command()?,

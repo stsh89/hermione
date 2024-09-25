@@ -17,10 +17,7 @@ impl<'a> Handler<'a> {
         let filter = search_query.to_lowercase();
 
         if !filter.is_empty() {
-            workspaces = workspaces
-                .into_iter()
-                .filter(|w| w.name.to_lowercase().contains(&filter))
-                .collect();
+            workspaces.retain(|w| w.name.to_lowercase().contains(&filter));
         }
 
         ListWorkspacesModel::new(ListWorkspacesModelParameters {

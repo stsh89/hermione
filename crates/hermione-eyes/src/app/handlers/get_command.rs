@@ -1,8 +1,6 @@
 use crate::{
     clients,
-    models::{
-        GetCommandModel, GetCommandModelParameters, GetWorkspaceModel, GetWorkspaceModelParameters,
-    },
+    models::{GetCommandModel, GetCommandModelParameters},
     router::GetCommandParameters,
     Result,
 };
@@ -20,8 +18,6 @@ impl<'a> Handler<'a> {
 
         self.organizer.promote_command(0, command.number)?;
 
-        let model = GetCommandModel::new(GetCommandModelParameters { command });
-
-        Ok(model)
+        GetCommandModel::new(GetCommandModelParameters { command })
     }
 }

@@ -1,4 +1,3 @@
-pub mod command_palette;
 pub mod create_command;
 pub mod create_workspace;
 pub mod delete_command;

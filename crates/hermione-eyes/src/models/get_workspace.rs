@@ -7,14 +7,10 @@ use ratatui::{
 use crate::{
     entities::Workspace,
     models::{
-        command_palette::{DELETE_WORKSPACE, NEW_COMMAND},
-        helpers::{Input, InputParameters},
+        helpers::{CommandPalette, CommandPaletteParameters, Input, InputParameters},
         highlight_style, Message, Model,
     },
-    router::{
-        CommandPaletteParameters, GetCommandParameters, GetWorkspaceParameters,
-        ListWorkspacesParameters, Router,
-    },
+    router::{GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router},
     Result,
 };
 
@@ -23,6 +19,7 @@ pub struct GetWorkspaceModel {
     redirect: Option<Router>,
     search: Input,
     commands_state: ListState,
+    command_palette: CommandPalette,
 }
 
 pub struct GetWorkspaceModelParameters {
@@ -37,7 +34,7 @@ impl Model for GetWorkspaceModel {
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::ToggleCommandPalette => self.activate_command_palette(),
+            Message::ToggleCommandPalette => self.toggle_command_palette(),
             Message::Back => self.back(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
@@ -83,34 +80,65 @@ impl Model for GetWorkspaceModel {
             .highlight_style(highlight_style());
 
         frame.render_stateful_widget(list, commands, &mut self.commands_state);
+
+        if self.command_palette.is_active() {
+            self.command_palette.render(frame, frame.area());
+        }
     }
 }
 
 impl GetWorkspaceModel {
-    pub fn new(parameters: GetWorkspaceModelParameters) -> Self {
+    fn handle_command_palette_action(&mut self) {
+        use crate::models::helpers::CommandPaletteAction as CPA;
+
+        let Some(action) = self.command_palette.action() else {
+            return;
+        };
+
+        match action {
+            CPA::DeleteWorkspace => self.redirect = Some(Router::DeleteWorkspace),
+            CPA::NewCommand => self.redirect = Some(Router::NewCommand),
+            _ => {}
+        }
+    }
+
+    pub fn new(parameters: GetWorkspaceModelParameters) -> Result<Self> {
+        use crate::models::helpers::CommandPaletteAction as CPA;
+
         let GetWorkspaceModelParameters {
             workspace,
             commands_search_query,
         } = parameters;
 
-        let mut model = Self {
+        let mut commands_state = ListState::default();
+
+        if !workspace.commands.is_empty() {
+            commands_state.select_first();
+        }
+
+        let model = Self {
             workspace,
             redirect: None,
             search: Input::new(InputParameters {
                 value: commands_search_query,
                 is_active: true,
             }),
-            commands_state: ListState::default(),
+            commands_state,
+            command_palette: CommandPalette::new(CommandPaletteParameters {
+                actions: vec![CPA::NewCommand, CPA::DeleteWorkspace],
+            })?,
         };
 
-        if !model.workspace.commands.is_empty() {
-            model.commands_state.select_first();
-        }
-
-        model
+        Ok(model)
     }
 
     fn back(&mut self) {
+        if self.command_palette.is_active() {
+            self.command_palette.toggle();
+
+            return;
+        }
+
         let route = Router::ListWorkspaces(ListWorkspacesParameters {
             search_query: String::new(),
         });
@@ -118,7 +146,29 @@ impl GetWorkspaceModel {
         self.redirect = Some(route)
     }
 
+    fn select_next(&mut self) {
+        if self.command_palette.is_active() {
+            self.command_palette.select_next();
+        } else {
+            self.commands_state.select_next();
+        }
+    }
+
+    fn select_previous(&mut self) {
+        if self.command_palette.is_active() {
+            self.command_palette.select_previous();
+        } else {
+            self.commands_state.select_previous();
+        }
+    }
+
     fn submit(&mut self) {
+        if self.command_palette.is_active() {
+            self.handle_command_palette_action();
+
+            return;
+        }
+
         let Some(command) = self
             .commands_state
             .selected()
@@ -130,14 +180,6 @@ impl GetWorkspaceModel {
         self.redirect = Some(Router::GetCommand(GetCommandParameters {
             number: command.number,
         }));
-    }
-
-    fn select_next(&mut self) {
-        self.commands_state.select_next();
-    }
-
-    fn select_previous(&mut self) {
-        self.commands_state.select_previous();
     }
 
     fn enter_char(&mut self, c: char) {
@@ -179,11 +221,7 @@ impl GetWorkspaceModel {
         self.search.move_cursor_right();
     }
 
-    fn activate_command_palette(&mut self) {
-        let route = Router::CommandPalette(CommandPaletteParameters {
-            actions: vec![NEW_COMMAND.to_string(), DELETE_WORKSPACE.to_string()],
-        });
-
-        self.redirect = Some(route)
+    fn toggle_command_palette(&mut self) {
+        self.command_palette.toggle();
     }
 }

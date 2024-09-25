@@ -38,11 +38,9 @@ impl<'a> Handler<'a> {
 
         self.organizer.promote_workspace(workspace.number)?;
 
-        let model = GetWorkspaceModel::new(GetWorkspaceModelParameters {
+        GetWorkspaceModel::new(GetWorkspaceModelParameters {
             workspace,
             commands_search_query,
-        });
-
-        Ok(model)
+        })
     }
 }

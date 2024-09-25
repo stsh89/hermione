@@ -26,9 +26,6 @@ pub enum Router {
 
     /// Create command
     CreateCommand(CreateCommandParameters),
-
-    /// Command palette
-    CommandPalette(CommandPaletteParameters),
 }
 
 #[derive(Clone)]
@@ -45,11 +42,6 @@ pub struct CreateCommandParameters {
 #[derive(Clone, Default)]
 pub struct ListWorkspacesParameters {
     pub search_query: String,
-}
-
-#[derive(Clone)]
-pub struct CommandPaletteParameters {
-    pub actions: Vec<String>,
 }
 
 #[derive(Clone)]

@@ -21,11 +21,9 @@ impl<'a> Handler<'a> {
 
         let workspace = self.organizer.get_workspace(0)?;
 
-        let model = GetWorkspaceModel::new(GetWorkspaceModelParameters {
+        GetWorkspaceModel::new(GetWorkspaceModelParameters {
             workspace,
             commands_search_query: String::new(),
-        });
-
-        Ok(model)
+        })
     }
 }
