@@ -41,7 +41,7 @@ pub trait Model {
 }
 
 pub enum Message {
-    ActivateCommandPalette,
+    ToggleCommandPalette,
     Back,
     DeleteAllChars,
     DeleteChar,
@@ -50,7 +50,7 @@ pub enum Message {
     MoveCusorRight,
     SelectNext,
     SelectPrevious,
-    Sumbit,
+    Submit,
     ToggleFocus,
 }
 
@@ -91,7 +91,7 @@ impl TryFrom<KeyEvent> for Message {
             KeyCode::Up => Message::SelectPrevious,
             KeyCode::Down => Message::SelectNext,
             KeyCode::Esc => Message::Back,
-            KeyCode::Enter => Message::Sumbit,
+            KeyCode::Enter => Message::Submit,
             KeyCode::Left => Message::MoveCusorLeft,
             KeyCode::Right => Message::MoveCusorRight,
             KeyCode::Backspace => match key_event.modifiers {
@@ -100,7 +100,7 @@ impl TryFrom<KeyEvent> for Message {
             },
             KeyCode::Char(c) => match key_event.modifiers {
                 KeyModifiers::CONTROL => match c {
-                    'k' => Message::ActivateCommandPalette,
+                    'k' => Message::ToggleCommandPalette,
                     _ => {
                         return Err(anyhow::anyhow!(
                             "Unsupported key code: {:?}",

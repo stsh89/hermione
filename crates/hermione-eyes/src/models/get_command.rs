@@ -28,7 +28,7 @@ impl Model for GetCommandModel {
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
             Message::Back => self.back(),
-            Message::ActivateCommandPalette => self.activate_command_palette(),
+            Message::ToggleCommandPalette => self.activate_command_palette(),
             _ => {}
         }
 

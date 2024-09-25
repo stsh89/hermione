@@ -2,6 +2,7 @@ use crate::{
     clients,
     models::{ListWorkspacesModel, ListWorkspacesModelParameters},
     router::ListWorkspacesParameters,
+    Result,
 };
 
 pub struct Handler<'a> {
@@ -10,7 +11,7 @@ pub struct Handler<'a> {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self) -> ListWorkspacesModel {
+    pub fn handle(self) -> Result<ListWorkspacesModel> {
         let ListWorkspacesParameters { search_query } = self.parameters;
         let mut workspaces = self.organizer.list_workspaces();
         let filter = search_query.to_lowercase();

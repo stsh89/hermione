@@ -27,7 +27,7 @@ impl Model for NewWorkspaceModel {
             Message::EnterChar(c) => self.enter_char(c),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
-            Message::Sumbit => self.submit(),
+            Message::Submit => self.submit(),
             _ => {}
         }
 

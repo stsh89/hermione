@@ -108,14 +108,14 @@ impl App {
         Box::new(model)
     }
 
-    fn list_workspaces(&self, parameters: ListWorkspacesParameters) -> Box<dyn Model> {
+    fn list_workspaces(&self, parameters: ListWorkspacesParameters) -> Result<Box<dyn Model>> {
         let model = handlers::list_workspaces::Handler {
             organizer: &self.organizer,
             parameters,
         }
-        .handle();
+        .handle()?;
 
-        Box::new(model)
+        Ok(Box::new(model))
     }
 
     fn handle(&mut self, route: Router) -> Result<()> {
@@ -127,7 +127,7 @@ impl App {
             Router::DeleteWorkspace => self.delete_workspace()?,
             Router::GetCommand(parameters) => self.get_command(parameters)?,
             Router::GetWorkspace(parameters) => self.get_workspace(parameters)?,
-            Router::ListWorkspaces(parameters) => self.list_workspaces(parameters),
+            Router::ListWorkspaces(parameters) => self.list_workspaces(parameters)?,
             Router::NewCommand => self.new_command(),
             Router::NewWorkspace => self.new_workspace(),
         };

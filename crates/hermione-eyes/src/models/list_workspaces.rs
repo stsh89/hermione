@@ -1,11 +1,10 @@
 use crate::{
     entities::Workspace,
     models::{
-        command_palette::NEW_WORKSPACE,
-        helpers::{Input, InputParameters},
+        helpers::{self, Input, InputParameters},
         highlight_style, Message, Model,
     },
-    router::{CommandPaletteParameters, GetWorkspaceParameters, ListWorkspacesParameters, Router},
+    router::{GetWorkspaceParameters, ListWorkspacesParameters, Router},
     Result,
 };
 use ratatui::{
@@ -20,6 +19,7 @@ pub struct ListWorkspacesModel {
     search: Input,
     workspaces_state: ListState,
     workspaces: Vec<Workspace>,
+    command_palette: helpers::CommandPalette,
 }
 
 pub struct ListWorkspacesModelParameters {
@@ -38,16 +38,16 @@ impl Model for ListWorkspacesModel {
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::ActivateCommandPalette => self.activate_command_palette(),
+            Message::ToggleCommandPalette => self.toggle_command_palette(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
-            Message::Back => self.exit(),
+            Message::Back => self.back(),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::SelectNext => self.select_next(),
             Message::SelectPrevious => self.select_previous(),
-            Message::Sumbit => self.submit(),
+            Message::Submit => self.submit(),
             _ => {}
         }
 
@@ -84,15 +84,36 @@ impl Model for ListWorkspacesModel {
             .highlight_style(highlight_style());
 
         frame.render_stateful_widget(list, commands, &mut self.workspaces_state);
+
+        if self.command_palette.is_active() {
+            self.command_palette.render(frame, frame.area());
+        }
     }
 }
 
 impl ListWorkspacesModel {
-    fn exit(&mut self) {
-        self.is_running = false;
+    fn back(&mut self) {
+        if self.command_palette.is_active() {
+            self.command_palette.toggle();
+        } else {
+            self.is_running = false;
+        }
     }
 
-    pub fn new(parameters: ListWorkspacesModelParameters) -> Self {
+    fn handle_command_palette_action(&mut self) {
+        use helpers::CommandPaletteAction as CPA;
+
+        let Some(action) = self.command_palette.action() else {
+            return;
+        };
+
+        match action {
+            CPA::NewWorkspace => self.redirect = Some(Router::NewWorkspace),
+            _ => {}
+        }
+    }
+
+    pub fn new(parameters: ListWorkspacesModelParameters) -> Result<Self> {
         let ListWorkspacesModelParameters {
             workspaces,
             search_query,
@@ -107,16 +128,25 @@ impl ListWorkspacesModel {
                 is_active: true,
             }),
             is_running: true,
+            command_palette: helpers::CommandPalette::new(helpers::CommandPaletteParameters {
+                actions: vec![helpers::CommandPaletteAction::NewWorkspace],
+            })?,
         };
 
         if !model.workspaces.is_empty() {
             model.workspaces_state.select_first();
         }
 
-        model
+        Ok(model)
     }
 
     fn submit(&mut self) {
+        if self.command_palette.is_active() {
+            self.handle_command_palette_action();
+
+            return
+        }
+
         let maybe_workspace = self
             .workspaces_state
             .selected()
@@ -135,11 +165,19 @@ impl ListWorkspacesModel {
     }
 
     fn select_next(&mut self) {
-        self.workspaces_state.select_next();
+        if self.command_palette.is_active() {
+            self.command_palette.select_next();
+        } else {
+            self.workspaces_state.select_next();
+        }
     }
 
     fn select_previous(&mut self) {
-        self.workspaces_state.select_previous();
+        if self.command_palette.is_active() {
+            self.command_palette.select_previous();
+        } else {
+            self.workspaces_state.select_previous();
+        }
     }
 
     fn enter_char(&mut self, c: char) {
@@ -178,11 +216,7 @@ impl ListWorkspacesModel {
         self.search.move_cursor_right();
     }
 
-    fn activate_command_palette(&mut self) {
-        let route = Router::CommandPalette(CommandPaletteParameters {
-            actions: vec![NEW_WORKSPACE.to_string()],
-        });
-
-        self.redirect = Some(route)
+    fn toggle_command_palette(&mut self) {
+        self.command_palette.toggle();
     }
 }

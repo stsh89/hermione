@@ -37,7 +37,7 @@ impl Model for GetWorkspaceModel {
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::ActivateCommandPalette => self.activate_command_palette(),
+            Message::ToggleCommandPalette => self.activate_command_palette(),
             Message::Back => self.back(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
@@ -46,7 +46,7 @@ impl Model for GetWorkspaceModel {
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::SelectNext => self.select_next(),
             Message::SelectPrevious => self.select_previous(),
-            Message::Sumbit => self.submit(),
+            Message::Submit => self.submit(),
             _ => {}
         }
 

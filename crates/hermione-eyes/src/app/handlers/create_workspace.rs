@@ -20,7 +20,7 @@ impl<'a> Handler<'a> {
         let model = ListWorkspacesModel::new(ListWorkspacesModelParameters {
             workspaces,
             search_query: String::new(),
-        });
+        })?;
 
         Ok(model)
     }

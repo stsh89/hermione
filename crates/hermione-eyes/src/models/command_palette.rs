@@ -43,7 +43,7 @@ impl Model for CommandPaletteModel {
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::SelectNext => self.select_next(),
             Message::SelectPrevious => self.select_previous(),
-            Message::Sumbit => self.sumbit(),
+            Message::Submit => self.sumbit(),
             _ => {}
         }
 
