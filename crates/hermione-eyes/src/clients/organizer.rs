@@ -2,7 +2,7 @@ use crate::{
     entities::{Command as CommandEntity, Workspace as WorkspaceEntity},
     Result,
 };
-use hermione_memory::{
+use hermione_memories::{
     Command, CommandParameters as HermioneCommandParameters, LoadOrganizer, Location,
     NewWorkspaceParameters, Organizer, SaveOrganizer, Workspace, WorkspaceName,
 };
@@ -168,7 +168,7 @@ fn from_command(value: &Command) -> CommandEntity {
 }
 
 mod inner {
-    use hermione_memory::{
+    use hermione_memories::{
         Command, CommandParameters, Error, Load, Location, NewWorkspaceParameters, Organizer, Save,
         Workspace,
     };

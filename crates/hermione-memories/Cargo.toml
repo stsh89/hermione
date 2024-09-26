@@ -1,10 +1,10 @@
 [package]
-name = "hermione-memory"
+name = "hermione-memories"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "hermione_memory"
+name = "hermione_memories"
 
 [dependencies]
 thiserror = {workspace = true}

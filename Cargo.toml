@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "crates/hermione-memory", "crates/hermione-eyes"]
+members = [ "crates/hermione-memories", "crates/hermione-eyes"]
 
 [workspace.dependencies]
 anyhow = "1.0.89"
@@ -11,4 +11,4 @@ serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
 thiserror = "1.0.63"
 
-hermione-memory = { path = "crates/hermione-memory" }
+hermione-memories = { path = "crates/hermione-memories" }

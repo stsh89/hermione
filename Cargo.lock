@@ -179,14 +179,14 @@ dependencies = [
  "anyhow",
  "dirs",
  "eyre",
- "hermione-memory",
+ "hermione-memories",
  "ratatui",
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "hermione-memory"
+name = "hermione-memories"
 version = "0.1.0"
 dependencies = [
  "eyre",
