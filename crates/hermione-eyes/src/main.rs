@@ -7,7 +7,7 @@ mod router;
 mod settings;
 mod tui;
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use app::{App, AppParameters};
 use settings::Settings;
 
@@ -18,7 +18,7 @@ fn main() -> Result<()> {
     logs::init(settings.logs_path()?.as_str())?;
 
     let terminal = tui::init_terminal()?;
-    let organizer = clients::organizer::Client::new(settings.organizer_path()?)?;
+    let organizer = clients::organizer::Client::new(settings.organizer_path()?);
     let app = App::new(AppParameters { organizer })?;
 
     app.run(terminal)?;

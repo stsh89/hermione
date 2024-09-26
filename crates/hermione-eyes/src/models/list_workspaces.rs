@@ -158,8 +158,8 @@ impl ListWorkspacesModel {
         };
 
         let route = Router::GetWorkspace(GetWorkspaceParameters {
-            number: workspace.number,
             commands_search_query: String::new(),
+            id: workspace.id().to_string(),
         });
 
         self.redirect = Some(route);

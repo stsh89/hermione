@@ -4,6 +4,7 @@ members = [ "crates/hermione-memories", "crates/hermione-eyes"]
 
 [workspace.dependencies]
 anyhow = "1.0.89"
+chrono = "0.4.38"
 dirs = "5.0.1"
 eyre = "0.6.12"
 ratatui = "0.28.1"
@@ -12,5 +13,6 @@ serde_json = "1.0.128"
 thiserror = "1.0.63"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
+uuid = "1.10.0"
 
 hermione-memories = { path = "crates/hermione-memories" }

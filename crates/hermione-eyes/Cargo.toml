@@ -6,6 +6,7 @@ default-run = "hermione-eyes"
 
 [dependencies]
 anyhow = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
 dirs = { workspace = true }
 eyre = { workspace = true }
 ratatui = { workspace = true }

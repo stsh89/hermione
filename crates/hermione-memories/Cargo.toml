@@ -7,5 +7,7 @@ edition = "2021"
 name = "hermione_memories"
 
 [dependencies]
-thiserror = {workspace = true}
+chrono = {workspace = true}
 eyre = {workspace = true}
+thiserror = {workspace = true}
+uuid = { workspace = true, features = ["v4"] }

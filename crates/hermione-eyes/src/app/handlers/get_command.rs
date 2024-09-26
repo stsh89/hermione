@@ -7,14 +7,16 @@ use crate::{
 
 pub struct Handler<'a> {
     pub organizer: &'a mut clients::organizer::Client,
-    pub parameters: GetCommandParameters,
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self) -> Result<GetCommandModel> {
-        let GetCommandParameters { number } = self.parameters;
+    pub fn handle(self, parameters: GetCommandParameters) -> Result<GetCommandModel> {
+        let GetCommandParameters {
+            workspace_id,
+            command_id,
+        } = parameters;
 
-        let command = self.organizer.get_command(0, number)?;
+        let command = self.organizer.get_command(&workspace_id, &command_id)?;
 
         GetCommandModel::new(GetCommandModelParameters { command })
     }

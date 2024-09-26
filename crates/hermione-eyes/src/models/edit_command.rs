@@ -14,6 +14,7 @@ use ratatui::{
 };
 
 pub struct EditCommandModel {
+    command: Command,
     active_input: CommandProperty,
     name: Input,
     program: Input,
@@ -90,7 +91,10 @@ impl Model for EditCommandModel {
 
 impl EditCommandModel {
     fn back(&mut self) {
-        let route = Router::GetCommand(GetCommandParameters { number: 0 });
+        let route = Router::GetCommand(GetCommandParameters {
+            workspace_id: self.command.workspace_id.clone(),
+            command_id: self.command.id().to_string(),
+        });
 
         self.redirect = Some(route);
     }
@@ -133,23 +137,18 @@ impl EditCommandModel {
     pub fn new(parameters: EditCommandModelParameters) -> Self {
         let EditCommandModelParameters { command } = parameters;
 
-        let Command {
-            number: _,
-            name,
-            program,
-        } = command;
-
         Self {
             name: Input::new(InputParameters {
-                value: name,
+                value: command.name.clone(),
                 is_active: true,
             }),
             redirect: None,
             active_input: CommandProperty::Name,
             program: Input::new(InputParameters {
-                value: program,
+                value: command.program.clone(),
                 is_active: false,
             }),
+            command,
         }
     }
 
@@ -157,6 +156,8 @@ impl EditCommandModel {
         let route = Router::UpdateCommand(UpdateCommandParameters {
             name: self.name.value().to_string(),
             program: self.program.value().to_string(),
+            workspace_id: self.command.workspace_id.clone(),
+            command_id: self.command.id().to_string(),
         });
 
         self.redirect = Some(route);

@@ -8,17 +8,16 @@ use crate::{
 
 pub struct Handler<'a> {
     pub organizer: &'a mut clients::organizer::Client,
-    pub parameters: GetWorkspaceParameters,
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self) -> Result<GetWorkspaceModel> {
+    pub fn handle(self, parameters: GetWorkspaceParameters) -> Result<GetWorkspaceModel> {
         let GetWorkspaceParameters {
-            number,
+            id,
             commands_search_query,
-        } = self.parameters;
+        } = parameters;
 
-        let workspace = self.organizer.get_workspace(number)?;
+        let workspace = self.organizer.get_workspace(&id)?;
         let filter = commands_search_query.to_lowercase();
 
         let commands = if !filter.is_empty() {

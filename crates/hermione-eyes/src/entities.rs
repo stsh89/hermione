@@ -1,16 +1,29 @@
 use ratatui::widgets::ListItem;
 
 pub struct Workspace {
-    pub number: usize,
-    pub name: String,
     pub commands: Vec<Command>,
+    pub id: Option<String>,
     pub location: String,
+    pub name: String,
 }
 
 pub struct Command {
-    pub number: usize,
+    pub workspace_id: String,
+    pub id: Option<String>,
     pub name: String,
     pub program: String,
+}
+
+impl Workspace {
+    pub fn id(&self) -> &str {
+        self.id.as_deref().unwrap_or_default()
+    }
+}
+
+impl Command {
+    pub fn id(&self) -> &str {
+        self.id.as_deref().unwrap_or_default()
+    }
 }
 
 impl<'a> From<&Workspace> for ListItem<'a> {

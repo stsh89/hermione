@@ -6,14 +6,13 @@ use crate::{
 };
 
 pub struct Handler<'a> {
-    pub parameters: ListWorkspacesParameters,
     pub organizer: &'a clients::organizer::Client,
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self) -> Result<ListWorkspacesModel> {
-        let ListWorkspacesParameters { search_query } = self.parameters;
-        let mut workspaces = self.organizer.list_workspaces();
+    pub fn handle(self, parameters: ListWorkspacesParameters) -> Result<ListWorkspacesModel> {
+        let ListWorkspacesParameters { search_query } = parameters;
+        let mut workspaces = self.organizer.list_workspaces()?;
         let filter = search_query.to_lowercase();
 
         if !filter.is_empty() {

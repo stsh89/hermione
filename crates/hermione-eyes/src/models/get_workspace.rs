@@ -11,8 +11,9 @@ use crate::{
         highlight_style, Message, Model,
     },
     router::{
-        ExecuteCommandParameters, GetCommandParameters, GetWorkspaceParameters,
-        ListWorkspacesParameters, Router,
+        DeleteWorkspaceParameters, EditWorkspaceParameters, ExecuteCommandParameters,
+        GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters,
+        NewCommandParameters, Router,
     },
     Result,
 };
@@ -107,7 +108,8 @@ impl GetWorkspaceModel {
         };
 
         self.redirect = Some(Router::ExecuteCommand(ExecuteCommandParameters {
-            number: command.number,
+            command_id: command.id().to_string(),
+            workspace_id: self.workspace.id().to_string(),
         }));
     }
 
@@ -119,12 +121,24 @@ impl GetWorkspaceModel {
         };
 
         match action {
-            CPA::DeleteWorkspace => self.redirect = Some(Router::DeleteWorkspace),
-            CPA::NewCommand => self.redirect = Some(Router::NewCommand),
+            CPA::DeleteWorkspace => {
+                self.redirect = Some(Router::DeleteWorkspace(DeleteWorkspaceParameters {
+                    id: self.workspace.id().to_string(),
+                }))
+            }
+            CPA::NewCommand => {
+                self.redirect = Some(Router::NewCommand(NewCommandParameters {
+                    workspace_id: self.workspace.id().to_string(),
+                }))
+            }
             CPA::ListWorkspaces => {
                 self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters::default()))
             }
-            CPA::EditWorkspace => self.redirect = Some(Router::EditWorkspace),
+            CPA::EditWorkspace => {
+                self.redirect = Some(Router::EditWorkspace(EditWorkspaceParameters {
+                    id: self.workspace.id().to_string(),
+                }))
+            }
             _ => {}
         }
     }
@@ -207,7 +221,8 @@ impl GetWorkspaceModel {
         };
 
         self.redirect = Some(Router::GetCommand(GetCommandParameters {
-            number: command.number,
+            workspace_id: self.workspace.id().to_string(),
+            command_id: command.id().to_string(),
         }));
     }
 
@@ -216,7 +231,7 @@ impl GetWorkspaceModel {
 
         self.redirect = Some(Router::GetWorkspace(GetWorkspaceParameters {
             commands_search_query: self.search_query(),
-            number: self.workspace.number,
+            id: self.workspace.id().to_string(),
         }));
     }
 
@@ -229,7 +244,7 @@ impl GetWorkspaceModel {
 
         self.redirect = Some(Router::GetWorkspace(GetWorkspaceParameters {
             commands_search_query: self.search_query(),
-            number: self.workspace.number,
+            id: self.workspace.id().to_string(),
         }));
     }
 
@@ -238,7 +253,7 @@ impl GetWorkspaceModel {
 
         self.redirect = Some(Router::GetWorkspace(GetWorkspaceParameters {
             commands_search_query: self.search_query(),
-            number: self.workspace.number,
+            id: self.workspace.id().to_string(),
         }));
     }
 

@@ -1,4 +1,5 @@
 use crate::{
+    entities::Workspace,
     models::{
         helpers::{Input, InputParameters},
         Message, Model, Router,
@@ -13,10 +14,15 @@ use ratatui::{
 };
 
 pub struct NewCommandModel {
+    workspace: Workspace,
     name: Input,
     program: Input,
     redirect: Option<Router>,
     active_input: CommandProperty,
+}
+
+pub struct NewCommandModelParameters {
+    pub workspace: Workspace,
 }
 
 enum CommandProperty {
@@ -86,15 +92,18 @@ impl Model for NewCommandModel {
 impl NewCommandModel {
     fn back(&mut self) {
         let route = Router::GetWorkspace(GetWorkspaceParameters {
-            number: 0,
+            id: self.workspace.id().to_string(),
             commands_search_query: String::new(),
         });
 
         self.redirect = Some(route);
     }
 
-    pub fn new() -> Self {
+    pub fn new(parameters: NewCommandModelParameters) -> Self {
+        let NewCommandModelParameters { workspace } = parameters;
+
         Self {
+            workspace,
             name: Input::new(InputParameters {
                 value: String::new(),
                 is_active: true,
@@ -163,6 +172,7 @@ impl NewCommandModel {
 
     fn submit(&mut self) {
         let route = Router::CreateCommand(CreateCommandParameters {
+            workspace_id: self.workspace.id().to_string(),
             name: self.name.value().to_string(),
             program: self.program.value().to_string(),
         });

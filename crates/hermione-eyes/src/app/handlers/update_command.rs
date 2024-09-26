@@ -1,28 +1,32 @@
 use crate::{
-    clients::{self, organizer::CommandParameters},
+    clients,
+    entities::Command,
     models::{GetCommandModel, GetCommandModelParameters},
     router::UpdateCommandParameters,
     Result,
 };
 
 pub struct Handler<'a> {
-    pub organizer: &'a mut clients::organizer::Client,
-    pub parameters: UpdateCommandParameters,
+    pub organizer: &'a clients::organizer::Client,
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self) -> Result<GetCommandModel> {
-        let UpdateCommandParameters { name, program } = self.parameters;
-        self.organizer.update_command(
-            0,
-            CommandParameters {
-                workspace_number: 0,
-                name,
-                program,
-            },
-        )?;
+    pub fn handle(self, parameters: UpdateCommandParameters) -> Result<GetCommandModel> {
+        let UpdateCommandParameters {
+            command_id,
+            workspace_id,
+            name,
+            program,
+        } = parameters;
 
-        let command = self.organizer.get_command(0, 0)?;
+        let command = Command {
+            workspace_id,
+            id: Some(command_id.clone()),
+            name,
+            program,
+        };
+
+        self.organizer.update_command(&command)?;
 
         let model = GetCommandModel::new(GetCommandModelParameters { command })?;
 

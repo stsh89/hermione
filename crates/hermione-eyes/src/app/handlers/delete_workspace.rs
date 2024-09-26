@@ -1,6 +1,7 @@
 use crate::{
     clients,
     models::{ListWorkspacesModel, ListWorkspacesModelParameters},
+    router::DeleteWorkspaceParameters,
     Result,
 };
 
@@ -9,9 +10,11 @@ pub struct Handler<'a> {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self) -> Result<ListWorkspacesModel> {
-        self.organizer.delete_workspace(0)?;
-        let workspaces = self.organizer.list_workspaces();
+    pub fn handle(self, parameters: DeleteWorkspaceParameters) -> Result<ListWorkspacesModel> {
+        let DeleteWorkspaceParameters { id } = parameters;
+
+        self.organizer.delete_workspace(&id)?;
+        let workspaces = self.organizer.list_workspaces()?;
 
         let model = ListWorkspacesModel::new(ListWorkspacesModelParameters {
             workspaces,

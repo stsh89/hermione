@@ -14,6 +14,7 @@ use ratatui::{
 };
 
 pub struct EditWorkspaceModel {
+    workspace: Workspace,
     active_input: WorkspaceProperty,
     location: Input,
     name: Input,
@@ -91,8 +92,8 @@ impl Model for EditWorkspaceModel {
 impl EditWorkspaceModel {
     fn back(&mut self) {
         let route = Router::GetWorkspace(GetWorkspaceParameters {
-            number: 0,
             commands_search_query: String::new(),
+            id: self.workspace.id().to_string(),
         });
 
         self.redirect = Some(route);
@@ -138,15 +139,16 @@ impl EditWorkspaceModel {
 
         Self {
             name: Input::new(InputParameters {
-                value: workspace.name,
+                value: workspace.name.clone(),
                 is_active: true,
             }),
             redirect: None,
             active_input: WorkspaceProperty::Name,
             location: Input::new(InputParameters {
-                value: workspace.location,
+                value: workspace.location.clone(),
                 is_active: false,
             }),
+            workspace,
         }
     }
 
@@ -154,6 +156,7 @@ impl EditWorkspaceModel {
         let route = Router::UpdateWorkspace(UpdateWorkspaceParameters {
             name: self.name.value().to_string(),
             location: self.location.value().to_string(),
+            id: self.workspace.id().to_string(),
         });
 
         self.redirect = Some(route);

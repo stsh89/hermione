@@ -10,7 +10,7 @@ use crate::{
         helpers::{CommandPalette, CommandPaletteParameters},
         Message, Model,
     },
-    router::{GetWorkspaceParameters, Router},
+    router::{DeleteCommandParameters, EditCommandParameters, GetWorkspaceParameters, Router},
     Result,
 };
 
@@ -71,8 +71,18 @@ impl GetCommandModel {
         };
 
         match action {
-            CPA::DeleteCommand => self.redirect = Some(Router::DeleteCommand),
-            CPA::EditCommand => self.redirect = Some(Router::EditCommand),
+            CPA::DeleteCommand => {
+                self.redirect = Some(Router::DeleteCommand(DeleteCommandParameters {
+                    workspace_id: self.command.workspace_id.clone(),
+                    command_id: self.command.id().to_string(),
+                }))
+            }
+            CPA::EditCommand => {
+                self.redirect = Some(Router::EditCommand(EditCommandParameters {
+                    workspace_id: self.command.workspace_id.clone(),
+                    command_id: self.command.id().to_string(),
+                }))
+            }
             _ => {}
         }
     }
@@ -83,8 +93,8 @@ impl GetCommandModel {
 
     fn back(&mut self) {
         let route = Router::GetWorkspace(GetWorkspaceParameters {
-            number: 0,
             commands_search_query: String::new(),
+            id: self.command.workspace_id.clone(),
         });
 
         self.redirect = Some(route)

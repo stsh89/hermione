@@ -19,7 +19,7 @@ pub use edit_workspace::{EditWorkspaceModel, EditWorkspaceModelParameters};
 pub use get_command::{GetCommandModel, GetCommandModelParameters};
 pub use get_workspace::{GetWorkspaceModel, GetWorkspaceModelParameters};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
-pub use new_command::NewCommandModel;
+pub use new_command::{NewCommandModel, NewCommandModelParameters};
 pub use new_workspace::NewWorkspaceModel;
 use tracing::instrument;
 
