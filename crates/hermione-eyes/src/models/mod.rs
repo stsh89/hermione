@@ -21,6 +21,7 @@ pub use get_workspace::{GetWorkspaceModel, GetWorkspaceModelParameters};
 pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
 pub use new_command::NewCommandModel;
 pub use new_workspace::NewWorkspaceModel;
+use tracing::instrument;
 
 pub trait Model {
     fn handle_event(&self) -> Result<Option<Message>> {
@@ -31,7 +32,7 @@ pub trait Model {
         true
     }
 
-    fn redirect(&self) -> Option<&Router> {
+    fn redirect(&mut self) -> Option<Router> {
         None
     }
 
@@ -72,8 +73,12 @@ where
         Self { f }
     }
 
+    #[instrument(skip_all)]
     fn handle_event(self) -> Result<Option<Message>> {
-        if let event::Event::Key(key) = event::read()? {
+        let tui_event = event::read()?;
+        tracing::info!(tui_event = ?tui_event);
+
+        if let event::Event::Key(key) = tui_event {
             if key.kind == event::KeyEventKind::Press {
                 let message = (self.f)(key);
 

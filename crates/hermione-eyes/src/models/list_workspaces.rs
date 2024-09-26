@@ -32,8 +32,8 @@ impl Model for ListWorkspacesModel {
         self.is_running
     }
 
-    fn redirect(&self) -> Option<&Router> {
-        self.redirect.as_ref()
+    fn redirect(&mut self) -> Option<Router> {
+        self.redirect.take()
     }
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {

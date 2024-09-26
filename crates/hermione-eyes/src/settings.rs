@@ -65,6 +65,16 @@ impl Settings {
         Ok(path)
     }
 
+    pub fn logs_path(&self) -> Result<String> {
+        let path = Path::new(&self.app_path)
+            .join("hermione.logs")
+            .into_os_string()
+            .into_string()
+            .map_err(|os_string| anyhow::anyhow!("can't convert os string: {os_string:?}"))?;
+
+        Ok(path)
+    }
+
     pub fn setup() -> Result<Self> {
         let settings = Self::new()?;
 

@@ -11,6 +11,7 @@ use crate::{
     Result,
 };
 use ratatui::{backend::Backend, Terminal};
+use tracing::instrument;
 
 pub struct App {
     model: Box<dyn Model>,
@@ -79,14 +80,12 @@ impl App {
         Ok(Box::new(model))
     }
 
-    fn execute_command(&mut self, parameters: ExecuteCommandParameters) -> Result<Box<dyn Model>> {
-        let model = handlers::execute_command::Handler {
+    fn execute_command(&mut self, parameters: ExecuteCommandParameters) -> Result<()> {
+        handlers::execute_command::Handler {
             parameters,
             organizer: &mut self.organizer,
         }
-        .handle()?;
-
-        Ok(Box::new(model))
+        .handle()
     }
 
     fn update_command(&mut self, parameters: UpdateCommandParameters) -> Result<Box<dyn Model>> {
@@ -162,7 +161,11 @@ impl App {
             Router::DeleteWorkspace => self.delete_workspace()?,
             Router::EditCommand => self.edit_command()?,
             Router::EditWorkspace => self.edit_workspace()?,
-            Router::ExecuteCommand(parameters) => self.execute_command(parameters)?,
+            Router::ExecuteCommand(parameters) => {
+                self.execute_command(parameters)?;
+
+                return Ok(());
+            }
             Router::GetCommand(parameters) => self.get_command(parameters)?,
             Router::GetWorkspace(parameters) => self.get_workspace(parameters)?,
             Router::ListWorkspaces(parameters) => self.list_workspaces(parameters)?,
@@ -203,7 +206,10 @@ impl App {
         Ok(Self { model, organizer })
     }
 
+    #[instrument(skip_all)]
     pub fn run(mut self, mut terminal: Terminal<impl Backend>) -> Result<()> {
+        tracing::info!("App started");
+
         while self.model.is_running() {
             terminal.draw(|f| self.model.view(f))?;
 
@@ -214,11 +220,12 @@ impl App {
             }
 
             if let Some(route) = self.model.redirect() {
-                self.handle(route.clone())?;
+                self.handle(route)?;
             }
         }
 
         self.organizer.save()?;
+        tracing::info!("App stopped");
 
         Ok(())
     }
