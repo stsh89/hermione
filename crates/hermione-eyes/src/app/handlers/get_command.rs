@@ -16,8 +16,6 @@ impl<'a> Handler<'a> {
 
         let command = self.organizer.get_command(0, number)?;
 
-        self.organizer.promote_command(0, command.number)?;
-
         GetCommandModel::new(GetCommandModelParameters { command })
     }
 }

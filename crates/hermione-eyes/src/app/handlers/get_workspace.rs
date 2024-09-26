@@ -36,8 +36,6 @@ impl<'a> Handler<'a> {
             ..workspace
         };
 
-        self.organizer.promote_workspace(workspace.number)?;
-
         GetWorkspaceModel::new(GetWorkspaceModelParameters {
             workspace,
             commands_search_query,

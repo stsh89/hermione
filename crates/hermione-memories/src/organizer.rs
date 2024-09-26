@@ -112,29 +112,6 @@ impl Organizer {
         Ok(())
     }
 
-    pub fn promote_command(&mut self, w_number: Number, c_number: Number) -> Result<()> {
-        self.get_command(w_number, c_number)?;
-
-        let workspace = self.get_workspace_mut(w_number)?;
-        let command = workspace.commands.remove(c_number.into());
-
-        workspace.commands.insert(0, command);
-        workspace.update_command_numbers();
-
-        Ok(())
-    }
-
-    pub fn promote_workspace(&mut self, number: Number) -> Result<()> {
-        self.get_workspace(number)?;
-
-        let workspace = self.workspaces.remove(number.into());
-
-        self.workspaces.insert(0, workspace);
-        self.update_workspace_numbers();
-
-        Ok(())
-    }
-
     fn update_workspace_numbers(&mut self) {
         self.workspaces
             .iter_mut()

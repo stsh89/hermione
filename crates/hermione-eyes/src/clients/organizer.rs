@@ -89,23 +89,6 @@ impl Client {
         Ok(client)
     }
 
-    pub fn promote_command(
-        &mut self,
-        workspace_number: usize,
-        command_number: usize,
-    ) -> Result<()> {
-        self.organizer
-            .promote_command(workspace_number.into(), command_number.into())?;
-
-        Ok(())
-    }
-
-    pub fn promote_workspace(&mut self, number: usize) -> Result<()> {
-        self.organizer.promote_workspace(number.into())?;
-
-        Ok(())
-    }
-
     pub fn rename_workspace(&mut self, number: usize, name: String) -> Result<()> {
         self.organizer
             .rename_workspace(number.into(), WorkspaceName::new(name))?;
