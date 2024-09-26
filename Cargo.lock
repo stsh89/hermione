@@ -194,19 +194,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hermione-tui"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dirs",
- "eyre",
- "hermione-memory",
- "ratatui",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "hermit-abi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
