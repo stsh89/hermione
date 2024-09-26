@@ -13,7 +13,6 @@ use crate::{
 use ratatui::{backend::Backend, Terminal};
 
 pub struct App {
-    route: Router,
     model: Box<dyn Model>,
     organizer: clients::organizer::Client,
 }
@@ -174,7 +173,6 @@ impl App {
         };
 
         self.model = model;
-        self.route = route;
 
         Ok(())
     }
@@ -185,36 +183,24 @@ impl App {
 
         let workspaces = organizer.list_workspaces();
 
-        let route = if workspaces.is_empty() {
-            Router::NewWorkspace
+        let model: Box<dyn Model> = if workspaces.is_empty() {
+            let model = handlers::new_workspace::Handler {}.handle();
+
+            Box::new(model)
         } else {
-            Router::GetWorkspace(GetWorkspaceParameters {
-                number: 0,
-                commands_search_query: String::new(),
-            })
+            let model = handlers::get_workspace::Handler {
+                organizer: &mut organizer,
+                parameters: GetWorkspaceParameters {
+                    number: 0,
+                    commands_search_query: String::new(),
+                },
+            }
+            .handle()?;
+
+            Box::new(model)
         };
 
-        let model: Box<dyn Model> = match route.clone() {
-            Router::NewWorkspace => {
-                let model = handlers::new_workspace::Handler {}.handle();
-                Box::new(model)
-            }
-            Router::GetWorkspace(parameters) => {
-                let model = handlers::get_workspace::Handler {
-                    organizer: &mut organizer,
-                    parameters,
-                }
-                .handle()?;
-                Box::new(model)
-            }
-            _ => unreachable!(),
-        };
-
-        Ok(Self {
-            model,
-            route,
-            organizer,
-        })
+        Ok(Self { model, organizer })
     }
 
     pub fn run(mut self, mut terminal: Terminal<impl Backend>) -> Result<()> {
