@@ -1,9 +1,6 @@
 pub mod json;
 
-use crate::{
-    entities::{Command, Workspace},
-    Result,
-};
+use crate::types::{Command, Result, Workspace};
 use hermione_memories::{
     operations::workspaces,
     types::{

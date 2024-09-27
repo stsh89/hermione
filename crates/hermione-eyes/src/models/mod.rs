@@ -7,7 +7,7 @@ mod list_workspaces;
 mod new_command;
 mod new_workspace;
 
-use crate::{router::Router, Result};
+use crate::{router::Router, types::Result};
 use ratatui::{
     crossterm::event::{self, KeyCode, KeyEvent, KeyModifiers},
     style::{Style, Stylize},

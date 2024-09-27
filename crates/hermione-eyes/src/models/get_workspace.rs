@@ -5,7 +5,6 @@ use ratatui::{
 };
 
 use crate::{
-    entities::{Command, Workspace},
     models::{
         helpers::{CommandPalette, CommandPaletteParameters, Input, InputParameters},
         highlight_style, Message, Model,
@@ -15,7 +14,7 @@ use crate::{
         GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters,
         NewCommandParameters, Router,
     },
-    Result,
+    types::{Command, Result, Workspace},
 };
 
 pub struct GetWorkspaceModel {

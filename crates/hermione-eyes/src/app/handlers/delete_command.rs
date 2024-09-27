@@ -2,7 +2,7 @@ use crate::{
     clients::memories,
     models::{GetWorkspaceModel, GetWorkspaceModelParameters},
     router::DeleteCommandParameters,
-    Result,
+    types::Result,
 };
 
 pub struct Handler<'a> {

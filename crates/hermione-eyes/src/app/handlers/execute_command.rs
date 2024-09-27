@@ -1,7 +1,7 @@
 use crate::{
     clients::{executor, memories},
     router::ExecuteCommandParameters,
-    Result,
+    types::Result,
 };
 
 pub struct Handler<'a> {

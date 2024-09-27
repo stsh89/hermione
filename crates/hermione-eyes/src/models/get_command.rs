@@ -5,13 +5,12 @@ use ratatui::{
 };
 
 use crate::{
-    entities::Command,
     models::{
         helpers::{CommandPalette, CommandPaletteParameters},
         Message, Model,
     },
     router::{DeleteCommandParameters, EditCommandParameters, GetWorkspaceParameters, Router},
-    Result,
+    types::{Command, Result},
 };
 
 pub struct GetCommandModel {

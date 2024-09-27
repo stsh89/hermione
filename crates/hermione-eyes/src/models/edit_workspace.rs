@@ -1,11 +1,10 @@
 use crate::{
-    entities::Workspace,
     models::{
         helpers::{Input, InputParameters},
         Message, Model, Router,
     },
     router::{GetWorkspaceParameters, UpdateWorkspaceParameters},
-    Result,
+    types::{Result, Workspace},
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},

@@ -1,19 +1,17 @@
 mod app;
 mod clients;
-mod entities;
 mod logs;
 mod models;
 mod router;
 mod settings;
 mod tui;
+mod types;
 
-use anyhow::Result;
 use app::{App, AppParameters};
 use clients::memories;
-use settings::Settings;
 
-fn main() -> Result<()> {
-    let settings = Settings::setup()?;
+fn main() -> types::Result<()> {
+    let settings = settings::Settings::setup()?;
 
     tui::install_panic_hook();
     logs::init(settings.logs_path()?.as_str())?;

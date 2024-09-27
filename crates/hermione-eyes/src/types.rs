@@ -1,5 +1,7 @@
 use ratatui::widgets::ListItem;
 
+pub type Result<T> = anyhow::Result<T>;
+
 pub struct Workspace {
     pub id: Option<String>,
     pub location: String,

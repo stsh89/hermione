@@ -1,11 +1,10 @@
 use crate::{
-    entities::Command,
     models::{
         helpers::{Input, InputParameters},
         Message, Model, Router,
     },
     router::{GetCommandParameters, UpdateCommandParameters},
-    Result,
+    types::{Command, Result},
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},

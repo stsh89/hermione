@@ -1,4 +1,4 @@
-use crate::{entities::Command, Result};
+use crate::types::{Command, Result};
 use std::{io::Write, process::Stdio};
 
 pub struct Client<'a> {

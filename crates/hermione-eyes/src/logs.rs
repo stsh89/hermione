@@ -1,4 +1,4 @@
-use crate::Result;
+use crate::types::Result;
 use std::fs::OpenOptions;
 
 pub fn init(path: &str) -> Result<()> {

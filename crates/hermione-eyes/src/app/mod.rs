@@ -10,7 +10,7 @@ use crate::{
         ListWorkspacesParameters, NewCommandParameters, Router, UpdateCommandParameters,
         UpdateWorkspaceParameters,
     },
-    Result,
+    types::Result,
 };
 use ratatui::{backend::Backend, Terminal};
 use tracing::instrument;

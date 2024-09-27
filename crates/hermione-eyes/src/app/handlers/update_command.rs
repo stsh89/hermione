@@ -1,9 +1,8 @@
 use crate::{
     clients::memories,
-    entities::Command,
     models::{GetCommandModel, GetCommandModelParameters},
     router::UpdateCommandParameters,
-    Result,
+    types::{Command, Result},
 };
 
 pub struct Handler<'a> {

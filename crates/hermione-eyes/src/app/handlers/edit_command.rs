@@ -2,7 +2,7 @@ use crate::{
     clients::memories,
     models::{EditCommandModel, EditCommandModelParameters},
     router::EditCommandParameters,
-    Result,
+    types::Result,
 };
 
 pub struct Handler<'a> {

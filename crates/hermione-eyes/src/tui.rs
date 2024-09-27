@@ -1,4 +1,4 @@
-use super::Result;
+use crate::types::Result;
 use ratatui::{
     backend::CrosstermBackend,
     crossterm::{

@@ -1,4 +1,4 @@
-use crate::{models::highlight_style, Result};
+use crate::{models::highlight_style, types::Result};
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     widgets::{Block, Clear, List, ListItem, ListState, Padding},

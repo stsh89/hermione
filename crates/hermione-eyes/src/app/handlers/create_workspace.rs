@@ -1,9 +1,8 @@
 use crate::{
     clients::memories,
-    entities::Workspace,
     models::{ListWorkspacesModel, ListWorkspacesModelParameters},
     router::CreateWorkspaceParameters,
-    Result,
+    types::{Result, Workspace},
 };
 
 pub struct Handler<'a> {
