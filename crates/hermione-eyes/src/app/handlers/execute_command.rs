@@ -1,11 +1,11 @@
 use crate::{
-    clients::{executor, organizer},
+    clients::{executor, memories},
     router::ExecuteCommandParameters,
     Result,
 };
 
 pub struct Handler<'a> {
-    pub organizer: &'a organizer::Client,
+    pub memories: &'a memories::Client,
 }
 
 impl<'a> Handler<'a> {
@@ -14,8 +14,8 @@ impl<'a> Handler<'a> {
             workspace_id,
             command_id,
         } = parameters;
-        let command = self.organizer.get_command(&workspace_id, &command_id)?;
-        let workspace = self.organizer.get_workspace(&workspace_id)?;
+        let command = self.memories.get_command(&workspace_id, &command_id)?;
+        let workspace = self.memories.get_workspace(&workspace_id)?;
 
         let executor = executor::Client::new(&command, &workspace.location);
         executor.execute()?;

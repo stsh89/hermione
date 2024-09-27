@@ -1,5 +1,5 @@
 use crate::{
-    clients::organizer,
+    clients::memories,
     entities::Command,
     models::{GetWorkspaceModel, GetWorkspaceModelParameters},
     router::CreateCommandParameters,
@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub struct Handler<'a> {
-    pub organizer: &'a organizer::Client,
+    pub memories: &'a memories::Client,
 }
 
 impl<'a> Handler<'a> {
@@ -18,17 +18,19 @@ impl<'a> Handler<'a> {
             program,
         } = parameters;
 
-        self.organizer.create_command(Command {
+        self.memories.create_command(Command {
             workspace_id: workspace_id.clone(),
             id: None,
             name,
             program,
         })?;
 
-        let workspace = self.organizer.get_workspace(&workspace_id)?;
+        let workspace = self.memories.get_workspace(&workspace_id)?;
+        let commands = self.memories.list_commands(&workspace_id)?;
 
         GetWorkspaceModel::new(GetWorkspaceModelParameters {
             workspace,
+            commands,
             commands_search_query: String::new(),
         })
     }

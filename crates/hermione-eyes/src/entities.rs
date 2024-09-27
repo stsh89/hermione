@@ -1,7 +1,6 @@
 use ratatui::widgets::ListItem;
 
 pub struct Workspace {
-    pub commands: Vec<Command>,
     pub id: Option<String>,
     pub location: String,
     pub name: String,

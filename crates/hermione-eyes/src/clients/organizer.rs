@@ -349,7 +349,7 @@ impl Client {
 
         let workspace_id = Id::from_str(&update.workspace_id)?;
         let mut command = self.get(workspace_id, Id::from_str(update.id())?)?;
-        command.rename(command::Name::new(update.name.clone()));
+        command.change_name(command::Name::new(update.name.clone()));
         command.change_program(command::Program::new(update.program.clone()));
 
         self.update(workspace_id, &command)?;

@@ -5,7 +5,7 @@ use ratatui::{
 };
 
 use crate::{
-    entities::Workspace,
+    entities::{Command, Workspace},
     models::{
         helpers::{CommandPalette, CommandPaletteParameters, Input, InputParameters},
         highlight_style, Message, Model,
@@ -20,6 +20,7 @@ use crate::{
 
 pub struct GetWorkspaceModel {
     workspace: Workspace,
+    commands: Vec<Command>,
     redirect: Option<Router>,
     search: Input,
     commands_state: ListState,
@@ -28,6 +29,7 @@ pub struct GetWorkspaceModel {
 }
 
 pub struct GetWorkspaceModelParameters {
+    pub commands: Vec<Command>,
     pub workspace: Workspace,
     pub commands_search_query: String,
 }
@@ -83,7 +85,7 @@ impl Model for GetWorkspaceModel {
         ));
 
         let block = Block::default().borders(Borders::all()).title("Commands");
-        let items: Vec<ListItem> = self.workspace.commands.iter().map(ListItem::from).collect();
+        let items: Vec<ListItem> = self.commands.iter().map(ListItem::from).collect();
 
         let list = List::new(items)
             .block(block)
@@ -102,7 +104,7 @@ impl GetWorkspaceModel {
         let Some(command) = self
             .commands_state
             .selected()
-            .and_then(|i| self.workspace.commands.get(i))
+            .and_then(|i| self.commands.get(i))
         else {
             return;
         };
@@ -147,18 +149,20 @@ impl GetWorkspaceModel {
         use crate::models::helpers::CommandPaletteAction as CPA;
 
         let GetWorkspaceModelParameters {
+            commands,
             workspace,
             commands_search_query,
         } = parameters;
 
         let mut commands_state = ListState::default();
 
-        if !workspace.commands.is_empty() {
+        if !commands.is_empty() {
             commands_state.select_first();
         }
 
         let model = Self {
             is_running: true,
+            commands,
             workspace,
             redirect: None,
             search: Input::new(InputParameters {
@@ -215,7 +219,7 @@ impl GetWorkspaceModel {
         let Some(command) = self
             .commands_state
             .selected()
-            .and_then(|i| self.workspace.commands.get(i))
+            .and_then(|i| self.commands.get(i))
         else {
             return;
         };

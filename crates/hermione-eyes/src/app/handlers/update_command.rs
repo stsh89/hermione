@@ -1,5 +1,5 @@
 use crate::{
-    clients,
+    clients::memories,
     entities::Command,
     models::{GetCommandModel, GetCommandModelParameters},
     router::UpdateCommandParameters,
@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub struct Handler<'a> {
-    pub organizer: &'a clients::organizer::Client,
+    pub memories: &'a memories::Client,
 }
 
 impl<'a> Handler<'a> {
@@ -26,7 +26,7 @@ impl<'a> Handler<'a> {
             program,
         };
 
-        self.organizer.update_command(&command)?;
+        let command = self.memories.update_command(command)?;
 
         let model = GetCommandModel::new(GetCommandModelParameters { command })?;
 

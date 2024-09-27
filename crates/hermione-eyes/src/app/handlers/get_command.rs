@@ -1,12 +1,12 @@
 use crate::{
-    clients,
+    clients::memories,
     models::{GetCommandModel, GetCommandModelParameters},
     router::GetCommandParameters,
     Result,
 };
 
 pub struct Handler<'a> {
-    pub organizer: &'a mut clients::organizer::Client,
+    pub memories: &'a memories::Client,
 }
 
 impl<'a> Handler<'a> {
@@ -16,7 +16,7 @@ impl<'a> Handler<'a> {
             command_id,
         } = parameters;
 
-        let command = self.organizer.get_command(&workspace_id, &command_id)?;
+        let command = self.memories.get_command(&workspace_id, &command_id)?;
 
         GetCommandModel::new(GetCommandModelParameters { command })
     }

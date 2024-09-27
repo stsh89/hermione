@@ -1,8 +1,5 @@
 use crate::Result;
-use std::{
-    io::Write,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 pub struct Settings {
     app_path: PathBuf,
@@ -25,22 +22,6 @@ impl Settings {
             std::fs::create_dir(&self.app_path)?;
         }
 
-        self.initialize_organizer()?;
-
-        Ok(())
-    }
-
-    fn initialize_organizer(&self) -> Result<()> {
-        let organizer_path = self.organizer_path()?;
-        let path = Path::new(&organizer_path);
-
-        if path.exists() {
-            return Ok(());
-        }
-
-        let mut file = std::fs::File::create(path)?;
-        file.write_all(b"[]")?;
-
         Ok(())
     }
 
@@ -55,14 +36,8 @@ impl Settings {
         Ok(Self { app_path })
     }
 
-    pub fn organizer_path(&self) -> Result<String> {
-        let path = Path::new(&self.app_path)
-            .join("organizer.json")
-            .into_os_string()
-            .into_string()
-            .map_err(|os_string| anyhow::anyhow!("can't convert os string: {os_string:?}"))?;
-
-        Ok(path)
+    pub fn path_to_memories(&self) -> &PathBuf {
+        &self.app_path
     }
 
     pub fn logs_path(&self) -> Result<String> {

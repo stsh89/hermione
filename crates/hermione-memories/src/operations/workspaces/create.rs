@@ -18,7 +18,7 @@ where
     pub fn execute(&self, workspace: Entity) -> Result<Entity> {
         let workspace = self.creator.create(workspace)?;
 
-        if workspace.id().is_err() {
+        if workspace.get_id().is_none() {
             return Err(Error::Internal(
                 "Failed to create workspace: workspace id is not set".to_string(),
             ));

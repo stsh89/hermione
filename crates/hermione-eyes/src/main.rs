@@ -7,8 +7,9 @@ mod router;
 mod settings;
 mod tui;
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use app::{App, AppParameters};
+use clients::memories;
 use settings::Settings;
 
 fn main() -> Result<()> {
@@ -18,8 +19,10 @@ fn main() -> Result<()> {
     logs::init(settings.logs_path()?.as_str())?;
 
     let terminal = tui::init_terminal()?;
-    let organizer = clients::organizer::Client::new(settings.organizer_path()?);
-    let app = App::new(AppParameters { organizer })?;
+    let memories = memories::Client::new(memories::json::Client::new(
+        settings.path_to_memories().clone(),
+    )?);
+    let app = App::new(AppParameters { memories })?;
 
     app.run(terminal)?;
     tui::restore_terminal()?;

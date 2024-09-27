@@ -1,9 +1,1 @@
-pub mod create_command;
-pub mod create_workspace;
-pub mod delete_command;
-pub mod delete_workspace;
-pub mod get_command;
-pub mod get_workspace;
-pub mod list_workspaces;
-pub mod update_command;
-pub mod update_workspace;
+pub mod workspaces;

@@ -1,19 +1,19 @@
 use crate::{
-    clients::organizer,
+    clients::memories,
     models::{EditWorkspaceModel, EditWorkspaceModelParameters},
     router::EditWorkspaceParameters,
     Result,
 };
 
 pub struct Handler<'a> {
-    pub organizer: &'a organizer::Client,
+    pub memories: &'a memories::Client,
 }
 
 impl<'a> Handler<'a> {
     pub fn handle(self, parameters: EditWorkspaceParameters) -> Result<EditWorkspaceModel> {
         let EditWorkspaceParameters { id } = parameters;
 
-        let workspace = self.organizer.get_workspace(&id)?;
+        let workspace = self.memories.get_workspace(&id)?;
 
         let model = EditWorkspaceModel::new(EditWorkspaceModelParameters { workspace });
 

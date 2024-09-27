@@ -1,7 +1,7 @@
 mod handlers;
 
 use crate::{
-    clients,
+    clients::memories,
     models::Model,
     router::{
         CreateCommandParameters, CreateWorkspaceParameters, DeleteCommandParameters,
@@ -17,17 +17,17 @@ use tracing::instrument;
 
 pub struct App {
     model: Box<dyn Model>,
-    organizer: clients::organizer::Client,
+    memories: memories::Client,
 }
 
 pub struct AppParameters {
-    pub organizer: clients::organizer::Client,
+    pub memories: memories::Client,
 }
 
 impl App {
     fn create_command(&mut self, parameters: CreateCommandParameters) -> Result<Box<dyn Model>> {
         let handler = handlers::create_command::Handler {
-            organizer: &mut self.organizer,
+            memories: &mut self.memories,
         };
 
         let model = handler.handle(parameters)?;
@@ -40,7 +40,7 @@ impl App {
         parameters: CreateWorkspaceParameters,
     ) -> Result<Box<dyn Model>> {
         let handler = handlers::create_workspace::Handler {
-            organizer: &mut self.organizer,
+            memories: &mut self.memories,
         };
 
         let model = handler.handle(parameters)?;
@@ -50,7 +50,7 @@ impl App {
 
     fn delete_command(&mut self, parameters: DeleteCommandParameters) -> Result<Box<dyn Model>> {
         let model = handlers::delete_command::Handler {
-            organizer: &mut self.organizer,
+            memories: &mut self.memories,
         }
         .handle(parameters)?;
 
@@ -62,7 +62,7 @@ impl App {
         parameters: DeleteWorkspaceParameters,
     ) -> Result<Box<dyn Model>> {
         let model = handlers::delete_workspace::Handler {
-            organizer: &mut self.organizer,
+            memories: &mut self.memories,
         }
         .handle(parameters)?;
 
@@ -71,7 +71,7 @@ impl App {
 
     fn edit_command(&mut self, parameters: EditCommandParameters) -> Result<Box<dyn Model>> {
         let model = handlers::edit_command::Handler {
-            organizer: &self.organizer,
+            memories: &self.memories,
         }
         .handle(parameters)?;
 
@@ -80,7 +80,7 @@ impl App {
 
     fn edit_workspace(&mut self, parameters: EditWorkspaceParameters) -> Result<Box<dyn Model>> {
         let model = handlers::edit_workspace::Handler {
-            organizer: &self.organizer,
+            memories: &self.memories,
         }
         .handle(parameters)?;
 
@@ -89,14 +89,14 @@ impl App {
 
     fn execute_command(&mut self, parameters: ExecuteCommandParameters) -> Result<()> {
         handlers::execute_command::Handler {
-            organizer: &mut self.organizer,
+            memories: &mut self.memories,
         }
         .handle(parameters)
     }
 
     fn update_command(&mut self, parameters: UpdateCommandParameters) -> Result<Box<dyn Model>> {
         let model = handlers::update_command::Handler {
-            organizer: &self.organizer,
+            memories: &self.memories,
         }
         .handle(parameters)?;
 
@@ -108,7 +108,7 @@ impl App {
         parameters: UpdateWorkspaceParameters,
     ) -> Result<Box<dyn Model>> {
         let handler = handlers::update_workspace::Handler {
-            organizer: &mut self.organizer,
+            memories: &mut self.memories,
         };
 
         let model = handler.handle(parameters)?;
@@ -118,7 +118,7 @@ impl App {
 
     fn get_command(&mut self, parameters: GetCommandParameters) -> Result<Box<dyn Model>> {
         let handler = handlers::get_command::Handler {
-            organizer: &mut self.organizer,
+            memories: &mut self.memories,
         };
 
         let model = handler.handle(parameters)?;
@@ -128,7 +128,7 @@ impl App {
 
     fn get_workspace(&mut self, parameters: GetWorkspaceParameters) -> Result<Box<dyn Model>> {
         let handler = handlers::get_workspace::Handler {
-            organizer: &mut self.organizer,
+            memories: &mut self.memories,
         };
 
         let model = handler.handle(parameters)?;
@@ -138,7 +138,7 @@ impl App {
 
     fn new_command(&self, parameters: NewCommandParameters) -> Result<Box<dyn Model>> {
         let model = handlers::new_command::Handler {
-            organizer: &self.organizer,
+            memories: &self.memories,
         }
         .handle(parameters)?;
 
@@ -153,7 +153,7 @@ impl App {
 
     fn list_workspaces(&self, parameters: ListWorkspacesParameters) -> Result<Box<dyn Model>> {
         let handler = handlers::list_workspaces::Handler {
-            organizer: &self.organizer,
+            memories: &self.memories,
         };
 
         let model = handler.handle(parameters)?;
@@ -189,17 +189,17 @@ impl App {
     }
 
     pub fn new(parameters: AppParameters) -> Result<Self> {
-        let AppParameters { organizer } = parameters;
-        let mut organizer = organizer;
+        let AppParameters { memories } = parameters;
+        let mut memories = memories;
 
-        let workspaces = organizer.list_workspaces()?;
+        let workspaces = memories.list_workspaces()?;
 
         let model: Box<dyn Model> = if workspaces.is_empty() {
             let model = handlers::new_workspace::Handler {}.handle();
             Box::new(model)
         } else {
             let handler = handlers::get_workspace::Handler {
-                organizer: &mut organizer,
+                memories: &mut memories,
             };
 
             let model = handler.handle(GetWorkspaceParameters {
@@ -210,7 +210,7 @@ impl App {
             Box::new(model)
         };
 
-        Ok(Self { model, organizer })
+        Ok(Self { model, memories })
     }
 
     #[instrument(skip_all)]

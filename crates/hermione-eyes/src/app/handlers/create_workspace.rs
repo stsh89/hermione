@@ -1,5 +1,5 @@
 use crate::{
-    clients::organizer,
+    clients::memories,
     entities::Workspace,
     models::{ListWorkspacesModel, ListWorkspacesModelParameters},
     router::CreateWorkspaceParameters,
@@ -7,21 +7,20 @@ use crate::{
 };
 
 pub struct Handler<'a> {
-    pub organizer: &'a organizer::Client,
+    pub memories: &'a memories::Client,
 }
 
 impl<'a> Handler<'a> {
     pub fn handle(self, parameters: CreateWorkspaceParameters) -> Result<ListWorkspacesModel> {
         let CreateWorkspaceParameters { name, location } = parameters;
 
-        self.organizer.create_workspace(Workspace {
-            commands: vec![],
+        self.memories.create_workspace(Workspace {
             id: None,
             location,
             name,
         })?;
 
-        let workspaces = self.organizer.list_workspaces()?;
+        let workspaces = self.memories.list_workspaces()?;
 
         let model = ListWorkspacesModel::new(ListWorkspacesModelParameters {
             workspaces,

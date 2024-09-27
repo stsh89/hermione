@@ -6,11 +6,17 @@ pub use program::*;
 
 use crate::types::shared::{DateTime, Error, Id, Result};
 
+pub struct WorkspaceScopeId {
+    pub workspace_id: Id,
+    pub command_id: Id,
+}
+
 pub struct Entity {
-    execute_time: Option<DateTime>,
+    last_execute_time: Option<DateTime>,
     id: Option<Id>,
     name: Name,
     program: Program,
+    workspace_id: Id,
 }
 
 pub struct LoadParameters {
@@ -18,71 +24,84 @@ pub struct LoadParameters {
     pub id: Id,
     pub name: Name,
     pub program: Program,
+    pub workspace_id: Id,
 }
 
 pub struct NewParameters {
     pub name: Name,
     pub program: Program,
+    pub workspace_id: Id,
 }
 
 impl Entity {
+    pub fn change_name(&mut self, name: Name) {
+        self.name = name;
+    }
+
     pub fn change_program(&mut self, program: Program) {
         self.program = program;
     }
 
-    pub fn last_execute_time(&self) -> Option<&DateTime> {
-        self.execute_time.as_ref()
+    /// # Safety
+    ///
+    /// It cab be called only for loaded commands
+    pub unsafe fn id(&self) -> Id {
+        self.id.unwrap()
     }
 
-    pub fn id(&self) -> Result<Id> {
-        self.id.ok_or(Error::DataLoss("Id not set".to_string()))
+    pub fn last_execute_time(&self) -> Option<&DateTime> {
+        self.last_execute_time.as_ref()
     }
 
     pub fn load(parameters: LoadParameters) -> Self {
         let LoadParameters {
-            name,
-            program,
             id,
             last_execute_time: execute_time,
+            name,
+            program,
+            workspace_id,
         } = parameters;
 
         Self {
-            execute_time,
+            last_execute_time: execute_time,
             id: Some(id),
             name,
             program,
+            workspace_id,
         }
     }
 
-    pub fn new(parameters: NewParameters) -> Self {
-        let NewParameters { name, program } = parameters;
-
-        Self {
-            execute_time: None,
-            id: None,
-            name,
-            program,
-        }
+    pub fn get_id(&self) -> Option<Id> {
+        self.id
     }
 
     pub fn name(&self) -> &Name {
         &self.name
     }
 
+    pub fn new(parameters: NewParameters) -> Self {
+        let NewParameters {
+            name,
+            program,
+            workspace_id,
+        } = parameters;
+
+        Self {
+            last_execute_time: None,
+            id: None,
+            name,
+            program,
+            workspace_id,
+        }
+    }
+
     pub fn program(&self) -> &Program {
         &self.program
     }
 
-    pub fn rename(&mut self, name: Name) {
-        self.name = name;
-    }
-
     pub fn set_id(&mut self, id: Id) -> Result<()> {
         if self.id.is_some() {
-            return Err(Error::AlreadyExists(format!(
-                "Command with id {} already exists",
-                id
-            )));
+            return Err(Error::Internal("Command id is already set".to_string()));
         }
 
         self.id = Some(id);
@@ -90,7 +109,7 @@ impl Entity {
         Ok(())
     }
 
-    pub fn update_last_execute_time(&mut self) {
-        self.execute_time = Some(DateTime::now());
+    pub fn workspace_id(&self) -> Id {
+        self.workspace_id
     }
 }

@@ -4,15 +4,15 @@ pub trait Delete {
     fn delete(&self, workspace_id: Id) -> Result<()>;
 }
 
-pub struct Operation<D> {
-    pub deleter: D,
+pub struct Operation<'a, D> {
+    pub deleter: &'a D,
 }
 
-impl<D> Delete for Operation<D>
+impl<'a, D> Operation<'a, D>
 where
     D: Delete,
 {
-    fn delete(&self, workspace_id: Id) -> Result<()> {
+    pub fn execute(&self, workspace_id: Id) -> Result<()> {
         self.deleter.delete(workspace_id)
     }
 }
