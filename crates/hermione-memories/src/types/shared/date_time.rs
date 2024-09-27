@@ -5,12 +5,22 @@ impl DateTime {
     pub(crate) fn now() -> Self {
         Self(chrono::Utc::now())
     }
+}
 
-    pub fn from_chrono(value: chrono::DateTime<chrono::Utc>) -> Self {
+impl From<chrono::DateTime<chrono::Utc>> for DateTime {
+    fn from(value: chrono::DateTime<chrono::Utc>) -> Self {
         Self(value)
     }
+}
 
-    pub fn to_chrono(&self) -> chrono::DateTime<chrono::Utc> {
-        self.0
+impl From<DateTime> for chrono::DateTime<chrono::Utc> {
+    fn from(value: DateTime) -> Self {
+        value.0
+    }
+}
+
+impl From<&DateTime> for chrono::DateTime<chrono::Utc> {
+    fn from(value: &DateTime) -> Self {
+        value.0
     }
 }

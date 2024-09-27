@@ -91,13 +91,13 @@ impl Model {
             CPA::DeleteCommand => {
                 self.redirect = Some(Router::DeleteCommand(DeleteCommandParameters {
                     workspace_id: self.command.workspace_id.clone(),
-                    command_id: self.command.id().to_string(),
+                    command_id: self.command.id.clone(),
                 }))
             }
             CPA::EditCommand => {
                 self.redirect = Some(Router::EditCommand(EditCommandParameters {
                     workspace_id: self.command.workspace_id.clone(),
-                    command_id: self.command.id().to_string(),
+                    command_id: self.command.id.clone(),
                 }))
             }
             _ => {}

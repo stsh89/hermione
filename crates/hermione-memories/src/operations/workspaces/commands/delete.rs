@@ -1,7 +1,7 @@
-use crate::types::{command::WorkspaceScopeId, shared::Result};
+use crate::types::shared::{Result, ScopedId};
 
 pub trait Delete {
-    fn delete(&self, id: WorkspaceScopeId) -> Result<()>;
+    fn delete(&self, id: ScopedId) -> Result<()>;
 }
 
 pub struct Operation<'a, D> {
@@ -12,7 +12,7 @@ impl<'a, D> Operation<'a, D>
 where
     D: Delete,
 {
-    pub fn execute(&self, id: WorkspaceScopeId) -> Result<()> {
+    pub fn execute(&self, id: ScopedId) -> Result<()> {
         self.deleter.delete(id)
     }
 }

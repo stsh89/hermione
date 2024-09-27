@@ -19,7 +19,7 @@ impl<'a> Handler<'a> {
 
         self.memories.create_command(Command {
             workspace_id: workspace_id.clone(),
-            id: None,
+            id: String::new(),
             name,
             program,
         })?;

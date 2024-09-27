@@ -104,7 +104,7 @@ impl Hook for Model {
 impl Model {
     fn back(&mut self) {
         let route = Router::GetWorkspace(GetWorkspaceParameters {
-            id: self.workspace.id().to_string(),
+            id: self.workspace.id.clone(),
             commands_search_query: String::new(),
         });
 
@@ -184,7 +184,7 @@ impl Model {
 
     fn submit(&mut self) {
         let route = Router::CreateCommand(CreateCommandParameters {
-            workspace_id: self.workspace.id().to_string(),
+            workspace_id: self.workspace.id.clone(),
             name: self.name.value().to_string(),
             program: self.program.value().to_string(),
         });

@@ -18,10 +18,10 @@ where
     pub fn execute(&self, workspace: Entity) -> Result<Entity> {
         let time = workspace.last_access_time().cloned();
 
-        let command = self.tracker.track(workspace)?;
+        let workspace = self.tracker.track(workspace)?;
         let error_message = "Failed to track workspace access time".to_string();
 
-        if let Some(new_time) = command.last_access_time() {
+        if let Some(new_time) = workspace.last_access_time() {
             if let Some(time) = time {
                 if time >= *new_time {
                     return Err(Error::Internal(error_message));
@@ -31,6 +31,6 @@ where
             return Err(Error::Internal(error_message));
         }
 
-        Ok(command)
+        Ok(workspace)
     }
 }

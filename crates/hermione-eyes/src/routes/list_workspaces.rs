@@ -181,7 +181,7 @@ impl Model {
 
         let route = Router::GetWorkspace(GetWorkspaceParameters {
             commands_search_query: String::new(),
-            id: workspace.id().to_string(),
+            id: workspace.id.clone(),
         });
 
         self.redirect = Some(route);

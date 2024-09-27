@@ -1,10 +1,10 @@
 use crate::types::{
-    command::{Entity, WorkspaceScopeId},
-    shared::Result,
+    command::Entity,
+    shared::{Result, ScopedId},
 };
 
 pub trait Get {
-    fn get(&self, id: WorkspaceScopeId) -> Result<Entity>;
+    fn get(&self, id: ScopedId) -> Result<Entity>;
 }
 
 pub struct Operation<'a, R> {
@@ -15,7 +15,7 @@ impl<'a, R> Operation<'a, R>
 where
     R: Get,
 {
-    pub fn execute(&self, id: WorkspaceScopeId) -> Result<Entity> {
+    pub fn execute(&self, id: ScopedId) -> Result<Entity> {
         self.getter.get(id)
     }
 }

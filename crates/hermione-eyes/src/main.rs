@@ -19,9 +19,7 @@ fn main() -> types::Result<()> {
     logs::init(settings.logs_path()?.as_str())?;
 
     let terminal = tui::init_terminal()?;
-    let memories = memories::Client::new(memories::json::Client::new(
-        settings.path_to_memories().clone(),
-    )?);
+    let memories = memories::Client::new(settings.path_to_memories())?;
     let app = App::new(AppParameters { memories })?;
 
     app.run(terminal)?;

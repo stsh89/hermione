@@ -110,7 +110,7 @@ impl Model {
     fn back(&mut self) {
         let route = Router::GetCommand(GetCommandParameters {
             workspace_id: self.command.workspace_id.clone(),
-            command_id: self.command.id().to_string(),
+            command_id: self.command.id.clone(),
         });
 
         self.redirect = Some(route);
@@ -174,7 +174,7 @@ impl Model {
             name: self.name.value().to_string(),
             program: self.program.value().to_string(),
             workspace_id: self.command.workspace_id.clone(),
-            command_id: self.command.id().to_string(),
+            command_id: self.command.id.clone(),
         });
 
         self.redirect = Some(route);

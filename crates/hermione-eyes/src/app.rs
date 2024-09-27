@@ -193,7 +193,7 @@ impl App {
             };
 
             let model = handler.handle(GetWorkspaceParameters {
-                id: workspaces[0].id().to_string(),
+                id: workspaces[0].id.clone(),
                 commands_search_query: String::new(),
             })?;
 

@@ -15,5 +15,5 @@ serde_json = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["json"] }
 
-hermione-memories = { workspace = true }
+hermione-deeds = { workspace = true }
 

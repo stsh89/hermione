@@ -6,11 +6,6 @@ pub use program::*;
 
 use crate::types::shared::{DateTime, Error, Id, Result};
 
-pub struct WorkspaceScopeId {
-    pub workspace_id: Id,
-    pub command_id: Id,
-}
-
 pub struct Entity {
     last_execute_time: Option<DateTime>,
     id: Option<Id>,

@@ -20,7 +20,7 @@ impl<'a> Handler<'a> {
 
         let command = Command {
             workspace_id,
-            id: Some(command_id.clone()),
+            id: command_id.clone(),
             name,
             program,
         };

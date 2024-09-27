@@ -1,0 +1,14 @@
+[package]
+name = "hermione-deeds"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "hermione_deeds"
+
+[dependencies]
+hermione-memories = { workspace = true }
+chrono = { workspace = true }
+eyre = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

@@ -107,7 +107,7 @@ impl Model {
     fn back(&mut self) {
         let route = Router::GetWorkspace(GetWorkspaceParameters {
             commands_search_query: String::new(),
-            id: self.workspace.id().to_string(),
+            id: self.workspace.id.clone(),
         });
 
         self.redirect = Some(route);
@@ -170,7 +170,7 @@ impl Model {
         let route = Router::UpdateWorkspace(UpdateWorkspaceParameters {
             name: self.name.value().to_string(),
             location: self.location.value().to_string(),
-            id: self.workspace.id().to_string(),
+            id: self.workspace.id.clone(),
         });
 
         self.redirect = Some(route);

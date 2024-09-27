@@ -1,6 +1,10 @@
 [workspace]
 resolver = "2"
-members = [ "crates/hermione-memories", "crates/hermione-eyes"]
+members = [
+    "crates/hermione-memories",
+    "crates/hermione-eyes",
+    "crates/hermione-deeds"
+]
 
 [workspace.dependencies]
 anyhow = "1.0.89"
@@ -16,3 +20,4 @@ tracing-subscriber = "0.3.18"
 uuid = "1.10.0"
 
 hermione-memories = { path = "crates/hermione-memories" }
+hermione-deeds = { path = "crates/hermione-deeds" }

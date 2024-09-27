@@ -14,7 +14,7 @@ impl<'a> Handler<'a> {
         let CreateWorkspaceParameters { name, location } = parameters;
 
         self.memories.create_workspace(Workspace {
-            id: None,
+            id: String::new(),
             location,
             name,
         })?;
