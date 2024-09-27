@@ -40,7 +40,11 @@ impl Client {
     }
 
     fn workspaces(&self) -> Result<Vec<workspaces::Record>, eyre::Report> {
-        self.list_records(&self.workspaces_path)
+        let mut workspaces: Vec<workspaces::Record> = self.list_records(&self.workspaces_path)?;
+
+        workspaces.sort_by(|a, b| a.last_access_time.cmp(&b.last_access_time).reverse());
+
+        Ok(workspaces)
     }
 
     fn save_commands(&self, records: Vec<commands::Record>) -> Result<(), eyre::Report> {
@@ -85,7 +89,7 @@ mod workspaces {
 
     use super::Client;
     use hermione_memories::{
-        operations::workspaces::{create, delete, get, list, update},
+        operations::workspaces::{create, delete, get, list, track_access_time, update},
         types::{
             shared::{DateTime, Error, Id},
             workspace::{Entity, LoadParameters, Location, Name},
@@ -98,7 +102,7 @@ mod workspaces {
         id: String,
 
         #[serde(skip_serializing_if = "Option::is_none")]
-        last_load_time: Option<chrono::DateTime<chrono::Utc>>,
+        pub last_access_time: Option<chrono::DateTime<chrono::Utc>>,
 
         location: String,
         name: String,
@@ -111,7 +115,7 @@ mod workspaces {
 
             records.push(Record {
                 id: unsafe { workspace.id().to_string() },
-                last_load_time: workspace.last_load_time().map(|time| time.to_chrono()),
+                last_access_time: workspace.last_access_time().map(|time| time.to_chrono()),
                 location: workspace
                     .location()
                     .map(ToString::to_string)
@@ -165,6 +169,31 @@ mod workspaces {
         }
     }
 
+    impl track_access_time::Track for Client {
+        fn track(&self, workspace: Entity) -> Result<Entity, Error> {
+            let mut records = self.workspaces()?;
+            let id = unsafe { workspace.id().to_string() };
+
+            let record = records
+                .iter_mut()
+                .find(|record| record.id == id)
+                .ok_or_else(|| eyre::eyre!("Workspace with id {} not found", id,))?;
+
+            record.last_access_time = Some(chrono::Utc::now());
+
+            let command = Entity::load(LoadParameters {
+                last_access_time: record.last_access_time.map(DateTime::from_chrono),
+                id: Id::from_str(&record.id)?,
+                name: Name::new(record.name.clone()),
+                location: Some(Location::new(record.location.clone())),
+            });
+
+            self.save_workspaces(records)?;
+
+            Ok(command)
+        }
+    }
+
     impl update::Update for Client {
         fn update(&self, workspace: Entity) -> Result<Entity, Error> {
             let mut records = self.workspaces()?;
@@ -193,7 +222,7 @@ mod workspaces {
         fn try_from(record: Record) -> Result<Self, Self::Error> {
             let command = Entity::load(LoadParameters {
                 id: Id::from_str(&record.id)?,
-                last_load_time: record.last_load_time.map(DateTime::from_chrono),
+                last_access_time: record.last_access_time.map(DateTime::from_chrono),
                 location: Some(Location::new(record.location)),
                 name: Name::new(record.name),
             });

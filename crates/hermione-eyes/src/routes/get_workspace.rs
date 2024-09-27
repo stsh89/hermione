@@ -56,6 +56,8 @@ impl<'a> Handler<'a> {
             commands
         };
 
+        let workspace = self.memories.track_workspace_access_time(workspace)?;
+
         Model::new(ModelParameters {
             commands,
             workspace,

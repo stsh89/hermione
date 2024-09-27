@@ -122,7 +122,18 @@ impl Client {
         Ok(workspaces.into_iter().map(Into::into).collect())
     }
 
-    pub fn track_execution_time(&self, command: Command) -> Result<Command> {
+    pub fn track_workspace_access_time(&self, workspace: Workspace) -> Result<Workspace> {
+        let workspace = load_workspace_entity(workspace)?;
+
+        let workspace = workspaces::track_access_time::Operation {
+            tracker: &self.inner,
+        }
+        .execute(workspace)?;
+
+        Ok(workspace.into())
+    }
+
+    pub fn track_command_execution_time(&self, command: Command) -> Result<Command> {
         let command = load_command_entity(command)?;
 
         let command = workspaces::commands::track_execution_time::Operation {
@@ -145,18 +156,7 @@ impl Client {
     }
 
     pub fn update_workspace(&self, workspace: Workspace) -> Result<Workspace> {
-        let Workspace { id, location, name } = workspace;
-
-        let Some(id) = id else {
-            return Err(anyhow::anyhow!("Workspace id is required"));
-        };
-
-        let workspace = workspace::Entity::load(workspace::LoadParameters {
-            id: Id::from_str(&id)?,
-            name: workspace::Name::new(name),
-            location: Some(workspace::Location::new(location)),
-            last_load_time: None,
-        });
+        let workspace = load_workspace_entity(workspace)?;
 
         let workspace = workspaces::update::Operation {
             updater: &self.inner,
@@ -210,4 +210,21 @@ fn load_command_entity(command: Command) -> Result<command::Entity> {
         program: command::Program::new(program),
         workspace_id: Id::from_str(&workspace_id)?,
     }))
+}
+
+fn load_workspace_entity(workspace: Workspace) -> Result<workspace::Entity> {
+    let Workspace { id, location, name } = workspace;
+
+    let Some(id) = id else {
+        return Err(anyhow::anyhow!("Workspace id is required"));
+    };
+
+    let workspace = workspace::Entity::load(workspace::LoadParameters {
+        id: Id::from_str(&id)?,
+        name: workspace::Name::new(name),
+        location: Some(workspace::Location::new(location)),
+        last_access_time: None,
+    });
+
+    Ok(workspace)
 }

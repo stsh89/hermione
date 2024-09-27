@@ -19,7 +19,7 @@ impl<'a> Handler<'a> {
 
         let executor = executor::Client::new(&command, &workspace.location);
         executor.execute()?;
-        self.memories.track_execution_time(command)?;
+        self.memories.track_command_execution_time(command)?;
 
         Ok(())
     }

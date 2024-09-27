@@ -14,7 +14,7 @@ pub struct Entity {
 
 pub struct LoadParameters {
     pub id: Id,
-    pub last_load_time: Option<DateTime>,
+    pub last_access_time: Option<DateTime>,
     pub location: Option<Location>,
     pub name: Name,
 }
@@ -36,14 +36,14 @@ impl Entity {
         self.id.unwrap()
     }
 
-    pub fn last_load_time(&self) -> Option<&DateTime> {
+    pub fn last_access_time(&self) -> Option<&DateTime> {
         self.last_load_time.as_ref()
     }
 
     pub fn load(parameters: LoadParameters) -> Self {
         let LoadParameters {
             id,
-            last_load_time,
+            last_access_time: last_load_time,
             location,
             name,
         } = parameters;
