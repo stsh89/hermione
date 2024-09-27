@@ -4,8 +4,8 @@ use crate::{
         Color, CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input,
         InputParameters,
     },
-    tea::{Hook, Message},
     router::{GetWorkspaceParameters, ListWorkspacesParameters, Router},
+    tea::{Hook, Message},
     types::{Result, Workspace},
 };
 use ratatui::{

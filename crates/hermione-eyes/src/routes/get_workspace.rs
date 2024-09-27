@@ -2,12 +2,12 @@ use crate::{
     clients::memories,
     helpers::Color,
     helpers::{CommandPalette, CommandPaletteParameters, Input, InputParameters},
-    tea::{Hook, Message},
     router::GetWorkspaceParameters,
     router::{
         DeleteWorkspaceParameters, EditWorkspaceParameters, ExecuteCommandParameters,
         GetCommandParameters, ListWorkspacesParameters, NewCommandParameters, Router,
     },
+    tea::{Hook, Message},
     types::{Command, Result, Workspace},
 };
 use ratatui::{
@@ -131,18 +131,19 @@ impl Hook for Model {
 
 impl Model {
     fn execute_command(&mut self) {
-        let Some(command) = self
-            .commands_state
-            .selected()
-            .and_then(|i| self.commands.get(i))
-        else {
+        let Some(index) = self.commands_state.selected() else {
             return;
         };
 
+        let command = self.commands.remove(index);
+
         self.redirect = Some(Router::ExecuteCommand(ExecuteCommandParameters {
             command_id: command.id().to_string(),
-            workspace_id: self.workspace.id().to_string(),
+            workspace_id: command.workspace_id.clone(),
         }));
+
+        self.commands.insert(0, command);
+        self.commands_state.select_first();
     }
 
     fn handle_command_palette_action(&mut self) {

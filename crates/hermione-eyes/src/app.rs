@@ -1,6 +1,5 @@
 use crate::{
     clients::memories,
-    tea::Hook,
     router::{
         CreateCommandParameters, CreateWorkspaceParameters, DeleteCommandParameters,
         DeleteWorkspaceParameters, EditCommandParameters, EditWorkspaceParameters,
@@ -9,6 +8,7 @@ use crate::{
         UpdateWorkspaceParameters,
     },
     routes,
+    tea::Hook,
     types::Result,
 };
 use ratatui::{backend::Backend, Terminal};

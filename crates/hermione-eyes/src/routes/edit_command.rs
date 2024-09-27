@@ -1,10 +1,10 @@
 use crate::{
     clients::memories,
     helpers::{Input, InputParameters},
-    tea::{Hook, Message},
     router::EditCommandParameters,
     router::Router,
     router::{GetCommandParameters, UpdateCommandParameters},
+    tea::{Hook, Message},
     types::{Command, Result},
 };
 use ratatui::{
@@ -56,7 +56,7 @@ impl Hook for Model {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [header, name, location] = Layout::default()
+        let [header, name, program] = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![
                 Constraint::Max(1),
@@ -79,15 +79,15 @@ impl Hook for Model {
                 name.y + 1,
             ));
         }
-        let block = Block::default().borders(Borders::all()).title("Location");
+        let block = Block::default().borders(Borders::all()).title("Program");
         let paragraph = Paragraph::new(self.program.value()).block(block);
 
-        frame.render_widget(paragraph, location);
+        frame.render_widget(paragraph, program);
 
         if self.program.is_active() {
             frame.set_cursor_position(Position::new(
-                location.x + self.program.character_index() as u16 + 1,
-                location.y + 1,
+                program.x + self.program.character_index() as u16 + 1,
+                program.y + 1,
             ));
         }
     }
