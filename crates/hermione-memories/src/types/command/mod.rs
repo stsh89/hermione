@@ -37,13 +37,6 @@ impl Entity {
         self.program = program;
     }
 
-    /// # Safety
-    ///
-    /// It cab be called only for loaded commands
-    pub unsafe fn id(&self) -> Id {
-        self.id.unwrap()
-    }
-
     pub fn last_execute_time(&self) -> Option<&DateTime> {
         self.last_execute_time.as_ref()
     }
@@ -66,7 +59,7 @@ impl Entity {
         }
     }
 
-    pub fn get_id(&self) -> Option<Id> {
+    pub fn id(&self) -> Option<Id> {
         self.id
     }
 

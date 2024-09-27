@@ -83,7 +83,7 @@ impl list::List for json::Client {
 
 impl track_access_time::Track for json::Client {
     fn track(&self, workspace: Entity) -> Result<Entity, Error> {
-        let Some(id) = workspace.get_id().map(|id| id.to_string()) else {
+        let Some(id) = workspace.id().map(|id| id.to_string()) else {
             return Err(
                 eyre::eyre!("Attempt to track access time for workspace without id").into(),
             );
@@ -106,7 +106,7 @@ impl track_access_time::Track for json::Client {
 
 impl update::Update for json::Client {
     fn update(&self, workspace: Entity) -> Result<Entity, Error> {
-        let Some(id) = workspace.get_id().map(|id| id.to_string()) else {
+        let Some(id) = workspace.id().map(|id| id.to_string()) else {
             return Err(eyre::eyre!("Attemp to update workspace without id").into());
         };
 
@@ -200,7 +200,7 @@ impl Record {
     fn from_entity(entity: &Entity) -> Result<Self, eyre::Report> {
         Ok(Self {
             id: entity
-                .get_id()
+                .id()
                 .map(|id| id.to_string())
                 .ok_or(eyre::eyre!("Record without id"))?,
             last_access_time: entity.last_access_time().map(From::from),

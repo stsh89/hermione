@@ -16,7 +16,7 @@ pub struct Data {
 impl Data {
     pub(crate) fn from_entity(entity: Entity) -> Self {
         Self {
-            id: entity.get_id().map(|id| id.to_string()).unwrap_or_default(),
+            id: entity.id().map(|id| id.to_string()).unwrap_or_default(),
             last_access_time: entity.last_access_time().map(Into::into),
             location: entity.location().map(ToString::to_string),
             name: entity.name().to_string(),

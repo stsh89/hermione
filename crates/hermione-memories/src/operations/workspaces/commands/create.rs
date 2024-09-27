@@ -18,7 +18,7 @@ where
     pub fn execute(&self, command: Entity) -> Result<Entity> {
         let command = self.creator.create(command)?;
 
-        if command.get_id().is_none() {
+        if command.id().is_none() {
             return Err(Error::Internal(
                 "Failed to create command: command id is not set".to_string(),
             ));

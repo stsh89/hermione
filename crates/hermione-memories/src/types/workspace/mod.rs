@@ -29,13 +29,6 @@ impl Entity {
         self.location = Some(location);
     }
 
-    /// # Safety
-    ///
-    /// It can be called only for loaded workspaces
-    pub unsafe fn id(&self) -> Id {
-        self.id.unwrap()
-    }
-
     pub fn last_access_time(&self) -> Option<&DateTime> {
         self.last_load_time.as_ref()
     }
@@ -60,7 +53,7 @@ impl Entity {
         self.location.as_ref()
     }
 
-    pub fn get_id(&self) -> Option<Id> {
+    pub fn id(&self) -> Option<Id> {
         self.id
     }
 
