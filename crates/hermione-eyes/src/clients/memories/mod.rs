@@ -122,25 +122,19 @@ impl Client {
         Ok(workspaces.into_iter().map(Into::into).collect())
     }
 
+    pub fn track_execution_time(&self, command: Command) -> Result<Command> {
+        let command = load_command_entity(command)?;
+
+        let command = workspaces::commands::track_execution_time::Operation {
+            tracker: &self.inner,
+        }
+        .execute(command)?;
+
+        Ok(command.into())
+    }
+
     pub fn update_command(&self, command: Command) -> Result<Command> {
-        let Command {
-            workspace_id,
-            id,
-            name,
-            program,
-        } = command;
-
-        let Some(id) = id else {
-            return Err(anyhow::anyhow!("Command id is required"));
-        };
-
-        let command = command::Entity::load(command::LoadParameters {
-            last_execute_time: None,
-            id: Id::from_str(&id)?,
-            name: command::Name::new(name),
-            program: command::Program::new(program),
-            workspace_id: Id::from_str(&workspace_id)?,
-        });
+        let command = load_command_entity(command)?;
 
         let command = workspaces::commands::update::Operation {
             updater: &self.inner,
@@ -195,4 +189,25 @@ impl From<workspace::Entity> for Workspace {
             name: value.name().to_string(),
         }
     }
+}
+
+fn load_command_entity(command: Command) -> Result<command::Entity> {
+    let Command {
+        workspace_id,
+        id,
+        name,
+        program,
+    } = command;
+
+    let Some(id) = id else {
+        return Err(anyhow::anyhow!("Command id is required"));
+    };
+
+    Ok(command::Entity::load(command::LoadParameters {
+        last_execute_time: None,
+        id: Id::from_str(&id)?,
+        name: command::Name::new(name),
+        program: command::Program::new(program),
+        workspace_id: Id::from_str(&workspace_id)?,
+    }))
 }

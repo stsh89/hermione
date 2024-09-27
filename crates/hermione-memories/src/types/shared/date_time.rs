@@ -1,3 +1,4 @@
+#[derive(Clone, PartialEq, PartialOrd)]
 pub struct DateTime(chrono::DateTime<chrono::Utc>);
 
 impl DateTime {

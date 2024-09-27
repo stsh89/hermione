@@ -32,7 +32,11 @@ impl Client {
     }
 
     fn commands(&self) -> Result<Vec<commands::Record>, eyre::Report> {
-        self.list_records(&self.commands_path)
+        let mut commands: Vec<commands::Record> = self.list_records(&self.commands_path)?;
+
+        commands.sort_by(|a, b| a.last_execute_time.cmp(&b.last_execute_time).reverse());
+
+        Ok(commands)
     }
 
     fn workspaces(&self) -> Result<Vec<workspaces::Record>, eyre::Report> {
@@ -204,7 +208,9 @@ mod commands {
 
     use super::Client;
     use hermione_memories::{
-        operations::workspaces::commands::{create, delete, get, list, update},
+        operations::workspaces::commands::{
+            create, delete, get, list, track_execution_time, update,
+        },
         types::{
             command::{Entity, LoadParameters, Name, Program, WorkspaceScopeId},
             shared::{DateTime, Error, Id},
@@ -217,7 +223,7 @@ mod commands {
         id: String,
 
         #[serde(skip_serializing_if = "Option::is_none")]
-        last_execute_time: Option<chrono::DateTime<chrono::Utc>>,
+        pub last_execute_time: Option<chrono::DateTime<chrono::Utc>>,
 
         name: String,
         program: String,
@@ -254,7 +260,8 @@ mod commands {
 
             let mut records = self.commands()?;
 
-            records.retain(|record| record.id != command_id && record.workspace_id != workspace_id);
+            records
+                .retain(|record| !(record.id == command_id && record.workspace_id == workspace_id));
 
             self.save_commands(records)?;
 
@@ -301,6 +308,39 @@ mod commands {
                 .collect::<Result<Vec<_>, _>>()?;
 
             Ok(records)
+        }
+    }
+
+    impl track_execution_time::Track for Client {
+        fn track(&self, command: Entity) -> Result<Entity, Error> {
+            let mut records = self.commands()?;
+            let command_id = unsafe { command.id().to_string() };
+            let workspace_id = command.workspace_id().to_string();
+
+            let record = records
+                .iter_mut()
+                .find(|record| record.id == command_id && record.workspace_id == workspace_id)
+                .ok_or_else(|| {
+                    eyre::eyre!(
+                        "Command with id {} and workspace id {} not found",
+                        command_id,
+                        workspace_id
+                    )
+                })?;
+
+            record.last_execute_time = Some(chrono::Utc::now());
+
+            let command = Entity::load(LoadParameters {
+                last_execute_time: record.last_execute_time.map(DateTime::from_chrono),
+                id: Id::from_str(&record.id)?,
+                name: Name::new(record.name.clone()),
+                program: Program::new(record.program.clone()),
+                workspace_id: Id::from_str(&record.workspace_id)?,
+            });
+
+            self.save_commands(records)?;
+
+            Ok(command)
         }
     }
 
