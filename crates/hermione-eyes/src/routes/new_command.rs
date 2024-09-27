@@ -1,9 +1,9 @@
 use crate::{
-    models::{
-        helpers::{Input, InputParameters},
-        Message, Model, Router,
-    },
+    clients::memories,
+    helpers::{Input, InputParameters},
+    tea::{Hook, Message},
     router::{CreateCommandParameters, GetWorkspaceParameters},
+    router::{NewCommandParameters, Router},
     types::{Result, Workspace},
 };
 use ratatui::{
@@ -11,8 +11,11 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
+pub struct Handler<'a> {
+    pub memories: &'a memories::Client,
+}
 
-pub struct NewCommandModel {
+pub struct Model {
     workspace: Workspace,
     name: Input,
     program: Input,
@@ -20,7 +23,7 @@ pub struct NewCommandModel {
     active_input: CommandProperty,
 }
 
-pub struct NewCommandModelParameters {
+pub struct ModelParameters {
     pub workspace: Workspace,
 }
 
@@ -29,7 +32,17 @@ enum CommandProperty {
     Program,
 }
 
-impl Model for NewCommandModel {
+impl<'a> Handler<'a> {
+    pub fn handle(self, parameters: NewCommandParameters) -> Result<Model> {
+        let NewCommandParameters { workspace_id } = parameters;
+
+        let workspace = self.memories.get_workspace(&workspace_id)?;
+
+        Ok(Model::new(ModelParameters { workspace }))
+    }
+}
+
+impl Hook for Model {
     fn redirect(&mut self) -> Option<Router> {
         self.redirect.take()
     }
@@ -88,7 +101,7 @@ impl Model for NewCommandModel {
     }
 }
 
-impl NewCommandModel {
+impl Model {
     fn back(&mut self) {
         let route = Router::GetWorkspace(GetWorkspaceParameters {
             id: self.workspace.id().to_string(),
@@ -98,8 +111,8 @@ impl NewCommandModel {
         self.redirect = Some(route);
     }
 
-    pub fn new(parameters: NewCommandModelParameters) -> Self {
-        let NewCommandModelParameters { workspace } = parameters;
+    pub fn new(parameters: ModelParameters) -> Self {
+        let ModelParameters { workspace } = parameters;
 
         Self {
             workspace,

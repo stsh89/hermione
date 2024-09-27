@@ -1,8 +1,10 @@
 mod app;
 mod clients;
+mod helpers;
 mod logs;
-mod models;
+mod tea;
 mod router;
+mod routes;
 mod settings;
 mod tui;
 mod types;

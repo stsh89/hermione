@@ -1,7 +1,7 @@
 use crate::{
     clients::memories,
-    models::{GetCommandModel, GetCommandModelParameters},
     router::UpdateCommandParameters,
+    routes::get_command::{Model, ModelParameters},
     types::{Command, Result},
 };
 
@@ -10,7 +10,7 @@ pub struct Handler<'a> {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: UpdateCommandParameters) -> Result<GetCommandModel> {
+    pub fn handle(self, parameters: UpdateCommandParameters) -> Result<Model> {
         let UpdateCommandParameters {
             command_id,
             workspace_id,
@@ -27,7 +27,7 @@ impl<'a> Handler<'a> {
 
         let command = self.memories.update_command(command)?;
 
-        let model = GetCommandModel::new(GetCommandModelParameters { command })?;
+        let model = Model::new(ModelParameters { command })?;
 
         Ok(model)
     }

@@ -1,7 +1,7 @@
 use crate::{
     clients::memories,
-    models::{GetWorkspaceModel, GetWorkspaceModelParameters},
     router::UpdateWorkspaceParameters,
+    routes::get_workspace::{Model, ModelParameters},
     types::Result,
 };
 
@@ -10,7 +10,7 @@ pub struct Handler<'a> {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: UpdateWorkspaceParameters) -> Result<GetWorkspaceModel> {
+    pub fn handle(self, parameters: UpdateWorkspaceParameters) -> Result<Model> {
         let UpdateWorkspaceParameters { id, name, location } = parameters;
 
         let mut workspace = self.memories.get_workspace(&id)?;
@@ -21,7 +21,7 @@ impl<'a> Handler<'a> {
         let workspace = self.memories.update_workspace(workspace)?;
         let commands = self.memories.list_commands(&id)?;
 
-        let model = GetWorkspaceModel::new(GetWorkspaceModelParameters {
+        let model = Model::new(ModelParameters {
             commands,
             workspace,
             commands_search_query: String::new(),

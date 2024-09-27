@@ -1,7 +1,7 @@
 use crate::{
     clients::memories,
-    models::{GetWorkspaceModel, GetWorkspaceModelParameters},
     router::CreateCommandParameters,
+    routes::get_workspace::{Model, ModelParameters},
     types::{Command, Result},
 };
 
@@ -10,7 +10,7 @@ pub struct Handler<'a> {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: CreateCommandParameters) -> Result<GetWorkspaceModel> {
+    pub fn handle(self, parameters: CreateCommandParameters) -> Result<Model> {
         let CreateCommandParameters {
             workspace_id,
             name,
@@ -27,7 +27,7 @@ impl<'a> Handler<'a> {
         let workspace = self.memories.get_workspace(&workspace_id)?;
         let commands = self.memories.list_commands(&workspace_id)?;
 
-        GetWorkspaceModel::new(GetWorkspaceModelParameters {
+        Model::new(ModelParameters {
             workspace,
             commands,
             commands_search_query: String::new(),

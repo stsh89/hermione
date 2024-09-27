@@ -1,10 +1,9 @@
 use crate::{
-    models::{
-        helpers::{Input, InputParameters},
-        Message, Model, Router,
-    },
-    router::{GetCommandParameters, UpdateCommandParameters},
-    types::{Command, Result},
+    helpers::{Input, InputParameters},
+    tea::{Hook, Message},
+    router::Router,
+    router::{CreateWorkspaceParameters, ListWorkspacesParameters},
+    types::Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -12,24 +11,27 @@ use ratatui::{
     Frame,
 };
 
-pub struct EditCommandModel {
-    command: Command,
-    active_input: CommandProperty,
+pub struct Handler {}
+
+impl Handler {
+    pub fn handle(self) -> Model {
+        Model::new()
+    }
+}
+
+pub struct Model {
+    active_input: WorkspaceProperty,
+    location: Input,
     name: Input,
-    program: Input,
     redirect: Option<Router>,
 }
 
-pub struct EditCommandModelParameters {
-    pub command: Command,
-}
-
-enum CommandProperty {
+enum WorkspaceProperty {
     Name,
-    Program,
+    Location,
 }
 
-impl Model for EditCommandModel {
+impl Hook for Model {
     fn redirect(&mut self) -> Option<Router> {
         self.redirect.take()
     }
@@ -60,7 +62,7 @@ impl Model for EditCommandModel {
             ])
             .areas(frame.area());
 
-        let paragraph = Paragraph::new("Edit Command").alignment(Alignment::Center);
+        let paragraph = Paragraph::new("New workspace").alignment(Alignment::Center);
         frame.render_widget(paragraph, header);
 
         let block = Block::default().borders(Borders::all()).title("Name");
@@ -75,88 +77,80 @@ impl Model for EditCommandModel {
             ));
         }
         let block = Block::default().borders(Borders::all()).title("Location");
-        let paragraph = Paragraph::new(self.program.value()).block(block);
+        let paragraph = Paragraph::new(self.location.value()).block(block);
 
         frame.render_widget(paragraph, location);
 
-        if self.program.is_active() {
+        if self.location.is_active() {
             frame.set_cursor_position(Position::new(
-                location.x + self.program.character_index() as u16 + 1,
+                location.x + self.location.character_index() as u16 + 1,
                 location.y + 1,
             ));
         }
     }
 }
 
-impl EditCommandModel {
+impl Model {
     fn back(&mut self) {
-        let route = Router::GetCommand(GetCommandParameters {
-            workspace_id: self.command.workspace_id.clone(),
-            command_id: self.command.id().to_string(),
-        });
+        let route = Router::ListWorkspaces(ListWorkspacesParameters::default());
 
         self.redirect = Some(route);
     }
 
     fn delete_char(&mut self) {
         match self.active_input {
-            CommandProperty::Name => self.name.delete_char(),
-            CommandProperty::Program => self.program.delete_char(),
+            WorkspaceProperty::Name => self.name.delete_char(),
+            WorkspaceProperty::Location => self.location.delete_char(),
         }
     }
 
     fn delete_all_chars(&mut self) {
         match self.active_input {
-            CommandProperty::Name => self.name.delete_all_chars(),
-            CommandProperty::Program => self.program.delete_all_chars(),
+            WorkspaceProperty::Name => self.name.delete_all_chars(),
+            WorkspaceProperty::Location => self.location.delete_all_chars(),
         }
     }
 
     fn enter_char(&mut self, c: char) {
         match self.active_input {
-            CommandProperty::Name => self.name.enter_char(c),
-            CommandProperty::Program => self.program.enter_char(c),
+            WorkspaceProperty::Name => self.name.enter_char(c),
+            WorkspaceProperty::Location => self.location.enter_char(c),
         }
     }
 
     fn move_cursor_left(&mut self) {
         match self.active_input {
-            CommandProperty::Name => self.name.move_cursor_left(),
-            CommandProperty::Program => self.program.move_cursor_left(),
+            WorkspaceProperty::Name => self.name.move_cursor_left(),
+            WorkspaceProperty::Location => self.location.move_cursor_left(),
         }
     }
 
     fn move_cursor_right(&mut self) {
         match self.active_input {
-            CommandProperty::Name => self.name.move_cursor_right(),
-            CommandProperty::Program => self.program.move_cursor_right(),
+            WorkspaceProperty::Name => self.name.move_cursor_right(),
+            WorkspaceProperty::Location => self.location.move_cursor_right(),
         }
     }
 
-    pub fn new(parameters: EditCommandModelParameters) -> Self {
-        let EditCommandModelParameters { command } = parameters;
-
+    pub fn new() -> Self {
         Self {
             name: Input::new(InputParameters {
-                value: command.name.clone(),
+                value: String::new(),
                 is_active: true,
             }),
             redirect: None,
-            active_input: CommandProperty::Name,
-            program: Input::new(InputParameters {
-                value: command.program.clone(),
+            active_input: WorkspaceProperty::Name,
+            location: Input::new(InputParameters {
+                value: String::new(),
                 is_active: false,
             }),
-            command,
         }
     }
 
     fn submit(&mut self) {
-        let route = Router::UpdateCommand(UpdateCommandParameters {
+        let route = Router::CreateWorkspace(CreateWorkspaceParameters {
             name: self.name.value().to_string(),
-            program: self.program.value().to_string(),
-            workspace_id: self.command.workspace_id.clone(),
-            command_id: self.command.id().to_string(),
+            location: self.location.value().to_string(),
         });
 
         self.redirect = Some(route);
@@ -164,17 +158,17 @@ impl EditCommandModel {
 
     fn toggle_focus(&mut self) {
         self.active_input = match self.active_input {
-            CommandProperty::Name => CommandProperty::Program,
-            CommandProperty::Program => CommandProperty::Name,
+            WorkspaceProperty::Name => WorkspaceProperty::Location,
+            WorkspaceProperty::Location => WorkspaceProperty::Name,
         };
 
         match self.active_input {
-            CommandProperty::Name => {
+            WorkspaceProperty::Name => {
                 self.name.activate();
-                self.program.deactivate();
+                self.location.deactivate();
             }
-            CommandProperty::Program => {
-                self.program.activate();
+            WorkspaceProperty::Location => {
+                self.location.activate();
                 self.name.deactivate();
             }
         }

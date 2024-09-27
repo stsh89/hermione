@@ -1,29 +1,47 @@
+use crate::{
+    clients::memories,
+    helpers::{CommandPalette, CommandPaletteParameters},
+    router::GetCommandParameters,
+};
+use crate::{
+    tea::{Hook, Message},
+    router::{DeleteCommandParameters, EditCommandParameters, GetWorkspaceParameters, Router},
+    types::{Command, Result},
+};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
-use crate::{
-    models::{
-        helpers::{CommandPalette, CommandPaletteParameters},
-        Message, Model,
-    },
-    router::{DeleteCommandParameters, EditCommandParameters, GetWorkspaceParameters, Router},
-    types::{Command, Result},
-};
+pub struct Handler<'a> {
+    pub memories: &'a memories::Client,
+}
 
-pub struct GetCommandModel {
+pub struct Model {
     command: Command,
     redirect: Option<Router>,
     command_palette: CommandPalette,
 }
 
-pub struct GetCommandModelParameters {
+pub struct ModelParameters {
     pub command: Command,
 }
 
-impl Model for GetCommandModel {
+impl<'a> Handler<'a> {
+    pub fn handle(self, parameters: GetCommandParameters) -> Result<Model> {
+        let GetCommandParameters {
+            workspace_id,
+            command_id,
+        } = parameters;
+
+        let command = self.memories.get_command(&workspace_id, &command_id)?;
+
+        Model::new(ModelParameters { command })
+    }
+}
+
+impl Hook for Model {
     fn redirect(&mut self) -> Option<Router> {
         self.redirect.take()
     }
@@ -61,9 +79,9 @@ impl Model for GetCommandModel {
     }
 }
 
-impl GetCommandModel {
+impl Model {
     fn handle_command_palette_action(&mut self) {
-        use crate::models::helpers::CommandPaletteAction as CPA;
+        use crate::helpers::CommandPaletteAction as CPA;
 
         let Some(action) = self.command_palette.action() else {
             return;
@@ -99,10 +117,10 @@ impl GetCommandModel {
         self.redirect = Some(route)
     }
 
-    pub fn new(parameters: GetCommandModelParameters) -> Result<Self> {
-        use crate::models::helpers::CommandPaletteAction as CPA;
+    pub fn new(parameters: ModelParameters) -> Result<Self> {
+        use crate::helpers::CommandPaletteAction as CPA;
 
-        let GetCommandModelParameters { command } = parameters;
+        let ModelParameters { command } = parameters;
 
         Ok(Self {
             command,

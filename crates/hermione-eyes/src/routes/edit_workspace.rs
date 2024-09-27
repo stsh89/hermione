@@ -1,9 +1,8 @@
 use crate::{
-    models::{
-        helpers::{Input, InputParameters},
-        Message, Model, Router,
-    },
-    router::{GetWorkspaceParameters, UpdateWorkspaceParameters},
+    clients::memories,
+    helpers::{Input, InputParameters},
+    tea::{Hook, Message},
+    router::{EditWorkspaceParameters, GetWorkspaceParameters, Router, UpdateWorkspaceParameters},
     types::{Result, Workspace},
 };
 use ratatui::{
@@ -12,7 +11,11 @@ use ratatui::{
     Frame,
 };
 
-pub struct EditWorkspaceModel {
+pub struct Handler<'a> {
+    pub memories: &'a memories::Client,
+}
+
+pub struct Model {
     workspace: Workspace,
     active_input: WorkspaceProperty,
     location: Input,
@@ -20,7 +23,7 @@ pub struct EditWorkspaceModel {
     redirect: Option<Router>,
 }
 
-pub struct EditWorkspaceModelParameters {
+pub struct ModelParameters {
     pub workspace: Workspace,
 }
 
@@ -29,7 +32,7 @@ enum WorkspaceProperty {
     Location,
 }
 
-impl Model for EditWorkspaceModel {
+impl Hook for Model {
     fn redirect(&mut self) -> Option<Router> {
         self.redirect.take()
     }
@@ -88,7 +91,19 @@ impl Model for EditWorkspaceModel {
     }
 }
 
-impl EditWorkspaceModel {
+impl<'a> Handler<'a> {
+    pub fn handle(self, parameters: EditWorkspaceParameters) -> Result<Model> {
+        let EditWorkspaceParameters { id } = parameters;
+
+        let workspace = self.memories.get_workspace(&id)?;
+
+        let model = Model::new(ModelParameters { workspace });
+
+        Ok(model)
+    }
+}
+
+impl Model {
     fn back(&mut self) {
         let route = Router::GetWorkspace(GetWorkspaceParameters {
             commands_search_query: String::new(),
@@ -133,8 +148,8 @@ impl EditWorkspaceModel {
         }
     }
 
-    pub fn new(parameters: EditWorkspaceModelParameters) -> Self {
-        let EditWorkspaceModelParameters { workspace } = parameters;
+    pub fn new(parameters: ModelParameters) -> Self {
+        let ModelParameters { workspace } = parameters;
 
         Self {
             name: Input::new(InputParameters {

@@ -1,23 +1,26 @@
+use crate::{
+    clients::memories,
+    helpers::Color,
+    helpers::{CommandPalette, CommandPaletteParameters, Input, InputParameters},
+    tea::{Hook, Message},
+    router::GetWorkspaceParameters,
+    router::{
+        DeleteWorkspaceParameters, EditWorkspaceParameters, ExecuteCommandParameters,
+        GetCommandParameters, ListWorkspacesParameters, NewCommandParameters, Router,
+    },
+    types::{Command, Result, Workspace},
+};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame,
 };
 
-use crate::{
-    models::{
-        helpers::{CommandPalette, CommandPaletteParameters, Input, InputParameters},
-        highlight_style, Message, Model,
-    },
-    router::{
-        DeleteWorkspaceParameters, EditWorkspaceParameters, ExecuteCommandParameters,
-        GetCommandParameters, GetWorkspaceParameters, ListWorkspacesParameters,
-        NewCommandParameters, Router,
-    },
-    types::{Command, Result, Workspace},
-};
+pub struct Handler<'a> {
+    pub memories: &'a memories::Client,
+}
 
-pub struct GetWorkspaceModel {
+pub struct Model {
     workspace: Workspace,
     commands: Vec<Command>,
     redirect: Option<Router>,
@@ -27,13 +30,41 @@ pub struct GetWorkspaceModel {
     is_running: bool,
 }
 
-pub struct GetWorkspaceModelParameters {
+pub struct ModelParameters {
     pub commands: Vec<Command>,
     pub workspace: Workspace,
     pub commands_search_query: String,
 }
 
-impl Model for GetWorkspaceModel {
+impl<'a> Handler<'a> {
+    pub fn handle(self, parameters: GetWorkspaceParameters) -> Result<Model> {
+        let GetWorkspaceParameters {
+            id,
+            commands_search_query,
+        } = parameters;
+
+        let workspace = self.memories.get_workspace(&id)?;
+        let commands = self.memories.list_commands(&id)?;
+        let filter = commands_search_query.to_lowercase();
+
+        let commands = if !filter.is_empty() {
+            commands
+                .into_iter()
+                .filter(|c| c.program.to_lowercase().contains(&filter))
+                .collect()
+        } else {
+            commands
+        };
+
+        Model::new(ModelParameters {
+            commands,
+            workspace,
+            commands_search_query,
+        })
+    }
+}
+
+impl Hook for Model {
     fn is_running(&self) -> bool {
         self.is_running
     }
@@ -88,7 +119,7 @@ impl Model for GetWorkspaceModel {
 
         let list = List::new(items)
             .block(block)
-            .highlight_style(highlight_style());
+            .highlight_style(Color::default().highlight());
 
         frame.render_stateful_widget(list, commands, &mut self.commands_state);
 
@@ -98,7 +129,7 @@ impl Model for GetWorkspaceModel {
     }
 }
 
-impl GetWorkspaceModel {
+impl Model {
     fn execute_command(&mut self) {
         let Some(command) = self
             .commands_state
@@ -115,7 +146,7 @@ impl GetWorkspaceModel {
     }
 
     fn handle_command_palette_action(&mut self) {
-        use crate::models::helpers::CommandPaletteAction as CPA;
+        use crate::helpers::CommandPaletteAction as CPA;
 
         let Some(action) = self.command_palette.action() else {
             return;
@@ -144,10 +175,10 @@ impl GetWorkspaceModel {
         }
     }
 
-    pub fn new(parameters: GetWorkspaceModelParameters) -> Result<Self> {
-        use crate::models::helpers::CommandPaletteAction as CPA;
+    pub fn new(parameters: ModelParameters) -> Result<Self> {
+        use crate::helpers::CommandPaletteAction as CPA;
 
-        let GetWorkspaceModelParameters {
+        let ModelParameters {
             commands,
             workspace,
             commands_search_query,

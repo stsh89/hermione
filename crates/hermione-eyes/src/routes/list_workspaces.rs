@@ -1,8 +1,10 @@
 use crate::{
-    models::{
-        helpers::{self, Input, InputParameters},
-        highlight_style, Message, Model,
+    clients::memories,
+    helpers::{
+        Color, CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input,
+        InputParameters,
     },
+    tea::{Hook, Message},
     router::{GetWorkspaceParameters, ListWorkspacesParameters, Router},
     types::{Result, Workspace},
 };
@@ -12,21 +14,42 @@ use ratatui::{
     Frame,
 };
 
-pub struct ListWorkspacesModel {
+pub struct Handler<'a> {
+    pub memories: &'a memories::Client,
+}
+
+pub struct Model {
     is_running: bool,
     redirect: Option<Router>,
     search: Input,
     workspaces_state: ListState,
     workspaces: Vec<Workspace>,
-    command_palette: helpers::CommandPalette,
+    command_palette: CommandPalette,
 }
 
-pub struct ListWorkspacesModelParameters {
+pub struct ModelParameters {
     pub workspaces: Vec<Workspace>,
     pub search_query: String,
 }
 
-impl Model for ListWorkspacesModel {
+impl<'a> Handler<'a> {
+    pub fn handle(self, parameters: ListWorkspacesParameters) -> Result<Model> {
+        let ListWorkspacesParameters { search_query } = parameters;
+        let mut workspaces = self.memories.list_workspaces()?;
+        let filter = search_query.to_lowercase();
+
+        if !filter.is_empty() {
+            workspaces.retain(|w| w.name.to_lowercase().contains(&filter));
+        }
+
+        Model::new(ModelParameters {
+            workspaces,
+            search_query,
+        })
+    }
+}
+
+impl Hook for Model {
     fn is_running(&self) -> bool {
         self.is_running
     }
@@ -80,7 +103,7 @@ impl Model for ListWorkspacesModel {
 
         let list = List::new(items)
             .block(block)
-            .highlight_style(highlight_style());
+            .highlight_style(Color::default().highlight());
 
         frame.render_stateful_widget(list, commands, &mut self.workspaces_state);
 
@@ -90,7 +113,7 @@ impl Model for ListWorkspacesModel {
     }
 }
 
-impl ListWorkspacesModel {
+impl Model {
     fn back(&mut self) {
         if self.command_palette.is_active() {
             self.command_palette.toggle();
@@ -102,7 +125,7 @@ impl ListWorkspacesModel {
     }
 
     fn handle_command_palette_action(&mut self) {
-        use helpers::CommandPaletteAction as CPA;
+        use CommandPaletteAction as CPA;
 
         let Some(action) = self.command_palette.action() else {
             return;
@@ -113,8 +136,8 @@ impl ListWorkspacesModel {
         }
     }
 
-    pub fn new(parameters: ListWorkspacesModelParameters) -> Result<Self> {
-        let ListWorkspacesModelParameters {
+    pub fn new(parameters: ModelParameters) -> Result<Self> {
+        let ModelParameters {
             workspaces,
             search_query,
         } = parameters;
@@ -128,8 +151,8 @@ impl ListWorkspacesModel {
                 is_active: true,
             }),
             is_running: true,
-            command_palette: helpers::CommandPalette::new(helpers::CommandPaletteParameters {
-                actions: vec![helpers::CommandPaletteAction::NewWorkspace],
+            command_palette: CommandPalette::new(CommandPaletteParameters {
+                actions: vec![CommandPaletteAction::NewWorkspace],
             })?,
         };
 

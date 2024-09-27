@@ -1,10 +1,11 @@
 use crate::{
-    models::{
-        helpers::{Input, InputParameters},
-        Message, Model, Router,
-    },
-    router::{CreateWorkspaceParameters, ListWorkspacesParameters},
-    types::Result,
+    clients::memories,
+    helpers::{Input, InputParameters},
+    tea::{Hook, Message},
+    router::EditCommandParameters,
+    router::Router,
+    router::{GetCommandParameters, UpdateCommandParameters},
+    types::{Command, Result},
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -12,19 +13,28 @@ use ratatui::{
     Frame,
 };
 
-pub struct NewWorkspaceModel {
-    active_input: WorkspaceProperty,
-    location: Input,
+pub struct Handler<'a> {
+    pub memories: &'a memories::Client,
+}
+
+pub struct Model {
+    command: Command,
+    active_input: CommandProperty,
     name: Input,
+    program: Input,
     redirect: Option<Router>,
 }
 
-enum WorkspaceProperty {
-    Name,
-    Location,
+pub struct ModelParameters {
+    pub command: Command,
 }
 
-impl Model for NewWorkspaceModel {
+enum CommandProperty {
+    Name,
+    Program,
+}
+
+impl Hook for Model {
     fn redirect(&mut self) -> Option<Router> {
         self.redirect.take()
     }
@@ -55,7 +65,7 @@ impl Model for NewWorkspaceModel {
             ])
             .areas(frame.area());
 
-        let paragraph = Paragraph::new("New workspace").alignment(Alignment::Center);
+        let paragraph = Paragraph::new("Edit Command").alignment(Alignment::Center);
         frame.render_widget(paragraph, header);
 
         let block = Block::default().borders(Borders::all()).title("Name");
@@ -70,80 +80,101 @@ impl Model for NewWorkspaceModel {
             ));
         }
         let block = Block::default().borders(Borders::all()).title("Location");
-        let paragraph = Paragraph::new(self.location.value()).block(block);
+        let paragraph = Paragraph::new(self.program.value()).block(block);
 
         frame.render_widget(paragraph, location);
 
-        if self.location.is_active() {
+        if self.program.is_active() {
             frame.set_cursor_position(Position::new(
-                location.x + self.location.character_index() as u16 + 1,
+                location.x + self.program.character_index() as u16 + 1,
                 location.y + 1,
             ));
         }
     }
 }
 
-impl NewWorkspaceModel {
+impl<'a> Handler<'a> {
+    pub fn handle(self, parameters: EditCommandParameters) -> Result<Model> {
+        let EditCommandParameters {
+            command_id,
+            workspace_id,
+        } = parameters;
+
+        let command = self.memories.get_command(&workspace_id, &command_id)?;
+
+        Ok(Model::new(ModelParameters { command }))
+    }
+}
+
+impl Model {
     fn back(&mut self) {
-        let route = Router::ListWorkspaces(ListWorkspacesParameters::default());
+        let route = Router::GetCommand(GetCommandParameters {
+            workspace_id: self.command.workspace_id.clone(),
+            command_id: self.command.id().to_string(),
+        });
 
         self.redirect = Some(route);
     }
 
     fn delete_char(&mut self) {
         match self.active_input {
-            WorkspaceProperty::Name => self.name.delete_char(),
-            WorkspaceProperty::Location => self.location.delete_char(),
+            CommandProperty::Name => self.name.delete_char(),
+            CommandProperty::Program => self.program.delete_char(),
         }
     }
 
     fn delete_all_chars(&mut self) {
         match self.active_input {
-            WorkspaceProperty::Name => self.name.delete_all_chars(),
-            WorkspaceProperty::Location => self.location.delete_all_chars(),
+            CommandProperty::Name => self.name.delete_all_chars(),
+            CommandProperty::Program => self.program.delete_all_chars(),
         }
     }
 
     fn enter_char(&mut self, c: char) {
         match self.active_input {
-            WorkspaceProperty::Name => self.name.enter_char(c),
-            WorkspaceProperty::Location => self.location.enter_char(c),
+            CommandProperty::Name => self.name.enter_char(c),
+            CommandProperty::Program => self.program.enter_char(c),
         }
     }
 
     fn move_cursor_left(&mut self) {
         match self.active_input {
-            WorkspaceProperty::Name => self.name.move_cursor_left(),
-            WorkspaceProperty::Location => self.location.move_cursor_left(),
+            CommandProperty::Name => self.name.move_cursor_left(),
+            CommandProperty::Program => self.program.move_cursor_left(),
         }
     }
 
     fn move_cursor_right(&mut self) {
         match self.active_input {
-            WorkspaceProperty::Name => self.name.move_cursor_right(),
-            WorkspaceProperty::Location => self.location.move_cursor_right(),
+            CommandProperty::Name => self.name.move_cursor_right(),
+            CommandProperty::Program => self.program.move_cursor_right(),
         }
     }
 
-    pub fn new() -> Self {
+    pub fn new(parameters: ModelParameters) -> Self {
+        let ModelParameters { command } = parameters;
+
         Self {
             name: Input::new(InputParameters {
-                value: String::new(),
+                value: command.name.clone(),
                 is_active: true,
             }),
             redirect: None,
-            active_input: WorkspaceProperty::Name,
-            location: Input::new(InputParameters {
-                value: String::new(),
+            active_input: CommandProperty::Name,
+            program: Input::new(InputParameters {
+                value: command.program.clone(),
                 is_active: false,
             }),
+            command,
         }
     }
 
     fn submit(&mut self) {
-        let route = Router::CreateWorkspace(CreateWorkspaceParameters {
+        let route = Router::UpdateCommand(UpdateCommandParameters {
             name: self.name.value().to_string(),
-            location: self.location.value().to_string(),
+            program: self.program.value().to_string(),
+            workspace_id: self.command.workspace_id.clone(),
+            command_id: self.command.id().to_string(),
         });
 
         self.redirect = Some(route);
@@ -151,17 +182,17 @@ impl NewWorkspaceModel {
 
     fn toggle_focus(&mut self) {
         self.active_input = match self.active_input {
-            WorkspaceProperty::Name => WorkspaceProperty::Location,
-            WorkspaceProperty::Location => WorkspaceProperty::Name,
+            CommandProperty::Name => CommandProperty::Program,
+            CommandProperty::Program => CommandProperty::Name,
         };
 
         match self.active_input {
-            WorkspaceProperty::Name => {
+            CommandProperty::Name => {
                 self.name.activate();
-                self.location.deactivate();
+                self.program.deactivate();
             }
-            WorkspaceProperty::Location => {
-                self.location.activate();
+            CommandProperty::Program => {
+                self.program.activate();
                 self.name.deactivate();
             }
         }

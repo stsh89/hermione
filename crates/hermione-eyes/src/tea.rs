@@ -1,29 +1,7 @@
-mod edit_command;
-mod edit_workspace;
-mod get_command;
-mod get_workspace;
-mod helpers;
-mod list_workspaces;
-mod new_command;
-mod new_workspace;
-
 use crate::{router::Router, types::Result};
-use ratatui::{
-    crossterm::event::{self, KeyCode, KeyEvent, KeyModifiers},
-    style::{Style, Stylize},
-    Frame,
-};
+use ratatui::{crossterm::event, Frame};
 
-pub use edit_command::{EditCommandModel, EditCommandModelParameters};
-pub use edit_workspace::{EditWorkspaceModel, EditWorkspaceModelParameters};
-pub use get_command::{GetCommandModel, GetCommandModelParameters};
-pub use get_workspace::{GetWorkspaceModel, GetWorkspaceModelParameters};
-pub use list_workspaces::{ListWorkspacesModel, ListWorkspacesModelParameters};
-pub use new_command::{NewCommandModel, NewCommandModelParameters};
-pub use new_workspace::NewWorkspaceModel;
-use tracing::instrument;
-
-pub trait Model {
+pub trait Hook {
     fn handle_event(&self) -> Result<Option<Message>> {
         EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
     }
@@ -73,7 +51,6 @@ where
         Self { f }
     }
 
-    #[instrument(skip_all)]
     fn handle_event(self) -> Result<Option<Message>> {
         let tui_event = event::read()?;
         tracing::info!(tui_event = ?tui_event);
@@ -90,10 +67,12 @@ where
     }
 }
 
-impl TryFrom<KeyEvent> for Message {
+impl TryFrom<event::KeyEvent> for Message {
     type Error = anyhow::Error;
 
-    fn try_from(key_event: KeyEvent) -> Result<Self> {
+    fn try_from(key_event: event::KeyEvent) -> Result<Self> {
+        use event::{KeyCode, KeyModifiers};
+
         let message = match key_event.code {
             KeyCode::Tab => Message::ToggleFocus,
             KeyCode::Up => Message::SelectPrevious,
@@ -131,8 +110,4 @@ impl TryFrom<KeyEvent> for Message {
 
         Ok(message)
     }
-}
-
-fn highlight_style() -> Style {
-    Style::default().on_light_blue()
 }

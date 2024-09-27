@@ -1,4 +1,5 @@
-use crate::{models::highlight_style, types::Result};
+use super::Color;
+use crate::types::Result;
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     widgets::{Block, Clear, List, ListItem, ListState, Padding},
@@ -59,7 +60,7 @@ impl CommandPalette {
 
         let list = List::new(items)
             .block(block)
-            .highlight_style(highlight_style());
+            .highlight_style(Color::default().highlight());
 
         let area = popup_area(area, 60, 40);
         frame.render_widget(Clear, area);
