@@ -1,5 +1,3 @@
-// pub mod json;
-
 use crate::types::{Command, Result, Workspace};
 use hermione_deeds::clients::workspaces::{
     self, commands::Operations as CommandsOperations, Operations as WorkspacesOperations,
