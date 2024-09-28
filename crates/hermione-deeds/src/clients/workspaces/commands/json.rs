@@ -1,5 +1,7 @@
-use super::Operations;
-use crate::{clients::shared::json, types::command::Data};
+use crate::{
+    impls::json,
+    types::command::{Data, WorkspaceOperations},
+};
 use hermione_memories::{
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     types::{
@@ -138,8 +140,8 @@ impl update::Update for json::Client {
     }
 }
 
-impl Operations for Client {
-    fn create(&self, data: Data) -> Result<Data, eyre::Report> {
+impl WorkspaceOperations for Client {
+    fn create(&self, data: Data) -> anyhow::Result<Data> {
         let workspace = create::Operation {
             creator: &self.inner,
         }
@@ -148,7 +150,7 @@ impl Operations for Client {
         Ok(Data::from_entity(workspace))
     }
 
-    fn delete(&self, workspace_id: &str, id: &str) -> Result<(), eyre::Report> {
+    fn delete(&self, workspace_id: &str, id: &str) -> anyhow::Result<()> {
         delete::Operation {
             deleter: &self.inner,
         }
@@ -157,7 +159,7 @@ impl Operations for Client {
         Ok(())
     }
 
-    fn get(&self, workspace_id: &str, id: &str) -> Result<Data, eyre::Report> {
+    fn get(&self, workspace_id: &str, id: &str) -> anyhow::Result<Data> {
         let workspace = get::Operation {
             getter: &self.inner,
         }
@@ -166,7 +168,7 @@ impl Operations for Client {
         Ok(Data::from_entity(workspace))
     }
 
-    fn list(&self, workspace_id: &str) -> Result<Vec<Data>, eyre::Report> {
+    fn list(&self, workspace_id: &str) -> anyhow::Result<Vec<Data>> {
         let workspaces = list::Operation {
             lister: &self.inner,
         }
@@ -175,7 +177,7 @@ impl Operations for Client {
         Ok(workspaces.into_iter().map(Data::from_entity).collect())
     }
 
-    fn track_execution_time(&self, workspace_id: &str, id: &str) -> Result<Data, eyre::Report> {
+    fn track_execution_time(&self, workspace_id: &str, id: &str) -> anyhow::Result<Data> {
         use hermione_memories::operations::workspaces::commands::get::Get;
 
         let entity = self
@@ -190,7 +192,7 @@ impl Operations for Client {
         Ok(Data::from_entity(entity))
     }
 
-    fn update(&self, data: Data) -> Result<Data, eyre::Report> {
+    fn update(&self, data: Data) -> anyhow::Result<Data> {
         let workspace = update::Operation {
             updater: &self.inner,
         }

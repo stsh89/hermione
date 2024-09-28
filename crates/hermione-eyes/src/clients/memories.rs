@@ -1,6 +1,6 @@
 use crate::types::{Command, Result, Workspace};
-use hermione_deeds::clients::workspaces::{
-    self, commands::Operations as CommandsOperations, Operations as WorkspacesOperations,
+use hermione_deeds::{
+    clients::workspaces, types::command::WorkspaceOperations, types::workspace::Operations,
 };
 use std::{io::Write, path::Path};
 
@@ -29,59 +29,52 @@ impl Client {
         })
     }
 
-    pub fn create_command(&self, command: Command) -> Result<()> {
-        self.commands.create(command.into()).anyhowed()?;
+    pub fn create_command(&self, command: Command) -> Result<Command> {
+        let data = self.commands.create(command.into())?;
 
-        Ok(())
+        Ok(data.into())
     }
 
-    pub fn create_workspace(&self, workspace: Workspace) -> Result<()> {
-        self.workspaces.create(workspace.into()).anyhowed()?;
+    pub fn create_workspace(&self, workspace: Workspace) -> Result<Workspace> {
+        let data = self.workspaces.create(workspace.into())?;
 
-        Ok(())
+        Ok(data.into())
     }
 
     pub fn delete_command(&self, workspace_id: &str, command_id: &str) -> Result<()> {
-        self.commands.delete(workspace_id, command_id).anyhowed()?;
-
-        Ok(())
+        self.commands.delete(workspace_id, command_id)
     }
 
     pub fn delete_workspace(&self, workspace_id: &str) -> Result<()> {
-        self.workspaces.delete(workspace_id).anyhowed()?;
-
-        Ok(())
+        self.workspaces.delete(workspace_id)
     }
 
     pub fn get_command(&self, workspace_id: &str, command_id: &str) -> Result<Command> {
-        let command = self.commands.get(workspace_id, command_id).anyhowed()?;
+        let command = self.commands.get(workspace_id, command_id)?;
 
         Ok(command.into())
     }
 
     pub fn get_workspace(&self, workspace_id: &str) -> Result<Workspace> {
-        let workspace = self.workspaces.get(workspace_id).anyhowed()?;
+        let workspace = self.workspaces.get(workspace_id)?;
 
         Ok(workspace.into())
     }
 
     pub fn list_commands(&self, workspace_id: &str) -> Result<Vec<Command>> {
-        let commands = self.commands.list(workspace_id).anyhowed()?;
+        let commands = self.commands.list(workspace_id)?;
 
         Ok(commands.into_iter().map(Into::into).collect())
     }
 
     pub fn list_workspaces(&self) -> Result<Vec<Workspace>> {
-        let workspaces = self.workspaces.list().anyhowed()?;
+        let workspaces = self.workspaces.list()?;
 
         Ok(workspaces.into_iter().map(Into::into).collect())
     }
 
     pub fn track_workspace_access_time(&self, workspace: Workspace) -> Result<Workspace> {
-        let workspace = self
-            .workspaces
-            .track_access_time(&workspace.id)
-            .anyhowed()?;
+        let workspace = self.workspaces.track_access_time(&workspace.id)?;
 
         Ok(workspace.into())
     }
@@ -89,31 +82,20 @@ impl Client {
     pub fn track_command_execution_time(&self, command: Command) -> Result<Command> {
         let command = self
             .commands
-            .track_execution_time(&command.workspace_id, &command.id)
-            .anyhowed()?;
+            .track_execution_time(&command.workspace_id, &command.id)?;
 
         Ok(command.into())
     }
 
     pub fn update_command(&self, command: Command) -> Result<Command> {
-        let command = self.commands.update(command.into()).anyhowed()?;
+        let command = self.commands.update(command.into())?;
 
         Ok(command.into())
     }
 
     pub fn update_workspace(&self, workspace: Workspace) -> Result<Workspace> {
-        let workspace = self.workspaces.update(workspace.into()).anyhowed()?;
+        let workspace = self.workspaces.update(workspace.into())?;
 
         Ok(workspace.into())
-    }
-}
-
-trait Anyhowed<T> {
-    fn anyhowed(self) -> Result<T>;
-}
-
-impl<T> Anyhowed<T> for std::result::Result<T, eyre::Report> {
-    fn anyhowed(self) -> Result<T> {
-        self.map_err(|r| anyhow::anyhow!("{r}"))
     }
 }

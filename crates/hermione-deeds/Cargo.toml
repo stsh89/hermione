@@ -7,8 +7,9 @@ edition = "2021"
 name = "hermione_deeds"
 
 [dependencies]
-hermione-memories = { workspace = true }
+anyhow = { workspace = true }
 chrono = { workspace = true }
 eyre = { workspace = true }
+hermione-memories = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

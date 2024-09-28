@@ -1,5 +1,7 @@
-use super::Operations;
-use crate::{clients::shared::json, types::workspace::Data};
+use crate::{
+    impls::json,
+    types::workspace::{Data, Operations},
+};
 use hermione_memories::{
     operations::workspaces::{create, delete, get, list, track_access_time, update},
     types::{
@@ -129,7 +131,7 @@ impl update::Update for json::Client {
 }
 
 impl Operations for Client {
-    fn create(&self, data: Data) -> Result<Data, eyre::Report> {
+    fn create(&self, data: Data) -> anyhow::Result<Data> {
         let workspace = create::Operation {
             creator: &self.inner,
         }
@@ -138,7 +140,7 @@ impl Operations for Client {
         Ok(Data::from_entity(workspace))
     }
 
-    fn delete(&self, id: &str) -> Result<(), eyre::Report> {
+    fn delete(&self, id: &str) -> anyhow::Result<()> {
         delete::Operation {
             deleter: &self.inner,
         }
@@ -147,7 +149,7 @@ impl Operations for Client {
         Ok(())
     }
 
-    fn get(&self, id: &str) -> Result<Data, eyre::Report> {
+    fn get(&self, id: &str) -> anyhow::Result<Data> {
         let workspace = get::Operation {
             getter: &self.inner,
         }
@@ -156,7 +158,7 @@ impl Operations for Client {
         Ok(Data::from_entity(workspace))
     }
 
-    fn list(&self) -> Result<Vec<Data>, eyre::Report> {
+    fn list(&self) -> anyhow::Result<Vec<Data>> {
         let workspaces = list::Operation {
             lister: &self.inner,
         }
@@ -165,7 +167,7 @@ impl Operations for Client {
         Ok(workspaces.into_iter().map(Data::from_entity).collect())
     }
 
-    fn track_access_time(&self, id: &str) -> Result<Data, eyre::Report> {
+    fn track_access_time(&self, id: &str) -> anyhow::Result<Data> {
         use hermione_memories::operations::workspaces::get::Get;
 
         let entity = self.inner.get(Id::from_str(id)?)?;
@@ -178,7 +180,7 @@ impl Operations for Client {
         Ok(Data::from_entity(entity))
     }
 
-    fn update(&self, data: Data) -> Result<Data, eyre::Report> {
+    fn update(&self, data: Data) -> anyhow::Result<Data> {
         let workspace = update::Operation {
             updater: &self.inner,
         }

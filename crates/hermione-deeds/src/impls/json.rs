@@ -1,10 +1,9 @@
+use serde::{de::DeserializeOwned, Serialize};
 use std::{
     fs::{File, OpenOptions},
     io::BufReader,
     path::PathBuf,
 };
-
-use serde::{de::DeserializeOwned, Serialize};
 
 pub struct Client {
     path: PathBuf,
@@ -15,7 +14,7 @@ impl Client {
         Self { path }
     }
 
-    pub fn read<T>(&self) -> Result<Vec<T>, eyre::Report>
+    pub fn read<T>(&self) -> eyre::Result<Vec<T>>
     where
         T: DeserializeOwned,
     {
@@ -26,7 +25,7 @@ impl Client {
         Ok(records)
     }
 
-    pub fn save<S>(&self, records: Vec<S>) -> Result<(), eyre::Report>
+    pub fn save<S>(&self, records: Vec<S>) -> eyre::Result<()>
     where
         S: Serialize,
     {

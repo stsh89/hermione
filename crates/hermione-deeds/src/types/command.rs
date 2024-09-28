@@ -1,10 +1,19 @@
-use crate::types::Result;
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use hermione_memories::types::{
     command::{Entity, LoadParameters, Name, NewParameters, Program},
     shared::Id,
 };
 use std::str::FromStr;
+
+pub trait WorkspaceOperations {
+    fn create(&self, data: Data) -> Result<Data>;
+    fn delete(&self, workspace_id: &str, id: &str) -> Result<()>;
+    fn get(&self, workspace_id: &str, id: &str) -> Result<Data>;
+    fn list(&self, workspace_id: &str) -> Result<Vec<Data>>;
+    fn track_execution_time(&self, workspace_id: &str, command_id: &str) -> Result<Data>;
+    fn update(&self, data: Data) -> Result<Data>;
+}
 
 pub struct Data {
     pub id: String,
