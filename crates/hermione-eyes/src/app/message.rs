@@ -2,8 +2,7 @@ use crate::types::{Error, Result};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub enum Message {
-    ActionA,
-    ActionB,
+    Action,
     Back,
     DeleteAllChars,
     DeleteChar,
@@ -27,11 +26,10 @@ impl TryFrom<KeyEvent> for Message {
             KeyCode::Down => Self::SelectNext,
             KeyCode::Esc => Self::Back,
             KeyCode::Enter => match key_event.modifiers {
-                KeyModifiers::CONTROL => Self::ActionA,
+                KeyModifiers::CONTROL => Self::Action,
                 _ => Self::Submit,
             },
-            KeyCode::F(1) => Self::ActionA,
-            KeyCode::F(2) => Self::ActionB,
+            KeyCode::F(1) => Self::Action,
             KeyCode::Left => Self::MoveCusorLeft,
             KeyCode::Right => Self::MoveCusorRight,
             KeyCode::Backspace => match key_event.modifiers {

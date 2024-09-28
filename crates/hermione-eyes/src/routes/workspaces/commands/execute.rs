@@ -13,7 +13,6 @@ impl<'a> Handler<'a> {
         let ExecuteCommandParameters {
             workspace_id,
             command_id,
-            execute_immediately,
         } = parameters;
 
         let command = self.memories.get_command(&workspace_id, &command_id)?;
@@ -22,7 +21,6 @@ impl<'a> Handler<'a> {
         let executor = executor::Client {
             program: &command.program,
             location: &workspace.location,
-            execute_immediately,
         };
 
         executor.execute()?;

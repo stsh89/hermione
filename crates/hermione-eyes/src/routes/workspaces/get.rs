@@ -77,8 +77,7 @@ impl Hook for Model {
         match message {
             Message::ToggleCommandPalette => self.toggle_command_palette(),
             Message::Back => self.back(),
-            Message::ActionA => self.execute_command(true),
-            Message::ActionB => self.execute_command(false),
+            Message::Action => self.execute_command(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
@@ -129,7 +128,7 @@ impl Hook for Model {
 }
 
 impl Model {
-    fn execute_command(&mut self, execute_immediately: bool) {
+    fn execute_command(&mut self) {
         let Some(index) = self.commands_state.selected() else {
             return;
         };
@@ -138,7 +137,6 @@ impl Model {
 
         self.redirect = Some(Router::ExecuteCommand(ExecuteCommandParameters {
             command_id: command.id.clone(),
-            execute_immediately,
             workspace_id: command.workspace_id.clone(),
         }));
 
