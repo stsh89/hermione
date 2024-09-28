@@ -5,8 +5,8 @@ use crate::{
 use hermione_memories::{
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     types::{
-        command::{Entity, LoadParameters, Name, Program},
-        shared::{Error, Id, ScopedId},
+        command::{Entity, LoadParameters, Name, Program, ScopedId},
+        Error, Id,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -44,7 +44,7 @@ impl create::Create for json::Client {
 
 impl delete::Delete for json::Client {
     fn delete(&self, id: ScopedId) -> Result<(), Error> {
-        let ScopedId(workspace_id, id) = id;
+        let ScopedId { workspace_id, id } = id;
         let mut records: Vec<Record> = self.read()?;
 
         let workspace_id = workspace_id.to_string();
@@ -60,7 +60,7 @@ impl delete::Delete for json::Client {
 
 impl get::Get for json::Client {
     fn get(&self, id: ScopedId) -> Result<Entity, Error> {
-        let ScopedId(workspace_id, id) = id;
+        let ScopedId { workspace_id, id } = id;
         let records: Vec<Record> = self.read()?;
 
         let workspace_id = workspace_id.to_string();
@@ -151,19 +151,29 @@ impl WorkspaceOperations for Client {
     }
 
     fn delete(&self, workspace_id: &str, id: &str) -> anyhow::Result<()> {
+        let id = ScopedId {
+            workspace_id: Id::from_str(workspace_id)?,
+            id: Id::from_str(id)?,
+        };
+
         delete::Operation {
             deleter: &self.inner,
         }
-        .execute(ScopedId(Id::from_str(workspace_id)?, Id::from_str(id)?))?;
+        .execute(id)?;
 
         Ok(())
     }
 
     fn get(&self, workspace_id: &str, id: &str) -> anyhow::Result<Data> {
+        let id = ScopedId {
+            workspace_id: Id::from_str(workspace_id)?,
+            id: Id::from_str(id)?,
+        };
+
         let workspace = get::Operation {
             getter: &self.inner,
         }
-        .execute(ScopedId(Id::from_str(workspace_id)?, Id::from_str(id)?))?;
+        .execute(id)?;
 
         Ok(Data::from_entity(workspace))
     }
@@ -180,9 +190,12 @@ impl WorkspaceOperations for Client {
     fn track_execution_time(&self, workspace_id: &str, id: &str) -> anyhow::Result<Data> {
         use hermione_memories::operations::workspaces::commands::get::Get;
 
-        let entity = self
-            .inner
-            .get(ScopedId(Id::from_str(workspace_id)?, Id::from_str(id)?))?;
+        let id = ScopedId {
+            workspace_id: Id::from_str(workspace_id)?,
+            id: Id::from_str(id)?,
+        };
+
+        let entity = self.inner.get(id)?;
 
         let entity = track_execution_time::Operation {
             tracker: &self.inner,

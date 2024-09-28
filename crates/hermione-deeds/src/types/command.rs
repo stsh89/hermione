@@ -2,7 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use hermione_memories::types::{
     command::{Entity, LoadParameters, Name, NewParameters, Program},
-    shared::Id,
+    Id,
 };
 use std::str::FromStr;
 

@@ -1,4 +1,4 @@
-use crate::types::{shared::Result, workspace::Entity};
+use crate::types::{workspace::Entity, Result};
 
 pub trait List {
     fn list(&self) -> Result<Vec<Entity>>;

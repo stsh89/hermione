@@ -5,8 +5,8 @@ use crate::{
 use hermione_memories::{
     operations::workspaces::{create, delete, get, list, track_access_time, update},
     types::{
-        shared::{Error, Id},
         workspace::{Entity, LoadParameters, Location, Name},
+        Error, Id,
     },
 };
 use serde::{Deserialize, Serialize};

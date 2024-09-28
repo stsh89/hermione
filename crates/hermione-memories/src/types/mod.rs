@@ -1,3 +1,12 @@
+mod date_time;
+mod error;
+mod id;
+
 pub mod command;
-pub mod shared;
 pub mod workspace;
+
+pub use date_time::*;
+pub use error::*;
+pub use id::*;
+
+pub type Result<T> = std::result::Result<T, Error>;

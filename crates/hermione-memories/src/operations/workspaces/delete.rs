@@ -1,4 +1,4 @@
-use crate::types::shared::{Id, Result};
+use crate::types::{Id, Result};
 
 pub trait Delete {
     fn delete(&self, workspace_id: Id) -> Result<()>;

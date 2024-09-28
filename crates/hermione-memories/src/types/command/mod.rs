@@ -4,7 +4,7 @@ mod program;
 pub use name::*;
 pub use program::*;
 
-use crate::types::shared::{DateTime, Error, Id, Result};
+use crate::types::{DateTime, Error, Id, Result};
 
 pub struct Entity {
     last_execute_time: Option<DateTime>,
@@ -26,6 +26,11 @@ pub struct NewParameters {
     pub name: Name,
     pub program: Program,
     pub workspace_id: Id,
+}
+
+pub struct ScopedId {
+    pub workspace_id: Id,
+    pub id: Id,
 }
 
 impl Entity {

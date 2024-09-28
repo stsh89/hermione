@@ -1,8 +1,8 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use hermione_memories::types::{
-    shared::Id,
     workspace::{Entity, LoadParameters, Location, Name, NewParameters},
+    Id,
 };
 use std::str::FromStr;
 

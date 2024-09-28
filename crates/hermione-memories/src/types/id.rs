@@ -1,9 +1,7 @@
-use crate::types::shared::{Error, Result};
+use crate::types::{Error, Result};
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Id(uuid::Uuid);
-
-pub struct ScopedId(pub Id, pub Id);
 
 impl Id {
     pub fn generate() -> Self {

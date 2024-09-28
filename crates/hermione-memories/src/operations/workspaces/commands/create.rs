@@ -1,7 +1,4 @@
-use crate::types::{
-    command::Entity,
-    shared::{Error, Result},
-};
+use crate::types::{command::Entity, Error, Result};
 
 pub trait Create {
     fn create(&self, command: Entity) -> Result<Entity>;

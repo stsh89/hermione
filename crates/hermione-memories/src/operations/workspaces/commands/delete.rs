@@ -1,4 +1,4 @@
-use crate::types::shared::{Result, ScopedId};
+use crate::types::{command::ScopedId, Result};
 
 pub trait Delete {
     fn delete(&self, id: ScopedId) -> Result<()>;

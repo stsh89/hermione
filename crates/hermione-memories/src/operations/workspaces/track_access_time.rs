@@ -1,7 +1,4 @@
-use crate::types::{
-    shared::{Error, Result},
-    workspace::Entity,
-};
+use crate::types::{workspace::Entity, Error, Result};
 
 pub trait Track {
     fn track(&self, workspace: Entity) -> Result<Entity>;
