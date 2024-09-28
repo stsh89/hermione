@@ -7,19 +7,18 @@ use hermione_memories::{
     },
 };
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
 pub struct Record {
-    id: String,
+    id: Uuid,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_execute_time: Option<chrono::DateTime<chrono::Utc>>,
 
     name: String,
     program: String,
-    workspace_id: String,
+    workspace_id: Uuid,
 }
 
 impl create::Create for json::Client {
@@ -42,10 +41,7 @@ impl delete::Delete for json::Client {
         let ScopedId { workspace_id, id } = id;
         let mut records: Vec<Record> = self.read()?;
 
-        let workspace_id = workspace_id.to_string();
-        let id = id.to_string();
-
-        records.retain(|record| !(record.id == id && record.workspace_id == workspace_id));
+        records.retain(|record| !(record.id == *id && record.workspace_id == *workspace_id));
 
         self.save(records)?;
 
@@ -58,15 +54,12 @@ impl get::Get for json::Client {
         let ScopedId { workspace_id, id } = id;
         let records: Vec<Record> = self.read()?;
 
-        let workspace_id = workspace_id.to_string();
-        let id = id.to_string();
-
         let record = records
             .into_iter()
-            .find(|record| record.id == id && record.workspace_id == workspace_id)
+            .find(|record| record.id == *id && record.workspace_id == *workspace_id)
             .ok_or_else(|| eyre::eyre!("Workspace with id {} not found", id))?;
 
-        let entity = record.load_entity()?;
+        let entity = record.load_entity();
 
         Ok(entity)
     }
@@ -77,13 +70,11 @@ impl list::List for json::Client {
         let mut records: Vec<Record> = self.read()?;
         records.sort_unstable_by(|a, b| a.last_execute_time.cmp(&b.last_execute_time).reverse());
 
-        let id = workspace_id.to_string();
-
         let entities = records
             .into_iter()
-            .filter(|record| record.workspace_id == id)
-            .map(|record| record.load_entity())
-            .collect::<Result<Vec<_>, _>>()?;
+            .filter(|record| record.workspace_id == *workspace_id)
+            .map(Record::load_entity)
+            .collect();
 
         Ok(entities)
     }
@@ -91,41 +82,42 @@ impl list::List for json::Client {
 
 impl track_execution_time::Track for json::Client {
     fn track(&self, entity: Entity) -> Result<Entity, Error> {
-        let Some(id) = entity.id().map(|id| id.to_string()) else {
+        let Some(id) = entity.id() else {
             return Err(
                 eyre::eyre!("Attempt to track access time for workspace without id").into(),
             );
         };
 
         let mut records: Vec<Record> = self.read()?;
-        let workspace_id = entity.workspace_id().to_string();
 
         let record = records
             .iter_mut()
-            .find(|record| record.id == id && record.workspace_id == workspace_id)
+            .find(|record| record.id == *id && record.workspace_id == *entity.workspace_id())
             .ok_or(eyre::eyre!("Workspace with id {} not found", id,))?;
 
         record.last_execute_time = Some(chrono::Utc::now());
-        let entity = record.load_entity()?;
 
         self.save(records)?;
 
-        Ok(entity)
+        use get::Get;
+        self.get(ScopedId {
+            workspace_id: entity.workspace_id(),
+            id,
+        })
     }
 }
 
 impl update::Update for json::Client {
     fn update(&self, entity: Entity) -> Result<Entity, Error> {
-        let Some(id) = entity.id().map(|id| id.to_string()) else {
+        let Some(id) = entity.id() else {
             return Err(eyre::eyre!("Attemp to update workspace without id").into());
         };
 
         let mut records: Vec<Record> = self.read()?;
-        let workspace_id = entity.workspace_id().to_string();
 
         let record = records
             .iter_mut()
-            .find(|record| record.id == id && record.workspace_id == workspace_id)
+            .find(|record| record.id == *id && record.workspace_id == *entity.workspace_id())
             .ok_or_else(|| eyre::eyre!("Workspace with id {}not found", id))?;
 
         record.name = entity.name().to_string();
@@ -140,24 +132,21 @@ impl update::Update for json::Client {
 impl Record {
     fn from_entity(entity: &Entity) -> Result<Self, eyre::Report> {
         Ok(Self {
-            id: entity
-                .id()
-                .map(|id| id.to_string())
-                .ok_or(eyre::eyre!("Record without id"))?,
+            id: *entity.id().ok_or(eyre::eyre!("Record without id"))?,
             last_execute_time: entity.last_execute_time().map(From::from),
             program: entity.program().to_string(),
             name: entity.name().to_string(),
-            workspace_id: entity.workspace_id().to_string(),
+            workspace_id: *entity.workspace_id(),
         })
     }
 
-    fn load_entity(&self) -> Result<Entity, eyre::Report> {
-        Ok(Entity::load(LoadParameters {
-            id: Id::from_str(&self.id)?,
+    fn load_entity(self) -> Entity {
+        Entity::load(LoadParameters {
+            id: Id::new(self.id),
             last_execute_time: self.last_execute_time.map(From::from),
-            program: Program::new(self.program.clone()),
-            name: Name::new(self.name.clone()),
-            workspace_id: Id::from_str(&self.workspace_id)?,
-        }))
+            program: Program::new(self.program),
+            name: Name::new(self.name),
+            workspace_id: Id::new(self.workspace_id),
+        })
     }
 }

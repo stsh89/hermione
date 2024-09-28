@@ -91,7 +91,7 @@ impl track_access_time::Track for json::Client {
 
         self.save(records)?;
 
-        use hermione_memories::operations::workspaces::get::Get;
+        use get::Get;
         self.get(id)
     }
 }
