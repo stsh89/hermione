@@ -1,4 +1,4 @@
-mod impls;
+pub mod impls;
 
 pub mod clients;
 pub mod types;

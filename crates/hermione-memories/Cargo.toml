@@ -10,4 +10,4 @@ name = "hermione_memories"
 chrono = {workspace = true}
 eyre = {workspace = true}
 thiserror = {workspace = true}
-uuid = { workspace = true, features = ["v4"] }
+uuid = { workspace = true }
