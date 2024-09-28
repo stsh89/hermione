@@ -7,6 +7,6 @@ pub struct Color {
 
 impl Color {
     pub fn highlight(self) -> Style {
-        self.style.on_light_blue()
+        self.style.yellow()
     }
 }
