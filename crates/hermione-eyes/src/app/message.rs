@@ -2,6 +2,8 @@ use crate::types::{Error, Result};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub enum Message {
+    ActionA,
+    ActionB,
     Back,
     DeleteAllChars,
     DeleteChar,
@@ -13,7 +15,6 @@ pub enum Message {
     Submit,
     ToggleCommandPalette,
     ToggleFocus,
-    ExecuteCommand,
 }
 
 impl TryFrom<KeyEvent> for Message {
@@ -21,23 +22,25 @@ impl TryFrom<KeyEvent> for Message {
 
     fn try_from(key_event: KeyEvent) -> Result<Self> {
         let message = match key_event.code {
-            KeyCode::Tab => Message::ToggleFocus,
-            KeyCode::Up => Message::SelectPrevious,
-            KeyCode::Down => Message::SelectNext,
-            KeyCode::Esc => Message::Back,
+            KeyCode::Tab => Self::ToggleFocus,
+            KeyCode::Up => Self::SelectPrevious,
+            KeyCode::Down => Self::SelectNext,
+            KeyCode::Esc => Self::Back,
             KeyCode::Enter => match key_event.modifiers {
-                KeyModifiers::CONTROL => Message::ExecuteCommand,
-                _ => Message::Submit,
+                KeyModifiers::CONTROL => Self::ActionA,
+                _ => Self::Submit,
             },
-            KeyCode::Left => Message::MoveCusorLeft,
-            KeyCode::Right => Message::MoveCusorRight,
+            KeyCode::F(1) => Self::ActionA,
+            KeyCode::F(2) => Self::ActionB,
+            KeyCode::Left => Self::MoveCusorLeft,
+            KeyCode::Right => Self::MoveCusorRight,
             KeyCode::Backspace => match key_event.modifiers {
-                KeyModifiers::CONTROL => Message::DeleteAllChars,
-                _ => Message::DeleteChar,
+                KeyModifiers::CONTROL => Self::DeleteAllChars,
+                _ => Self::DeleteChar,
             },
             KeyCode::Char(c) => match key_event.modifiers {
                 KeyModifiers::CONTROL => match c {
-                    'k' => Message::ToggleCommandPalette,
+                    'k' => Self::ToggleCommandPalette,
                     _ => {
                         return Err(anyhow::anyhow!(
                             "Unsupported key code: {:?}",
@@ -45,7 +48,7 @@ impl TryFrom<KeyEvent> for Message {
                         ))
                     }
                 },
-                _ => Message::EnterChar(c),
+                _ => Self::EnterChar(c),
             },
             _ => {
                 return Err(anyhow::anyhow!(

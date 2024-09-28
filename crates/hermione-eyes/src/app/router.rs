@@ -55,6 +55,7 @@ pub struct EditWorkspaceParameters {
 pub struct ExecuteCommandParameters {
     pub command_id: String,
     pub workspace_id: String,
+    pub execute_immediately: bool,
 }
 
 #[derive(Clone, Default)]
