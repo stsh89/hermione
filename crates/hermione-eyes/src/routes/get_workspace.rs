@@ -1,13 +1,11 @@
 use crate::{
-    clients::memories,
-    helpers::Color,
-    helpers::{CommandPalette, CommandPaletteParameters, Input, InputParameters},
-    router::GetWorkspaceParameters,
-    router::{
+    app::{
+        helpers::{Color, CommandPalette, CommandPaletteParameters, Input, InputParameters},
         DeleteWorkspaceParameters, EditWorkspaceParameters, ExecuteCommandParameters,
-        GetCommandParameters, ListWorkspacesParameters, NewCommandParameters, Router,
+        GetCommandParameters, GetWorkspaceParameters, Hook, ListWorkspacesParameters, Message,
+        NewCommandParameters, Router,
     },
-    tea::{Hook, Message},
+    clients::memories,
     types::{Command, Result, Workspace},
 };
 use ratatui::{
@@ -149,7 +147,7 @@ impl Model {
     }
 
     fn handle_command_palette_action(&mut self) {
-        use crate::helpers::CommandPaletteAction as CPA;
+        use crate::app::helpers::CommandPaletteAction as CPA;
 
         let Some(action) = self.command_palette.action() else {
             return;
@@ -179,7 +177,7 @@ impl Model {
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
-        use crate::helpers::CommandPaletteAction as CPA;
+        use crate::app::helpers::CommandPaletteAction as CPA;
 
         let ModelParameters {
             commands,

@@ -1,11 +1,12 @@
 use crate::{
-    clients::memories,
-    helpers::{
-        Color, CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input,
-        InputParameters,
+    app::{
+        helpers::{
+            Color, CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input,
+            InputParameters,
+        },
+        GetWorkspaceParameters, Hook, ListWorkspacesParameters, Message, Router,
     },
-    router::{GetWorkspaceParameters, ListWorkspacesParameters, Router},
-    tea::{Hook, Message},
+    clients::memories,
     types::{Result, Workspace},
 };
 use ratatui::{

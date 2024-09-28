@@ -1,6 +1,6 @@
 use crate::{
+    app::UpdateCommandParameters,
     clients::memories,
-    router::UpdateCommandParameters,
     routes::get_command::{Model, ModelParameters},
     types::{Command, Result},
 };

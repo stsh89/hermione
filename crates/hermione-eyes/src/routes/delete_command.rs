@@ -1,6 +1,6 @@
 use crate::{
+    app::DeleteCommandParameters,
     clients::memories,
-    router::DeleteCommandParameters,
     routes::get_workspace::{Model, ModelParameters},
     types::Result,
 };

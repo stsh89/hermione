@@ -1,6 +1,7 @@
 use hermione_deeds::types::{command, workspace};
 use ratatui::widgets::ListItem;
 
+pub type Error = anyhow::Error;
 pub type Result<T> = anyhow::Result<T>;
 
 pub struct Workspace {

@@ -1,6 +1,6 @@
 use crate::{
+    app::ExecuteCommandParameters,
     clients::{executor, memories},
-    router::ExecuteCommandParameters,
     types::Result,
 };
 

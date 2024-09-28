@@ -1,6 +1,6 @@
 use crate::{
+    app::CreateCommandParameters,
     clients::memories,
-    router::CreateCommandParameters,
     routes::get_workspace::{Model, ModelParameters},
     types::{Command, Result},
 };

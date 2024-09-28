@@ -1,8 +1,10 @@
 use crate::{
+    app::{
+        helpers::{Input, InputParameters},
+        EditWorkspaceParameters, GetWorkspaceParameters, Hook, Message, Router,
+        UpdateWorkspaceParameters,
+    },
     clients::memories,
-    helpers::{Input, InputParameters},
-    router::{EditWorkspaceParameters, GetWorkspaceParameters, Router, UpdateWorkspaceParameters},
-    tea::{Hook, Message},
     types::{Result, Workspace},
 };
 use ratatui::{

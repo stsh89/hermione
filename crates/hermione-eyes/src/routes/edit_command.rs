@@ -1,10 +1,10 @@
 use crate::{
+    app::{
+        helpers::{Input, InputParameters},
+        Hook, Message,
+    },
+    app::{EditCommandParameters, GetCommandParameters, Router, UpdateCommandParameters},
     clients::memories,
-    helpers::{Input, InputParameters},
-    router::EditCommandParameters,
-    router::Router,
-    router::{GetCommandParameters, UpdateCommandParameters},
-    tea::{Hook, Message},
     types::{Command, Result},
 };
 use ratatui::{
