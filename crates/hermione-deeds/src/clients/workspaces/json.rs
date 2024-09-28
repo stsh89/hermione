@@ -72,7 +72,8 @@ impl get::Get for json::Client {
 
 impl list::List for json::Client {
     fn list(&self) -> Result<Vec<Entity>, Error> {
-        let records: Vec<Record> = self.read()?;
+        let mut records: Vec<Record> = self.read()?;
+        records.sort_unstable_by(|a, b| a.last_access_time.cmp(&b.last_access_time).reverse());
 
         let entities = records
             .into_iter()
