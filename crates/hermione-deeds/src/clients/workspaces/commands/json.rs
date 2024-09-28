@@ -79,7 +79,9 @@ impl get::Get for json::Client {
 
 impl list::List for json::Client {
     fn list(&self, workspace_id: Id) -> Result<Vec<Entity>, Error> {
-        let records: Vec<Record> = self.read()?;
+        let mut records: Vec<Record> = self.read()?;
+        records.sort_unstable_by(|a, b| a.last_execute_time.cmp(&b.last_execute_time).reverse());
+
         let id = workspace_id.to_string();
 
         let entities = records
