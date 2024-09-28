@@ -1,6 +1,6 @@
 use crate::{
     app::{
-        helpers::{Color, CommandPalette, CommandPaletteParameters, Input, InputParameters},
+        helpers::{CommandPalette, CommandPaletteParameters, Input, InputParameters, List},
         DeleteWorkspaceParameters, EditWorkspaceParameters, ExecuteCommandParameters,
         GetCommandParameters, GetWorkspaceParameters, Hook, ListWorkspacesParameters, Message,
         NewCommandParameters, Router,
@@ -10,7 +10,7 @@ use crate::{
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, ListState, Paragraph},
     Frame,
 };
 
@@ -115,12 +115,10 @@ impl Hook for Model {
             search.y + 1,
         ));
 
-        let block = Block::default().borders(Borders::all()).title("Commands");
-        let items: Vec<ListItem> = self.commands.iter().map(ListItem::from).collect();
-
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(Color::default().highlight());
+        let list = List {
+            title: "Commands",
+            items: &self.commands,
+        };
 
         frame.render_stateful_widget(list, commands, &mut self.commands_state);
 

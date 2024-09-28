@@ -1,8 +1,8 @@
-use super::Color;
+use super::List;
 use crate::types::Result;
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
-    widgets::{Block, Clear, List, ListItem, ListState, Padding},
+    widgets::{Clear, ListItem, ListState},
     Frame,
 };
 
@@ -52,17 +52,12 @@ impl CommandPalette {
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let block = Block::bordered()
-            .title("Command palette")
-            .padding(Padding::proportional(1));
-
-        let items: Vec<ListItem> = self.actions.iter().map(ListItem::from).collect();
-
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(Color::default().highlight());
-
         let area = popup_area(area, 60, 40);
+        let list = List {
+            title: "Command palette",
+            items: &self.actions,
+        };
+
         frame.render_widget(Clear, area);
         frame.render_stateful_widget(list, area, &mut self.actions_state);
     }

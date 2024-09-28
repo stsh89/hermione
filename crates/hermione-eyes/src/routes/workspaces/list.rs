@@ -1,8 +1,8 @@
 use crate::{
     app::{
         helpers::{
-            Color, CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input,
-            InputParameters,
+            CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
+            List,
         },
         GetWorkspaceParameters, Hook, ListWorkspacesParameters, Message, Router,
     },
@@ -11,7 +11,7 @@ use crate::{
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, ListState, Paragraph},
     Frame,
 };
 
@@ -99,12 +99,10 @@ impl Hook for Model {
             search.y + 1,
         ));
 
-        let block = Block::default().borders(Borders::all()).title("Workspaces");
-        let items: Vec<ListItem> = self.workspaces.iter().map(ListItem::from).collect();
-
-        let list = List::new(items)
-            .block(block)
-            .highlight_style(Color::default().highlight());
+        let list = List {
+            title: "Workspaces",
+            items: &self.workspaces,
+        };
 
         frame.render_stateful_widget(list, commands, &mut self.workspaces_state);
 
