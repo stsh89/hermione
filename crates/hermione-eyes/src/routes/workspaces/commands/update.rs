@@ -1,7 +1,7 @@
 use crate::{
     app::UpdateCommandParameters,
     clients::memories,
-    routes::get_command::{Model, ModelParameters},
+    routes::workspaces::commands::get::{Model, ModelParameters},
     types::{Command, Result},
 };
 

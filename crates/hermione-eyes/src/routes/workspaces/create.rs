@@ -1,7 +1,7 @@
 use crate::{
     app::CreateWorkspaceParameters,
     clients::memories,
-    routes::list_workspaces::{Model, ModelParameters},
+    routes::workspaces::list::{Model, ModelParameters},
     types::{Result, Workspace},
 };
 

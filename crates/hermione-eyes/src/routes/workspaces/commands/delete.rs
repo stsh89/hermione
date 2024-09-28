@@ -1,7 +1,7 @@
 use crate::{
     app::DeleteCommandParameters,
     clients::memories,
-    routes::get_workspace::{Model, ModelParameters},
+    routes::workspaces::get::{Model, ModelParameters},
     types::Result,
 };
 

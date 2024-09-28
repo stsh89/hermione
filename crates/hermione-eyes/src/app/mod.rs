@@ -48,7 +48,7 @@ where
 
 impl App {
     fn create_command(&mut self, parameters: CreateCommandParameters) -> Result<Box<dyn Hook>> {
-        let handler = routes::create_command::Handler {
+        let handler = routes::workspaces::commands::create::Handler {
             memories: &mut self.memories,
         };
 
@@ -58,7 +58,7 @@ impl App {
     }
 
     fn create_workspace(&mut self, parameters: CreateWorkspaceParameters) -> Result<Box<dyn Hook>> {
-        let handler = routes::create_workspace::Handler {
+        let handler = routes::workspaces::create::Handler {
             memories: &mut self.memories,
         };
 
@@ -68,7 +68,7 @@ impl App {
     }
 
     fn delete_command(&mut self, parameters: DeleteCommandParameters) -> Result<Box<dyn Hook>> {
-        let model = routes::delete_command::Handler {
+        let model = routes::workspaces::commands::delete::Handler {
             memories: &mut self.memories,
         }
         .handle(parameters)?;
@@ -77,7 +77,7 @@ impl App {
     }
 
     fn delete_workspace(&mut self, parameters: DeleteWorkspaceParameters) -> Result<Box<dyn Hook>> {
-        let model = routes::delete_workspace::Handler {
+        let model = routes::workspaces::delete::Handler {
             memories: &mut self.memories,
         }
         .handle(parameters)?;
@@ -86,7 +86,7 @@ impl App {
     }
 
     fn edit_command(&mut self, parameters: EditCommandParameters) -> Result<Box<dyn Hook>> {
-        let model = routes::edit_command::Handler {
+        let model = routes::workspaces::commands::edit::Handler {
             memories: &self.memories,
         }
         .handle(parameters)?;
@@ -95,7 +95,7 @@ impl App {
     }
 
     fn edit_workspace(&mut self, parameters: EditWorkspaceParameters) -> Result<Box<dyn Hook>> {
-        let model = routes::edit_workspace::Handler {
+        let model = routes::workspaces::edit::Handler {
             memories: &self.memories,
         }
         .handle(parameters)?;
@@ -104,14 +104,14 @@ impl App {
     }
 
     fn execute_command(&mut self, parameters: ExecuteCommandParameters) -> Result<()> {
-        routes::execute_command::Handler {
+        routes::workspaces::commands::execute::Handler {
             memories: &mut self.memories,
         }
         .handle(parameters)
     }
 
     fn update_command(&mut self, parameters: UpdateCommandParameters) -> Result<Box<dyn Hook>> {
-        let model = routes::update_command::Handler {
+        let model = routes::workspaces::commands::update::Handler {
             memories: &self.memories,
         }
         .handle(parameters)?;
@@ -120,7 +120,7 @@ impl App {
     }
 
     fn update_workspace(&mut self, parameters: UpdateWorkspaceParameters) -> Result<Box<dyn Hook>> {
-        let handler = routes::update_workspace::Handler {
+        let handler = routes::workspaces::update::Handler {
             memories: &mut self.memories,
         };
 
@@ -130,7 +130,7 @@ impl App {
     }
 
     fn get_command(&mut self, parameters: GetCommandParameters) -> Result<Box<dyn Hook>> {
-        let handler = routes::get_command::Handler {
+        let handler = routes::workspaces::commands::get::Handler {
             memories: &mut self.memories,
         };
 
@@ -140,7 +140,7 @@ impl App {
     }
 
     fn get_workspace(&mut self, parameters: GetWorkspaceParameters) -> Result<Box<dyn Hook>> {
-        let handler = routes::get_workspace::Handler {
+        let handler = routes::workspaces::get::Handler {
             memories: &mut self.memories,
         };
 
@@ -150,7 +150,7 @@ impl App {
     }
 
     fn new_command(&self, parameters: NewCommandParameters) -> Result<Box<dyn Hook>> {
-        let model = routes::new_command::Handler {
+        let model = routes::workspaces::commands::new::Handler {
             memories: &self.memories,
         }
         .handle(parameters)?;
@@ -159,13 +159,13 @@ impl App {
     }
 
     fn new_workspace(&self) -> Box<dyn Hook> {
-        let model = routes::new_workspace::Handler {}.handle();
+        let model = routes::workspaces::new::Handler {}.handle();
 
         Box::new(model)
     }
 
     fn list_workspaces(&self, parameters: ListWorkspacesParameters) -> Result<Box<dyn Hook>> {
-        let handler = routes::list_workspaces::Handler {
+        let handler = routes::workspaces::list::Handler {
             memories: &self.memories,
         };
 
@@ -208,10 +208,10 @@ impl App {
         let workspaces = memories.list_workspaces()?;
 
         let model: Box<dyn Hook> = if workspaces.is_empty() {
-            let model = routes::new_workspace::Handler {}.handle();
+            let model = routes::workspaces::new::Handler {}.handle();
             Box::new(model)
         } else {
-            let handler = routes::get_workspace::Handler {
+            let handler = routes::workspaces::get::Handler {
                 memories: &mut memories,
             };
 
