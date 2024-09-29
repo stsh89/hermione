@@ -245,6 +245,7 @@ dependencies = [
  "dirs",
  "eyre",
  "hermione-deeds",
+ "hermione-wand",
  "ratatui",
  "serde",
  "serde_json",
@@ -260,6 +261,13 @@ dependencies = [
  "eyre",
  "thiserror",
  "uuid",
+]
+
+[[package]]
+name = "hermione-wand"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
 ]
 
 [[package]]

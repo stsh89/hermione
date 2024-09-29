@@ -3,7 +3,8 @@ resolver = "2"
 members = [
     "crates/hermione-memories",
     "crates/hermione-eyes",
-    "crates/hermione-deeds"
+    "crates/hermione-deeds",
+    "crates/hermione-wand",
 ]
 
 [workspace.dependencies]
@@ -21,3 +22,4 @@ uuid = "1.10.0"
 
 hermione-memories = { path = "crates/hermione-memories" }
 hermione-deeds = { path = "crates/hermione-deeds" }
+hermione-wand = { path = "crates/hermione-wand" }

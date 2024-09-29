@@ -16,4 +16,4 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["json"] }
 
 hermione-deeds = { workspace = true }
-
+hermione-wand = { workspace = true }
