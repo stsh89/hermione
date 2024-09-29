@@ -1,5 +1,6 @@
 #[derive(Clone)]
 pub enum Router {
+    CopyToClipboard(CopyToClipboardParameters),
     CreateCommand(CreateCommandParameters),
     CreateWorkspace(CreateWorkspaceParameters),
     DeleteCommand(DeleteCommandParameters),
@@ -14,6 +15,12 @@ pub enum Router {
     NewWorkspace,
     UpdateWorkspace(UpdateWorkspaceParameters),
     UpdateCommand(UpdateCommandParameters),
+}
+
+#[derive(Clone)]
+pub struct CopyToClipboardParameters {
+    pub workspace_id: String,
+    pub command_id: String,
 }
 
 #[derive(Clone)]

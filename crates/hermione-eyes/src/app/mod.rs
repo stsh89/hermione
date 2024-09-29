@@ -47,6 +47,14 @@ where
 }
 
 impl App {
+    fn copy_to_clipboard(&mut self, parameters: CopyToClipboardParameters) -> Result<()> {
+        let handler = routes::workspaces::commands::copy_to_clipboard::Handler {
+            memories: &self.memories,
+        };
+
+        handler.handle(parameters)
+    }
+
     fn create_command(&mut self, parameters: CreateCommandParameters) -> Result<Box<dyn Hook>> {
         let handler = routes::workspaces::commands::create::Handler {
             memories: &mut self.memories,
@@ -175,7 +183,12 @@ impl App {
     }
 
     fn handle(&mut self, route: Router) -> Result<()> {
-        let model: Box<dyn Hook> = match route.clone() {
+        let model: Box<dyn Hook> = match route {
+            Router::CopyToClipboard(parameters) => {
+                self.copy_to_clipboard(parameters)?;
+
+                return Ok(());
+            }
             Router::CreateCommand(parameters) => self.create_command(parameters)?,
             Router::CreateWorkspace(parameters) => self.create_workspace(parameters)?,
             Router::DeleteCommand(parameters) => self.delete_command(parameters)?,

@@ -1,9 +1,12 @@
 use crate::{
     app::{
-        helpers::{CommandPalette, CommandPaletteParameters, Input, InputParameters, List},
-        DeleteWorkspaceParameters, EditWorkspaceParameters, ExecuteCommandParameters,
-        GetCommandParameters, GetWorkspaceParameters, Hook, ListWorkspacesParameters, Message,
-        NewCommandParameters, Router,
+        helpers::{
+            CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
+            List,
+        },
+        CopyToClipboardParameters, DeleteWorkspaceParameters, EditWorkspaceParameters,
+        ExecuteCommandParameters, GetCommandParameters, GetWorkspaceParameters, Hook,
+        ListWorkspacesParameters, Message, NewCommandParameters, Router,
     },
     clients::memories,
     types::{Command, Result, Workspace},
@@ -145,13 +148,26 @@ impl Model {
     }
 
     fn handle_command_palette_action(&mut self) {
-        use crate::app::helpers::CommandPaletteAction as CPA;
+        use CommandPaletteAction as CPA;
 
         let Some(action) = self.command_palette.action() else {
             return;
         };
 
         match action {
+            CPA::CopyToClipboard => {
+                let Some(index) = self.commands_state.selected() else {
+                    return;
+                };
+
+                let command = &self.commands[index];
+
+                self.command_palette.toggle();
+                self.redirect = Some(Router::CopyToClipboard(CopyToClipboardParameters {
+                    workspace_id: self.workspace.id.clone(),
+                    command_id: command.id.clone(),
+                }))
+            }
             CPA::DeleteWorkspace => {
                 self.redirect = Some(Router::DeleteWorkspace(DeleteWorkspaceParameters {
                     id: self.workspace.id.clone(),
@@ -175,7 +191,7 @@ impl Model {
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
-        use crate::app::helpers::CommandPaletteAction as CPA;
+        use CommandPaletteAction as CPA;
 
         let ModelParameters {
             commands,
@@ -201,6 +217,7 @@ impl Model {
             commands_state,
             command_palette: CommandPalette::new(CommandPaletteParameters {
                 actions: vec![
+                    CPA::CopyToClipboard,
                     CPA::DeleteWorkspace,
                     CPA::EditWorkspace,
                     CPA::ListWorkspaces,

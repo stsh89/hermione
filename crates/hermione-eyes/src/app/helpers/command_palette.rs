@@ -17,6 +17,7 @@ pub struct CommandPaletteParameters {
 }
 
 pub enum Action {
+    CopyToClipboard,
     DeleteCommand,
     DeleteWorkspace,
     EditCommand,
@@ -80,6 +81,7 @@ impl CommandPalette {
 impl<'a> From<&Action> for ListItem<'a> {
     fn from(action: &Action) -> Self {
         let content = match action {
+            Action::CopyToClipboard => "Copy to clipboard",
             Action::DeleteCommand => "Delete command",
             Action::DeleteWorkspace => "Delete workspace",
             Action::EditCommand => "Edit command",
