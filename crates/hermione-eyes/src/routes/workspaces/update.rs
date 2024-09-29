@@ -1,17 +1,13 @@
-use crate::{
-    app::UpdateWorkspaceParameters,
-    clients::memories,
-    routes::workspaces::get::{Model, ModelParameters},
-    types::Result,
-};
+use super::commands::list::{Model, ModelParameters};
+use crate::{clients::memories, router::workspaces::UpdateParameters, types::Result};
 
 pub struct Handler<'a> {
     pub memories: &'a memories::Client,
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: UpdateWorkspaceParameters) -> Result<Model> {
-        let UpdateWorkspaceParameters { id, name, location } = parameters;
+    pub fn handle(self, parameters: UpdateParameters) -> Result<Model> {
+        let UpdateParameters { id, name, location } = parameters;
 
         let mut workspace = self.memories.get_workspace(&id)?;
 
@@ -24,7 +20,7 @@ impl<'a> Handler<'a> {
         let model = Model::new(ModelParameters {
             commands,
             workspace,
-            commands_search_query: String::new(),
+            search_query: String::new(),
         })?;
 
         Ok(model)

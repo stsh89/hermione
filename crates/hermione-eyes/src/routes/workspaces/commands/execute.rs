@@ -1,4 +1,4 @@
-use crate::{app::ExecuteCommandParameters, clients::memories, types::Result};
+use crate::{clients::memories, router::workspaces::commands::ExecuteParameters, types::Result};
 use hermione_wand::clients::powershell::{Client, StartWindowsTerminalParameters};
 
 pub struct Handler<'a> {
@@ -6,8 +6,8 @@ pub struct Handler<'a> {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: ExecuteCommandParameters) -> Result<()> {
-        let ExecuteCommandParameters {
+    pub fn handle(self, parameters: ExecuteParameters) -> Result<()> {
+        let ExecuteParameters {
             workspace_id,
             command_id,
         } = parameters;

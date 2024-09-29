@@ -1,10 +1,11 @@
 use crate::{
-    app::{
-        helpers::{Input, InputParameters},
-        CreateCommandParameters, GetWorkspaceParameters, Hook, Message, NewCommandParameters,
+    app::{Hook, Message},
+    clients::memories,
+    helpers::{Input, InputParameters},
+    router::{
+        workspaces::commands::{CreateParameters, ListParameters, NewParameters},
         Router,
     },
-    clients::memories,
     types::{Result, Workspace},
 };
 use ratatui::{
@@ -34,8 +35,8 @@ enum CommandProperty {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: NewCommandParameters) -> Result<Model> {
-        let NewCommandParameters { workspace_id } = parameters;
+    pub fn handle(self, parameters: NewParameters) -> Result<Model> {
+        let NewParameters { workspace_id } = parameters;
 
         let workspace = self.memories.get_workspace(&workspace_id)?;
 
@@ -104,10 +105,11 @@ impl Hook for Model {
 
 impl Model {
     fn back(&mut self) {
-        let route = Router::GetWorkspace(GetWorkspaceParameters {
-            id: self.workspace.id.clone(),
-            commands_search_query: String::new(),
-        });
+        let route = ListParameters {
+            workspace_id: self.workspace.id.clone(),
+            search_query: String::new(),
+        }
+        .into();
 
         self.redirect = Some(route);
     }
@@ -184,11 +186,12 @@ impl Model {
     }
 
     fn submit(&mut self) {
-        let route = Router::CreateCommand(CreateCommandParameters {
+        let route = CreateParameters {
             workspace_id: self.workspace.id.clone(),
             name: self.name.value().to_string(),
             program: self.program.value().to_string(),
-        });
+        }
+        .into();
 
         self.redirect = Some(route);
     }

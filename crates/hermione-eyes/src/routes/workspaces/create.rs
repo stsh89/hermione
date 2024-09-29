@@ -1,17 +1,17 @@
 use crate::{
-    app::CreateWorkspaceParameters,
-    clients::memories,
+    clients::memories::Client,
+    router::workspaces::CreateParameters,
     routes::workspaces::list::{Model, ModelParameters},
     types::{Result, Workspace},
 };
 
 pub struct Handler<'a> {
-    pub memories: &'a memories::Client,
+    pub memories: &'a Client,
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: CreateWorkspaceParameters) -> Result<Model> {
-        let CreateWorkspaceParameters { name, location } = parameters;
+    pub fn handle(self, parameters: CreateParameters) -> Result<Model> {
+        let CreateParameters { name, location } = parameters;
 
         self.memories.create_workspace(Workspace {
             id: String::new(),

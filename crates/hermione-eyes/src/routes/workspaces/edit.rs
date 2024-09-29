@@ -1,10 +1,12 @@
 use crate::{
-    app::{
-        helpers::{Input, InputParameters},
-        EditWorkspaceParameters, GetWorkspaceParameters, Hook, Message, Router,
-        UpdateWorkspaceParameters,
-    },
+    app::{Hook, Message},
     clients::memories,
+    helpers::{Input, InputParameters},
+    router::{
+        workspaces::commands::ListParameters,
+        workspaces::{EditParameters, UpdateParameters},
+        Router,
+    },
     types::{Result, Workspace},
 };
 use ratatui::{
@@ -32,6 +34,18 @@ pub struct ModelParameters {
 enum WorkspaceProperty {
     Name,
     Location,
+}
+
+impl<'a> Handler<'a> {
+    pub fn handle(self, parameters: EditParameters) -> Result<Model> {
+        let EditParameters { id } = parameters;
+
+        let workspace = self.memories.get_workspace(&id)?;
+
+        let model = Model::new(ModelParameters { workspace });
+
+        Ok(model)
+    }
 }
 
 impl Hook for Model {
@@ -93,24 +107,13 @@ impl Hook for Model {
     }
 }
 
-impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: EditWorkspaceParameters) -> Result<Model> {
-        let EditWorkspaceParameters { id } = parameters;
-
-        let workspace = self.memories.get_workspace(&id)?;
-
-        let model = Model::new(ModelParameters { workspace });
-
-        Ok(model)
-    }
-}
-
 impl Model {
     fn back(&mut self) {
-        let route = Router::GetWorkspace(GetWorkspaceParameters {
-            commands_search_query: String::new(),
-            id: self.workspace.id.clone(),
-        });
+        let route = ListParameters {
+            search_query: String::new(),
+            workspace_id: self.workspace.id.clone(),
+        }
+        .into();
 
         self.redirect = Some(route);
     }
@@ -169,11 +172,12 @@ impl Model {
     }
 
     fn submit(&mut self) {
-        let route = Router::UpdateWorkspace(UpdateWorkspaceParameters {
+        let route = UpdateParameters {
             name: self.name.value().to_string(),
             location: self.location.value().to_string(),
             id: self.workspace.id.clone(),
-        });
+        }
+        .into();
 
         self.redirect = Some(route);
     }

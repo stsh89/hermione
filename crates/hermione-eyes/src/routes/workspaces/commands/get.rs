@@ -1,10 +1,12 @@
 use crate::{
-    app::{
-        helpers::{CommandPalette, CommandPaletteParameters},
-        DeleteCommandParameters, EditCommandParameters, GetCommandParameters,
-        GetWorkspaceParameters, Hook, Message, Router,
-    },
+    app::{Hook, Message},
     clients::memories,
+    helpers::CommandPaletteAction,
+    helpers::{CommandPalette, CommandPaletteParameters},
+    router::{
+        workspaces::commands::{DeleteParameters, EditParameters, GetParameters, ListParameters},
+        Router,
+    },
     types::{Command, Result},
 };
 use ratatui::{
@@ -28,8 +30,8 @@ pub struct ModelParameters {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: GetCommandParameters) -> Result<Model> {
-        let GetCommandParameters {
+    pub fn handle(self, parameters: GetParameters) -> Result<Model> {
+        let GetParameters {
             workspace_id,
             command_id,
         } = parameters;
@@ -80,7 +82,7 @@ impl Hook for Model {
 
 impl Model {
     fn handle_command_palette_action(&mut self) {
-        use crate::app::helpers::CommandPaletteAction as CPA;
+        use CommandPaletteAction as CPA;
 
         let Some(action) = self.command_palette.action() else {
             return;
@@ -88,16 +90,22 @@ impl Model {
 
         match action {
             CPA::DeleteCommand => {
-                self.redirect = Some(Router::DeleteCommand(DeleteCommandParameters {
-                    workspace_id: self.command.workspace_id.clone(),
-                    command_id: self.command.id.clone(),
-                }))
+                self.redirect = Some(
+                    DeleteParameters {
+                        workspace_id: self.command.workspace_id.clone(),
+                        command_id: self.command.id.clone(),
+                    }
+                    .into(),
+                )
             }
             CPA::EditCommand => {
-                self.redirect = Some(Router::EditCommand(EditCommandParameters {
-                    workspace_id: self.command.workspace_id.clone(),
-                    command_id: self.command.id.clone(),
-                }))
+                self.redirect = Some(
+                    EditParameters {
+                        workspace_id: self.command.workspace_id.clone(),
+                        command_id: self.command.id.clone(),
+                    }
+                    .into(),
+                )
             }
             _ => {}
         }
@@ -108,16 +116,17 @@ impl Model {
     }
 
     fn back(&mut self) {
-        let route = Router::GetWorkspace(GetWorkspaceParameters {
-            commands_search_query: String::new(),
-            id: self.command.workspace_id.clone(),
-        });
+        let route = ListParameters {
+            search_query: String::new(),
+            workspace_id: self.command.workspace_id.clone(),
+        }
+        .into();
 
         self.redirect = Some(route)
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
-        use crate::app::helpers::CommandPaletteAction as CPA;
+        use CommandPaletteAction as CPA;
 
         let ModelParameters { command } = parameters;
 

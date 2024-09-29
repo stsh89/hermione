@@ -1,17 +1,14 @@
-use crate::{
-    app::DeleteCommandParameters,
-    clients::memories,
-    routes::workspaces::get::{Model, ModelParameters},
-    types::Result,
-};
+use crate::{clients::memories, router::workspaces::commands::DeleteParameters, types::Result};
+
+use super::list::{Model, ModelParameters};
 
 pub struct Handler<'a> {
     pub memories: &'a memories::Client,
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: DeleteCommandParameters) -> Result<Model> {
-        let DeleteCommandParameters {
+    pub fn handle(self, parameters: DeleteParameters) -> Result<Model> {
+        let DeleteParameters {
             workspace_id,
             command_id,
         } = parameters;
@@ -23,7 +20,7 @@ impl<'a> Handler<'a> {
 
         Model::new(ModelParameters {
             workspace,
-            commands_search_query: String::new(),
+            search_query: String::new(),
             commands,
         })
     }

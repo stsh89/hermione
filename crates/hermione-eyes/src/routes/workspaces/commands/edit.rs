@@ -1,10 +1,11 @@
 use crate::{
-    app::{
-        helpers::{Input, InputParameters},
-        Hook, Message,
-    },
-    app::{EditCommandParameters, GetCommandParameters, Router, UpdateCommandParameters},
+    app::{Hook, Message},
     clients::memories,
+    helpers::{Input, InputParameters},
+    router::{
+        workspaces::commands::{EditParameters, GetParameters, UpdateParameters},
+        Router,
+    },
     types::{Command, Result},
 };
 use ratatui::{
@@ -94,8 +95,8 @@ impl Hook for Model {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: EditCommandParameters) -> Result<Model> {
-        let EditCommandParameters {
+    pub fn handle(self, parameters: EditParameters) -> Result<Model> {
+        let EditParameters {
             command_id,
             workspace_id,
         } = parameters;
@@ -108,10 +109,11 @@ impl<'a> Handler<'a> {
 
 impl Model {
     fn back(&mut self) {
-        let route = Router::GetCommand(GetCommandParameters {
+        let route = GetParameters {
             workspace_id: self.command.workspace_id.clone(),
             command_id: self.command.id.clone(),
-        });
+        }
+        .into();
 
         self.redirect = Some(route);
     }
@@ -170,12 +172,13 @@ impl Model {
     }
 
     fn submit(&mut self) {
-        let route = Router::UpdateCommand(UpdateCommandParameters {
+        let route = UpdateParameters {
             name: self.name.value().to_string(),
             program: self.program.value().to_string(),
             workspace_id: self.command.workspace_id.clone(),
             command_id: self.command.id.clone(),
-        });
+        }
+        .into();
 
         self.redirect = Some(route);
     }

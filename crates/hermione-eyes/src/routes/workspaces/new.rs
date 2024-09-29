@@ -1,7 +1,9 @@
 use crate::{
-    app::{
-        helpers::{Input, InputParameters},
-        CreateWorkspaceParameters, Hook, ListWorkspacesParameters, Message, Router,
+    app::{Hook, Message},
+    helpers::{Input, InputParameters},
+    router::{
+        workspaces::{CreateParameters, ListParameters},
+        Router,
     },
     types::Result,
 };
@@ -92,7 +94,7 @@ impl Hook for Model {
 
 impl Model {
     fn back(&mut self) {
-        let route = Router::ListWorkspaces(ListWorkspacesParameters::default());
+        let route = ListParameters::default().into();
 
         self.redirect = Some(route);
     }
@@ -148,10 +150,11 @@ impl Model {
     }
 
     fn submit(&mut self) {
-        let route = Router::CreateWorkspace(CreateWorkspaceParameters {
+        let route = CreateParameters {
             name: self.name.value().to_string(),
             location: self.location.value().to_string(),
-        });
+        }
+        .into();
 
         self.redirect = Some(route);
     }

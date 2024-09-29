@@ -1,12 +1,16 @@
 use crate::{
-    app::{
-        helpers::{
-            CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
-            List,
-        },
-        GetWorkspaceParameters, Hook, ListWorkspacesParameters, Message, Router,
-    },
+    app::{Hook, Message},
     clients::memories,
+    helpers::{
+        CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
+        List,
+    },
+    router::{
+        workspaces::{
+            commands::ListParameters as CommandsListParameters, ListParameters, NewParameters,
+        },
+        Router,
+    },
     types::{Result, Workspace},
 };
 use ratatui::{
@@ -34,8 +38,8 @@ pub struct ModelParameters {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: ListWorkspacesParameters) -> Result<Model> {
-        let ListWorkspacesParameters { search_query } = parameters;
+    pub fn handle(self, parameters: ListParameters) -> Result<Model> {
+        let ListParameters { search_query } = parameters;
         let mut workspaces = self.memories.list_workspaces()?;
         let filter = search_query.to_lowercase();
 
@@ -131,7 +135,7 @@ impl Model {
         };
 
         if let CPA::NewWorkspace = action {
-            self.redirect = Some(Router::NewWorkspace)
+            self.redirect = Some(NewParameters {}.into())
         }
     }
 
@@ -178,10 +182,11 @@ impl Model {
             return;
         };
 
-        let route = Router::GetWorkspace(GetWorkspaceParameters {
-            commands_search_query: String::new(),
-            id: workspace.id.clone(),
-        });
+        let route = CommandsListParameters {
+            search_query: String::new(),
+            workspace_id: workspace.id.clone(),
+        }
+        .into();
 
         self.redirect = Some(route);
     }
@@ -205,9 +210,12 @@ impl Model {
     fn enter_char(&mut self, c: char) {
         self.search.enter_char(c);
 
-        self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters {
-            search_query: self.search_query(),
-        }));
+        self.redirect = Some(
+            ListParameters {
+                search_query: self.search_query(),
+            }
+            .into(),
+        );
     }
 
     fn search_query(&self) -> String {
@@ -217,17 +225,23 @@ impl Model {
     fn delete_char(&mut self) {
         self.search.delete_char();
 
-        self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters {
-            search_query: self.search_query(),
-        }));
+        self.redirect = Some(
+            ListParameters {
+                search_query: self.search_query(),
+            }
+            .into(),
+        );
     }
 
     fn delete_all_chars(&mut self) {
         self.search.delete_all_chars();
 
-        self.redirect = Some(Router::ListWorkspaces(ListWorkspacesParameters {
-            search_query: self.search_query(),
-        }));
+        self.redirect = Some(
+            ListParameters {
+                search_query: self.search_query(),
+            }
+            .into(),
+        );
     }
 
     fn move_cursor_left(&mut self) {

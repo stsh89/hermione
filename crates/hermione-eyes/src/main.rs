@@ -1,6 +1,8 @@
 mod app;
 mod clients;
+mod helpers;
 mod logs;
+mod router;
 mod routes;
 mod settings;
 mod tui;

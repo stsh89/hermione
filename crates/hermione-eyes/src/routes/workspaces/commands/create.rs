@@ -1,7 +1,7 @@
+use super::list::{Model, ModelParameters};
 use crate::{
-    app::CreateCommandParameters,
     clients::memories,
-    routes::workspaces::get::{Model, ModelParameters},
+    router::workspaces::commands::CreateParameters,
     types::{Command, Result},
 };
 
@@ -10,8 +10,8 @@ pub struct Handler<'a> {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: CreateCommandParameters) -> Result<Model> {
-        let CreateCommandParameters {
+    pub fn handle(self, parameters: CreateParameters) -> Result<Model> {
+        let CreateParameters {
             workspace_id,
             name,
             program,
@@ -30,7 +30,7 @@ impl<'a> Handler<'a> {
         Model::new(ModelParameters {
             workspace,
             commands,
-            commands_search_query: String::new(),
+            search_query: String::new(),
         })
     }
 }

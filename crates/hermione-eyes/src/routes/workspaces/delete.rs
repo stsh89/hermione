@@ -1,6 +1,6 @@
 use crate::{
-    app::DeleteWorkspaceParameters,
     clients::memories,
+    router::workspaces::DeleteParameters,
     routes::workspaces::list::{Model, ModelParameters},
     types::Result,
 };
@@ -10,8 +10,8 @@ pub struct Handler<'a> {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: DeleteWorkspaceParameters) -> Result<Model> {
-        let DeleteWorkspaceParameters { id } = parameters;
+    pub fn handle(self, parameters: DeleteParameters) -> Result<Model> {
+        let DeleteParameters { id } = parameters;
 
         self.memories.delete_workspace(&id)?;
         let workspaces = self.memories.list_workspaces()?;
