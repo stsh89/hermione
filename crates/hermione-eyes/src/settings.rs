@@ -26,9 +26,12 @@ impl Settings {
     }
 
     fn new() -> Result<Self> {
-        let mut app_path: PathBuf = match std::option_env!("HERMIONE_RELEASE") {
-            Some(_) => Self::user_path()?,
-            None => Self::development_path()?,
+        let is_release = cfg!(not(debug_assertions));
+
+        let mut app_path = if is_release {
+            Self::user_path()?
+        } else {
+            Self::development_path()?
         };
 
         app_path.push(".hermione");
