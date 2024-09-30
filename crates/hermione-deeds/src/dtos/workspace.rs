@@ -6,23 +6,14 @@ use hermione_memories::{
 };
 use std::str::FromStr;
 
-pub trait Operations {
-    fn create(&self, data: Data) -> Result<Data>;
-    fn delete(&self, id: &str) -> Result<()>;
-    fn get(&self, id: &str) -> Result<Data>;
-    fn list(&self) -> Result<Vec<Data>>;
-    fn track_access_time(&self, id: &str) -> Result<Data>;
-    fn update(&self, data: Data) -> Result<Data>;
-}
-
-pub struct Data {
+pub struct Dto {
     pub id: String,
     pub last_access_time: Option<DateTime<Utc>>,
     pub location: Option<String>,
     pub name: String,
 }
 
-impl Data {
+impl Dto {
     pub(crate) fn from_entity(entity: Entity) -> Self {
         Self {
             id: entity.id().map(|id| id.to_string()).unwrap_or_default(),

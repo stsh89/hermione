@@ -1,10 +1,10 @@
-use crate::impls::json;
 use hermione_memories::{
     entities::workspace::{Entity, LoadParameters, Location, Name},
     operations::workspaces::{create, delete, get, list, track_access_time, update},
-    Error, Id,
+    Id, Result,
 };
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
@@ -18,36 +18,56 @@ pub struct Record {
     name: String,
 }
 
-impl create::Create for json::Client {
-    fn create(&self, mut entity: Entity) -> Result<Entity, Error> {
-        let mut records: Vec<Record> = self.read()?;
+pub struct Client {
+    pub path: PathBuf,
+}
+
+impl Client {
+    pub fn read(&self) -> Result<Vec<Record>> {
+        use crate::json::read_collection;
+        let records = read_collection(&self.path)?;
+
+        Ok(records)
+    }
+
+    pub fn write(&self, records: Vec<Record>) -> Result<()> {
+        use crate::json::write_collection;
+        write_collection(&self.path, records)?;
+
+        Ok(())
+    }
+}
+
+impl create::Create for Client {
+    fn create(&self, mut entity: Entity) -> Result<Entity> {
+        let mut records = self.read()?;
         let id = Uuid::new_v4();
         entity.set_id(Id::new(id))?;
 
         let record = Record::from_entity(&entity)?;
         records.push(record);
 
-        self.save(records)?;
+        self.write(records)?;
 
         Ok(entity)
     }
 }
 
-impl delete::Delete for json::Client {
-    fn delete(&self, id: Id) -> Result<(), Error> {
-        let mut record: Vec<Record> = self.read()?;
+impl delete::Delete for Client {
+    fn delete(&self, id: Id) -> Result<()> {
+        let mut record = self.read()?;
 
         record.retain(|record| record.id != *id);
 
-        self.save(record)?;
+        self.write(record)?;
 
         Ok(())
     }
 }
 
-impl get::Get for json::Client {
-    fn get(&self, id: Id) -> Result<Entity, Error> {
-        let records: Vec<Record> = self.read()?;
+impl get::Get for Client {
+    fn get(&self, id: Id) -> Result<Entity> {
+        let records = self.read()?;
 
         let record = records
             .into_iter()
@@ -60,9 +80,9 @@ impl get::Get for json::Client {
     }
 }
 
-impl list::List for json::Client {
-    fn list(&self) -> Result<Vec<Entity>, Error> {
-        let mut records: Vec<Record> = self.read()?;
+impl list::List for Client {
+    fn list(&self) -> Result<Vec<Entity>> {
+        let mut records = self.read()?;
         records.sort_unstable_by(|a, b| a.last_access_time.cmp(&b.last_access_time).reverse());
 
         let entities = records.into_iter().map(Record::load_entity).collect();
@@ -71,15 +91,15 @@ impl list::List for json::Client {
     }
 }
 
-impl track_access_time::Track for json::Client {
-    fn track(&self, entity: Entity) -> Result<Entity, Error> {
+impl track_access_time::Track for Client {
+    fn track(&self, entity: Entity) -> Result<Entity> {
         let Some(id) = entity.id() else {
             return Err(
                 eyre::eyre!("Attempt to track access time for workspace without id").into(),
             );
         };
 
-        let mut records: Vec<Record> = self.read()?;
+        let mut records = self.read()?;
         let record = records
             .iter_mut()
             .find(|record| record.id == *id)
@@ -87,20 +107,20 @@ impl track_access_time::Track for json::Client {
 
         record.last_access_time = Some(chrono::Utc::now());
 
-        self.save(records)?;
+        self.write(records)?;
 
         use get::Get;
         self.get(id)
     }
 }
 
-impl update::Update for json::Client {
-    fn update(&self, entity: Entity) -> Result<Entity, Error> {
+impl update::Update for Client {
+    fn update(&self, entity: Entity) -> Result<Entity> {
         let Some(id) = entity.id() else {
             return Err(eyre::eyre!("Attemp to update workspace without id").into());
         };
 
-        let mut records: Vec<Record> = self.read()?;
+        let mut records = self.read()?;
         let record = records
             .iter_mut()
             .find(|record| record.id == *id)
@@ -112,14 +132,14 @@ impl update::Update for json::Client {
             .map(ToString::to_string)
             .unwrap_or_default();
 
-        self.save(records)?;
+        self.write(records)?;
 
         Ok(entity)
     }
 }
 
 impl Record {
-    fn from_entity(entity: &Entity) -> Result<Self, eyre::Report> {
+    fn from_entity(entity: &Entity) -> Result<Self> {
         Ok(Self {
             id: *entity.id().ok_or(eyre::eyre!("Record without id"))?,
             last_access_time: entity.last_access_time().map(From::from),

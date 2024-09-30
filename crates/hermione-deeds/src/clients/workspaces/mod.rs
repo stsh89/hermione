@@ -1,44 +1,38 @@
-use crate::types::workspace::{Data, Operations};
+mod json;
+
+pub mod commands;
+
+use crate::{dtos::workspace::Dto, Result};
 use hermione_memories::{
     operations::workspaces::{create, delete, get, list, track_access_time, update},
     Id,
 };
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
-pub mod commands;
-pub mod json;
-
-pub struct Client<T>
-where
-    T: get::Get
-        + list::List
-        + create::Create
-        + delete::Delete
-        + update::Update
-        + track_access_time::Track,
-{
-    inner: T,
+pub trait Operations {
+    fn create(&self, data: Dto) -> Result<Dto>;
+    fn delete(&self, id: &str) -> Result<()>;
+    fn get(&self, id: &str) -> Result<Dto>;
+    fn list(&self) -> Result<Vec<Dto>>;
+    fn track_access_time(&self, id: &str) -> Result<Dto>;
+    fn update(&self, data: Dto) -> Result<Dto>;
 }
 
-impl<T> Operations for Client<T>
-where
-    T: get::Get
-        + list::List
-        + create::Create
-        + delete::Delete
-        + update::Update
-        + track_access_time::Track,
-{
-    fn create(&self, data: Data) -> anyhow::Result<Data> {
+pub struct Client {
+    inner: json::Client,
+}
+
+impl Operations for Client {
+    fn create(&self, data: Dto) -> Result<Dto> {
         let workspace = create::Operation {
             creator: &self.inner,
         }
         .execute(data.new_entity())?;
 
-        Ok(Data::from_entity(workspace))
+        Ok(Dto::from_entity(workspace))
     }
 
-    fn delete(&self, id: &str) -> anyhow::Result<()> {
+    fn delete(&self, id: &str) -> Result<()> {
         delete::Operation {
             deleter: &self.inner,
         }
@@ -47,25 +41,26 @@ where
         Ok(())
     }
 
-    fn get(&self, id: &str) -> anyhow::Result<Data> {
+    fn get(&self, id: &str) -> Result<Dto> {
         let workspace = get::Operation {
             getter: &self.inner,
         }
         .execute(Id::from_str(id)?)?;
 
-        Ok(Data::from_entity(workspace))
+        Ok(Dto::from_entity(workspace))
     }
 
-    fn list(&self) -> anyhow::Result<Vec<Data>> {
+    fn list(&self) -> Result<Vec<Dto>> {
         let workspaces = list::Operation {
             lister: &self.inner,
         }
         .execute()?;
 
-        Ok(workspaces.into_iter().map(Data::from_entity).collect())
+        Ok(workspaces.into_iter().map(Dto::from_entity).collect())
     }
 
-    fn track_access_time(&self, id: &str) -> anyhow::Result<Data> {
+    fn track_access_time(&self, id: &str) -> Result<Dto> {
+        use hermione_memories::operations::workspaces::get::Get;
         let entity = self.inner.get(Id::from_str(id)?)?;
 
         let entity = track_access_time::Operation {
@@ -73,29 +68,23 @@ where
         }
         .execute(entity)?;
 
-        Ok(Data::from_entity(entity))
+        Ok(Dto::from_entity(entity))
     }
 
-    fn update(&self, data: Data) -> anyhow::Result<Data> {
+    fn update(&self, data: Dto) -> Result<Dto> {
         let workspace = update::Operation {
             updater: &self.inner,
         }
         .execute(data.load_entity()?)?;
 
-        Ok(Data::from_entity(workspace))
+        Ok(Dto::from_entity(workspace))
     }
 }
 
-impl<T> Client<T>
-where
-    T: get::Get
-        + list::List
-        + create::Create
-        + delete::Delete
-        + update::Update
-        + track_access_time::Track,
-{
-    pub fn new(inner: T) -> Self {
-        Self { inner }
+impl Client {
+    pub fn new(path: PathBuf) -> Self {
+        Self {
+            inner: json::Client { path },
+        }
     }
 }

@@ -1,10 +1,10 @@
-use crate::impls::json;
 use hermione_memories::{
     entities::command::{Entity, LoadParameters, Name, Program, ScopedId},
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
-    Error, Id,
+    Id, Result,
 };
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
@@ -19,36 +19,56 @@ pub struct Record {
     workspace_id: Uuid,
 }
 
-impl create::Create for json::Client {
-    fn create(&self, mut entity: Entity) -> Result<Entity, Error> {
-        let mut records: Vec<Record> = self.read()?;
+pub struct Client {
+    pub path: PathBuf,
+}
+
+impl Client {
+    pub fn read(&self) -> Result<Vec<Record>> {
+        use crate::json::read_collection;
+        let records = read_collection(&self.path)?;
+
+        Ok(records)
+    }
+
+    pub fn write(&self, records: Vec<Record>) -> Result<()> {
+        use crate::json::write_collection;
+        write_collection(&self.path, records)?;
+
+        Ok(())
+    }
+}
+
+impl create::Create for Client {
+    fn create(&self, mut entity: Entity) -> Result<Entity> {
+        let mut records = self.read()?;
         let id = Uuid::new_v4();
         entity.set_id(Id::new(id))?;
 
         let record = Record::from_entity(&entity)?;
         records.push(record);
 
-        self.save(records)?;
+        self.write(records)?;
 
         Ok(entity)
     }
 }
 
-impl delete::Delete for json::Client {
-    fn delete(&self, id: ScopedId) -> Result<(), Error> {
+impl delete::Delete for Client {
+    fn delete(&self, id: ScopedId) -> Result<()> {
         let ScopedId { workspace_id, id } = id;
         let mut records: Vec<Record> = self.read()?;
 
         records.retain(|record| !(record.id == *id && record.workspace_id == *workspace_id));
 
-        self.save(records)?;
+        self.write(records)?;
 
         Ok(())
     }
 }
 
-impl get::Get for json::Client {
-    fn get(&self, id: ScopedId) -> Result<Entity, Error> {
+impl get::Get for Client {
+    fn get(&self, id: ScopedId) -> Result<Entity> {
         let ScopedId { workspace_id, id } = id;
         let records: Vec<Record> = self.read()?;
 
@@ -63,8 +83,8 @@ impl get::Get for json::Client {
     }
 }
 
-impl list::List for json::Client {
-    fn list(&self, workspace_id: Id) -> Result<Vec<Entity>, Error> {
+impl list::List for Client {
+    fn list(&self, workspace_id: Id) -> Result<Vec<Entity>> {
         let mut records: Vec<Record> = self.read()?;
         records.sort_unstable_by(|a, b| a.last_execute_time.cmp(&b.last_execute_time).reverse());
 
@@ -78,8 +98,8 @@ impl list::List for json::Client {
     }
 }
 
-impl track_execution_time::Track for json::Client {
-    fn track(&self, entity: Entity) -> Result<Entity, Error> {
+impl track_execution_time::Track for Client {
+    fn track(&self, entity: Entity) -> Result<Entity> {
         let Some(id) = entity.id() else {
             return Err(
                 eyre::eyre!("Attempt to track access time for workspace without id").into(),
@@ -95,7 +115,7 @@ impl track_execution_time::Track for json::Client {
 
         record.last_execute_time = Some(chrono::Utc::now());
 
-        self.save(records)?;
+        self.write(records)?;
 
         use get::Get;
         self.get(ScopedId {
@@ -105,8 +125,8 @@ impl track_execution_time::Track for json::Client {
     }
 }
 
-impl update::Update for json::Client {
-    fn update(&self, entity: Entity) -> Result<Entity, Error> {
+impl update::Update for Client {
+    fn update(&self, entity: Entity) -> Result<Entity> {
         let Some(id) = entity.id() else {
             return Err(eyre::eyre!("Attemp to update workspace without id").into());
         };
@@ -121,14 +141,14 @@ impl update::Update for json::Client {
         record.name = entity.name().to_string();
         record.program = entity.program().to_string();
 
-        self.save(records)?;
+        self.write(records)?;
 
         Ok(entity)
     }
 }
 
 impl Record {
-    fn from_entity(entity: &Entity) -> Result<Self, eyre::Report> {
+    fn from_entity(entity: &Entity) -> Result<Self> {
         Ok(Self {
             id: *entity.id().ok_or(eyre::eyre!("Record without id"))?,
             last_execute_time: entity.last_execute_time().map(From::from),

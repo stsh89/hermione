@@ -6,16 +6,7 @@ use hermione_memories::{
 };
 use std::str::FromStr;
 
-pub trait WorkspaceOperations {
-    fn create(&self, data: Data) -> Result<Data>;
-    fn delete(&self, workspace_id: &str, id: &str) -> Result<()>;
-    fn get(&self, workspace_id: &str, id: &str) -> Result<Data>;
-    fn list(&self, workspace_id: &str) -> Result<Vec<Data>>;
-    fn track_execution_time(&self, workspace_id: &str, command_id: &str) -> Result<Data>;
-    fn update(&self, data: Data) -> Result<Data>;
-}
-
-pub struct Data {
+pub struct Dto {
     pub id: String,
     pub last_execute_time: Option<DateTime<Utc>>,
     pub name: String,
@@ -23,7 +14,7 @@ pub struct Data {
     pub workspace_id: String,
 }
 
-impl Data {
+impl Dto {
     pub(crate) fn from_entity(entity: Entity) -> Self {
         Self {
             id: entity.id().map(|id| id.to_string()).unwrap_or_default(),

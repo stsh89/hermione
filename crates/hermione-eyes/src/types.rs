@@ -1,4 +1,4 @@
-use hermione_deeds::types::{command, workspace};
+use hermione_deeds::dtos::{command, workspace};
 use ratatui::widgets::ListItem;
 
 pub type Error = anyhow::Error;
@@ -29,7 +29,7 @@ impl<'a> From<&Command> for ListItem<'a> {
     }
 }
 
-impl From<Command> for command::Data {
+impl From<Command> for command::Dto {
     fn from(value: Command) -> Self {
         let Command {
             workspace_id,
@@ -38,7 +38,7 @@ impl From<Command> for command::Data {
             program,
         } = value;
 
-        command::Data {
+        command::Dto {
             id,
             last_execute_time: None,
             name,
@@ -48,11 +48,11 @@ impl From<Command> for command::Data {
     }
 }
 
-impl From<Workspace> for workspace::Data {
+impl From<Workspace> for workspace::Dto {
     fn from(value: Workspace) -> Self {
         let Workspace { id, location, name } = value;
 
-        workspace::Data {
+        workspace::Dto {
             id,
             last_access_time: None,
             location: Some(location),
@@ -61,8 +61,8 @@ impl From<Workspace> for workspace::Data {
     }
 }
 
-impl From<command::Data> for Command {
-    fn from(value: command::Data) -> Self {
+impl From<command::Dto> for Command {
+    fn from(value: command::Dto) -> Self {
         Command {
             workspace_id: value.workspace_id,
             id: value.id,
@@ -72,8 +72,8 @@ impl From<command::Data> for Command {
     }
 }
 
-impl From<workspace::Data> for Workspace {
-    fn from(value: workspace::Data) -> Self {
+impl From<workspace::Dto> for Workspace {
+    fn from(value: workspace::Dto) -> Self {
         Workspace {
             id: value.id,
             location: value.location.unwrap_or_default(),

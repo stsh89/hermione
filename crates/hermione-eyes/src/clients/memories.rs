@@ -1,14 +1,13 @@
 use crate::types::{Command, Result, Workspace};
-use hermione_deeds::{
-    clients::workspaces,
-    impls::json,
-    types::{command::WorkspaceOperations, workspace::Operations},
+use hermione_deeds::clients::{
+    self,
+    workspaces::{commands::Operations as _, Operations},
 };
 use std::{io::Write, path::Path};
 
 pub struct Client {
-    workspaces: workspaces::Client<json::Client>,
-    commands: workspaces::commands::Client<json::Client>,
+    workspaces: clients::workspaces::Client,
+    commands: clients::workspaces::commands::Client,
 }
 
 impl Client {
@@ -26,8 +25,8 @@ impl Client {
         }
 
         Ok(Self {
-            workspaces: workspaces::Client::new(json::Client::new(workspaces_path)),
-            commands: workspaces::commands::Client::new(json::Client::new(commands_path)),
+            workspaces: clients::workspaces::Client::new(workspaces_path),
+            commands: clients::workspaces::commands::Client::new(commands_path),
         })
     }
 
