@@ -2,12 +2,13 @@ use crate::{
     app::{Hook, Message},
     clients::memories,
     helpers::{Input, InputParameters},
+    presenters::Workspace,
     router::{
         workspaces::commands::ListParameters,
         workspaces::{EditParameters, UpdateParameters},
         Router,
     },
-    types::{Result, Workspace},
+    Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -164,7 +165,7 @@ impl Model {
             redirect: None,
             active_input: WorkspaceProperty::Name,
             location: Input::new(InputParameters {
-                value: workspace.location.clone(),
+                value: workspace.location.clone().unwrap_or_default(),
                 is_active: false,
             }),
             workspace,

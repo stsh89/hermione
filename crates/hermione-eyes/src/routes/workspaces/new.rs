@@ -5,7 +5,7 @@ use crate::{
         workspaces::{CreateParameters, ListParameters},
         Router,
     },
-    types::Result,
+    Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},

@@ -1,12 +1,9 @@
 use hermione_deeds::dtos::{command, workspace};
 use ratatui::widgets::ListItem;
 
-pub type Error = anyhow::Error;
-pub type Result<T> = anyhow::Result<T>;
-
 pub struct Workspace {
     pub id: String,
-    pub location: String,
+    pub location: Option<String>,
     pub name: String,
 }
 
@@ -55,7 +52,7 @@ impl From<Workspace> for workspace::Dto {
         workspace::Dto {
             id,
             last_access_time: None,
-            location: Some(location),
+            location,
             name,
         }
     }
@@ -63,21 +60,32 @@ impl From<Workspace> for workspace::Dto {
 
 impl From<command::Dto> for Command {
     fn from(value: command::Dto) -> Self {
+        let command::Dto {
+            id,
+            last_execute_time: _,
+            name,
+            program,
+            workspace_id,
+        } = value;
+
         Command {
-            workspace_id: value.workspace_id,
-            id: value.id,
-            name: value.name,
-            program: value.program,
+            workspace_id,
+            id,
+            name,
+            program,
         }
     }
 }
 
 impl From<workspace::Dto> for Workspace {
     fn from(value: workspace::Dto) -> Self {
-        Workspace {
-            id: value.id,
-            location: value.location.unwrap_or_default(),
-            name: value.name,
-        }
+        let workspace::Dto {
+            id,
+            last_access_time: _,
+            location,
+            name,
+        } = value;
+
+        Workspace { id, location, name }
     }
 }

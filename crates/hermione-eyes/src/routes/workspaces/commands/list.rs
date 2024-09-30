@@ -5,6 +5,7 @@ use crate::{
         CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
         List,
     },
+    presenters::{Command, Workspace},
     router::{
         powershell::{
             CopyToClipboardParameters, ExecuteCommandParameters, StartWindowsTerminalParameters,
@@ -15,7 +16,7 @@ use crate::{
         },
         Router,
     },
-    types::{Command, Result, Workspace},
+    Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -232,7 +233,7 @@ impl Model {
 
     fn start_windows_terminal_parameters(&self) -> StartWindowsTerminalParameters {
         StartWindowsTerminalParameters {
-            working_directory: Some(self.workspace.location.clone()),
+            working_directory: self.workspace.location.clone(),
         }
     }
 

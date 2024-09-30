@@ -7,7 +7,7 @@ use crate::{
         Router,
     },
     routes::Controller,
-    types::Result,
+    Result,
 };
 use ratatui::{backend::Backend, crossterm::event, Frame, Terminal};
 use tracing::instrument;

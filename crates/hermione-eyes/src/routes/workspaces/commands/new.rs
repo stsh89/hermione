@@ -2,11 +2,12 @@ use crate::{
     app::{Hook, Message},
     clients::memories,
     helpers::{Input, InputParameters},
+    presenters::Workspace,
     router::{
         workspaces::commands::{CreateParameters, ListParameters, NewParameters},
         Router,
     },
-    types::{Result, Workspace},
+    Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},

@@ -3,11 +3,12 @@ use crate::{
     clients::memories,
     helpers::CommandPaletteAction,
     helpers::{CommandPalette, CommandPaletteParameters},
+    presenters::Command,
     router::{
         workspaces::commands::{DeleteParameters, EditParameters, GetParameters, ListParameters},
         Router,
     },
-    types::{Command, Result},
+    Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},

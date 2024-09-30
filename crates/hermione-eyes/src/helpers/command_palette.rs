@@ -1,5 +1,5 @@
 use super::List;
-use crate::types::Result;
+use crate::Result;
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     widgets::{Clear, ListItem, ListState},

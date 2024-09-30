@@ -5,13 +5,14 @@ use crate::{
         CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
         List,
     },
+    presenters::Workspace,
     router::{
         workspaces::{
             commands::ListParameters as CommandsListParameters, ListParameters, NewParameters,
         },
         Router,
     },
-    types::{Result, Workspace},
+    Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},

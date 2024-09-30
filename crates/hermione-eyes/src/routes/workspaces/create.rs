@@ -1,8 +1,9 @@
 use crate::{
     clients::memories::Client,
+    presenters::Workspace,
     router::workspaces::CreateParameters,
     routes::workspaces::list::{Model, ModelParameters},
-    types::{Result, Workspace},
+    Result,
 };
 
 pub struct Handler<'a> {
@@ -15,7 +16,7 @@ impl<'a> Handler<'a> {
 
         self.memories.create_workspace(Workspace {
             id: String::new(),
-            location,
+            location: Some(location),
             name,
         })?;
 

@@ -2,16 +2,19 @@ mod app;
 mod clients;
 mod helpers;
 mod logs;
+mod presenters;
 mod router;
 mod routes;
 mod settings;
 mod tui;
-mod types;
 
 use app::{App, AppParameters};
 use clients::memories;
 
-fn main() -> types::Result<()> {
+type Error = anyhow::Error;
+type Result<T> = anyhow::Result<T>;
+
+fn main() -> Result<()> {
     let settings = settings::Settings::setup()?;
 
     tui::install_panic_hook();

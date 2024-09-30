@@ -1,6 +1,5 @@
-use crate::{clients::memories, router::workspaces::commands::DeleteParameters, types::Result};
-
 use super::list::{Model, ModelParameters};
+use crate::{clients::memories, router::workspaces::commands::DeleteParameters, Result};
 
 pub struct Handler<'a> {
     pub memories: &'a memories::Client,

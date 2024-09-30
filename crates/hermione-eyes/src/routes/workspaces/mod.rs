@@ -1,4 +1,4 @@
-use crate::{app::Hook, clients::memories::Client, router::workspaces::Router, types::Result};
+use crate::{app::Hook, clients::memories::Client, router::workspaces::Router, Result};
 
 pub mod commands;
 pub mod create;

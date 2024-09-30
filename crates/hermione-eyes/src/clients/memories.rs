@@ -1,4 +1,7 @@
-use crate::types::{Command, Result, Workspace};
+use crate::{
+    presenters::{Command, Workspace},
+    Result,
+};
 use hermione_deeds::clients::{
     self,
     workspaces::{commands::Operations as _, Operations},

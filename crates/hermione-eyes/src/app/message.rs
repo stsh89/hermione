@@ -1,4 +1,4 @@
-use crate::types::{Error, Result};
+use crate::{Error, Result};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub enum Message {

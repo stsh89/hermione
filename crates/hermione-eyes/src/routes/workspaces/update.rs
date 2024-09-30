@@ -1,5 +1,5 @@
 use super::commands::list::{Model, ModelParameters};
-use crate::{clients::memories, router::workspaces::UpdateParameters, types::Result};
+use crate::{clients::memories, router::workspaces::UpdateParameters, Result};
 
 pub struct Handler<'a> {
     pub memories: &'a memories::Client,
@@ -12,7 +12,7 @@ impl<'a> Handler<'a> {
         let mut workspace = self.memories.get_workspace(&id)?;
 
         workspace.name = name;
-        workspace.location = location;
+        workspace.location = Some(location);
 
         let workspace = self.memories.update_workspace(workspace)?;
         let commands = self.memories.list_commands(&id)?;

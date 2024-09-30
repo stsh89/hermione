@@ -1,4 +1,4 @@
-use crate::types::Result;
+use crate::Result;
 use std::path::{Path, PathBuf};
 
 pub struct Settings {
