@@ -1,7 +1,7 @@
 use serde::{de::DeserializeOwned, Serialize};
 use std::{
     fs::{File, OpenOptions},
-    io::BufReader,
+    io::{BufReader, Write},
     path::Path,
 };
 
@@ -25,6 +25,17 @@ where
     let mut file = OpenOptions::new().write(true).truncate(true).open(path)?;
 
     serde_json::to_writer(&mut file, &collection)?;
+
+    Ok(())
+}
+
+pub fn prepare_collection(path: impl AsRef<Path>) -> anyhow::Result<()> {
+    if path.as_ref().try_exists()? {
+        return Ok(());
+    }
+
+    let mut file = std::fs::File::create(path)?;
+    file.write_all(b"[]")?;
 
     Ok(())
 }

@@ -6,7 +6,7 @@ use hermione_deeds::clients::{
     self,
     workspaces::{commands::Operations as _, Operations},
 };
-use std::{io::Write, path::Path};
+use std::path::Path;
 
 pub struct Client {
     workspaces: clients::workspaces::Client,
@@ -18,18 +18,9 @@ impl Client {
         let commands_path = path.join("commands.json");
         let workspaces_path = path.join("workspaces.json");
 
-        for path in &[&commands_path, &workspaces_path] {
-            if path.exists() {
-                continue;
-            }
-
-            let mut file = std::fs::File::create(path)?;
-            file.write_all(b"[]")?;
-        }
-
         Ok(Self {
-            workspaces: clients::workspaces::Client::new(workspaces_path),
-            commands: clients::workspaces::commands::Client::new(commands_path),
+            workspaces: clients::workspaces::Client::new(workspaces_path)?,
+            commands: clients::workspaces::commands::Client::new(commands_path)?,
         })
     }
 

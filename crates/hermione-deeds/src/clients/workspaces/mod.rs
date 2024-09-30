@@ -2,7 +2,7 @@ mod json;
 
 pub mod commands;
 
-use crate::{dtos::workspace::Dto, Result};
+use crate::{dtos::workspace::Dto, json::prepare_collection, Result};
 use hermione_memories::{
     operations::workspaces::{create, delete, get, list, track_access_time, update},
     Id,
@@ -82,9 +82,11 @@ impl Operations for Client {
 }
 
 impl Client {
-    pub fn new(path: PathBuf) -> Self {
-        Self {
+    pub fn new(path: PathBuf) -> Result<Self> {
+        prepare_collection(&path)?;
+
+        Ok(Self {
             inner: json::Client { path },
-        }
+        })
     }
 }

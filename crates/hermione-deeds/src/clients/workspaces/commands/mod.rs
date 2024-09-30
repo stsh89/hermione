@@ -1,6 +1,6 @@
 mod json;
 
-use crate::{dtos::command::Dto, Result};
+use crate::{dtos::command::Dto, json::prepare_collection, Result};
 use hermione_memories::{
     Id,
     {
@@ -100,9 +100,11 @@ impl Operations for Client {
 }
 
 impl Client {
-    pub fn new(path: PathBuf) -> Self {
-        Self {
+    pub fn new(path: PathBuf) -> Result<Self> {
+        prepare_collection(&path)?;
+
+        Ok(Self {
             inner: json::Client { path },
-        }
+        })
     }
 }

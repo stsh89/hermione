@@ -1,4 +1,4 @@
-use crate::types::Result;
+use crate::Result;
 use std::{
     fmt::Display,
     io::Write,
@@ -6,7 +6,7 @@ use std::{
 };
 
 pub struct Client {
-    pwsh: Child,
+    powershell: Child,
 }
 
 pub struct StartWindowsTerminalParameters<'a> {
@@ -66,7 +66,7 @@ impl Client {
         let stdin = self.stdin()?;
 
         writeln!(stdin, "Set-Clipboard '{}'", text)?;
-        self.pwsh.wait_with_output()?;
+        self.powershell.wait_with_output()?;
 
         Ok(())
     }
@@ -78,9 +78,9 @@ impl Client {
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
 
-        let pwsh = cmd.spawn()?;
-
-        Ok(Self { pwsh })
+        Ok(Self {
+            powershell: cmd.spawn()?,
+        })
     }
 
     pub fn start_windows_terminal(
@@ -101,13 +101,13 @@ impl Client {
         let stdin = self.stdin()?;
 
         writeln!(stdin, "{}", command)?;
-        self.pwsh.wait_with_output()?;
+        self.powershell.wait_with_output()?;
 
         Ok(())
     }
 
     fn stdin(&mut self) -> Result<&mut ChildStdin> {
-        self.pwsh
+        self.powershell
             .stdin
             .as_mut()
             .ok_or(anyhow::anyhow!("Powershell stdin access failure"))
