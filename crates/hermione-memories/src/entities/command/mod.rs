@@ -4,7 +4,7 @@ mod program;
 pub use name::*;
 pub use program::*;
 
-use crate::types::{DateTime, Error, Id, Result};
+use crate::{DateTime, Error, Id, Result};
 
 pub struct Entity {
     last_execute_time: Option<DateTime>,

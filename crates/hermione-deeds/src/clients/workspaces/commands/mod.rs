@@ -2,8 +2,13 @@ use std::str::FromStr;
 
 use crate::types::command::{Data, WorkspaceOperations};
 use hermione_memories::{
-    operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
-    types::{command::ScopedId, Id},
+    Id,
+    {
+        entities::command::ScopedId,
+        operations::workspaces::commands::{
+            create, delete, get, list, track_execution_time, update,
+        },
+    },
 };
 
 pub mod json;

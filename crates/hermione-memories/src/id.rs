@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use crate::types::{Error, Result};
+use crate::{Error, Result};
 use uuid::Uuid;
 
 #[derive(Clone, Copy, PartialEq)]

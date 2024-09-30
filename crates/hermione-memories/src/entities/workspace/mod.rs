@@ -1,7 +1,7 @@
 mod location;
 mod name;
 
-use crate::types::{DateTime, Error, Id, Result};
+use crate::{DateTime, Error, Id, Result};
 pub use location::Location;
 pub use name::Name;
 

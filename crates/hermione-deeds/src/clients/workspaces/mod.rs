@@ -1,7 +1,7 @@
 use crate::types::workspace::{Data, Operations};
 use hermione_memories::{
     operations::workspaces::{create, delete, get, list, track_access_time, update},
-    types::Id,
+    Id,
 };
 use std::str::FromStr;
 

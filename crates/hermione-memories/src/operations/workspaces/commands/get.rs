@@ -1,4 +1,7 @@
-use crate::types::{command::Entity, command::ScopedId, Result};
+use crate::{
+    entities::{command::Entity, command::ScopedId},
+    Result,
+};
 
 pub trait Get {
     fn get(&self, id: ScopedId) -> Result<Entity>;

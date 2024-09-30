@@ -1,4 +1,4 @@
-use crate::types::{workspace::Entity, Id, Result};
+use crate::{entities::workspace::Entity, Id, Result};
 
 pub trait Get {
     fn get(&self, workspace_id: Id) -> Result<Entity>;

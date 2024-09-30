@@ -1,10 +1,8 @@
 use crate::impls::json;
 use hermione_memories::{
+    entities::workspace::{Entity, LoadParameters, Location, Name},
     operations::workspaces::{create, delete, get, list, track_access_time, update},
-    types::{
-        workspace::{Entity, LoadParameters, Location, Name},
-        Error, Id,
-    },
+    Error, Id,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

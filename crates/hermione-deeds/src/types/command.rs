@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use hermione_memories::types::{
-    command::{Entity, LoadParameters, Name, NewParameters, Program},
+use hermione_memories::{
+    entities::command::{Entity, LoadParameters, Name, NewParameters, Program},
     Id,
 };
 use std::str::FromStr;

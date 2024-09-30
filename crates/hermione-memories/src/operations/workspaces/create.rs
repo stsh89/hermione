@@ -1,4 +1,4 @@
-use crate::types::{workspace::Entity, Error, Result};
+use crate::{entities::workspace::Entity, Error, Result};
 
 pub trait Create {
     fn create(&self, workspace: Entity) -> Result<Entity>;

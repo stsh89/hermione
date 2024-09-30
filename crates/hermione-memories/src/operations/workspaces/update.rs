@@ -1,4 +1,4 @@
-use crate::types::{workspace::Entity, Result};
+use crate::{entities::workspace::Entity, Result};
 
 pub trait Update {
     fn update(&self, workspace: Entity) -> Result<Entity>;
