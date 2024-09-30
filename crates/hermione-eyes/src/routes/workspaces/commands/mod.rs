@@ -2,11 +2,9 @@ use crate::{
     app::Hook, clients::memories::Client, router::workspaces::commands::Router, types::Result,
 };
 
-pub mod copy_to_clipboard;
 pub mod create;
 pub mod delete;
 pub mod edit;
-pub mod execute;
 pub mod get;
 pub mod list;
 pub mod new;
@@ -21,13 +19,6 @@ impl<'a> Controller<'a> {
         let Controller { memories } = self;
 
         match route {
-            Router::CopyToClipboard(parameters) => {
-                let handler = copy_to_clipboard::Handler { memories };
-
-                handler.handle(parameters)?;
-
-                Ok(None)
-            }
             Router::Create(paramters) => {
                 let handler = create::Handler { memories };
 
@@ -48,13 +39,6 @@ impl<'a> Controller<'a> {
                 let model = handler.handle(parameters)?;
 
                 Ok(Some(Box::new(model)))
-            }
-            Router::Execute(parameters) => {
-                let handler = execute::Handler { memories };
-
-                handler.handle(parameters)?;
-
-                Ok(None)
             }
             Router::Get(parameters) => {
                 let handler = get::Handler { memories };

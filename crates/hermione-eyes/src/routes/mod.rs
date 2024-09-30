@@ -1,5 +1,6 @@
 use crate::{app::Hook, clients::memories::Client, router::Router, types::Result};
 
+pub mod powershell;
 pub mod workspaces;
 
 pub struct Controller<'a> {
@@ -12,6 +13,7 @@ impl<'a> Controller<'a> {
 
         match route {
             Router::Workspaces(route) => workspaces::Controller { memories }.run(route),
+            Router::Powershell(route) => powershell::Controller { memories }.run(route),
         }
     }
 }

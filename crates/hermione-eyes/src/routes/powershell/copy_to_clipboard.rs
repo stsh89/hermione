@@ -1,6 +1,4 @@
-use crate::{
-    clients::memories, router::workspaces::commands::CopyToClipboardParameters, types::Result,
-};
+use crate::{clients::memories, router::powershell::CopyToClipboardParameters, types::Result};
 use hermione_wand::clients::powershell;
 
 pub struct Handler<'a> {

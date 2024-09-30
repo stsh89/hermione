@@ -6,11 +6,11 @@ use crate::{
         List,
     },
     router::{
+        powershell::{
+            CopyToClipboardParameters, ExecuteCommandParameters, StartWindowsTerminalParameters,
+        },
         workspaces::{
-            commands::{
-                CopyToClipboardParameters, ExecuteParameters, GetParameters, ListParameters,
-                NewParameters,
-            },
+            commands::{GetParameters, ListParameters, NewParameters},
             DeleteParameters, EditParameters, ListParameters as ListWorkspacesParameters,
         },
         Router,
@@ -35,12 +35,18 @@ pub struct Model {
     commands_state: ListState,
     command_palette: CommandPalette,
     is_running: bool,
+    powershell: Powershell,
 }
 
 pub struct ModelParameters {
     pub commands: Vec<Command>,
     pub workspace: Workspace,
     pub search_query: String,
+}
+
+struct Powershell {
+    ///  Does not exit after running startup commands
+    no_exit: bool,
 }
 
 impl<'a> Handler<'a> {
@@ -70,6 +76,16 @@ impl<'a> Handler<'a> {
             workspace,
             search_query,
         })
+    }
+}
+
+impl Powershell {
+    fn set_no_exit(&mut self) {
+        self.no_exit = true;
+    }
+
+    fn unset_no_exit(&mut self) {
+        self.no_exit = false;
     }
 }
 
@@ -145,9 +161,10 @@ impl Model {
         let command = self.commands.remove(index);
 
         self.redirect = Some(
-            ExecuteParameters {
+            ExecuteCommandParameters {
                 command_id: command.id.clone(),
                 workspace_id: command.workspace_id.clone(),
+                powershell_no_exit: self.powershell.no_exit,
             }
             .into(),
         );
@@ -164,22 +181,7 @@ impl Model {
         };
 
         match action {
-            CPA::CopyToClipboard => {
-                let Some(index) = self.commands_state.selected() else {
-                    return;
-                };
-
-                let command = &self.commands[index];
-
-                self.command_palette.toggle();
-                self.redirect = Some(
-                    CopyToClipboardParameters {
-                        workspace_id: self.workspace.id.clone(),
-                        command_id: command.id.clone(),
-                    }
-                    .into(),
-                )
-            }
+            CPA::CopyToClipboard => self.copy_to_clipboard(),
             CPA::DeleteWorkspace => {
                 self.redirect = Some(
                     DeleteParameters {
@@ -207,8 +209,51 @@ impl Model {
                     .into(),
                 )
             }
-            _ => {}
+            CPA::SetPowershellNoExit => self.powershell_set_no_exit(),
+            CPA::UnsetPowerShellNoExit => self.powershell_unset_no_exit(),
+            CPA::StartWindowsTerminal => self.start_windows_terminal(),
+            CPA::DeleteCommand | CPA::EditCommand | CPA::NewWorkspace => {}
         }
+    }
+
+    fn selected_command(&self) -> Option<&Command> {
+        self.commands_state
+            .selected()
+            .and_then(|index| self.commands.get(index))
+    }
+
+    fn copy_to_clipboard_parameters(&self) -> Option<CopyToClipboardParameters> {
+        self.selected_command()
+            .map(|command| CopyToClipboardParameters {
+                workspace_id: self.workspace.id.clone(),
+                command_id: command.id.clone(),
+            })
+    }
+
+    fn start_windows_terminal_parameters(&self) -> StartWindowsTerminalParameters {
+        StartWindowsTerminalParameters {
+            working_directory: Some(self.workspace.location.clone()),
+        }
+    }
+
+    fn copy_to_clipboard(&mut self) {
+        self.redirect = self.copy_to_clipboard_parameters().map(Into::into);
+        self.command_palette.hide();
+    }
+
+    fn start_windows_terminal(&mut self) {
+        self.redirect = Some(self.start_windows_terminal_parameters().into());
+        self.command_palette.hide();
+    }
+
+    fn powershell_set_no_exit(&mut self) {
+        self.powershell.set_no_exit();
+        self.command_palette.hide();
+    }
+
+    fn powershell_unset_no_exit(&mut self) {
+        self.powershell.unset_no_exit();
+        self.command_palette.hide();
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
@@ -243,8 +288,12 @@ impl Model {
                     CPA::EditWorkspace,
                     CPA::ListWorkspaces,
                     CPA::NewCommand,
+                    CPA::SetPowershellNoExit,
+                    CPA::StartWindowsTerminal,
+                    CPA::UnsetPowerShellNoExit,
                 ],
             })?,
+            powershell: Powershell { no_exit: true },
         };
 
         Ok(model)

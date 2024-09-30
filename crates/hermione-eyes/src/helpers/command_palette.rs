@@ -16,6 +16,7 @@ pub struct CommandPaletteParameters {
     pub actions: Vec<Action>,
 }
 
+#[derive(PartialEq)]
 pub enum Action {
     CopyToClipboard,
     DeleteCommand,
@@ -25,9 +26,22 @@ pub enum Action {
     ListWorkspaces,
     NewCommand,
     NewWorkspace,
+    SetPowershellNoExit,
+    StartWindowsTerminal,
+    UnsetPowerShellNoExit,
 }
 
 impl CommandPalette {
+    pub fn action(&self) -> Option<&Action> {
+        self.actions_state
+            .selected()
+            .and_then(|index| self.actions.get(index))
+    }
+
+    pub fn hide(&mut self) {
+        self.is_active = false;
+    }
+
     pub fn toggle(&mut self) {
         self.is_active = !self.is_active;
     }
@@ -64,17 +78,23 @@ impl CommandPalette {
     }
 
     pub fn select_next(&mut self) {
-        self.actions_state.select_next();
+        if let Some(index) = self.actions_state.selected() {
+            if index == self.actions.len() - 1 {
+                self.actions_state.select_first();
+            } else {
+                self.actions_state.select_next();
+            }
+        }
     }
 
     pub fn select_previous(&mut self) {
-        self.actions_state.select_previous();
-    }
-
-    pub fn action(&self) -> Option<&Action> {
-        self.actions_state
-            .selected()
-            .and_then(|index| self.actions.get(index))
+        if let Some(index) = self.actions_state.selected() {
+            if index == 0 {
+                self.actions_state.select_last();
+            } else {
+                self.actions_state.select_previous();
+            }
+        }
     }
 }
 
@@ -89,6 +109,9 @@ impl<'a> From<&Action> for ListItem<'a> {
             Action::ListWorkspaces => "List workspaces",
             Action::NewCommand => "New command",
             Action::NewWorkspace => "New workspace",
+            Action::SetPowershellNoExit => "Set PowerShell -NoExit",
+            Action::UnsetPowerShellNoExit => "Unset PowerShell -NoExit",
+            Action::StartWindowsTerminal => "Start Windows Terminal",
         };
 
         ListItem::new(content)

@@ -35,26 +35,3 @@ pub struct UpdateParameters {
     pub name: String,
     pub location: String,
 }
-
-impl From<Router> for super::Router {
-    fn from(router: Router) -> Self {
-        super::Router::Workspaces(router)
-    }
-}
-
-macro_rules! from_parameters {
-    ($action:ident, $parameters:ident) => {
-        impl From<$parameters> for super::Router {
-            fn from(parameters: $parameters) -> Self {
-                Self::Workspaces(Router::$action(parameters))
-            }
-        }
-    };
-}
-
-from_parameters!(Create, CreateParameters);
-from_parameters!(Delete, DeleteParameters);
-from_parameters!(Edit, EditParameters);
-from_parameters!(List, ListParameters);
-from_parameters!(New, NewParameters);
-from_parameters!(Update, UpdateParameters);

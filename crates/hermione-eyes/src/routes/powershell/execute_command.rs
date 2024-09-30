@@ -1,4 +1,4 @@
-use crate::{clients::memories, router::workspaces::commands::ExecuteParameters, types::Result};
+use crate::{clients::memories, router::powershell::ExecuteCommandParameters, types::Result};
 use hermione_wand::clients::powershell::{Client, StartWindowsTerminalParameters};
 
 pub struct Handler<'a> {
@@ -6,10 +6,11 @@ pub struct Handler<'a> {
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: ExecuteParameters) -> Result<()> {
-        let ExecuteParameters {
+    pub fn handle(self, parameters: ExecuteCommandParameters) -> Result<()> {
+        let ExecuteCommandParameters {
             workspace_id,
             command_id,
+            powershell_no_exit,
         } = parameters;
 
         let command = self.memories.get_command(&workspace_id, &command_id)?;
@@ -18,7 +19,7 @@ impl<'a> Handler<'a> {
 
         powershell.start_windows_terminal(StartWindowsTerminalParameters {
             directory: Some(&workspace.location),
-            no_exit: true,
+            no_exit: powershell_no_exit,
             command: Some(&command.program),
         })?;
 
