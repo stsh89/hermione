@@ -39,7 +39,13 @@ impl Hook for Model {
             Message::Submit => self.submit(),
             Message::SelectNext => self.select_next(),
             Message::SelectPrevious => self.select_previous(),
-            _ => {}
+            Message::Action
+            | Message::DeleteAllChars
+            | Message::DeleteChar
+            | Message::EnterChar(_)
+            | Message::MoveCusorLeft
+            | Message::MoveCusorRight
+            | Message::ToggleFocus => {}
         }
 
         Ok(None)
@@ -92,7 +98,15 @@ impl Model {
                     .into(),
                 )
             }
-            _ => {}
+            CPA::CopyToClipboard
+            | CPA::DeleteWorkspace
+            | CPA::EditWorkspace
+            | CPA::ListWorkspaces
+            | CPA::NewCommand
+            | CPA::NewWorkspace
+            | CPA::SetPowershellNoExit
+            | CPA::StartWindowsTerminal
+            | CPA::UnsetPowerShellNoExit => {}
         }
     }
 

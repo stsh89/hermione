@@ -42,7 +42,10 @@ impl Hook for Model {
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::Submit => self.submit(),
-            _ => {}
+            Message::Action
+            | Message::SelectNext
+            | Message::SelectPrevious
+            | Message::ToggleCommandPalette => {}
         }
 
         Ok(None)

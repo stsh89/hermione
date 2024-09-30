@@ -56,7 +56,7 @@ impl Hook for Model {
             Message::SelectNext => self.select_next(),
             Message::SelectPrevious => self.select_previous(),
             Message::Submit => self.submit(),
-            _ => {}
+            Message::Action | Message::ToggleFocus => {}
         }
 
         Ok(None)
