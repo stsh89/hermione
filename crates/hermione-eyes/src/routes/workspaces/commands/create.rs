@@ -2,7 +2,7 @@ use crate::{
     app::router::workspaces::commands::CreateParameters,
     clients::memories,
     models::workspaces::commands::list::{Model, ModelParameters},
-    presenters::Command,
+    presenters::command::Presenter,
     Result,
 };
 
@@ -18,7 +18,7 @@ impl<'a> Handler<'a> {
             program,
         } = parameters;
 
-        self.memories.create_command(Command {
+        self.memories.create_command(Presenter {
             workspace_id: workspace_id.clone(),
             id: String::new(),
             name,

@@ -1,16 +1,13 @@
 use crate::{
-    presenters::{Command, Workspace},
+    presenters::{command::Presenter as Command, workspace::Presenter as Workspace},
     Result,
 };
-use hermione_deeds::clients::{
-    self,
-    workspaces::{commands::Operations as _, Operations},
-};
+use hermione_deeds::workspaces::{self, commands::Operations as _, Operations};
 use std::path::Path;
 
 pub struct Client {
-    workspaces: clients::workspaces::Client,
-    commands: clients::workspaces::commands::Client,
+    workspaces: workspaces::Client,
+    commands: workspaces::commands::Client,
 }
 
 impl Client {
@@ -19,8 +16,8 @@ impl Client {
         let workspaces_path = path.join("workspaces.json");
 
         Ok(Self {
-            workspaces: clients::workspaces::Client::new(workspaces_path)?,
-            commands: clients::workspaces::commands::Client::new(commands_path)?,
+            workspaces: workspaces::Client::new(workspaces_path)?,
+            commands: workspaces::commands::Client::new(commands_path)?,
         })
     }
 

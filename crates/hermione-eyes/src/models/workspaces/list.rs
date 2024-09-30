@@ -12,7 +12,7 @@ use crate::{
         CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
         List,
     },
-    presenters::Workspace,
+    presenters::workspace::Presenter,
     Result,
 };
 use ratatui::{
@@ -26,12 +26,12 @@ pub struct Model {
     redirect: Option<Router>,
     search: Input,
     workspaces_state: ListState,
-    workspaces: Vec<Workspace>,
+    workspaces: Vec<Presenter>,
     command_palette: CommandPalette,
 }
 
 pub struct ModelParameters {
-    pub workspaces: Vec<Workspace>,
+    pub workspaces: Vec<Presenter>,
     pub search_query: String,
 }
 

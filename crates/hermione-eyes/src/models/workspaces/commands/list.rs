@@ -16,8 +16,7 @@ use crate::{
         CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
         List,
     },
-    presenters::{Command, Workspace},
-    Result,
+    presenters, Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -26,8 +25,8 @@ use ratatui::{
 };
 
 pub struct Model {
-    workspace: Workspace,
-    commands: Vec<Command>,
+    workspace: presenters::workspace::Presenter,
+    commands: Vec<presenters::command::Presenter>,
     redirect: Option<Router>,
     search: Input,
     commands_state: ListState,
@@ -37,8 +36,8 @@ pub struct Model {
 }
 
 pub struct ModelParameters {
-    pub commands: Vec<Command>,
-    pub workspace: Workspace,
+    pub commands: Vec<presenters::command::Presenter>,
+    pub workspace: presenters::workspace::Presenter,
     pub search_query: String,
 }
 
@@ -184,7 +183,7 @@ impl Model {
         }
     }
 
-    fn selected_command(&self) -> Option<&Command> {
+    fn selected_command(&self) -> Option<&presenters::command::Presenter> {
         self.commands_state
             .selected()
             .and_then(|index| self.commands.get(index))

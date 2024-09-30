@@ -1,14 +1,11 @@
 mod json;
 
-use crate::{dtos::command::Dto, json::prepare_collection, Result};
+use crate::{json::prepare_collection, Result};
+use chrono::{DateTime, Utc};
 use hermione_memories::{
+    entities::command::{Entity, LoadParameters, Name, NewParameters, Program, ScopedId},
+    operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     Id,
-    {
-        entities::command::ScopedId,
-        operations::workspaces::commands::{
-            create, delete, get, list, track_execution_time, update,
-        },
-    },
 };
 use std::{path::PathBuf, str::FromStr};
 
@@ -23,6 +20,14 @@ pub trait Operations {
 
 pub struct Client {
     inner: json::Client,
+}
+
+pub struct Dto {
+    pub id: String,
+    pub last_execute_time: Option<DateTime<Utc>>,
+    pub name: String,
+    pub program: String,
+    pub workspace_id: String,
 }
 
 impl Operations for Client {
@@ -106,5 +111,35 @@ impl Client {
         Ok(Self {
             inner: json::Client { path },
         })
+    }
+}
+
+impl Dto {
+    pub(crate) fn from_entity(entity: Entity) -> Self {
+        Self {
+            id: entity.id().map(|id| id.to_string()).unwrap_or_default(),
+            name: entity.name().to_string(),
+            last_execute_time: entity.last_execute_time().map(Into::into),
+            program: entity.program().to_string(),
+            workspace_id: entity.workspace_id().to_string(),
+        }
+    }
+
+    pub(crate) fn load_entity(self) -> Result<Entity> {
+        Ok(Entity::load(LoadParameters {
+            id: Id::from_str(&self.id)?,
+            name: Name::new(self.name),
+            last_execute_time: self.last_execute_time.map(From::from),
+            program: Program::new(self.program),
+            workspace_id: Id::from_str(&self.workspace_id)?,
+        }))
+    }
+
+    pub(crate) fn new_entity(self) -> Result<Entity> {
+        Ok(Entity::new(NewParameters {
+            name: Name::new(self.name),
+            program: Program::new(self.program),
+            workspace_id: Id::from_str(&self.workspace_id)?,
+        }))
     }
 }

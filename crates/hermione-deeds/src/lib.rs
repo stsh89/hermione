@@ -1,6 +1,5 @@
 mod json;
 
-pub mod clients;
-pub mod dtos;
+pub mod workspaces;
 
 type Result<T> = anyhow::Result<T>;

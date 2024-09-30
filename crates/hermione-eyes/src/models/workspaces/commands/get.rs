@@ -8,7 +8,7 @@ use crate::{
     },
     helpers::CommandPaletteAction,
     helpers::{CommandPalette, CommandPaletteParameters},
-    presenters::Command,
+    presenters::command::Presenter,
     Result,
 };
 use ratatui::{
@@ -18,13 +18,13 @@ use ratatui::{
 };
 
 pub struct Model {
-    command: Command,
+    command: Presenter,
     redirect: Option<Router>,
     command_palette: CommandPalette,
 }
 
 pub struct ModelParameters {
-    pub command: Command,
+    pub command: Presenter,
 }
 
 impl Hook for Model {

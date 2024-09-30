@@ -2,7 +2,7 @@ use crate::{
     app::router::workspaces::commands::UpdateParameters,
     clients::memories,
     models::workspaces::commands::get::{Model, ModelParameters},
-    presenters::Command,
+    presenters::command::Presenter,
     Result,
 };
 
@@ -19,7 +19,7 @@ impl<'a> Handler<'a> {
             program,
         } = parameters;
 
-        let command = Command {
+        let command = Presenter {
             workspace_id,
             id: command_id.clone(),
             name,

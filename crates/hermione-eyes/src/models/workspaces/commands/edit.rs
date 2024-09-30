@@ -7,7 +7,7 @@ use crate::{
         Hook, Message,
     },
     helpers::{Input, InputParameters},
-    presenters::Command,
+    presenters::command::Presenter,
     Result,
 };
 use ratatui::{
@@ -17,7 +17,7 @@ use ratatui::{
 };
 
 pub struct Model {
-    command: Command,
+    command: Presenter,
     active_input: CommandProperty,
     name: Input,
     program: Input,
@@ -25,7 +25,7 @@ pub struct Model {
 }
 
 pub struct ModelParameters {
-    pub command: Command,
+    pub command: Presenter,
 }
 
 enum CommandProperty {

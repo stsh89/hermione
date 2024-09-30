@@ -7,7 +7,7 @@ use crate::{
         Hook, Message,
     },
     helpers::{Input, InputParameters},
-    presenters::Workspace,
+    presenters::workspace::Presenter,
     Result,
 };
 use ratatui::{
@@ -17,7 +17,7 @@ use ratatui::{
 };
 
 pub struct Model {
-    workspace: Workspace,
+    workspace: Presenter,
     name: Input,
     program: Input,
     redirect: Option<Router>,
@@ -25,7 +25,7 @@ pub struct Model {
 }
 
 pub struct ModelParameters {
-    pub workspace: Workspace,
+    pub workspace: Presenter,
 }
 
 enum CommandProperty {

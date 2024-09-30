@@ -2,7 +2,7 @@ use crate::{
     app::router::workspaces::CreateParameters,
     clients::memories::Client,
     models::workspaces::list::{Model, ModelParameters},
-    presenters::Workspace,
+    presenters::workspace::Presenter,
     Result,
 };
 
@@ -14,7 +14,7 @@ impl<'a> Handler<'a> {
     pub fn handle(self, parameters: CreateParameters) -> Result<Model> {
         let CreateParameters { name, location } = parameters;
 
-        self.memories.create_workspace(Workspace {
+        self.memories.create_workspace(Presenter {
             id: String::new(),
             location: Some(location),
             name,
