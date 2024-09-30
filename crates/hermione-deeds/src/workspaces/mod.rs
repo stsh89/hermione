@@ -101,7 +101,7 @@ impl Client {
 }
 
 impl Dto {
-    pub(crate) fn from_entity(entity: Entity) -> Self {
+    fn from_entity(entity: Entity) -> Self {
         Self {
             id: entity.id().map(|id| id.to_string()).unwrap_or_default(),
             last_access_time: entity.last_access_time().map(Into::into),
@@ -110,7 +110,7 @@ impl Dto {
         }
     }
 
-    pub(crate) fn load_entity(self) -> Result<Entity> {
+    fn load_entity(self) -> Result<Entity> {
         Ok(Entity::load(LoadParameters {
             id: Id::from_str(&self.id)?,
             name: Name::new(self.name),
@@ -119,7 +119,7 @@ impl Dto {
         }))
     }
 
-    pub(crate) fn new_entity(self) -> Entity {
+    fn new_entity(self) -> Entity {
         Entity::new(NewParameters {
             name: Name::new(self.name),
             location: self.location.map(Location::new),
