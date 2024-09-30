@@ -1,6 +1,6 @@
-# Hermione
+## Description
 
-Simple command organizer.
+Hermione is an application for storing terminal commands. It also has the ability to run them using PowerShell and Windows Terminal.
 
 ## Installation
 
