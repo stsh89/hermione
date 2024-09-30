@@ -49,14 +49,14 @@ impl Entity {
     pub fn load(parameters: LoadParameters) -> Self {
         let LoadParameters {
             id,
-            last_execute_time: execute_time,
+            last_execute_time,
             name,
             program,
             workspace_id,
         } = parameters;
 
         Self {
-            last_execute_time: execute_time,
+            last_execute_time,
             id: Some(id),
             name,
             program,

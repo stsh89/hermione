@@ -85,8 +85,4 @@ impl Entity {
 
         Ok(())
     }
-
-    pub fn update_last_load_time(&mut self) {
-        self.last_load_time = Some(DateTime::now());
-    }
 }

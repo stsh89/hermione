@@ -1,12 +1,6 @@
 #[derive(Clone, PartialEq, PartialOrd)]
 pub struct DateTime(chrono::DateTime<chrono::Utc>);
 
-impl DateTime {
-    pub(crate) fn now() -> Self {
-        Self(chrono::Utc::now())
-    }
-}
-
 impl From<chrono::DateTime<chrono::Utc>> for DateTime {
     fn from(value: chrono::DateTime<chrono::Utc>) -> Self {
         Self(value)
