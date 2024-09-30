@@ -2,7 +2,7 @@ mod copy_to_clipboard;
 mod execute_command;
 mod start_windows_terminal;
 
-use crate::{app::Hook, clients::memories::Client, router::powershell::Router, Result};
+use crate::{app::router::powershell::Router, app::Hook, clients::memories::Client, Result};
 
 pub struct Controller<'a> {
     pub memories: &'a Client,

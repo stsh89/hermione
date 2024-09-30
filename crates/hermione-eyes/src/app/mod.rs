@@ -1,15 +1,13 @@
+pub mod router;
+
 mod message;
 
-use crate::{
-    clients::memories,
-    router::{
-        workspaces::{commands::ListParameters, NewParameters},
-        Router,
-    },
-    routes::Controller,
-    Result,
-};
+use crate::{clients::memories, routes::Controller, Result};
 use ratatui::{backend::Backend, crossterm::event, Frame, Terminal};
+use router::{
+    workspaces::{commands::ListParameters, NewParameters},
+    Router,
+};
 use tracing::instrument;
 
 pub use message::*;

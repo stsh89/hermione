@@ -1,4 +1,4 @@
-use crate::{clients::memories, router::powershell::ExecuteCommandParameters, Result};
+use crate::{app::router::powershell::ExecuteCommandParameters, clients::memories, Result};
 use hermione_wand::clients::powershell::{Client, StartWindowsTerminalParameters};
 
 pub struct Handler<'a> {

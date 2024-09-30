@@ -1,4 +1,8 @@
-use crate::{app::Hook, clients::memories::Client, router::Router, Result};
+use crate::{
+    app::{router::Router, Hook},
+    clients::memories::Client,
+    Result,
+};
 
 pub mod powershell;
 pub mod workspaces;

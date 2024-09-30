@@ -1,8 +1,8 @@
 use crate::{
+    app::router::workspaces::CreateParameters,
     clients::memories::Client,
+    models::workspaces::list::{Model, ModelParameters},
     presenters::Workspace,
-    router::workspaces::CreateParameters,
-    routes::workspaces::list::{Model, ModelParameters},
     Result,
 };
 

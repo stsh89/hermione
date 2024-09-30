@@ -1,5 +1,9 @@
-use super::commands::list::{Model, ModelParameters};
-use crate::{clients::memories, router::workspaces::UpdateParameters, Result};
+use crate::{
+    app::router::workspaces::UpdateParameters,
+    clients::memories,
+    models::workspaces::commands::list::{Model, ModelParameters},
+    Result,
+};
 
 pub struct Handler<'a> {
     pub memories: &'a memories::Client,

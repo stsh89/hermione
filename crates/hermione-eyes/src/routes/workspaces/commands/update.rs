@@ -1,8 +1,8 @@
 use crate::{
+    app::router::workspaces::commands::UpdateParameters,
     clients::memories,
+    models::workspaces::commands::get::{Model, ModelParameters},
     presenters::Command,
-    router::workspaces::commands::UpdateParameters,
-    routes::workspaces::commands::get::{Model, ModelParameters},
     Result,
 };
 

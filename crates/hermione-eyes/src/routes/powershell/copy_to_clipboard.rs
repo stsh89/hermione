@@ -1,4 +1,4 @@
-use crate::{clients::memories, router::powershell::CopyToClipboardParameters, Result};
+use crate::{app::router::powershell::CopyToClipboardParameters, clients::memories, Result};
 use hermione_wand::clients::powershell;
 
 pub struct Handler<'a> {

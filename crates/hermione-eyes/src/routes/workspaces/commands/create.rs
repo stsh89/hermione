@@ -1,6 +1,9 @@
-use super::list::{Model, ModelParameters};
 use crate::{
-    clients::memories, presenters::Command, router::workspaces::commands::CreateParameters, Result,
+    app::router::workspaces::commands::CreateParameters,
+    clients::memories,
+    models::workspaces::commands::list::{Model, ModelParameters},
+    presenters::Command,
+    Result,
 };
 
 pub struct Handler<'a> {
