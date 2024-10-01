@@ -2,15 +2,15 @@ use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::{Style, Stylize},
-    widgets::{self, Block, Borders, ListItem, ListState, StatefulWidget},
+    widgets::{Block, Borders, List, ListItem, ListState, StatefulWidget},
 };
 
-pub struct List<'a, T> {
+pub struct Widget<'a, T> {
     pub title: &'a str,
     pub items: &'a [T],
 }
 
-impl<'a, T> StatefulWidget for List<'a, T>
+impl<'a, T> StatefulWidget for Widget<'a, T>
 where
     &'a T: Into<ListItem<'a>>,
 {
@@ -20,7 +20,7 @@ where
         let block = Block::default().borders(Borders::all()).title(self.title);
 
         let items: Vec<ListItem> = self.items.iter().map(Into::into).collect();
-        let list = widgets::List::new(items)
+        let list = List::new(items)
             .block(block)
             .highlight_style(Style::default().yellow());
 

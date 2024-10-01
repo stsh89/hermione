@@ -1,13 +1,11 @@
-use super::List;
-use crate::Result;
+use crate::{widgets, Result};
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
-    widgets::{Clear, ListItem, ListState},
     Frame,
 };
 
 pub struct CommandPalette {
-    actions_state: ListState,
+    actions_state: widgets::list_state::Widget,
     actions: Vec<Action>,
     is_active: bool,
 }
@@ -60,7 +58,7 @@ impl CommandPalette {
         }
 
         Ok(Self {
-            actions_state: ListState::default().with_selected(Some(0)),
+            actions_state: widgets::list_state::Widget::default().with_selected(Some(0)),
             actions,
             is_active: false,
         })
@@ -68,12 +66,12 @@ impl CommandPalette {
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
         let area = popup_area(area, 60, 40);
-        let list = List {
+        let list = widgets::list::Widget {
             title: "Command palette",
             items: &self.actions,
         };
 
-        frame.render_widget(Clear, area);
+        frame.render_widget(widgets::clear::Widget {}, area);
         frame.render_stateful_widget(list, area, &mut self.actions_state);
     }
 
@@ -98,7 +96,7 @@ impl CommandPalette {
     }
 }
 
-impl<'a> From<&Action> for ListItem<'a> {
+impl<'a> From<&Action> for widgets::list_item::Widget<'a> {
     fn from(action: &Action) -> Self {
         let content = match action {
             Action::CopyToClipboard => "Copy to clipboard",
@@ -114,7 +112,7 @@ impl<'a> From<&Action> for ListItem<'a> {
             Action::StartWindowsTerminal => "Start Windows Terminal",
         };
 
-        ListItem::new(content)
+        widgets::list_item::Widget::new(content)
     }
 }
 

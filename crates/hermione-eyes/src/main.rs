@@ -10,6 +10,7 @@ mod router;
 mod routes;
 mod settings;
 mod tui;
+mod widgets;
 
 use app::{App, AppParameters};
 use clients::memories;

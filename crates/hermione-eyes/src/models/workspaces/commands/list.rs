@@ -2,10 +2,10 @@ use crate::{
     app::{Hook, Message},
     helpers::{
         CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
-        List,
     },
     parameters, presenters,
     routes::{self, Route},
+    widgets::list::Widget,
     Result,
 };
 use ratatui::{
@@ -96,7 +96,7 @@ impl Hook<Route> for Model {
             search.y + 1,
         ));
 
-        let list = List {
+        let list = Widget {
             title: "Commands",
             items: &self.commands,
         };
