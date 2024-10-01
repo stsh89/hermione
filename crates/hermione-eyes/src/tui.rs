@@ -1,4 +1,4 @@
-use crate::Result;
+use crate::{app::Handle, router::Router, Result};
 use ratatui::{
     backend::CrosstermBackend,
     crossterm::{
@@ -53,6 +53,36 @@ pub fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
 pub fn restore_terminal() -> Result<()> {
     stdout().execute(LeaveAlternateScreen)?;
     disable_raw_mode()?;
+    Ok(())
+}
+
+pub fn run(router: Router) -> Result<()> {
+    tracing::info!("App started");
+
+    let mut terminal = init_terminal()?;
+
+    let Some(mut model) = router.handle_initial_route()? else {
+        return Ok(());
+    };
+
+    while model.is_running() {
+        terminal.draw(|f| model.view(f))?;
+
+        let mut maybe_message = model.handle_event()?;
+
+        while let Some(message) = maybe_message {
+            maybe_message = model.update(message)?;
+        }
+
+        if let Some(route) = model.redirect() {
+            if let Some(change) = router.handle(route)? {
+                model = change;
+            }
+        }
+    }
+
+    tracing::info!("App stopped");
+
     Ok(())
 }
 
