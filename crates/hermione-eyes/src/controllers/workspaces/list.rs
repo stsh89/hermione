@@ -1,16 +1,12 @@
 use crate::{
     clients::memories::Client,
     models::workspaces::list::{Model, ModelParameters},
+    parameters::workspaces::list::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
     pub memories: &'a Client,
-}
-
-#[derive(Default)]
-pub struct Parameters {
-    pub search_query: String,
 }
 
 impl<'a> Handler<'a> {

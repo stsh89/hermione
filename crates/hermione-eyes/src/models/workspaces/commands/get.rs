@@ -1,8 +1,9 @@
 use crate::{
     app::{Hook, Message},
     helpers::{CommandPalette, CommandPaletteAction, CommandPaletteParameters},
+    parameters,
     presenters::command::Presenter,
-    routes::{self, Router},
+    routes::{self, Route},
     Result,
 };
 use ratatui::{
@@ -13,7 +14,7 @@ use ratatui::{
 
 pub struct Model {
     command: Presenter,
-    redirect: Option<Router>,
+    redirect: Option<Route>,
     command_palette: CommandPalette,
 }
 
@@ -21,8 +22,8 @@ pub struct ModelParameters {
     pub command: Presenter,
 }
 
-impl Hook for Model {
-    fn redirect(&mut self) -> Option<Router> {
+impl Hook<Route> for Model {
+    fn redirect(&mut self) -> Option<Route> {
         self.redirect.take()
     }
 
@@ -75,22 +76,24 @@ impl Model {
 
         match action {
             CPA::DeleteCommand => {
-                self.redirect = Some(
-                    routes::workspaces::commands::delete::Parameters {
-                        workspace_id: self.command.workspace_id.clone(),
-                        command_id: self.command.id.clone(),
-                    }
-                    .into(),
-                )
+                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+                    routes::workspaces::commands::Route::Delete(
+                        parameters::workspaces::commands::delete::Parameters {
+                            workspace_id: self.command.workspace_id.clone(),
+                            command_id: self.command.id.clone(),
+                        },
+                    ),
+                )))
             }
             CPA::EditCommand => {
-                self.redirect = Some(
-                    routes::workspaces::commands::edit::Parameters {
-                        workspace_id: self.command.workspace_id.clone(),
-                        command_id: self.command.id.clone(),
-                    }
-                    .into(),
-                )
+                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+                    routes::workspaces::commands::Route::Edit(
+                        parameters::workspaces::commands::edit::Parameters {
+                            workspace_id: self.command.workspace_id.clone(),
+                            command_id: self.command.id.clone(),
+                        },
+                    ),
+                )))
             }
             CPA::CopyToClipboard
             | CPA::DeleteWorkspace
@@ -109,11 +112,14 @@ impl Model {
     }
 
     fn back(&mut self) {
-        let route = routes::workspaces::commands::list::Parameters {
-            search_query: String::new(),
-            workspace_id: self.command.workspace_id.clone(),
-        }
-        .into();
+        let route = Route::Workspaces(routes::workspaces::Route::Commands(
+            routes::workspaces::commands::Route::List(
+                parameters::workspaces::commands::list::Parameters {
+                    workspace_id: Some(self.command.workspace_id.clone()),
+                    ..Default::default()
+                },
+            ),
+        ));
 
         self.redirect = Some(route)
     }

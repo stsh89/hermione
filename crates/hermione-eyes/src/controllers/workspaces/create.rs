@@ -1,17 +1,13 @@
 use crate::{
     clients::memories::Client,
     models::workspaces::list::{Model, ModelParameters},
+    parameters::workspaces::create::Parameters,
     presenters::workspace::Presenter,
     Result,
 };
 
 pub struct Handler<'a> {
     pub memories: &'a Client,
-}
-
-pub struct Parameters {
-    pub name: String,
-    pub location: String,
 }
 
 impl<'a> Handler<'a> {

@@ -1,7 +1,8 @@
 use crate::{
     app::{Hook, Message},
     helpers::{Input, InputParameters},
-    routes::{self, Router},
+    parameters,
+    routes::{self, Route},
     Result,
 };
 use ratatui::{
@@ -14,7 +15,7 @@ pub struct Model {
     active_input: WorkspaceProperty,
     location: Input,
     name: Input,
-    redirect: Option<Router>,
+    redirect: Option<Route>,
 }
 
 enum WorkspaceProperty {
@@ -22,8 +23,8 @@ enum WorkspaceProperty {
     Location,
 }
 
-impl Hook for Model {
-    fn redirect(&mut self) -> Option<Router> {
+impl Hook<Route> for Model {
+    fn redirect(&mut self) -> Option<Route> {
         self.redirect.take()
     }
 
@@ -86,7 +87,9 @@ impl Hook for Model {
 
 impl Model {
     fn back(&mut self) {
-        let route = routes::workspaces::list::Parameters::default().into();
+        let route = Route::Workspaces(routes::workspaces::Route::List(
+            parameters::workspaces::list::Parameters::default(),
+        ));
 
         self.redirect = Some(route);
     }
@@ -142,11 +145,12 @@ impl Model {
     }
 
     fn submit(&mut self) {
-        let route = routes::workspaces::create::Parameters {
-            name: self.name.value().to_string(),
-            location: self.location.value().to_string(),
-        }
-        .into();
+        let route = Route::Workspaces(routes::workspaces::Route::Create(
+            parameters::workspaces::create::Parameters {
+                name: self.name.value().to_string(),
+                location: self.location.value().to_string(),
+            },
+        ));
 
         self.redirect = Some(route);
     }

@@ -1,15 +1,19 @@
 mod app;
 mod clients;
+mod controllers;
 mod helpers;
 mod logs;
 mod models;
+mod parameters;
 mod presenters;
+mod router;
 mod routes;
 mod settings;
 mod tui;
 
-use app::{App, AppParameters};
 use clients::memories;
+use router::Router;
+use routes::Route;
 
 type Error = anyhow::Error;
 type Result<T> = anyhow::Result<T>;
@@ -22,9 +26,13 @@ fn main() -> Result<()> {
 
     let terminal = tui::init_terminal()?;
     let memories = memories::Client::new(settings.path_to_memories())?;
-    let app = App::new(AppParameters { memories })?;
 
-    app.run(terminal)?;
+    app::run(app::Parameters {
+        terminal,
+        router: Router { memories },
+        route: Route::Workspaces(routes::workspaces::Route::New),
+    })?;
+
     tui::restore_terminal()?;
 
     Ok(())

@@ -1,15 +1,12 @@
 use crate::{
     clients::memories::Client,
     models::workspaces::edit::{Model, ModelParameters},
+    parameters::workspaces::edit::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
     pub memories: &'a Client,
-}
-
-pub struct Parameters {
-    pub id: String,
 }
 
 impl<'a> Handler<'a> {

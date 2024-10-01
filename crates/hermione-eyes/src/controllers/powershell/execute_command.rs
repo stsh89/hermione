@@ -3,17 +3,12 @@ use crate::{
         memories::Client,
         powershell::{self, StartWindowsTerminalParameters},
     },
+    parameters::powershell::execute_command::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
     pub memories: &'a Client,
-}
-
-pub struct Parameters {
-    pub command_id: String,
-    pub workspace_id: String,
-    pub powershell_no_exit: bool,
 }
 
 impl<'a> Handler<'a> {

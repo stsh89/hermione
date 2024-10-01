@@ -4,8 +4,8 @@ use crate::{
         CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
         List,
     },
-    presenters,
-    routes::{self, Router},
+    parameters, presenters,
+    routes::{self, Route},
     Result,
 };
 use ratatui::{
@@ -17,7 +17,7 @@ use ratatui::{
 pub struct Model {
     workspace: presenters::workspace::Presenter,
     commands: Vec<presenters::command::Presenter>,
-    redirect: Option<Router>,
+    redirect: Option<Route>,
     search: Input,
     commands_state: ListState,
     command_palette: CommandPalette,
@@ -28,7 +28,7 @@ pub struct Model {
 pub struct ModelParameters {
     pub commands: Vec<presenters::command::Presenter>,
     pub workspace: presenters::workspace::Presenter,
-    pub search_query: String,
+    pub search_query: Option<String>,
 }
 
 struct Powershell {
@@ -46,12 +46,12 @@ impl Powershell {
     }
 }
 
-impl Hook for Model {
+impl Hook<Route> for Model {
     fn is_running(&self) -> bool {
         self.is_running
     }
 
-    fn redirect(&mut self) -> Option<Router> {
+    fn redirect(&mut self) -> Option<Route> {
         self.redirect.take()
     }
 
@@ -117,14 +117,15 @@ impl Model {
 
         let command = self.commands.remove(index);
 
-        self.redirect = Some(
-            routes::powershell::execute_command::Parameters {
+        let route = Route::Powershell(routes::powershell::Route::ExecuteCommand(
+            parameters::powershell::execute_command::Parameters {
                 command_id: command.id.clone(),
                 workspace_id: command.workspace_id.clone(),
                 powershell_no_exit: self.powershell.no_exit,
-            }
-            .into(),
-        );
+            },
+        ));
+
+        self.redirect = Some(route);
 
         self.commands.insert(0, command);
         self.commands_state.select_first();
@@ -140,31 +141,32 @@ impl Model {
         match action {
             CPA::CopyToClipboard => self.copy_to_clipboard(),
             CPA::DeleteWorkspace => {
-                self.redirect = Some(
-                    routes::workspaces::delete::Parameters {
+                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Delete(
+                    parameters::workspaces::delete::Parameters {
                         id: self.workspace.id.clone(),
-                    }
-                    .into(),
-                )
+                    },
+                )))
             }
             CPA::NewCommand => {
-                self.redirect = Some(
-                    routes::workspaces::commands::new::Parameters {
-                        workspace_id: self.workspace.id.clone(),
-                    }
-                    .into(),
-                )
+                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+                    routes::workspaces::commands::Route::New(
+                        parameters::workspaces::commands::new::Parameters {
+                            workspace_id: self.workspace.id.clone(),
+                        },
+                    ),
+                )))
             }
             CPA::ListWorkspaces => {
-                self.redirect = Some(routes::workspaces::list::Parameters::default().into());
+                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
+                    Default::default(),
+                )));
             }
             CPA::EditWorkspace => {
-                self.redirect = Some(
-                    routes::workspaces::edit::Parameters {
+                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Edit(
+                    parameters::workspaces::edit::Parameters {
                         id: self.workspace.id.clone(),
-                    }
-                    .into(),
-                )
+                    },
+                )))
             }
             CPA::SetPowershellNoExit => self.powershell_set_no_exit(),
             CPA::UnsetPowerShellNoExit => self.powershell_unset_no_exit(),
@@ -181,30 +183,37 @@ impl Model {
 
     fn copy_to_clipboard_parameters(
         &self,
-    ) -> Option<routes::powershell::copy_to_clipboard::Parameters> {
-        self.selected_command().map(
-            |command| routes::powershell::copy_to_clipboard::Parameters {
+    ) -> Option<parameters::powershell::copy_to_clipboard::Parameters> {
+        self.selected_command().map(|command| {
+            parameters::powershell::copy_to_clipboard::Parameters {
                 workspace_id: self.workspace.id.clone(),
                 command_id: command.id.clone(),
-            },
-        )
+            }
+        })
     }
 
     fn start_windows_terminal_parameters(
         &self,
-    ) -> routes::powershell::start_windows_terminal::Parameters {
-        routes::powershell::start_windows_terminal::Parameters {
+    ) -> parameters::powershell::start_windows_terminal::Parameters {
+        parameters::powershell::start_windows_terminal::Parameters {
             working_directory: self.workspace.location.clone(),
         }
     }
 
     fn copy_to_clipboard(&mut self) {
-        self.redirect = self.copy_to_clipboard_parameters().map(Into::into);
+        self.redirect = self.copy_to_clipboard_parameters().map(|parameters| {
+            Route::Powershell(routes::powershell::Route::CopyToClipboard(parameters))
+        });
         self.command_palette.hide();
     }
 
     fn start_windows_terminal(&mut self) {
-        self.redirect = Some(self.start_windows_terminal_parameters().into());
+        self.redirect = Some(Route::Powershell(
+            routes::powershell::Route::StartWindowsTerminal(
+                self.start_windows_terminal_parameters(),
+            ),
+        ));
+
         self.command_palette.hide();
     }
 
@@ -224,7 +233,7 @@ impl Model {
         let ModelParameters {
             commands,
             workspace,
-            search_query: commands_search_query,
+            search_query,
         } = parameters;
 
         let mut commands_state = ListState::default();
@@ -239,7 +248,7 @@ impl Model {
             workspace,
             redirect: None,
             search: Input::new(InputParameters {
-                value: commands_search_query,
+                value: search_query.unwrap_or_default(),
                 is_active: true,
             }),
             commands_state,
@@ -302,53 +311,61 @@ impl Model {
             return;
         };
 
-        self.redirect = Some(
-            routes::workspaces::commands::get::Parameters {
-                workspace_id: self.workspace.id.clone(),
-                command_id: command.id.clone(),
-            }
-            .into(),
-        );
+        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+            routes::workspaces::commands::Route::Get(
+                parameters::workspaces::commands::get::Parameters {
+                    workspace_id: self.workspace.id.clone(),
+                    command_id: command.id.clone(),
+                },
+            ),
+        )));
     }
 
     fn enter_char(&mut self, c: char) {
         self.search.enter_char(c);
 
-        self.redirect = Some(
-            routes::workspaces::commands::list::Parameters {
-                search_query: self.search_query(),
-                workspace_id: self.workspace.id.clone(),
-            }
-            .into(),
-        );
+        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+            routes::workspaces::commands::Route::List(
+                parameters::workspaces::commands::list::Parameters {
+                    search_query: self.search_query(),
+                    workspace_id: Some(self.workspace.id.clone()),
+                },
+            ),
+        )));
     }
 
-    fn search_query(&self) -> String {
-        self.search.value().to_string()
+    fn search_query(&self) -> Option<String> {
+        if self.search.value().is_empty() {
+            None
+        } else {
+            Some(self.search.value().to_string())
+        }
     }
 
     fn delete_char(&mut self) {
         self.search.delete_char();
 
-        self.redirect = Some(
-            routes::workspaces::commands::list::Parameters {
-                search_query: self.search_query(),
-                workspace_id: self.workspace.id.clone(),
-            }
-            .into(),
-        );
+        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+            routes::workspaces::commands::Route::List(
+                parameters::workspaces::commands::list::Parameters {
+                    search_query: self.search_query(),
+                    workspace_id: Some(self.workspace.id.clone()),
+                },
+            ),
+        )));
     }
 
     fn delete_all_chars(&mut self) {
         self.search.delete_all_chars();
 
-        self.redirect = Some(
-            routes::workspaces::commands::list::Parameters {
-                search_query: self.search_query(),
-                workspace_id: self.workspace.id.clone(),
-            }
-            .into(),
-        );
+        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+            routes::workspaces::commands::Route::List(
+                parameters::workspaces::commands::list::Parameters {
+                    search_query: self.search_query(),
+                    workspace_id: Some(self.workspace.id.clone()),
+                },
+            ),
+        )));
     }
 
     fn move_cursor_left(&mut self) {

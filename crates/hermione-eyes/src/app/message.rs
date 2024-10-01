@@ -1,10 +1,10 @@
-use crate::{routes::Router, Error, Result};
+use crate::{Error, Result};
 use ratatui::{
     crossterm::event::{self, KeyCode, KeyEvent, KeyModifiers},
     Frame,
 };
 
-pub trait Hook {
+pub trait Hook<T> {
     fn handle_event(&self) -> Result<Option<Message>> {
         EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
     }
@@ -13,7 +13,7 @@ pub trait Hook {
         true
     }
 
-    fn redirect(&mut self) -> Option<Router> {
+    fn redirect(&mut self) -> Option<T> {
         None
     }
 

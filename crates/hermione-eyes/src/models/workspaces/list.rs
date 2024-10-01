@@ -4,8 +4,9 @@ use crate::{
         CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
         List,
     },
+    parameters,
     presenters::workspace::Presenter,
-    routes::{self, Router},
+    routes::{self, Route},
     Result,
 };
 use ratatui::{
@@ -16,7 +17,7 @@ use ratatui::{
 
 pub struct Model {
     is_running: bool,
-    redirect: Option<Router>,
+    redirect: Option<Route>,
     search: Input,
     workspaces_state: ListState,
     workspaces: Vec<Presenter>,
@@ -28,12 +29,12 @@ pub struct ModelParameters {
     pub search_query: String,
 }
 
-impl Hook for Model {
+impl Hook<Route> for Model {
     fn is_running(&self) -> bool {
         self.is_running
     }
 
-    fn redirect(&mut self) -> Option<Router> {
+    fn redirect(&mut self) -> Option<Route> {
         self.redirect.take()
     }
 
@@ -109,7 +110,7 @@ impl Model {
         };
 
         if let CPA::NewWorkspace = action {
-            self.redirect = Some(Router::Workspaces(routes::workspaces::Router::New))
+            self.redirect = Some(Route::Workspaces(routes::workspaces::Route::New))
         }
     }
 
@@ -156,11 +157,14 @@ impl Model {
             return;
         };
 
-        let route = routes::workspaces::commands::list::Parameters {
-            search_query: String::new(),
-            workspace_id: workspace.id.clone(),
-        }
-        .into();
+        let route = Route::Workspaces(routes::workspaces::Route::Commands(
+            routes::workspaces::commands::Route::List(
+                parameters::workspaces::commands::list::Parameters {
+                    workspace_id: Some(workspace.id.clone()),
+                    ..Default::default()
+                },
+            ),
+        ));
 
         self.redirect = Some(route);
     }
@@ -184,12 +188,13 @@ impl Model {
     fn enter_char(&mut self, c: char) {
         self.search.enter_char(c);
 
-        self.redirect = Some(
-            routes::workspaces::list::Parameters {
+        let route = Route::Workspaces(routes::workspaces::Route::List(
+            parameters::workspaces::list::Parameters {
                 search_query: self.search_query(),
-            }
-            .into(),
-        );
+            },
+        ));
+
+        self.redirect = Some(route);
     }
 
     fn search_query(&self) -> String {
@@ -199,23 +204,25 @@ impl Model {
     fn delete_char(&mut self) {
         self.search.delete_char();
 
-        self.redirect = Some(
-            routes::workspaces::list::Parameters {
+        let route = Route::Workspaces(routes::workspaces::Route::List(
+            parameters::workspaces::list::Parameters {
                 search_query: self.search_query(),
-            }
-            .into(),
-        );
+            },
+        ));
+
+        self.redirect = Some(route);
     }
 
     fn delete_all_chars(&mut self) {
         self.search.delete_all_chars();
 
-        self.redirect = Some(
-            routes::workspaces::list::Parameters {
+        let route = Route::Workspaces(routes::workspaces::Route::List(
+            parameters::workspaces::list::Parameters {
                 search_query: self.search_query(),
-            }
-            .into(),
-        );
+            },
+        ));
+
+        self.redirect = Some(route);
     }
 
     fn move_cursor_left(&mut self) {

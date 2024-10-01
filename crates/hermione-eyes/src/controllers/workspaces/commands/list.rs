@@ -1,16 +1,12 @@
 use crate::{
     clients::memories::Client,
     models::workspaces::commands::list::{Model, ModelParameters},
+    parameters::workspaces::commands::list::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
     pub memories: &'a Client,
-}
-
-pub struct Parameters {
-    pub workspace_id: String,
-    pub search_query: String,
 }
 
 impl<'a> Handler<'a> {
@@ -20,11 +16,16 @@ impl<'a> Handler<'a> {
             search_query,
         } = parameters;
 
-        let workspace = self.memories.get_workspace(&workspace_id)?;
-        let commands = self.memories.list_commands(&workspace_id)?;
-        let filter = search_query.to_lowercase();
+        let workspace = if let Some(id) = workspace_id {
+            self.memories.get_workspace(&id)?
+        } else {
+            self.memories.get_default_workspace()?
+        };
 
-        let commands = if !filter.is_empty() {
+        let commands = self.memories.list_commands(&workspace.id)?;
+        let filter = search_query.as_ref().map(|query| query.to_lowercase());
+
+        let commands = if let Some(filter) = filter {
             commands
                 .into_iter()
                 .filter(|c| c.program.to_lowercase().contains(&filter))

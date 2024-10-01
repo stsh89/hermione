@@ -1,10 +1,8 @@
-use crate::{clients::powershell, Result};
+use crate::{
+    clients::powershell, parameters::powershell::start_windows_terminal::Parameters, Result,
+};
 
 pub struct Handler {}
-
-pub struct Parameters {
-    pub working_directory: Option<String>,
-}
 
 impl Handler {
     pub fn handle(self, parameters: Parameters) -> Result<()> {

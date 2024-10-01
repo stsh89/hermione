@@ -1,15 +1,11 @@
 use crate::{
     clients::{memories, powershell},
+    parameters::powershell::copy_to_clipboard::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
     pub memories: &'a memories::Client,
-}
-
-pub struct Parameters {
-    pub command_id: String,
-    pub workspace_id: String,
 }
 
 impl<'a> Handler<'a> {

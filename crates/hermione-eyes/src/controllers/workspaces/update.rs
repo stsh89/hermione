@@ -1,17 +1,12 @@
 use crate::{
     clients::memories,
     models::workspaces::commands::list::{Model, ModelParameters},
+    parameters::workspaces::update::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
     pub memories: &'a memories::Client,
-}
-
-pub struct Parameters {
-    pub id: String,
-    pub name: String,
-    pub location: String,
 }
 
 impl<'a> Handler<'a> {
@@ -29,7 +24,7 @@ impl<'a> Handler<'a> {
         let model = Model::new(ModelParameters {
             commands,
             workspace,
-            search_query: String::new(),
+            search_query: None,
         })?;
 
         Ok(model)

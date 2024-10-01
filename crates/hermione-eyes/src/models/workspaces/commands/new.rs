@@ -1,8 +1,9 @@
 use crate::{
     app::{Hook, Message},
     helpers::{Input, InputParameters},
+    parameters,
     presenters::workspace::Presenter,
-    routes::{self, Router},
+    routes::{self, Route},
     Result,
 };
 use ratatui::{
@@ -15,7 +16,7 @@ pub struct Model {
     workspace: Presenter,
     name: Input,
     program: Input,
-    redirect: Option<Router>,
+    redirect: Option<Route>,
     active_input: CommandProperty,
 }
 
@@ -28,8 +29,8 @@ enum CommandProperty {
     Program,
 }
 
-impl Hook for Model {
-    fn redirect(&mut self) -> Option<Router> {
+impl Hook<Route> for Model {
+    fn redirect(&mut self) -> Option<Route> {
         self.redirect.take()
     }
 
@@ -92,11 +93,14 @@ impl Hook for Model {
 
 impl Model {
     fn back(&mut self) {
-        let route = routes::workspaces::commands::list::Parameters {
-            workspace_id: self.workspace.id.clone(),
-            search_query: String::new(),
-        }
-        .into();
+        let route = Route::Workspaces(routes::workspaces::Route::Commands(
+            routes::workspaces::commands::Route::List(
+                parameters::workspaces::commands::list::Parameters {
+                    workspace_id: Some(self.workspace.id.clone()),
+                    ..Default::default()
+                },
+            ),
+        ));
 
         self.redirect = Some(route);
     }
@@ -173,12 +177,15 @@ impl Model {
     }
 
     fn submit(&mut self) {
-        let route = routes::workspaces::commands::create::Parameters {
-            workspace_id: self.workspace.id.clone(),
-            name: self.name.value().to_string(),
-            program: self.program.value().to_string(),
-        }
-        .into();
+        let route = Route::Workspaces(routes::workspaces::Route::Commands(
+            routes::workspaces::commands::Route::Create(
+                parameters::workspaces::commands::create::Parameters {
+                    workspace_id: self.workspace.id.clone(),
+                    name: self.name.value().to_string(),
+                    program: self.program.value().to_string(),
+                },
+            ),
+        ));
 
         self.redirect = Some(route);
     }

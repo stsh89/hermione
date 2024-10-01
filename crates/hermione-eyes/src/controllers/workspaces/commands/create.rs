@@ -1,6 +1,8 @@
 use crate::{
     clients::memories,
     models::workspaces::commands::list::{Model, ModelParameters},
+    parameters::workspaces::commands::create::Parameters,
+    presenters::command::Presenter,
     Result,
 };
 
@@ -8,27 +10,28 @@ pub struct Handler<'a> {
     pub memories: &'a memories::Client,
 }
 
-pub struct Parameters {
-    pub command_id: String,
-    pub workspace_id: String,
-}
-
 impl<'a> Handler<'a> {
     pub fn handle(self, parameters: Parameters) -> Result<Model> {
         let Parameters {
             workspace_id,
-            command_id,
+            name,
+            program,
         } = parameters;
 
-        self.memories.delete_command(&workspace_id, &command_id)?;
+        self.memories.create_command(Presenter {
+            workspace_id: workspace_id.clone(),
+            id: String::new(),
+            name: name.clone(),
+            program,
+        })?;
 
         let workspace = self.memories.get_workspace(&workspace_id)?;
         let commands = self.memories.list_commands(&workspace_id)?;
 
         Model::new(ModelParameters {
             workspace,
-            search_query: String::new(),
             commands,
+            search_query: Some(name),
         })
     }
 }
