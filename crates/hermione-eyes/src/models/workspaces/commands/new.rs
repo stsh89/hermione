@@ -1,10 +1,10 @@
 use crate::{
-    app::{Hook, Message},
+    app::Message,
     helpers::{Input, InputParameters},
     parameters,
     presenters::workspace::Presenter,
     routes::{self, Route},
-    Result,
+    tui, Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -29,7 +29,14 @@ enum CommandProperty {
     Program,
 }
 
-impl Hook<Route> for Model {
+impl tui::Model for Model {
+    type Message = Message;
+    type Route = Route;
+
+    fn handle_event(&self) -> Result<Option<Self::Message>> {
+        tui::EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
+    }
+
     fn redirect(&mut self) -> Option<Route> {
         self.redirect.take()
     }

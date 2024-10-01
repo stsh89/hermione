@@ -1,4 +1,4 @@
-use crate::{app::Handle, router::Router, Result};
+use crate::Result;
 use ratatui::{
     backend::CrosstermBackend,
     crossterm::{
@@ -6,12 +6,43 @@ use ratatui::{
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
         ExecutableCommand,
     },
-    Terminal,
+    Frame, Terminal,
 };
 use std::{
     io::{stdout, Stdout},
     panic,
 };
+
+pub trait Model {
+    type Route;
+    type Message;
+
+    fn handle_event(&self) -> Result<Option<Self::Message>>;
+
+    fn is_running(&self) -> bool {
+        true
+    }
+
+    fn redirect(&mut self) -> Option<Self::Route> {
+        None
+    }
+
+    fn update(&mut self, _message: Self::Message) -> Result<Option<Self::Message>> {
+        Ok(None)
+    }
+
+    fn view(&mut self, _frame: &mut Frame) {}
+}
+
+type BoxedModel<R, M> = Box<dyn Model<Route = R, Message = M>>;
+
+pub trait Router {
+    type Route;
+    type Message;
+
+    fn handle_initial_route(&self) -> Result<Option<BoxedModel<Self::Route, Self::Message>>>;
+    fn handle(&self, route: Self::Route) -> Result<Option<BoxedModel<Self::Route, Self::Message>>>;
+}
 
 pub struct EventHandler<F, T>
 where
@@ -65,7 +96,7 @@ pub fn restore_terminal() -> Result<()> {
     Ok(())
 }
 
-pub fn run(router: Router) -> Result<()> {
+pub fn run(router: impl Router) -> Result<()> {
     tracing::info!("App started");
 
     let mut terminal = init_terminal()?;

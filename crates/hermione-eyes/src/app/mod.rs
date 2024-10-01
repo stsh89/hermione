@@ -1,3 +1,3 @@
 mod message;
 
-pub use message::{Handle, Hook, Message};
+pub use message::Message;

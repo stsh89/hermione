@@ -1,10 +1,10 @@
 use crate::{
-    app::{Hook, Message},
+    app::Message,
     helpers::{CommandPalette, CommandPaletteAction, CommandPaletteParameters},
     parameters,
     presenters::command::Presenter,
     routes::{self, Route},
-    Result,
+    tui, Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
@@ -22,7 +22,14 @@ pub struct ModelParameters {
     pub command: Presenter,
 }
 
-impl Hook<Route> for Model {
+impl tui::Model for Model {
+    type Message = Message;
+    type Route = Route;
+
+    fn handle_event(&self) -> Result<Option<Self::Message>> {
+        tui::EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
+    }
+
     fn redirect(&mut self) -> Option<Route> {
         self.redirect.take()
     }
@@ -116,7 +123,7 @@ impl Model {
             routes::workspaces::commands::Route::List(
                 parameters::workspaces::commands::list::Parameters {
                     workspace_id: self.command.workspace_id.clone(),
-                    ..Default::default()
+                    search_query: Some(self.command.program.clone()),
                 },
             ),
         ));

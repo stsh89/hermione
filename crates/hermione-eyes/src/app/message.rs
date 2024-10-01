@@ -1,32 +1,5 @@
-use crate::{tui::EventHandler, Error, Result};
-use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
-    Frame,
-};
-
-pub trait Hook<T> {
-    fn handle_event(&self) -> Result<Option<Message>> {
-        EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
-    }
-
-    fn is_running(&self) -> bool {
-        true
-    }
-
-    fn redirect(&mut self) -> Option<T> {
-        None
-    }
-
-    fn update(&mut self, _message: Message) -> Result<Option<Message>> {
-        Ok(None)
-    }
-
-    fn view(&mut self, _frame: &mut Frame) {}
-}
-
-pub trait Handle<T> {
-    fn handle(&self, route: T) -> Result<Option<Box<dyn Hook<T>>>>;
-}
+use crate::{Error, Result};
+use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub enum Message {
     Action,

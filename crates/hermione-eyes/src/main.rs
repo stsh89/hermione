@@ -12,10 +12,13 @@ mod settings;
 mod tui;
 mod widgets;
 
+use app::Message;
 use clients::memories;
 use router::Router;
+use routes::Route;
 
 type Error = anyhow::Error;
+type Model = dyn tui::Model<Route = Route, Message = Message>;
 type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
