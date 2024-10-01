@@ -1,9 +1,3 @@
-use crate::{
-    app::{router::workspaces::commands::Router, Hook},
-    clients::memories::Client,
-    Result,
-};
-
 pub mod create;
 pub mod delete;
 pub mod edit;
@@ -12,15 +6,27 @@ pub mod list;
 pub mod new;
 pub mod update;
 
-pub struct Controller<'a> {
+use crate::{app::Hook, clients::memories::Client, Result};
+
+pub enum Router {
+    Create(create::Parameters),
+    Delete(delete::Parameters),
+    Edit(edit::Parameters),
+    Get(get::Parameters),
+    List(list::Parameters),
+    New(new::Parameters),
+    Update(update::Parameters),
+}
+
+pub struct RouterParameters<'a> {
     pub memories: &'a Client,
 }
 
-impl<'a> Controller<'a> {
-    pub fn run(&self, route: Router) -> Result<Option<Box<dyn Hook>>> {
-        let Controller { memories } = self;
+impl Router {
+    pub fn handle(self, parameters: RouterParameters) -> Result<Option<Box<dyn Hook>>> {
+        let RouterParameters { memories } = parameters;
 
-        match route {
+        match self {
             Router::Create(paramters) => {
                 let handler = create::Handler { memories };
 

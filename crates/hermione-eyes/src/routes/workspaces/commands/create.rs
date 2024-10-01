@@ -1,5 +1,4 @@
 use crate::{
-    app::router::workspaces::commands::CreateParameters,
     clients::memories,
     models::workspaces::commands::list::{Model, ModelParameters},
     presenters::command::Presenter,
@@ -10,9 +9,15 @@ pub struct Handler<'a> {
     pub memories: &'a memories::Client,
 }
 
+pub struct Parameters {
+    pub name: String,
+    pub program: String,
+    pub workspace_id: String,
+}
+
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: CreateParameters) -> Result<Model> {
-        let CreateParameters {
+    pub fn handle(self, parameters: Parameters) -> Result<Model> {
+        let Parameters {
             workspace_id,
             name,
             program,

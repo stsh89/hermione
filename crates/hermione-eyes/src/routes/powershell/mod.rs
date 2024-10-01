@@ -1,18 +1,24 @@
-mod copy_to_clipboard;
-mod execute_command;
-mod start_windows_terminal;
+pub mod copy_to_clipboard;
+pub mod execute_command;
+pub mod start_windows_terminal;
 
-use crate::{app::router::powershell::Router, app::Hook, clients::memories::Client, Result};
+use crate::{app::Hook, clients::memories::Client, Result};
 
-pub struct Controller<'a> {
+pub enum Router {
+    ExecuteCommand(execute_command::Parameters),
+    CopyToClipboard(copy_to_clipboard::Parameters),
+    StartWindowsTerminal(start_windows_terminal::Parameters),
+}
+
+pub struct RouterParameters<'a> {
     pub memories: &'a Client,
 }
 
-impl<'a> Controller<'a> {
-    pub fn run(&self, route: Router) -> Result<Option<Box<dyn Hook>>> {
-        let Controller { memories } = self;
+impl Router {
+    pub fn handle(self, parameters: RouterParameters) -> Result<Option<Box<dyn Hook>>> {
+        let RouterParameters { memories } = parameters;
 
-        match route {
+        match self {
             Router::CopyToClipboard(parameters) => {
                 let handler = copy_to_clipboard::Handler { memories };
 

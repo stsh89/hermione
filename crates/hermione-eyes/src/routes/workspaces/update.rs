@@ -1,5 +1,4 @@
 use crate::{
-    app::router::workspaces::UpdateParameters,
     clients::memories,
     models::workspaces::commands::list::{Model, ModelParameters},
     Result,
@@ -9,9 +8,15 @@ pub struct Handler<'a> {
     pub memories: &'a memories::Client,
 }
 
+pub struct Parameters {
+    pub id: String,
+    pub name: String,
+    pub location: String,
+}
+
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: UpdateParameters) -> Result<Model> {
-        let UpdateParameters { id, name, location } = parameters;
+    pub fn handle(self, parameters: Parameters) -> Result<Model> {
+        let Parameters { id, name, location } = parameters;
 
         let mut workspace = self.memories.get_workspace(&id)?;
 

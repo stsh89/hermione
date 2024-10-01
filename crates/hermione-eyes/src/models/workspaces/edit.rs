@@ -1,13 +1,8 @@
 use crate::{
-    app::{
-        router::{
-            workspaces::{commands::ListParameters, UpdateParameters},
-            Router,
-        },
-        Hook, Message,
-    },
+    app::{Hook, Message},
     helpers::{Input, InputParameters},
     presenters::workspace::Presenter,
+    routes::{self, Router},
     Result,
 };
 use ratatui::{
@@ -97,7 +92,7 @@ impl Hook for Model {
 
 impl Model {
     fn back(&mut self) {
-        let route = ListParameters {
+        let route = routes::workspaces::commands::list::Parameters {
             search_query: String::new(),
             workspace_id: self.workspace.id.clone(),
         }
@@ -160,7 +155,7 @@ impl Model {
     }
 
     fn submit(&mut self) {
-        let route = UpdateParameters {
+        let route = routes::workspaces::update::Parameters {
             name: self.name.value().to_string(),
             location: self.location.value().to_string(),
             id: self.workspace.id.clone(),

@@ -1,22 +1,12 @@
 use crate::{
-    app::{
-        router::{
-            powershell::{
-                CopyToClipboardParameters, ExecuteCommandParameters, StartWindowsTerminalParameters,
-            },
-            workspaces::{
-                commands::{GetParameters, ListParameters, NewParameters},
-                DeleteParameters, EditParameters, ListParameters as ListWorkspacesParameters,
-            },
-            Router,
-        },
-        Hook, Message,
-    },
+    app::{Hook, Message},
     helpers::{
         CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
         List,
     },
-    presenters, Result,
+    presenters,
+    routes::{self, Router},
+    Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
@@ -128,7 +118,7 @@ impl Model {
         let command = self.commands.remove(index);
 
         self.redirect = Some(
-            ExecuteCommandParameters {
+            routes::powershell::execute_command::Parameters {
                 command_id: command.id.clone(),
                 workspace_id: command.workspace_id.clone(),
                 powershell_no_exit: self.powershell.no_exit,
@@ -151,7 +141,7 @@ impl Model {
             CPA::CopyToClipboard => self.copy_to_clipboard(),
             CPA::DeleteWorkspace => {
                 self.redirect = Some(
-                    DeleteParameters {
+                    routes::workspaces::delete::Parameters {
                         id: self.workspace.id.clone(),
                     }
                     .into(),
@@ -159,18 +149,18 @@ impl Model {
             }
             CPA::NewCommand => {
                 self.redirect = Some(
-                    NewParameters {
+                    routes::workspaces::commands::new::Parameters {
                         workspace_id: self.workspace.id.clone(),
                     }
                     .into(),
                 )
             }
             CPA::ListWorkspaces => {
-                self.redirect = Some(ListWorkspacesParameters::default().into());
+                self.redirect = Some(routes::workspaces::list::Parameters::default().into());
             }
             CPA::EditWorkspace => {
                 self.redirect = Some(
-                    EditParameters {
+                    routes::workspaces::edit::Parameters {
                         id: self.workspace.id.clone(),
                     }
                     .into(),
@@ -189,16 +179,21 @@ impl Model {
             .and_then(|index| self.commands.get(index))
     }
 
-    fn copy_to_clipboard_parameters(&self) -> Option<CopyToClipboardParameters> {
-        self.selected_command()
-            .map(|command| CopyToClipboardParameters {
+    fn copy_to_clipboard_parameters(
+        &self,
+    ) -> Option<routes::powershell::copy_to_clipboard::Parameters> {
+        self.selected_command().map(
+            |command| routes::powershell::copy_to_clipboard::Parameters {
                 workspace_id: self.workspace.id.clone(),
                 command_id: command.id.clone(),
-            })
+            },
+        )
     }
 
-    fn start_windows_terminal_parameters(&self) -> StartWindowsTerminalParameters {
-        StartWindowsTerminalParameters {
+    fn start_windows_terminal_parameters(
+        &self,
+    ) -> routes::powershell::start_windows_terminal::Parameters {
+        routes::powershell::start_windows_terminal::Parameters {
             working_directory: self.workspace.location.clone(),
         }
     }
@@ -308,7 +303,7 @@ impl Model {
         };
 
         self.redirect = Some(
-            GetParameters {
+            routes::workspaces::commands::get::Parameters {
                 workspace_id: self.workspace.id.clone(),
                 command_id: command.id.clone(),
             }
@@ -320,7 +315,7 @@ impl Model {
         self.search.enter_char(c);
 
         self.redirect = Some(
-            ListParameters {
+            routes::workspaces::commands::list::Parameters {
                 search_query: self.search_query(),
                 workspace_id: self.workspace.id.clone(),
             }
@@ -336,7 +331,7 @@ impl Model {
         self.search.delete_char();
 
         self.redirect = Some(
-            ListParameters {
+            routes::workspaces::commands::list::Parameters {
                 search_query: self.search_query(),
                 workspace_id: self.workspace.id.clone(),
             }
@@ -348,7 +343,7 @@ impl Model {
         self.search.delete_all_chars();
 
         self.redirect = Some(
-            ListParameters {
+            routes::workspaces::commands::list::Parameters {
                 search_query: self.search_query(),
                 workspace_id: self.workspace.id.clone(),
             }

@@ -1,10 +1,14 @@
-use crate::{app::router::powershell::StartWindowsTerminalParameters, clients::powershell, Result};
+use crate::{clients::powershell, Result};
 
 pub struct Handler {}
 
+pub struct Parameters {
+    pub working_directory: Option<String>,
+}
+
 impl Handler {
-    pub fn handle(self, parameters: StartWindowsTerminalParameters) -> Result<()> {
-        let StartWindowsTerminalParameters { working_directory } = parameters;
+    pub fn handle(self, parameters: Parameters) -> Result<()> {
+        let Parameters { working_directory } = parameters;
 
         let powershell = powershell::Client::new()?;
 

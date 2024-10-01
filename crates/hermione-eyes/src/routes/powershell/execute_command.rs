@@ -1,5 +1,4 @@
 use crate::{
-    app::router::powershell::ExecuteCommandParameters,
     clients::{
         memories::Client,
         powershell::{self, StartWindowsTerminalParameters},
@@ -11,9 +10,15 @@ pub struct Handler<'a> {
     pub memories: &'a Client,
 }
 
+pub struct Parameters {
+    pub command_id: String,
+    pub workspace_id: String,
+    pub powershell_no_exit: bool,
+}
+
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: ExecuteCommandParameters) -> Result<()> {
-        let ExecuteCommandParameters {
+    pub fn handle(self, parameters: Parameters) -> Result<()> {
+        let Parameters {
             workspace_id,
             command_id,
             powershell_no_exit,

@@ -1,5 +1,4 @@
 use crate::{
-    app::router::workspaces::EditParameters,
     clients::memories::Client,
     models::workspaces::edit::{Model, ModelParameters},
     Result,
@@ -9,9 +8,13 @@ pub struct Handler<'a> {
     pub memories: &'a Client,
 }
 
+pub struct Parameters {
+    pub id: String,
+}
+
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: EditParameters) -> Result<Model> {
-        let EditParameters { id } = parameters;
+    pub fn handle(self, parameters: Parameters) -> Result<Model> {
+        let Parameters { id } = parameters;
 
         let workspace = self.memories.get_workspace(&id)?;
 

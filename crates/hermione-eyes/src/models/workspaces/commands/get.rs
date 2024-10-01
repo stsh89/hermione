@@ -1,14 +1,8 @@
 use crate::{
-    app::{
-        router::{
-            workspaces::commands::{DeleteParameters, EditParameters, ListParameters},
-            Router,
-        },
-        Hook, Message,
-    },
-    helpers::CommandPaletteAction,
-    helpers::{CommandPalette, CommandPaletteParameters},
+    app::{Hook, Message},
+    helpers::{CommandPalette, CommandPaletteAction, CommandPaletteParameters},
     presenters::command::Presenter,
+    routes::{self, Router},
     Result,
 };
 use ratatui::{
@@ -82,7 +76,7 @@ impl Model {
         match action {
             CPA::DeleteCommand => {
                 self.redirect = Some(
-                    DeleteParameters {
+                    routes::workspaces::commands::delete::Parameters {
                         workspace_id: self.command.workspace_id.clone(),
                         command_id: self.command.id.clone(),
                     }
@@ -91,7 +85,7 @@ impl Model {
             }
             CPA::EditCommand => {
                 self.redirect = Some(
-                    EditParameters {
+                    routes::workspaces::commands::edit::Parameters {
                         workspace_id: self.command.workspace_id.clone(),
                         command_id: self.command.id.clone(),
                     }
@@ -115,7 +109,7 @@ impl Model {
     }
 
     fn back(&mut self) {
-        let route = ListParameters {
+        let route = routes::workspaces::commands::list::Parameters {
             search_query: String::new(),
             workspace_id: self.command.workspace_id.clone(),
         }

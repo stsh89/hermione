@@ -1,12 +1,7 @@
 use crate::{
-    app::{
-        router::{
-            workspaces::{CreateParameters, ListParameters},
-            Router,
-        },
-        Hook, Message,
-    },
+    app::{Hook, Message},
     helpers::{Input, InputParameters},
+    routes::{self, Router},
     Result,
 };
 use ratatui::{
@@ -91,7 +86,7 @@ impl Hook for Model {
 
 impl Model {
     fn back(&mut self) {
-        let route = ListParameters::default().into();
+        let route = routes::workspaces::list::Parameters::default().into();
 
         self.redirect = Some(route);
     }
@@ -147,7 +142,7 @@ impl Model {
     }
 
     fn submit(&mut self) {
-        let route = CreateParameters {
+        let route = routes::workspaces::create::Parameters {
             name: self.name.value().to_string(),
             location: self.location.value().to_string(),
         }

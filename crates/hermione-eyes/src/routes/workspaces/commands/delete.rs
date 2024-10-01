@@ -1,5 +1,4 @@
 use crate::{
-    app::router::workspaces::commands::DeleteParameters,
     clients::memories,
     models::workspaces::commands::list::{Model, ModelParameters},
     Result,
@@ -9,9 +8,14 @@ pub struct Handler<'a> {
     pub memories: &'a memories::Client,
 }
 
+pub struct Parameters {
+    pub command_id: String,
+    pub workspace_id: String,
+}
+
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: DeleteParameters) -> Result<Model> {
-        let DeleteParameters {
+    pub fn handle(self, parameters: Parameters) -> Result<Model> {
+        let Parameters {
             workspace_id,
             command_id,
         } = parameters;

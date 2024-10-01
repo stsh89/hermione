@@ -1,13 +1,11 @@
-pub mod router;
-
 mod message;
 
-use crate::{clients::memories, routes::Controller, Result};
-use ratatui::{backend::Backend, crossterm::event, Frame, Terminal};
-use router::{
-    workspaces::{commands::ListParameters, NewParameters},
-    Router,
+use crate::{
+    clients::memories,
+    routes::{self, Router, RouterParameters},
+    Result,
 };
+use ratatui::{backend::Backend, crossterm::event, Frame, Terminal};
 use tracing::instrument;
 
 pub use message::*;
@@ -48,28 +46,26 @@ where
 }
 
 impl App {
-    fn handle(&self, route: Router) -> Result<Option<Box<dyn Hook>>> {
-        let controller = Controller {
+    fn handle(&self, router: Router) -> Result<Option<Box<dyn Hook>>> {
+        router.handle(RouterParameters {
             memories: &self.memories,
-        };
-
-        controller.run(route)
+        })
     }
 
     fn initial_route(&self) -> Result<Router> {
         let workspaces = self.memories.list_workspaces()?;
 
-        let route = if workspaces.is_empty() {
-            NewParameters {}.into()
+        let router = if workspaces.is_empty() {
+            Router::Workspaces(routes::workspaces::Router::New)
         } else {
-            ListParameters {
+            routes::workspaces::commands::list::Parameters {
                 workspace_id: workspaces[0].id.clone(),
                 search_query: String::new(),
             }
             .into()
         };
 
-        Ok(route)
+        Ok(router)
     }
 
     pub fn new(parameters: AppParameters) -> Result<Self> {
@@ -97,8 +93,8 @@ impl App {
                 maybe_message = model.update(message)?;
             }
 
-            if let Some(route) = model.redirect() {
-                if let Some(change) = self.handle(route)? {
+            if let Some(router) = model.redirect() {
+                if let Some(change) = self.handle(router)? {
                     model = change;
                 }
             }

@@ -1,18 +1,11 @@
 use crate::{
-    app::{
-        router::{
-            workspaces::{
-                commands::ListParameters as CommandsListParameters, ListParameters, NewParameters,
-            },
-            Router,
-        },
-        Hook, Message,
-    },
+    app::{Hook, Message},
     helpers::{
         CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
         List,
     },
     presenters::workspace::Presenter,
+    routes::{self, Router},
     Result,
 };
 use ratatui::{
@@ -116,7 +109,7 @@ impl Model {
         };
 
         if let CPA::NewWorkspace = action {
-            self.redirect = Some(NewParameters {}.into())
+            self.redirect = Some(Router::Workspaces(routes::workspaces::Router::New))
         }
     }
 
@@ -163,7 +156,7 @@ impl Model {
             return;
         };
 
-        let route = CommandsListParameters {
+        let route = routes::workspaces::commands::list::Parameters {
             search_query: String::new(),
             workspace_id: workspace.id.clone(),
         }
@@ -192,7 +185,7 @@ impl Model {
         self.search.enter_char(c);
 
         self.redirect = Some(
-            ListParameters {
+            routes::workspaces::list::Parameters {
                 search_query: self.search_query(),
             }
             .into(),
@@ -207,7 +200,7 @@ impl Model {
         self.search.delete_char();
 
         self.redirect = Some(
-            ListParameters {
+            routes::workspaces::list::Parameters {
                 search_query: self.search_query(),
             }
             .into(),
@@ -218,7 +211,7 @@ impl Model {
         self.search.delete_all_chars();
 
         self.redirect = Some(
-            ListParameters {
+            routes::workspaces::list::Parameters {
                 search_query: self.search_query(),
             }
             .into(),
