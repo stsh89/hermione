@@ -50,6 +50,15 @@ pub fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
     Ok(terminal)
 }
 
+pub fn install_panic_hook() {
+    let original_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |panic_info| {
+        stdout().execute(LeaveAlternateScreen).unwrap();
+        disable_raw_mode().unwrap();
+        original_hook(panic_info);
+    }));
+}
+
 pub fn restore_terminal() -> Result<()> {
     stdout().execute(LeaveAlternateScreen)?;
     disable_raw_mode()?;
@@ -84,13 +93,4 @@ pub fn run(router: Router) -> Result<()> {
     tracing::info!("App stopped");
 
     Ok(())
-}
-
-pub fn install_panic_hook() {
-    let original_hook = panic::take_hook();
-    panic::set_hook(Box::new(move |panic_info| {
-        stdout().execute(LeaveAlternateScreen).unwrap();
-        disable_raw_mode().unwrap();
-        original_hook(panic_info);
-    }));
 }
