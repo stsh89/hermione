@@ -1,9 +1,8 @@
 use crate::{
-    app::Message,
     helpers::{Input, InputParameters},
     parameters,
     routes::{self, Route},
-    tui, Result,
+    tui, Message, Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},

@@ -1,5 +1,4 @@
 use crate::{
-    app::Message,
     helpers::{
         CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
     },
@@ -7,7 +6,7 @@ use crate::{
     routes::{self, Route},
     tui,
     widgets::list::Widget,
-    Result,
+    Message, Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},

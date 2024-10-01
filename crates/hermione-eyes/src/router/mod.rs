@@ -2,10 +2,9 @@ mod powershell;
 mod workspaces;
 
 use crate::{
-    app::Message,
     clients, parameters,
     routes::{self, Route},
-    tui, Model, Result,
+    tui, Message, Model, Result,
 };
 
 pub struct Router {

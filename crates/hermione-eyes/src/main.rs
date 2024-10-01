@@ -1,8 +1,8 @@
-mod app;
 mod clients;
 mod controllers;
 mod helpers;
 mod logs;
+mod message;
 mod models;
 mod parameters;
 mod presenters;
@@ -12,10 +12,11 @@ mod settings;
 mod tui;
 mod widgets;
 
-use app::Message;
 use clients::memories;
 use router::Router;
 use routes::Route;
+
+pub use message::Message;
 
 type Error = anyhow::Error;
 type Model = dyn tui::Model<Route = Route, Message = Message>;
