@@ -5,30 +5,10 @@ use crate::{
     routes::{self, Router, RouterParameters},
     Result,
 };
-use ratatui::{backend::Backend, crossterm::event, Frame, Terminal};
+use ratatui::{backend::Backend, Terminal};
 use tracing::instrument;
 
-pub use message::*;
-
-pub trait Hook {
-    fn handle_event(&self) -> Result<Option<Message>> {
-        EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
-    }
-
-    fn is_running(&self) -> bool {
-        true
-    }
-
-    fn redirect(&mut self) -> Option<Router> {
-        None
-    }
-
-    fn update(&mut self, _message: Message) -> Result<Option<Message>> {
-        Ok(None)
-    }
-
-    fn view(&mut self, _frame: &mut Frame) {}
-}
+pub use message::{Hook, Message};
 
 pub struct App {
     memories: memories::Client,
@@ -36,13 +16,6 @@ pub struct App {
 
 pub struct AppParameters {
     pub memories: memories::Client,
-}
-
-struct EventHandler<F>
-where
-    F: Fn(event::KeyEvent) -> Option<Message>,
-{
-    f: F,
 }
 
 impl App {
@@ -103,28 +76,5 @@ impl App {
         tracing::info!("App stopped");
 
         Ok(())
-    }
-}
-
-impl<F> EventHandler<F>
-where
-    F: Fn(event::KeyEvent) -> Option<Message>,
-{
-    fn new(f: F) -> Self {
-        Self { f }
-    }
-
-    fn handle_event(self) -> Result<Option<Message>> {
-        let tui_event = event::read()?;
-
-        if let event::Event::Key(key) = tui_event {
-            if key.kind == event::KeyEventKind::Press {
-                let message = (self.f)(key);
-
-                return Ok(message);
-            }
-        }
-
-        Ok(None)
     }
 }

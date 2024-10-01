@@ -1,5 +1,28 @@
-use crate::{Error, Result};
-use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crate::{routes::Router, Error, Result};
+use ratatui::{
+    crossterm::event::{self, KeyCode, KeyEvent, KeyModifiers},
+    Frame,
+};
+
+pub trait Hook {
+    fn handle_event(&self) -> Result<Option<Message>> {
+        EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
+    }
+
+    fn is_running(&self) -> bool {
+        true
+    }
+
+    fn redirect(&mut self) -> Option<Router> {
+        None
+    }
+
+    fn update(&mut self, _message: Message) -> Result<Option<Message>> {
+        Ok(None)
+    }
+
+    fn view(&mut self, _frame: &mut Frame) {}
+}
 
 pub enum Message {
     Action,
@@ -14,6 +37,36 @@ pub enum Message {
     Submit,
     ToggleCommandPalette,
     ToggleFocus,
+}
+
+struct EventHandler<F>
+where
+    F: Fn(event::KeyEvent) -> Option<Message>,
+{
+    f: F,
+}
+
+impl<F> EventHandler<F>
+where
+    F: Fn(event::KeyEvent) -> Option<Message>,
+{
+    fn new(f: F) -> Self {
+        Self { f }
+    }
+
+    fn handle_event(self) -> Result<Option<Message>> {
+        let tui_event = event::read()?;
+
+        if let event::Event::Key(key) = tui_event {
+            if key.kind == event::KeyEventKind::Press {
+                let message = (self.f)(key);
+
+                return Ok(message);
+            }
+        }
+
+        Ok(None)
+    }
 }
 
 impl TryFrom<KeyEvent> for Message {
