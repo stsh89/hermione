@@ -1,60 +1,56 @@
 mod message;
 
-use crate::Result;
+use crate::{clients::memories::Client, router::Router, Result};
 use ratatui::{backend::Backend, Terminal};
 use tracing::instrument;
 
-pub use message::{Hook, Message};
+pub use message::{Handle, Hook, Message};
 
-pub struct Parameters<B, H, T>
-where
-    B: Backend,
-    H: Handle<T>,
-{
-    pub terminal: Terminal<B>,
-    pub router: H,
-    pub route: T,
+pub struct App {
+    router: Router,
 }
 
-pub trait Handle<T> {
-    fn handle(&self, route: T) -> Result<Option<Box<dyn Hook<T>>>>;
+pub struct AppParameters {
+    pub memories: Client,
 }
 
-#[instrument(skip_all)]
-pub fn run<B, H, T>(parameters: Parameters<B, H, T>) -> Result<()>
-where
-    B: Backend,
-    H: Handle<T>,
-{
-    tracing::info!("App started");
+impl App {
+    pub fn new(parameters: AppParameters) -> Result<Self> {
+        let AppParameters { memories } = parameters;
 
-    let Parameters {
-        mut terminal,
-        router,
-        route,
-    } = parameters;
-
-    let Some(mut model) = router.handle(route)? else {
-        return Ok(());
-    };
-
-    while model.is_running() {
-        terminal.draw(|f| model.view(f))?;
-
-        let mut maybe_message = model.handle_event()?;
-
-        while let Some(message) = maybe_message {
-            maybe_message = model.update(message)?;
-        }
-
-        if let Some(route) = model.redirect() {
-            if let Some(change) = router.handle(route)? {
-                model = change;
-            }
-        }
+        Ok(Self {
+            router: Router { memories },
+        })
     }
 
-    tracing::info!("App stopped");
+    #[instrument(skip_all)]
+    pub fn run(self, mut terminal: Terminal<impl Backend>) -> Result<()> {
+        tracing::info!("App started");
 
-    Ok(())
+        let App { router } = self;
+
+        let Some(mut model) = router.handle_initial_route()? else {
+            return Ok(());
+        };
+
+        while model.is_running() {
+            terminal.draw(|f| model.view(f))?;
+
+            let mut maybe_message = model.handle_event()?;
+
+            while let Some(message) = maybe_message {
+                maybe_message = model.update(message)?;
+            }
+
+            if let Some(route) = model.redirect() {
+                if let Some(change) = router.handle(route)? {
+                    model = change;
+                }
+            }
+        }
+
+        tracing::info!("App stopped");
+
+        Ok(())
+    }
 }

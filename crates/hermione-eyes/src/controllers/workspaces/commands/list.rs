@@ -16,12 +16,7 @@ impl<'a> Handler<'a> {
             search_query,
         } = parameters;
 
-        let workspace = if let Some(id) = workspace_id {
-            self.memories.get_workspace(&id)?
-        } else {
-            self.memories.get_default_workspace()?
-        };
-
+        let workspace = self.memories.get_workspace(&workspace_id)?;
         let commands = self.memories.list_commands(&workspace.id)?;
         let filter = search_query.as_ref().map(|query| query.to_lowercase());
 

@@ -53,12 +53,6 @@ impl Client {
         Ok(workspace.into())
     }
 
-    pub fn get_default_workspace(&self) -> Result<Workspace> {
-        let workspace = self.workspaces.get("")?;
-
-        Ok(workspace.into())
-    }
-
     pub fn list_commands(&self, workspace_id: &str) -> Result<Vec<Command>> {
         let commands = self.commands.list(workspace_id)?;
 

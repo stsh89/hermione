@@ -24,6 +24,10 @@ pub trait Hook<T> {
     fn view(&mut self, _frame: &mut Frame) {}
 }
 
+pub trait Handle<T> {
+    fn handle(&self, route: T) -> Result<Option<Box<dyn Hook<T>>>>;
+}
+
 pub enum Message {
     Action,
     Back,

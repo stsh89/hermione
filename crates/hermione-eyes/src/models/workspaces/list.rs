@@ -160,7 +160,7 @@ impl Model {
         let route = Route::Workspaces(routes::workspaces::Route::Commands(
             routes::workspaces::commands::Route::List(
                 parameters::workspaces::commands::list::Parameters {
-                    workspace_id: Some(workspace.id.clone()),
+                    workspace_id: workspace.id.clone(),
                     ..Default::default()
                 },
             ),

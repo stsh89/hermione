@@ -1,7 +1,7 @@
 use crate::{
     app::{Handle, Hook},
     clients::memories::Client,
-    controllers,
+    controllers, parameters,
     routes::{self, Route},
     Result,
 };
@@ -20,6 +20,30 @@ impl Handle<Route> for Router {
 }
 
 impl Router {
+    pub fn handle_initial_route(&self) -> Result<Option<Box<dyn Hook<Route>>>> {
+        let route = self.initial_route()?;
+
+        self.handle(route)
+    }
+
+    fn initial_route(&self) -> Result<Route> {
+        let mut workspaces = self.memories.list_workspaces()?;
+        workspaces.reverse();
+
+        let Some(workspace) = workspaces.pop() else {
+            return Ok(Route::Workspaces(routes::workspaces::Route::New));
+        };
+
+        Ok(Route::Workspaces(routes::workspaces::Route::Commands(
+            routes::workspaces::commands::Route::List(
+                parameters::workspaces::commands::list::Parameters {
+                    workspace_id: workspace.id,
+                    ..Default::default()
+                },
+            ),
+        )))
+    }
+
     fn handle_workspaces_commands_route(
         &self,
         route: routes::workspaces::commands::Route,

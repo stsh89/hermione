@@ -328,7 +328,7 @@ impl Model {
             routes::workspaces::commands::Route::List(
                 parameters::workspaces::commands::list::Parameters {
                     search_query: self.search_query(),
-                    workspace_id: Some(self.workspace.id.clone()),
+                    workspace_id: self.workspace.id.clone(),
                 },
             ),
         )));
@@ -349,7 +349,7 @@ impl Model {
             routes::workspaces::commands::Route::List(
                 parameters::workspaces::commands::list::Parameters {
                     search_query: self.search_query(),
-                    workspace_id: Some(self.workspace.id.clone()),
+                    workspace_id: self.workspace.id.clone(),
                 },
             ),
         )));
@@ -362,7 +362,7 @@ impl Model {
             routes::workspaces::commands::Route::List(
                 parameters::workspaces::commands::list::Parameters {
                     search_query: self.search_query(),
-                    workspace_id: Some(self.workspace.id.clone()),
+                    workspace_id: self.workspace.id.clone(),
                 },
             ),
         )));
