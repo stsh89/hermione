@@ -1,13 +1,13 @@
-use crate::parameters;
-
 pub mod commands;
+
+use crate::parameters;
 
 pub enum Route {
     Commands(commands::Route),
-    List(parameters::workspaces::list::Parameters),
     Create(parameters::workspaces::create::Parameters),
-    New,
-    Update(parameters::workspaces::update::Parameters),
     Delete(parameters::workspaces::delete::Parameters),
     Edit(parameters::workspaces::edit::Parameters),
+    List(parameters::workspaces::list::Parameters),
+    New,
+    Update(parameters::workspaces::update::Parameters),
 }
