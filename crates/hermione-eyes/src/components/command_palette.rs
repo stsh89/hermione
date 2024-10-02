@@ -4,7 +4,7 @@ use ratatui::{
     Frame,
 };
 
-pub struct CommandPalette {
+pub struct Component {
     actions_state: widgets::list::State,
     actions: Vec<Action>,
     is_active: bool,
@@ -12,7 +12,7 @@ pub struct CommandPalette {
     scroll: usize,
 }
 
-pub struct CommandPaletteParameters {
+pub struct ComponentParameters {
     pub actions: Vec<Action>,
 }
 
@@ -31,7 +31,7 @@ pub enum Action {
     UnsetPowerShellNoExit,
 }
 
-impl CommandPalette {
+impl Component {
     pub fn action(&self) -> Option<&Action> {
         self.actions_state
             .selected()
@@ -50,8 +50,8 @@ impl CommandPalette {
         self.is_active
     }
 
-    pub fn new(parameters: CommandPaletteParameters) -> Result<Self> {
-        let CommandPaletteParameters { actions } = parameters;
+    pub fn new(parameters: ComponentParameters) -> Result<Self> {
+        let ComponentParameters { actions } = parameters;
 
         if actions.is_empty() {
             return Err(anyhow::anyhow!(

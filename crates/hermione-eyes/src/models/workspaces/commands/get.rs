@@ -1,6 +1,5 @@
 use crate::{
-    helpers::{CommandPalette, CommandPaletteAction, CommandPaletteParameters},
-    parameters,
+    components, parameters,
     presenters::command::Presenter,
     routes::{self, Route},
     tui, Message, Result,
@@ -14,7 +13,7 @@ use ratatui::{
 pub struct Model {
     command: Presenter,
     redirect: Option<Route>,
-    command_palette: CommandPalette,
+    command_palette: components::command_palette::Component,
 }
 
 pub struct ModelParameters {
@@ -74,14 +73,14 @@ impl tui::Model for Model {
 
 impl Model {
     fn handle_command_palette_action(&mut self) {
-        use CommandPaletteAction as CPA;
+        use components::command_palette::Action;
 
         let Some(action) = self.command_palette.action() else {
             return;
         };
 
         match action {
-            CPA::DeleteCommand => {
+            Action::DeleteCommand => {
                 self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
                     routes::workspaces::commands::Route::Delete(
                         parameters::workspaces::commands::delete::Parameters {
@@ -91,7 +90,7 @@ impl Model {
                     ),
                 )))
             }
-            CPA::EditCommand => {
+            Action::EditCommand => {
                 self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
                     routes::workspaces::commands::Route::Edit(
                         parameters::workspaces::commands::edit::Parameters {
@@ -101,15 +100,15 @@ impl Model {
                     ),
                 )))
             }
-            CPA::CopyToClipboard
-            | CPA::DeleteWorkspace
-            | CPA::EditWorkspace
-            | CPA::ListWorkspaces
-            | CPA::NewCommand
-            | CPA::NewWorkspace
-            | CPA::SetPowershellNoExit
-            | CPA::StartWindowsTerminal
-            | CPA::UnsetPowerShellNoExit => {}
+            Action::CopyToClipboard
+            | Action::DeleteWorkspace
+            | Action::EditWorkspace
+            | Action::ListWorkspaces
+            | Action::NewCommand
+            | Action::NewWorkspace
+            | Action::SetPowershellNoExit
+            | Action::StartWindowsTerminal
+            | Action::UnsetPowerShellNoExit => {}
         }
     }
 
@@ -131,16 +130,18 @@ impl Model {
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
-        use CommandPaletteAction as CPA;
+        use components::command_palette::Action;
 
         let ModelParameters { command } = parameters;
 
         Ok(Self {
             command,
             redirect: None,
-            command_palette: CommandPalette::new(CommandPaletteParameters {
-                actions: vec![CPA::DeleteCommand, CPA::EditCommand],
-            })?,
+            command_palette: components::command_palette::Component::new(
+                components::command_palette::ComponentParameters {
+                    actions: vec![Action::DeleteCommand, Action::EditCommand],
+                },
+            )?,
         })
     }
 

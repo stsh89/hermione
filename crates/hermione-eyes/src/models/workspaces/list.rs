@@ -1,7 +1,6 @@
 use crate::{
-    helpers::{
-        CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
-    },
+    components,
+    helpers::{Input, InputParameters},
     parameters,
     presenters::workspace::Presenter,
     routes::{self, Route},
@@ -21,7 +20,7 @@ pub struct Model {
     search: Input,
     workspaces_state: ListState,
     workspaces: Vec<Presenter>,
-    command_palette: CommandPalette,
+    command_palette: components::command_palette::Component,
 }
 
 pub struct ModelParameters {
@@ -110,18 +109,20 @@ impl Model {
     }
 
     fn handle_command_palette_action(&mut self) {
-        use CommandPaletteAction as CPA;
+        use components::command_palette::Action;
 
         let Some(action) = self.command_palette.action() else {
             return;
         };
 
-        if let CPA::NewWorkspace = action {
+        if let Action::NewWorkspace = action {
             self.redirect = Some(Route::Workspaces(routes::workspaces::Route::New))
         }
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
+        use components::command_palette::Action;
+
         let ModelParameters {
             workspaces,
             search_query,
@@ -136,9 +137,11 @@ impl Model {
                 is_active: true,
             }),
             is_running: true,
-            command_palette: CommandPalette::new(CommandPaletteParameters {
-                actions: vec![CommandPaletteAction::NewWorkspace],
-            })?,
+            command_palette: components::command_palette::Component::new(
+                components::command_palette::ComponentParameters {
+                    actions: vec![Action::NewWorkspace],
+                },
+            )?,
         };
 
         if !model.workspaces.is_empty() {

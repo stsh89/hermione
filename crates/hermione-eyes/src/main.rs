@@ -1,4 +1,5 @@
 mod clients;
+mod components;
 mod controllers;
 mod helpers;
 mod logs;

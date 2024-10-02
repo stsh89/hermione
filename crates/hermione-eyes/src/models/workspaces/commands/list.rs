@@ -1,16 +1,13 @@
 use crate::{
-    helpers::{
-        CommandPalette, CommandPaletteAction, CommandPaletteParameters, Input, InputParameters,
-    },
+    components,
+    helpers::{Input, InputParameters},
     parameters, presenters,
     routes::{self, Route},
-    tui,
-    widgets::list::Widget,
-    Message, Result,
+    tui, widgets, Message, Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
-    widgets::{Block, Borders, ListState, Paragraph},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
@@ -19,8 +16,8 @@ pub struct Model {
     commands: Vec<presenters::command::Presenter>,
     redirect: Option<Route>,
     search: Input,
-    commands_state: ListState,
-    command_palette: CommandPalette,
+    commands_state: widgets::list::State,
+    command_palette: components::command_palette::Component,
     is_running: bool,
     powershell: Powershell,
 }
@@ -103,7 +100,7 @@ impl tui::Model for Model {
             search.y + 1,
         ));
 
-        let list = Widget {
+        let list = widgets::list::Widget {
             title: "Commands",
             items: &self.commands,
         };
@@ -139,22 +136,22 @@ impl Model {
     }
 
     fn handle_command_palette_action(&mut self) {
-        use CommandPaletteAction as CPA;
+        use components::command_palette::Action;
 
         let Some(action) = self.command_palette.action() else {
             return;
         };
 
         match action {
-            CPA::CopyToClipboard => self.copy_to_clipboard(),
-            CPA::DeleteWorkspace => {
+            Action::CopyToClipboard => self.copy_to_clipboard(),
+            Action::DeleteWorkspace => {
                 self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Delete(
                     parameters::workspaces::delete::Parameters {
                         id: self.workspace.id.clone(),
                     },
                 )))
             }
-            CPA::NewCommand => {
+            Action::NewCommand => {
                 self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
                     routes::workspaces::commands::Route::New(
                         parameters::workspaces::commands::new::Parameters {
@@ -163,22 +160,22 @@ impl Model {
                     ),
                 )))
             }
-            CPA::ListWorkspaces => {
+            Action::ListWorkspaces => {
                 self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
                     Default::default(),
                 )));
             }
-            CPA::EditWorkspace => {
+            Action::EditWorkspace => {
                 self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Edit(
                     parameters::workspaces::edit::Parameters {
                         id: self.workspace.id.clone(),
                     },
                 )))
             }
-            CPA::SetPowershellNoExit => self.powershell_set_no_exit(),
-            CPA::UnsetPowerShellNoExit => self.powershell_unset_no_exit(),
-            CPA::StartWindowsTerminal => self.start_windows_terminal(),
-            CPA::DeleteCommand | CPA::EditCommand | CPA::NewWorkspace => {}
+            Action::SetPowershellNoExit => self.powershell_set_no_exit(),
+            Action::UnsetPowerShellNoExit => self.powershell_unset_no_exit(),
+            Action::StartWindowsTerminal => self.start_windows_terminal(),
+            Action::DeleteCommand | Action::EditCommand | Action::NewWorkspace => {}
         }
     }
 
@@ -235,7 +232,7 @@ impl Model {
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
-        use CommandPaletteAction as CPA;
+        use components::command_palette::Action;
 
         let ModelParameters {
             commands,
@@ -243,7 +240,7 @@ impl Model {
             search_query,
         } = parameters;
 
-        let mut commands_state = ListState::default();
+        let mut commands_state = widgets::list::State::default();
 
         if !commands.is_empty() {
             commands_state.select_first();
@@ -259,18 +256,20 @@ impl Model {
                 is_active: true,
             }),
             commands_state,
-            command_palette: CommandPalette::new(CommandPaletteParameters {
-                actions: vec![
-                    CPA::CopyToClipboard,
-                    CPA::DeleteWorkspace,
-                    CPA::EditWorkspace,
-                    CPA::ListWorkspaces,
-                    CPA::NewCommand,
-                    CPA::SetPowershellNoExit,
-                    CPA::StartWindowsTerminal,
-                    CPA::UnsetPowerShellNoExit,
-                ],
-            })?,
+            command_palette: components::command_palette::Component::new(
+                components::command_palette::ComponentParameters {
+                    actions: vec![
+                        Action::CopyToClipboard,
+                        Action::DeleteWorkspace,
+                        Action::EditWorkspace,
+                        Action::ListWorkspaces,
+                        Action::NewCommand,
+                        Action::SetPowershellNoExit,
+                        Action::StartWindowsTerminal,
+                        Action::UnsetPowerShellNoExit,
+                    ],
+                },
+            )?,
             powershell: Powershell { no_exit: true },
         };
 
