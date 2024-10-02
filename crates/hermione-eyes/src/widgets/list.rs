@@ -22,7 +22,8 @@ where
         let items: Vec<ListItem> = self.items.iter().map(Into::into).collect();
         let list = List::new(items)
             .block(block)
-            .highlight_style(Style::default().yellow());
+            .highlight_style(Style::default().yellow())
+            .highlight_symbol("➤ ");
 
         list.render(area, buf, state);
     }
