@@ -1,21 +1,20 @@
 use crate::{
-    helpers::{Input, InputParameters},
     parameters,
     presenters::workspace::Presenter,
     routes::{self, Route},
-    tui, Message, Result,
+    tui, widgets, Message, Result,
 };
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Position},
-    widgets::{Block, Borders, Paragraph},
+    layout::{Alignment, Constraint, Direction, Layout, Position, Rect},
+    widgets::Paragraph,
     Frame,
 };
 
 pub struct Model {
     workspace: Presenter,
     active_input: WorkspaceProperty,
-    location: Input,
-    name: Input,
+    location: widgets::input::State,
+    name: widgets::input::State,
     redirect: Option<Route>,
 }
 
@@ -60,7 +59,7 @@ impl tui::Model for Model {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [header, name, location] = Layout::default()
+        let [header, name_area, location_area] = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![
                 Constraint::Max(1),
@@ -72,27 +71,11 @@ impl tui::Model for Model {
         let paragraph = Paragraph::new("Edit workspace").alignment(Alignment::Center);
         frame.render_widget(paragraph, header);
 
-        let block = Block::default().borders(Borders::all()).title("Name");
-        let paragraph = Paragraph::new(self.name.value()).block(block);
-
-        frame.render_widget(paragraph, name);
-
-        if self.name.is_active() {
-            frame.set_cursor_position(Position::new(
-                name.x + self.name.character_index() as u16 + 1,
-                name.y + 1,
-            ));
-        }
-        let block = Block::default().borders(Borders::all()).title("Location");
-        let paragraph = Paragraph::new(self.location.value()).block(block);
-
-        frame.render_widget(paragraph, location);
-
-        if self.location.is_active() {
-            frame.set_cursor_position(Position::new(
-                location.x + self.location.character_index() as u16 + 1,
-                location.y + 1,
-            ));
+        for (area, property) in [
+            (name_area, WorkspaceProperty::Name),
+            (location_area, WorkspaceProperty::Location),
+        ] {
+            self.render_property(frame, area, property);
         }
     }
 }
@@ -150,17 +133,40 @@ impl Model {
         let ModelParameters { workspace } = parameters;
 
         Self {
-            name: Input::new(InputParameters {
+            name: widgets::input::State::new(widgets::input::StateParameters {
                 value: workspace.name.clone(),
                 is_active: true,
             }),
             redirect: None,
             active_input: WorkspaceProperty::Name,
-            location: Input::new(InputParameters {
+            location: widgets::input::State::new(widgets::input::StateParameters {
                 value: workspace.location.clone().unwrap_or_default(),
                 is_active: false,
             }),
             workspace,
+        }
+    }
+
+    fn render_property(&mut self, frame: &mut Frame, area: Rect, property: WorkspaceProperty) {
+        let title = match property {
+            WorkspaceProperty::Name => "Name",
+            WorkspaceProperty::Location => "Location",
+        };
+
+        let input = widgets::input::Widget { title };
+
+        let state = match property {
+            WorkspaceProperty::Name => &mut self.name,
+            WorkspaceProperty::Location => &mut self.location,
+        };
+
+        frame.render_stateful_widget(input, area, state);
+
+        if state.is_active() {
+            frame.set_cursor_position(Position::new(
+                area.x + state.character_index() as u16 + 1,
+                area.y + 1,
+            ));
         }
     }
 

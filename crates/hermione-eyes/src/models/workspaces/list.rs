@@ -1,24 +1,20 @@
 use crate::{
-    components,
-    helpers::{Input, InputParameters},
-    parameters,
+    components, parameters,
     presenters::workspace::Presenter,
     routes::{self, Route},
-    tui,
-    widgets::list::Widget,
-    Message, Result,
+    tui, widgets, Message, Result,
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
-    widgets::{Block, Borders, ListState, Paragraph},
+    widgets::Paragraph,
     Frame,
 };
 
 pub struct Model {
     is_running: bool,
     redirect: Option<Route>,
-    search: Input,
-    workspaces_state: ListState,
+    search: widgets::input::State,
+    workspaces_state: widgets::list::State,
     workspaces: Vec<Presenter>,
     command_palette: components::command_palette::Component,
 }
@@ -63,7 +59,7 @@ impl tui::Model for Model {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [header, search, commands] = Layout::default()
+        let [header, search_area, commands_area] = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![
                 Constraint::Max(1),
@@ -75,21 +71,19 @@ impl tui::Model for Model {
         let paragraph = Paragraph::new("List workspaces").alignment(Alignment::Center);
         frame.render_widget(paragraph, header);
 
-        let block = Block::default().borders(Borders::all()).title("Search");
-        let paragraph = Paragraph::new(self.search.value()).block(block);
-
-        frame.render_widget(paragraph, search);
+        let input = widgets::input::Widget { title: "Search" };
+        frame.render_stateful_widget(input, search_area, &mut self.search);
         frame.set_cursor_position(Position::new(
-            search.x + self.search.character_index() as u16 + 1,
-            search.y + 1,
+            search_area.x + self.search.character_index() as u16 + 1,
+            search_area.y + 1,
         ));
 
-        let list = Widget {
+        let list = widgets::list::Widget {
             title: "Workspaces",
             items: &self.workspaces,
         };
 
-        frame.render_stateful_widget(list, commands, &mut self.workspaces_state);
+        frame.render_stateful_widget(list, commands_area, &mut self.workspaces_state);
 
         if self.command_palette.is_active() {
             self.command_palette.render(frame, frame.area());
@@ -131,8 +125,8 @@ impl Model {
         let mut model = Self {
             workspaces,
             redirect: None,
-            workspaces_state: ListState::default(),
-            search: Input::new(InputParameters {
+            workspaces_state: widgets::list::State::default(),
+            search: widgets::input::State::new(widgets::input::StateParameters {
                 value: search_query,
                 is_active: true,
             }),

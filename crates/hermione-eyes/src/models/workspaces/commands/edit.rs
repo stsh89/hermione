@@ -1,21 +1,20 @@
 use crate::{
-    helpers::{Input, InputParameters},
     parameters,
     presenters::command::Presenter,
     routes::{self, Route},
-    tui, Message, Result,
+    tui, widgets, Message, Result,
 };
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Position},
-    widgets::{Block, Borders, Paragraph},
+    layout::{Alignment, Constraint, Direction, Layout, Position, Rect},
+    widgets::Paragraph,
     Frame,
 };
 
 pub struct Model {
     command: Presenter,
     active_input: CommandProperty,
-    name: Input,
-    program: Input,
+    name: widgets::input::State,
+    program: widgets::input::State,
     redirect: Option<Route>,
 }
 
@@ -60,7 +59,7 @@ impl tui::Model for Model {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [header, name, program] = Layout::default()
+        let [header, name_area, program_area] = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![
                 Constraint::Max(1),
@@ -72,27 +71,11 @@ impl tui::Model for Model {
         let paragraph = Paragraph::new("Edit Command").alignment(Alignment::Center);
         frame.render_widget(paragraph, header);
 
-        let block = Block::default().borders(Borders::all()).title("Name");
-        let paragraph = Paragraph::new(self.name.value()).block(block);
-
-        frame.render_widget(paragraph, name);
-
-        if self.name.is_active() {
-            frame.set_cursor_position(Position::new(
-                name.x + self.name.character_index() as u16 + 1,
-                name.y + 1,
-            ));
-        }
-        let block = Block::default().borders(Borders::all()).title("Program");
-        let paragraph = Paragraph::new(self.program.value()).block(block);
-
-        frame.render_widget(paragraph, program);
-
-        if self.program.is_active() {
-            frame.set_cursor_position(Position::new(
-                program.x + self.program.character_index() as u16 + 1,
-                program.y + 1,
-            ));
+        for (area, property) in [
+            (name_area, CommandProperty::Name),
+            (program_area, CommandProperty::Program),
+        ] {
+            self.render_property(frame, area, property);
         }
     }
 }
@@ -150,17 +133,40 @@ impl Model {
         let ModelParameters { command } = parameters;
 
         Self {
-            name: Input::new(InputParameters {
+            active_input: CommandProperty::Name,
+            name: widgets::input::State::new(widgets::input::StateParameters {
                 value: command.name.clone(),
                 is_active: true,
             }),
             redirect: None,
-            active_input: CommandProperty::Name,
-            program: Input::new(InputParameters {
+            program: widgets::input::State::new(widgets::input::StateParameters {
                 value: command.program.clone(),
                 is_active: false,
             }),
             command,
+        }
+    }
+
+    fn render_property(&mut self, frame: &mut Frame, area: Rect, property: CommandProperty) {
+        let title = match property {
+            CommandProperty::Name => "Name",
+            CommandProperty::Program => "Program",
+        };
+
+        let input = widgets::input::Widget { title };
+
+        let state = match property {
+            CommandProperty::Name => &mut self.name,
+            CommandProperty::Program => &mut self.program,
+        };
+
+        frame.render_stateful_widget(input, area, state);
+
+        if state.is_active() {
+            frame.set_cursor_position(Position::new(
+                area.x + state.character_index() as u16 + 1,
+                area.y + 1,
+            ));
         }
     }
 

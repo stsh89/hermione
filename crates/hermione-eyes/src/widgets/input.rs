@@ -1,17 +1,27 @@
-pub struct Input {
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    widgets::{Block, Borders, Paragraph, StatefulWidget},
+};
+
+pub struct Widget<'a> {
+    pub title: &'a str,
+}
+
+pub struct State {
     value: String,
     character_index: usize,
     is_active: bool,
 }
 
-pub struct InputParameters {
+pub struct StateParameters {
     pub value: String,
     pub is_active: bool,
 }
 
-impl Input {
-    pub fn new(parameters: InputParameters) -> Self {
-        let InputParameters { value, is_active } = parameters;
+impl State {
+    pub fn new(parameters: StateParameters) -> Self {
+        let StateParameters { value, is_active } = parameters;
 
         let mut input = Self {
             value: String::new(),
@@ -103,5 +113,17 @@ impl Input {
 
     pub fn value(&self) -> &str {
         &self.value
+    }
+}
+
+impl<'a> StatefulWidget for Widget<'a> {
+    type State = State;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let block = Block::default().borders(Borders::all()).title(self.title);
+        let paragraph = Paragraph::new(state.value()).block(block);
+
+        use ratatui::widgets::Widget;
+        paragraph.render(area, buf);
     }
 }
