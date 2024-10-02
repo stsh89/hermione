@@ -21,8 +21,8 @@ impl<'a> Handler<'a> {
         self.memories.create_command(Presenter {
             workspace_id: workspace_id.clone(),
             id: String::new(),
-            name: name.clone(),
-            program,
+            name,
+            program: program.clone(),
         })?;
 
         let workspace = self.memories.get_workspace(&workspace_id)?;
@@ -31,7 +31,7 @@ impl<'a> Handler<'a> {
         Model::new(ModelParameters {
             workspace,
             commands,
-            search_query: Some(name),
+            search_query: Some(program),
         })
     }
 }
