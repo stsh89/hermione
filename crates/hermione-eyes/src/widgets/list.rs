@@ -2,8 +2,10 @@ use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::{Style, Stylize},
-    widgets::{Block, Borders, List, ListItem, ListState, StatefulWidget},
+    widgets::{Block, Borders, List, ListItem, StatefulWidget},
 };
+
+pub use ratatui::widgets::ListState as State;
 
 pub struct Widget<'a, T> {
     pub title: &'a str,
@@ -14,7 +16,7 @@ impl<'a, T> StatefulWidget for Widget<'a, T>
 where
     &'a T: Into<ListItem<'a>>,
 {
-    type State = ListState;
+    type State = State;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let block = Block::default().borders(Borders::all()).title(self.title);

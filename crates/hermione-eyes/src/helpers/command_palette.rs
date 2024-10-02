@@ -5,7 +5,7 @@ use ratatui::{
 };
 
 pub struct CommandPalette {
-    actions_state: widgets::list_state::Widget,
+    actions_state: widgets::list::State,
     actions: Vec<Action>,
     is_active: bool,
     scroll_state: widgets::scroll::State,
@@ -59,7 +59,7 @@ impl CommandPalette {
             ));
         }
 
-        let actions_state = widgets::list_state::Widget::default().with_selected(Some(0));
+        let actions_state = widgets::list::State::default().with_selected(Some(0));
         let mut scroll_state = widgets::scroll::State::default();
         scroll_state = scroll_state.content_length(actions.len());
 
