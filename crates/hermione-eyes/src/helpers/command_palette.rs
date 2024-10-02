@@ -8,6 +8,8 @@ pub struct CommandPalette {
     actions_state: widgets::list_state::Widget,
     actions: Vec<Action>,
     is_active: bool,
+    scroll_state: widgets::scroll::State,
+    scroll: usize,
 }
 
 pub struct CommandPaletteParameters {
@@ -57,42 +59,64 @@ impl CommandPalette {
             ));
         }
 
+        let actions_state = widgets::list_state::Widget::default().with_selected(Some(0));
+        let mut scroll_state = widgets::scroll::State::default();
+        scroll_state = scroll_state.content_length(actions.len());
+
         Ok(Self {
-            actions_state: widgets::list_state::Widget::default().with_selected(Some(0)),
+            actions_state,
             actions,
             is_active: false,
+            scroll_state,
+            scroll: 0,
         })
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
         let area = popup_area(area, 60, 40);
+
         let list = widgets::list::Widget {
             title: "Command palette",
             items: &self.actions,
         };
 
+        let scroll = widgets::scroll::Widget {};
+
         frame.render_widget(widgets::clear::Widget {}, area);
         frame.render_stateful_widget(list, area, &mut self.actions_state);
+        frame.render_stateful_widget(scroll, area, &mut self.scroll_state);
     }
 
     pub fn select_next(&mut self) {
-        if let Some(index) = self.actions_state.selected() {
-            if index == self.actions.len() - 1 {
-                self.actions_state.select_first();
-            } else {
-                self.actions_state.select_next();
-            }
+        let Some(index) = self.actions_state.selected() else {
+            return;
+        };
+
+        if index == self.actions.len() - 1 {
+            self.actions_state.select_first();
+            self.scroll = 0;
+        } else {
+            self.actions_state.select_next();
+            self.scroll = self.scroll.saturating_add(1);
         }
+
+        self.scroll_state = self.scroll_state.position(self.scroll);
     }
 
     pub fn select_previous(&mut self) {
-        if let Some(index) = self.actions_state.selected() {
-            if index == 0 {
-                self.actions_state.select_last();
-            } else {
-                self.actions_state.select_previous();
-            }
+        let Some(index) = self.actions_state.selected() else {
+            return;
+        };
+
+        if index == 0 {
+            self.actions_state.select_last();
+            self.scroll = self.actions.len() - 1;
+        } else {
+            self.actions_state.select_previous();
+            self.scroll = self.scroll.saturating_sub(1);
         }
+
+        self.scroll_state = self.scroll_state.position(self.scroll);
     }
 }
 
