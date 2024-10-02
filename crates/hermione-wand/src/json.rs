@@ -14,12 +14,12 @@ impl CollectionManager {
     pub fn new(path: PathBuf) -> Result<Self> {
         let manager = Self { path };
 
-        manager.prepare_collection()?;
+        manager.prepare_path()?;
 
         Ok(manager)
     }
 
-    pub fn read_collection<T>(&self) -> Result<Vec<T>>
+    pub fn read<T>(&self) -> Result<Vec<T>>
     where
         T: DeserializeOwned,
     {
@@ -30,7 +30,7 @@ impl CollectionManager {
         Ok(collection)
     }
 
-    pub fn write_collection<S>(&self, collection: Vec<S>) -> Result<()>
+    pub fn write<S>(&self, collection: Vec<S>) -> Result<()>
     where
         S: Serialize,
     {
@@ -44,7 +44,7 @@ impl CollectionManager {
         Ok(())
     }
 
-    pub fn prepare_collection(&self) -> Result<()> {
+    pub fn prepare_path(&self) -> Result<()> {
         if AsRef::<Path>::as_ref(&self.path).try_exists()? {
             return Ok(());
         }

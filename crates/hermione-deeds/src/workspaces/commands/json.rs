@@ -32,13 +32,13 @@ impl Client {
     }
 
     pub fn read(&self) -> Result<Vec<Record>> {
-        let records = self.manager.read_collection()?;
+        let records = self.manager.read()?;
 
         Ok(records)
     }
 
     pub fn write(&self, records: Vec<Record>) -> Result<()> {
-        self.manager.write_collection(records)?;
+        self.manager.write(records)?;
 
         Ok(())
     }
