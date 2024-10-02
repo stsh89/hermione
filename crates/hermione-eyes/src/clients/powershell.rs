@@ -1,4 +1,5 @@
 use crate::Result;
+use anyhow::anyhow;
 use hermione_wand::powershell;
 
 pub struct Client {
@@ -13,17 +14,21 @@ pub struct StartWindowsTerminalParameters<'a> {
 
 impl Client {
     pub fn copy_to_clipboard(self, text: &str) -> Result<()> {
-        self.inner.copy_to_clipboard(text)
+        self.inner
+            .copy_to_clipboard(text)
+            .map_err(|err| anyhow!(err))
     }
 
     pub fn new() -> Result<Self> {
         Ok(Self {
-            inner: powershell::Client::new()?,
+            inner: powershell::Client::new().map_err(|err| anyhow!(err))?,
         })
     }
 
     pub fn start_windows_terminal(self, parameters: StartWindowsTerminalParameters) -> Result<()> {
-        self.inner.start_windows_terminal(parameters.into())
+        self.inner
+            .start_windows_terminal(parameters.into())
+            .map_err(|err| anyhow!(err))
     }
 }
 

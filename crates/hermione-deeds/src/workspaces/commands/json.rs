@@ -3,6 +3,7 @@ use hermione_memories::{
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     Id, Result,
 };
+use hermione_wand::json::CollectionManager;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -20,20 +21,24 @@ pub struct Record {
 }
 
 pub struct Client {
-    pub path: PathBuf,
+    manager: CollectionManager,
 }
 
 impl Client {
+    pub fn new(path: PathBuf) -> Result<Self> {
+        let manager = CollectionManager::new(path)?;
+
+        Ok(Self { manager })
+    }
+
     pub fn read(&self) -> Result<Vec<Record>> {
-        use crate::json::read_collection;
-        let records = read_collection(&self.path)?;
+        let records = self.manager.read_collection()?;
 
         Ok(records)
     }
 
     pub fn write(&self, records: Vec<Record>) -> Result<()> {
-        use crate::json::write_collection;
-        write_collection(&self.path, records)?;
+        self.manager.write_collection(records)?;
 
         Ok(())
     }

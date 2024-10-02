@@ -1,4 +1,4 @@
-use crate::Result;
+use crate::{Error, Result};
 use std::{
     fmt::Display,
     io::Write,
@@ -110,6 +110,6 @@ impl Client {
         self.powershell
             .stdin
             .as_mut()
-            .ok_or(anyhow::anyhow!("Powershell stdin access failure"))
+            .ok_or_else(|| Error::msg("Failed to get PowerShell's stdin"))
     }
 }

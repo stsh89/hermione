@@ -7,4 +7,6 @@ edition = "2021"
 name = "hermione_wand"
 
 [dependencies]
-anyhow = { workspace = true }
+eyre = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

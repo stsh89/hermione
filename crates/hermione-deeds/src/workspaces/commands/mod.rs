@@ -1,6 +1,6 @@
 mod json;
 
-use crate::{json::prepare_collection, Result};
+use crate::Result;
 use chrono::{DateTime, Utc};
 use hermione_memories::{
     entities::command::{Entity, LoadParameters, Name, NewParameters, Program, ScopedId},
@@ -106,11 +106,9 @@ impl Operations for Client {
 
 impl Client {
     pub fn new(path: PathBuf) -> Result<Self> {
-        prepare_collection(&path)?;
+        let inner = json::Client::new(path)?;
 
-        Ok(Self {
-            inner: json::Client { path },
-        })
+        Ok(Self { inner })
     }
 }
 

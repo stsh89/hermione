@@ -231,6 +231,7 @@ dependencies = [
  "chrono",
  "eyre",
  "hermione-memories",
+ "hermione-wand",
  "serde",
  "serde_json",
  "uuid",
@@ -267,7 +268,9 @@ dependencies = [
 name = "hermione-wand"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "eyre",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

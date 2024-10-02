@@ -1,4 +1,5 @@
+pub mod json;
 pub mod powershell;
 
-type Error = anyhow::Error;
-type Result<T> = std::result::Result<T, Error>;
+type Error = eyre::Error;
+type Result<T> = eyre::Result<T>;
