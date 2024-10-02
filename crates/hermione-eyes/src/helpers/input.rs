@@ -58,7 +58,7 @@ impl Input {
     ///
     /// Since each character in a string can be contain multiple bytes, it's necessary to calculate
     /// the byte index based on the index of the character.
-    pub fn byte_index(&self) -> usize {
+    fn byte_index(&self) -> usize {
         self.value
             .char_indices()
             .map(|(i, _)| i)
@@ -93,7 +93,7 @@ impl Input {
         self.character_index = 0;
     }
 
-    pub fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
+    fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
         new_cursor_pos.clamp(0, self.value.chars().count())
     }
 
