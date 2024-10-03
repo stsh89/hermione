@@ -1,5 +1,5 @@
 use crate::{
-    clients::memories,
+    clients::memories::{self, WorkspacesCommandsListParameters},
     models::workspaces::commands::list::{Model, ModelParameters},
     parameters::workspaces::commands::create::Parameters,
     presenters::command::Presenter,
@@ -26,7 +26,12 @@ impl<'a> Handler<'a> {
         })?;
 
         let workspace = self.memories.get_workspace(&workspace_id)?;
-        let commands = self.memories.list_commands(&workspace_id)?;
+        let commands = self
+            .memories
+            .list_commands(WorkspacesCommandsListParameters {
+                workspace_id: &workspace_id,
+                search_query: Some(&program),
+            })?;
 
         Model::new(ModelParameters {
             workspace,

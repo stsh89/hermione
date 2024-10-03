@@ -10,6 +10,12 @@ pub struct Client {
     commands: workspaces::commands::Client,
 }
 
+#[derive(Default)]
+pub struct WorkspacesCommandsListParameters<'a> {
+    pub workspace_id: &'a str,
+    pub search_query: Option<&'a str>,
+}
+
 impl Client {
     pub fn new(path: &Path) -> Result<Self> {
         let commands_path = path.join("commands.json");
@@ -53,8 +59,27 @@ impl Client {
         Ok(workspace.into())
     }
 
-    pub fn list_commands(&self, workspace_id: &str) -> Result<Vec<Command>> {
+    pub fn list_commands(
+        &self,
+        parameters: WorkspacesCommandsListParameters,
+    ) -> Result<Vec<Command>> {
+        let WorkspacesCommandsListParameters {
+            workspace_id,
+            search_query,
+        } = parameters;
+
         let commands = self.commands.list(workspace_id)?;
+
+        let filter = search_query.as_ref().map(|query| query.to_lowercase());
+
+        let commands = if let Some(filter) = filter {
+            commands
+                .into_iter()
+                .filter(|c| c.program.to_lowercase().contains(&filter))
+                .collect()
+        } else {
+            commands
+        };
 
         Ok(commands.into_iter().map(Into::into).collect())
     }

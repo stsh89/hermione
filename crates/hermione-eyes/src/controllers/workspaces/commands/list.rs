@@ -1,5 +1,5 @@
 use crate::{
-    clients::memories::Client,
+    clients::memories::{Client, WorkspacesCommandsListParameters},
     models::workspaces::commands::list::{Model, ModelParameters},
     parameters::workspaces::commands::list::Parameters,
     Result,
@@ -17,17 +17,13 @@ impl<'a> Handler<'a> {
         } = parameters;
 
         let workspace = self.memories.get_workspace(&workspace_id)?;
-        let commands = self.memories.list_commands(&workspace.id)?;
-        let filter = search_query.as_ref().map(|query| query.to_lowercase());
 
-        let commands = if let Some(filter) = filter {
-            commands
-                .into_iter()
-                .filter(|c| c.program.to_lowercase().contains(&filter))
-                .collect()
-        } else {
-            commands
-        };
+        let commands = self
+            .memories
+            .list_commands(WorkspacesCommandsListParameters {
+                workspace_id: &workspace_id,
+                search_query: search_query.as_deref(),
+            })?;
 
         let workspace = self.memories.track_workspace_access_time(workspace)?;
 

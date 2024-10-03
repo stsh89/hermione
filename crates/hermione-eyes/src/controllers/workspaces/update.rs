@@ -1,5 +1,5 @@
 use crate::{
-    clients::memories,
+    clients::memories::{self, WorkspacesCommandsListParameters},
     models::workspaces::commands::list::{Model, ModelParameters},
     parameters::workspaces::update::Parameters,
     Result,
@@ -19,7 +19,12 @@ impl<'a> Handler<'a> {
         workspace.location = Some(location);
 
         let workspace = self.memories.update_workspace(workspace)?;
-        let commands = self.memories.list_commands(&id)?;
+        let commands = self
+            .memories
+            .list_commands(WorkspacesCommandsListParameters {
+                workspace_id: &workspace.id,
+                ..Default::default()
+            })?;
 
         let model = Model::new(ModelParameters {
             commands,

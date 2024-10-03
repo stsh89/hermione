@@ -1,5 +1,5 @@
 use crate::{
-    clients::memories,
+    clients::memories::{self, WorkspacesCommandsListParameters},
     models::workspaces::commands::list::{Model, ModelParameters},
     parameters::workspaces::commands::delete::Parameters,
     Result,
@@ -19,7 +19,12 @@ impl<'a> Handler<'a> {
         self.memories.delete_command(&workspace_id, &command_id)?;
 
         let workspace = self.memories.get_workspace(&workspace_id)?;
-        let commands = self.memories.list_commands(&workspace_id)?;
+        let commands = self
+            .memories
+            .list_commands(WorkspacesCommandsListParameters {
+                workspace_id: &workspace_id,
+                ..Default::default()
+            })?;
 
         Model::new(ModelParameters {
             workspace,
