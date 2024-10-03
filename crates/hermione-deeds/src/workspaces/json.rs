@@ -1,4 +1,5 @@
 use crate::base::json::CollectionManager;
+use chrono::{DateTime, Utc};
 use hermione_memories::{
     entities::workspace::{Entity, LoadParameters, Location, Name},
     operations::workspaces::{create, delete, get, list, track_access_time, update},
@@ -13,7 +14,7 @@ pub struct Record {
     id: Uuid,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    last_access_time: Option<chrono::DateTime<chrono::Utc>>,
+    last_access_time: Option<DateTime<Utc>>,
 
     location: String,
     name: String,
@@ -110,7 +111,7 @@ impl track_access_time::Track for Client {
             .find(|record| record.id == *id)
             .ok_or(eyre::eyre!("Workspace with id {} not found", id,))?;
 
-        record.last_access_time = Some(chrono::Utc::now());
+        record.last_access_time = Some(Utc::now());
 
         self.write(records)?;
 
