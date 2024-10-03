@@ -1,9 +1,9 @@
+use crate::base::json::CollectionManager;
 use hermione_memories::{
     entities::command::{Entity, LoadParameters, Name, Program, ScopedId},
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     Id, Result,
 };
-use hermione_wand::json::CollectionManager;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use uuid::Uuid;

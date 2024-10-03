@@ -1,6 +1,6 @@
 mod json;
 
-use crate::Result;
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use hermione_memories::{
     entities::command::{Entity, LoadParameters, Name, NewParameters, Program, ScopedId},

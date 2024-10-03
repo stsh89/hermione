@@ -231,7 +231,6 @@ dependencies = [
  "chrono",
  "eyre",
  "hermione-memories",
- "hermione-wand",
  "serde",
  "serde_json",
  "uuid",

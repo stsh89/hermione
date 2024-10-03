@@ -2,7 +2,7 @@ mod json;
 
 pub mod commands;
 
-use crate::Result;
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use hermione_memories::{
     entities::workspace::{Entity, LoadParameters, Location, Name, NewParameters},
