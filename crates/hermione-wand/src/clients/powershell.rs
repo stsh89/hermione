@@ -9,7 +9,7 @@ pub struct Client {
     powershell: Child,
 }
 
-pub struct StartWindowsTerminalParameters<'a> {
+pub struct WindowsTerminalParameters<'a> {
     pub command: Option<&'a str>,
     pub directory: Option<&'a str>,
     pub no_exit: bool,
@@ -83,11 +83,8 @@ impl Client {
         })
     }
 
-    pub fn start_windows_terminal(
-        mut self,
-        parameters: StartWindowsTerminalParameters,
-    ) -> Result<()> {
-        let StartWindowsTerminalParameters {
+    pub fn start_windows_terminal(mut self, parameters: WindowsTerminalParameters) -> Result<()> {
+        let WindowsTerminalParameters {
             directory,
             no_exit,
             command,

@@ -1,14 +1,7 @@
-use crate::{
-    clients::{
-        memories::Client,
-        powershell::{self, StartWindowsTerminalParameters},
-    },
-    parameters::powershell::execute_command::Parameters,
-    Result,
-};
+use crate::{clients, parameters::powershell::execute_command::Parameters, Result};
 
 pub struct Handler<'a> {
-    pub memories: &'a Client,
+    pub memories: &'a clients::memories::Client,
 }
 
 impl<'a> Handler<'a> {
@@ -21,9 +14,9 @@ impl<'a> Handler<'a> {
 
         let command = self.memories.get_command(&workspace_id, &command_id)?;
         let workspace = self.memories.get_workspace(&workspace_id)?;
-        let powershell = powershell::Client::new()?;
+        let powershell = clients::powershell::Client::new()?;
 
-        powershell.start_windows_terminal(StartWindowsTerminalParameters {
+        powershell.start_windows_terminal(clients::powershell::WindowsTerminalParameters {
             directory: workspace.location.as_deref(),
             no_exit: powershell_no_exit,
             command: Some(&command.program),

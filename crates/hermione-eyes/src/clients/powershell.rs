@@ -1,15 +1,11 @@
 use crate::Result;
 use anyhow::anyhow;
-use hermione_wand::powershell;
+use hermione_wand::clients::powershell::Client as InnerClient;
+
+pub use hermione_wand::clients::powershell::WindowsTerminalParameters;
 
 pub struct Client {
-    inner: powershell::Client,
-}
-
-pub struct StartWindowsTerminalParameters<'a> {
-    pub command: Option<&'a str>,
-    pub directory: Option<&'a str>,
-    pub no_exit: bool,
+    inner: InnerClient,
 }
 
 impl Client {
@@ -21,31 +17,13 @@ impl Client {
 
     pub fn new() -> Result<Self> {
         Ok(Self {
-            inner: powershell::Client::new().map_err(|err| anyhow!(err))?,
+            inner: InnerClient::new().map_err(|err| anyhow!(err))?,
         })
     }
 
-    pub fn start_windows_terminal(self, parameters: StartWindowsTerminalParameters) -> Result<()> {
+    pub fn start_windows_terminal(self, parameters: WindowsTerminalParameters) -> Result<()> {
         self.inner
-            .start_windows_terminal(parameters.into())
+            .start_windows_terminal(parameters)
             .map_err(|err| anyhow!(err))
-    }
-}
-
-impl<'a> From<StartWindowsTerminalParameters<'a>>
-    for powershell::StartWindowsTerminalParameters<'a>
-{
-    fn from(parameters: StartWindowsTerminalParameters<'a>) -> Self {
-        let StartWindowsTerminalParameters {
-            command,
-            directory,
-            no_exit,
-        } = parameters;
-
-        Self {
-            command,
-            directory,
-            no_exit,
-        }
     }
 }
