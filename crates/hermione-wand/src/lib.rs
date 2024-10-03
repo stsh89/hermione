@@ -1,3 +1,5 @@
+mod base;
+
 pub mod clients;
 
 type Error = eyre::Error;

@@ -8,5 +8,7 @@ name = "hermione_wand"
 
 [dependencies]
 eyre = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
+tokio = { workspace = true, features = ["macros"] }
