@@ -1,4 +1,3 @@
-pub mod json;
 pub mod powershell;
 
 type Error = eyre::Error;
