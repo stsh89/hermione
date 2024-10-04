@@ -85,10 +85,11 @@ impl Client {
             body["start_cursor"] = serde_json::json!(start_cursor);
         }
 
-        let parameters = PostParameters::default()
+        let parameters = PostParameters::builder()
             .with_uri(&uri)
             .with_api_key(&self.api_key)
-            .with_body(body);
+            .with_body(body)
+            .build()?;
 
         let response = self.inner.post(parameters).await?;
 

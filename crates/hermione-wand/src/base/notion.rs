@@ -1,4 +1,5 @@
 use crate::Result;
+use eyre::eyre;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client as InnerClient, Response, StatusCode, Url,
@@ -6,21 +7,27 @@ use reqwest::{
 use serde_json::Value;
 use std::time::Duration;
 
-const NOTION_HEADER_VERSION_NAME: &str = "notion-version";
-const NOTION_HEADER_VERSION_VALUE: &str = "2022-06-28";
 const NOTION_BASE_URL: &str = "https://api.notion.com/v1/";
 const NOTION_HEADER_CONTENT_TYPE_VALUE: &str = "application/json";
+const NOTION_HEADER_VERSION_NAME: &str = "notion-version";
+const NOTION_HEADER_VERSION_VALUE: &str = "2022-06-28";
 
 pub struct Client {
-    inner: InnerClient,
     base_url: Url,
+    inner: InnerClient,
+}
+
+pub struct PostParameters<'a> {
+    api_key: &'a str,
+    body: Option<Value>,
+    uri: &'a str,
 }
 
 #[derive(Default)]
-pub struct PostParameters<'a> {
-    pub body: Option<Value>,
-    pub uri: &'a str,
-    pub api_key: &'a str,
+pub struct PostParametersBuilder<'a> {
+    api_key: Option<&'a str>,
+    body: Option<Value>,
+    uri: Option<&'a str>,
 }
 
 impl Client {
@@ -68,7 +75,10 @@ impl Client {
             return Ok(response.json().await?);
         }
 
-        Err(eyre::eyre!(error_message(response).await?))
+        let error_message = api_request_error_message(response).await?;
+        let error = eyre!(error_message);
+
+        Err(error.wrap_err("Notion API request error"))
     }
 
     pub fn with_base_url(self, base_url: Url) -> Self {
@@ -79,7 +89,25 @@ impl Client {
     }
 }
 
-impl<'a> PostParameters<'a> {
+impl<'a> PostParametersBuilder<'a> {
+    pub fn build(self) -> Result<PostParameters<'a>> {
+        let api_key = self.api_key.ok_or(eyre!("Notion API key is required"))?;
+        let uri = self.uri.ok_or(eyre!("Notion API URI is required"))?;
+
+        Ok(PostParameters {
+            api_key,
+            body: self.body,
+            uri,
+        })
+    }
+
+    pub fn with_api_key(self, api_key: &'a str) -> Self {
+        Self {
+            api_key: Some(api_key),
+            ..self
+        }
+    }
+
     pub fn with_body(self, body: Value) -> Self {
         Self {
             body: Some(body),
@@ -88,25 +116,27 @@ impl<'a> PostParameters<'a> {
     }
 
     pub fn with_uri(self, uri: &'a str) -> Self {
-        Self { uri, ..self }
-    }
-
-    pub fn with_api_key(self, api_key: &'a str) -> Self {
-        Self { api_key, ..self }
+        Self {
+            uri: Some(uri),
+            ..self
+        }
     }
 }
 
-async fn error_message(response: Response) -> Result<String> {
+impl<'a> PostParameters<'a> {
+    pub fn builder() -> PostParametersBuilder<'a> {
+        PostParametersBuilder::default()
+    }
+}
+
+async fn api_request_error_message(response: Response) -> Result<String> {
     let status = response.status().as_u16();
     let response_body: Value = response.json().await?;
     let message = response_body["message"].as_str().unwrap_or_default();
 
     Ok(serde_json::json!({
-        "error": "Notion API request failure",
-        "details": {
-            "status": status,
-            "message": message
-        }
+        "status": status,
+        "message": message
     })
     .to_string())
 }
