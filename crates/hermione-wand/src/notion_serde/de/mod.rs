@@ -4,18 +4,15 @@ pub mod unique_id;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::Result;
     use eyre::OptionExt;
     use serde::Deserialize;
     use serde_json::Value;
-    use super::*;
-    use crate::Result;
 
     #[derive(Debug, Deserialize)]
     struct Record {
-        #[serde(
-            rename(deserialize = "Name"),
-            deserialize_with = "title::deserializer"
-        )]
+        #[serde(rename(deserialize = "Name"), deserialize_with = "title::deserializer")]
         name: Option<String>,
 
         #[serde(
@@ -91,7 +88,8 @@ mod tests {
                     }
                 ]
             }
-        }"#.to_string()
+        }"#
+        .to_string()
     }
 
     #[test]
@@ -128,11 +126,14 @@ mod tests {
         let values = vec![value];
 
         let records = values
-        .into_iter()
-        .map(|r| Ok(serde_json::from_value(r)?))
-        .collect::<Result<Vec<Record>>>()?;
+            .into_iter()
+            .map(|r| Ok(serde_json::from_value(r)?))
+            .collect::<Result<Vec<Record>>>()?;
 
-        let record = records.into_iter().next().ok_or_eyre("Expected one record")?;
+        let record = records
+            .into_iter()
+            .next()
+            .ok_or_eyre("Expected one record")?;
 
         assert_eq!(record.name, None);
         assert_eq!(record.id, 4);

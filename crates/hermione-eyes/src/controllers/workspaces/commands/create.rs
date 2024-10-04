@@ -1,17 +1,14 @@
 use crate::{
-    clients::memories::{self, WorkspacesCommandsListParameters},
-    models::workspaces::commands::list::{Model, ModelParameters},
-    parameters::workspaces::commands::create::Parameters,
-    presenters::command::Presenter,
+    clients, parameters::workspaces::commands::create::Parameters, presenters::command::Presenter,
     Result,
 };
 
 pub struct Handler<'a> {
-    pub memories: &'a memories::Client,
+    pub memories: &'a clients::memories::Client,
 }
 
 impl<'a> Handler<'a> {
-    pub fn handle(self, parameters: Parameters) -> Result<Model> {
+    pub fn handle(self, parameters: Parameters) -> Result<Presenter> {
         let Parameters {
             workspace_id,
             name,
@@ -23,20 +20,6 @@ impl<'a> Handler<'a> {
             id: String::new(),
             name,
             program: program.clone(),
-        })?;
-
-        let workspace = self.memories.get_workspace(&workspace_id)?;
-        let commands = self
-            .memories
-            .list_commands(WorkspacesCommandsListParameters {
-                workspace_id: &workspace_id,
-                search_query: Some(&program),
-            })?;
-
-        Model::new(ModelParameters {
-            workspace,
-            commands,
-            search_query: Some(program),
         })
     }
 }

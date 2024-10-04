@@ -1,6 +1,6 @@
 use crate::{
-    clients, controllers::workspaces::commands::*, routes::workspaces::commands::Route, Model,
-    Result,
+    clients, controllers::workspaces::commands::*, parameters, routes::workspaces::commands::Route,
+    Model, Result,
 };
 
 pub struct Router<'a> {
@@ -14,8 +14,14 @@ impl<'a> Router<'a> {
         match route {
             Route::Create(paramters) => {
                 let handler = create::Handler { memories };
+                let command = handler.handle(paramters)?;
 
-                let model = handler.handle(paramters)?;
+                let model = list::Handler { memories }.handle(
+                    parameters::workspaces::commands::list::Parameters {
+                        workspace_id: command.workspace_id,
+                        search_query: Some(command.program),
+                    },
+                )?;
 
                 Ok(Some(Box::new(model)))
             }
