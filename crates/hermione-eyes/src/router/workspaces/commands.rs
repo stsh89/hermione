@@ -1,5 +1,5 @@
 use crate::{
-    clients, controllers::workspaces::commands::*, parameters, routes::workspaces::commands::Route,
+    clients, handlers::workspaces::commands::*, parameters, routes::workspaces::commands::Route,
     Model, Result,
 };
 
@@ -27,8 +27,14 @@ impl<'a> Router<'a> {
             }
             Route::Delete(parameters) => {
                 let handler = delete::Handler { memories };
+                let workspace = handler.handle(parameters)?;
 
-                let model = handler.handle(parameters)?;
+                let model = list::Handler { memories }.handle(
+                    parameters::workspaces::commands::list::Parameters {
+                        workspace_id: workspace.id,
+                        search_query: None,
+                    },
+                )?;
 
                 Ok(Some(Box::new(model)))
             }

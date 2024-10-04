@@ -1,5 +1,5 @@
 use crate::{
-    clients::memories::Client, controllers::powershell::*, routes::powershell::Route, Model, Result,
+    clients::memories::Client, handlers::powershell::*, routes::powershell::Route, Model, Result,
 };
 
 pub struct Router<'a> {

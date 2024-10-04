@@ -1,6 +1,6 @@
 mod clients;
 mod components;
-mod controllers;
+mod handlers;
 mod logs;
 mod message;
 mod models;

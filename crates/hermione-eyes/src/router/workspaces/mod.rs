@@ -1,6 +1,12 @@
 mod commands;
 
-use crate::{clients, controllers::workspaces::*, routes::workspaces::Route, Model, Result};
+use crate::{
+    clients,
+    handlers::{self, workspaces::*},
+    parameters,
+    routes::workspaces::Route,
+    Model, Result,
+};
 
 pub struct Router<'a> {
     pub memories: &'a clients::memories::Client,
@@ -50,7 +56,14 @@ impl<'a> Router<'a> {
             Route::Update(parameters) => {
                 let handler = update::Handler { memories };
 
-                let model = handler.handle(parameters)?;
+                let workspace = handler.handle(parameters)?;
+
+                let model = handlers::workspaces::commands::list::Handler { memories }.handle(
+                    parameters::workspaces::commands::list::Parameters {
+                        workspace_id: workspace.id,
+                        search_query: None,
+                    },
+                )?;
 
                 Ok(Some(Box::new(model)))
             }
