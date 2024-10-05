@@ -7,6 +7,7 @@ members = [
     "crates/hermione-memories",
     "crates/hermione-notion",
     "crates/hermione-wand",
+    "crates/hermione-powershell",
 ]
 
 [workspace.dependencies]
@@ -29,3 +30,4 @@ hermione-json = { path = "crates/hermione-json" }
 hermione-memories = { path = "crates/hermione-memories" }
 hermione-notion = { path = "crates/hermione-notion" }
 hermione-wand = { path = "crates/hermione-wand" }
+hermione-powershell = { path = "crates/hermione-powershell" }

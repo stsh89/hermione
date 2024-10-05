@@ -808,7 +808,7 @@ dependencies = [
  "dirs",
  "eyre",
  "hermione-deeds",
- "hermione-wand",
+ "hermione-powershell",
  "ratatui",
  "serde",
  "serde_json",
@@ -847,6 +847,10 @@ dependencies = [
  "thiserror",
  "tokio",
 ]
+
+[[package]]
+name = "hermione-powershell"
+version = "0.1.0"
 
 [[package]]
 name = "hermione-wand"

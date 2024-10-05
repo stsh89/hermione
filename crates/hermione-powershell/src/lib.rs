@@ -1,7 +1,6 @@
-use crate::Result;
 use std::{
     fmt::Display,
-    io::Write,
+    io::{self, Write},
     process::{Child, ChildStdin, Command, Stdio},
 };
 
@@ -62,7 +61,7 @@ impl WindowsTerminalCommand {
 }
 
 impl Client {
-    pub fn copy_to_clipboard(mut self, text: &str) -> Result<()> {
+    pub fn copy_to_clipboard(mut self, text: &str) -> Result<(), io::Error> {
         let stdin = self.stdin()?;
 
         writeln!(stdin, "Set-Clipboard '{}'", text)?;
@@ -71,7 +70,7 @@ impl Client {
         Ok(())
     }
 
-    pub fn new() -> Result<Self> {
+    pub fn new() -> Result<Self, io::Error> {
         let mut cmd = Command::new("pwsh");
 
         cmd.stdin(Stdio::piped());
@@ -83,7 +82,10 @@ impl Client {
         })
     }
 
-    pub fn start_windows_terminal(mut self, parameters: WindowsTerminalParameters) -> Result<()> {
+    pub fn start_windows_terminal(
+        mut self,
+        parameters: WindowsTerminalParameters,
+    ) -> Result<(), io::Error> {
         let WindowsTerminalParameters {
             directory,
             no_exit,
@@ -103,12 +105,11 @@ impl Client {
         Ok(())
     }
 
-    fn stdin(&mut self) -> Result<&mut ChildStdin> {
-        let child_stdin = self
-            .powershell
-            .stdin
-            .as_mut()
-            .ok_or(eyre::eyre!("Failed to get PowerShell's stdin"))?;
+    fn stdin(&mut self) -> Result<&mut ChildStdin, io::Error> {
+        let child_stdin = self.powershell.stdin.as_mut().ok_or(io::Error::new(
+            io::ErrorKind::Other,
+            "Powershell stdin not found",
+        ))?;
 
         Ok(child_stdin)
     }

@@ -5,10 +5,11 @@ pub mod unique_id;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Result;
     use eyre::OptionExt;
     use serde::Deserialize;
     use serde_json::Value;
+
+    type Result<T> = eyre::Result<T>;
 
     #[derive(Debug, Deserialize)]
     struct Record {

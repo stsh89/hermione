@@ -1,8 +1,8 @@
 use crate::Result;
 use anyhow::anyhow;
-use hermione_wand::powershell::Client as InnerClient;
+use hermione_powershell::Client as InnerClient;
 
-pub use hermione_wand::powershell::WindowsTerminalParameters;
+pub use hermione_powershell::WindowsTerminalParameters;
 
 pub struct Client {
     inner: InnerClient,

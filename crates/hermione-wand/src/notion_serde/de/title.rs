@@ -60,7 +60,8 @@ impl<'de> Visitor<'de> for TitleVisitor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Result;
+
+    type Result<T> = eyre::Result<T>;
 
     #[derive(Debug, Deserialize)]
     struct Record {
