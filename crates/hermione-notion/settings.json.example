@@ -1,0 +1,10 @@
+{
+    "api_key": "your-notion-api-key",
+    "timeout_secs": 10,
+    "base_url": null,
+    "action": {
+        "query_database": {
+            "database_id": "your-database-id"
+        }
+    }
+}

@@ -835,6 +835,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "hermione-notion"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "eyre",
+ "httpmock",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "hermione-wand"
 version = "0.1.0"
 dependencies = [

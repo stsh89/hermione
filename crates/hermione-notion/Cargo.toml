@@ -1,0 +1,19 @@
+[package]
+name = "hermione-notion"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "hermione_notion"
+
+[dependencies]
+anyhow = { workspace = true }
+eyre = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[dev-dependencies]
+httpmock = "0.7.0"
