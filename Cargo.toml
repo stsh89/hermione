@@ -5,6 +5,7 @@ members = [
     "crates/hermione-eyes",
     "crates/hermione-deeds",
     "crates/hermione-wand",
+    "crates/hermione-json",
 ]
 
 [workspace.dependencies]
@@ -25,3 +26,4 @@ uuid = "1.10.0"
 hermione-memories = { path = "crates/hermione-memories" }
 hermione-deeds = { path = "crates/hermione-deeds" }
 hermione-wand = { path = "crates/hermione-wand" }
+hermione-json = { path = "crates/hermione-json" }
