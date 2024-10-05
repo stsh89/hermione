@@ -1,5 +1,5 @@
-use crate::base::json::CollectionManager;
 use chrono::{DateTime, Utc};
+use hermione_json::collections::Client as InnerClient;
 use hermione_memories::{
     entities::workspace::{Entity, LoadParameters, Location, Name},
     operations::workspaces::{create, delete, get, list, track_access_time, update},
@@ -21,24 +21,24 @@ pub struct Record {
 }
 
 pub struct Client {
-    pub manager: CollectionManager,
+    pub inner: InnerClient,
 }
 
 impl Client {
-    pub fn new(path: PathBuf) -> Result<Self> {
-        let manager = CollectionManager::new(path)?;
+    pub fn new(path: PathBuf) -> eyre::Result<Self> {
+        let manager = InnerClient::new(path)?;
 
-        Ok(Self { manager })
+        Ok(Self { inner: manager })
     }
 
-    pub fn read(&self) -> Result<Vec<Record>> {
-        let records = self.manager.read()?;
+    pub fn read(&self) -> eyre::Result<Vec<Record>> {
+        let records = self.inner.read_collection()?;
 
         Ok(records)
     }
 
-    pub fn write(&self, records: Vec<Record>) -> Result<()> {
-        self.manager.write(records)?;
+    pub fn write(&self, records: Vec<Record>) -> eyre::Result<()> {
+        self.inner.write_collection(records)?;
 
         Ok(())
     }

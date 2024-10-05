@@ -1,6 +1,6 @@
 mod json;
 
-use anyhow::Result;
+use crate::Result;
 use chrono::{DateTime, Utc};
 use hermione_memories::{
     entities::command::{Entity, LoadParameters, Name, NewParameters, Program, ScopedId},
@@ -31,7 +31,7 @@ pub struct Dto {
 }
 
 impl Operations for Client {
-    fn create(&self, data: Dto) -> anyhow::Result<Dto> {
+    fn create(&self, data: Dto) -> Result<Dto> {
         let workspace = create::Operation {
             creator: &self.inner,
         }
@@ -40,7 +40,7 @@ impl Operations for Client {
         Ok(Dto::from_entity(workspace))
     }
 
-    fn delete(&self, workspace_id: &str, id: &str) -> anyhow::Result<()> {
+    fn delete(&self, workspace_id: &str, id: &str) -> Result<()> {
         let id = ScopedId {
             workspace_id: Id::from_str(workspace_id)?,
             id: Id::from_str(id)?,
@@ -54,7 +54,7 @@ impl Operations for Client {
         Ok(())
     }
 
-    fn get(&self, workspace_id: &str, id: &str) -> anyhow::Result<Dto> {
+    fn get(&self, workspace_id: &str, id: &str) -> Result<Dto> {
         let id = ScopedId {
             workspace_id: Id::from_str(workspace_id)?,
             id: Id::from_str(id)?,
@@ -68,7 +68,7 @@ impl Operations for Client {
         Ok(Dto::from_entity(workspace))
     }
 
-    fn list(&self, workspace_id: &str) -> anyhow::Result<Vec<Dto>> {
+    fn list(&self, workspace_id: &str) -> Result<Vec<Dto>> {
         let workspaces = list::Operation {
             lister: &self.inner,
         }
@@ -77,7 +77,7 @@ impl Operations for Client {
         Ok(workspaces.into_iter().map(Dto::from_entity).collect())
     }
 
-    fn track_execution_time(&self, workspace_id: &str, id: &str) -> anyhow::Result<Dto> {
+    fn track_execution_time(&self, workspace_id: &str, id: &str) -> Result<Dto> {
         let id = ScopedId {
             workspace_id: Id::from_str(workspace_id)?,
             id: Id::from_str(id)?,
@@ -94,7 +94,7 @@ impl Operations for Client {
         Ok(Dto::from_entity(entity))
     }
 
-    fn update(&self, data: Dto) -> anyhow::Result<Dto> {
+    fn update(&self, data: Dto) -> Result<Dto> {
         let workspace = update::Operation {
             updater: &self.inner,
         }
@@ -123,7 +123,7 @@ impl Dto {
         }
     }
 
-    fn load_entity(self) -> Result<Entity> {
+    fn load_entity(self) -> eyre::Result<Entity> {
         Ok(Entity::load(LoadParameters {
             id: Id::from_str(&self.id)?,
             name: Name::new(self.name),
@@ -133,7 +133,7 @@ impl Dto {
         }))
     }
 
-    fn new_entity(self) -> Result<Entity> {
+    fn new_entity(self) -> eyre::Result<Entity> {
         Ok(Entity::new(NewParameters {
             name: Name::new(self.name),
             program: Program::new(self.program),

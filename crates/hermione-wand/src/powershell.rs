@@ -1,4 +1,4 @@
-use crate::{Error, Result};
+use crate::Result;
 use std::{
     fmt::Display,
     io::Write,
@@ -104,9 +104,12 @@ impl Client {
     }
 
     fn stdin(&mut self) -> Result<&mut ChildStdin> {
-        self.powershell
+        let child_stdin = self
+            .powershell
             .stdin
             .as_mut()
-            .ok_or_else(|| Error::msg("Failed to get PowerShell's stdin"))
+            .ok_or(eyre::eyre!("Failed to get PowerShell's stdin"))?;
+
+        Ok(child_stdin)
     }
 }

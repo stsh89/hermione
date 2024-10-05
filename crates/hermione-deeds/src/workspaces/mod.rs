@@ -2,7 +2,7 @@ mod json;
 
 pub mod commands;
 
-use anyhow::Result;
+use crate::Result;
 use chrono::{DateTime, Utc};
 use hermione_memories::{
     entities::workspace::{Entity, LoadParameters, Location, Name, NewParameters},
@@ -108,7 +108,7 @@ impl Dto {
         }
     }
 
-    fn load_entity(self) -> Result<Entity> {
+    fn load_entity(self) -> eyre::Result<Entity> {
         Ok(Entity::load(LoadParameters {
             id: Id::from_str(&self.id)?,
             name: Name::new(self.name),

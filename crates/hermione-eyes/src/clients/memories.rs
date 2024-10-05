@@ -40,11 +40,15 @@ impl Client {
     }
 
     pub fn delete_command(&self, workspace_id: &str, command_id: &str) -> Result<()> {
-        self.commands.delete(workspace_id, command_id)
+        self.commands.delete(workspace_id, command_id)?;
+
+        Ok(())
     }
 
     pub fn delete_workspace(&self, workspace_id: &str) -> Result<()> {
-        self.workspaces.delete(workspace_id)
+        self.workspaces.delete(workspace_id)?;
+
+        Ok(())
     }
 
     pub fn get_command(&self, workspace_id: &str, command_id: &str) -> Result<Command> {
