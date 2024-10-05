@@ -39,8 +39,6 @@ async fn main() -> Result<()> {
     let settings_path = format!("{dir}/settings.json");
     let output_path = format!("{dir}/output.json");
 
-    println!("Reading settings from {settings_path}");
-
     let file = fs::File::open(settings_path)?;
 
     let Settings {
