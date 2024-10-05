@@ -1,8 +1,9 @@
 use std::{
-    fmt::Display,
-    io::{self, Write},
-    process::{Child, ChildStdin, Command, Stdio},
+    fmt, io,
+    process::{Child, Command, Stdio},
 };
+
+type Result<T> = std::result::Result<T, io::Error>;
 
 pub struct Client {
     powershell: Child,
@@ -26,8 +27,8 @@ impl Default for WindowsTerminalCommand {
     }
 }
 
-impl Display for WindowsTerminalCommand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for WindowsTerminalCommand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.command)
     }
 }
@@ -61,16 +62,16 @@ impl WindowsTerminalCommand {
 }
 
 impl Client {
-    pub fn copy_to_clipboard(mut self, text: &str) -> Result<(), io::Error> {
-        let stdin = self.stdin()?;
+    pub fn copy_to_clipboard(mut self, text: &str) -> Result<()> {
+        let command = format!("Set-Clipboard '{}'", text);
 
-        writeln!(stdin, "Set-Clipboard '{}'", text)?;
+        self.write_stdin(&command)?;
         self.powershell.wait_with_output()?;
 
         Ok(())
     }
 
-    pub fn new() -> Result<Self, io::Error> {
+    pub fn new() -> Result<Self> {
         let mut cmd = Command::new("pwsh");
 
         cmd.stdin(Stdio::piped());
@@ -82,10 +83,7 @@ impl Client {
         })
     }
 
-    pub fn start_windows_terminal(
-        mut self,
-        parameters: WindowsTerminalParameters,
-    ) -> Result<(), io::Error> {
+    pub fn start_windows_terminal(mut self, parameters: WindowsTerminalParameters) -> Result<()> {
         let WindowsTerminalParameters {
             directory,
             no_exit,
@@ -97,20 +95,21 @@ impl Client {
             .with_no_exit(no_exit)
             .with_command(command);
 
-        let stdin = self.stdin()?;
-
-        writeln!(stdin, "{}", command)?;
+        self.write_stdin(&command.to_string())?;
         self.powershell.wait_with_output()?;
 
         Ok(())
     }
 
-    fn stdin(&mut self) -> Result<&mut ChildStdin, io::Error> {
-        let child_stdin = self.powershell.stdin.as_mut().ok_or(io::Error::new(
+    fn write_stdin(&mut self, input: &str) -> Result<()> {
+        let stdin = self.powershell.stdin.as_mut().ok_or(io::Error::new(
             io::ErrorKind::Other,
             "Powershell stdin not found",
         ))?;
 
-        Ok(child_stdin)
+        use io::Write;
+        writeln!(stdin, "{}", input)?;
+
+        Ok(())
     }
 }
