@@ -22,46 +22,49 @@ impl<'de> Visitor<'de> for TitleVisitor {
     type Value = Option<String>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a map with nested title structure")
+        formatter.write_str("a map with id, type, and title fields")
     }
 
     fn visit_map<V>(self, mut map: V) -> std::result::Result<Option<String>, V::Error>
     where
         V: MapAccess<'de>,
     {
-        let mut option: Option<String> = None;
-        let mut key_found = false;
+        let mut title: Option<Option<String>> = None;
 
         while let Some(key) = map.next_key::<String>()? {
-            if key == "title" {
-                key_found = true;
-                let mut title = map.next_value::<Vec<Title>>()?;
-
-                if !title.is_empty() {
-                    let plain_text = title.remove(0).plain_text;
-
-                    if !plain_text.is_empty() {
-                        option = Some(plain_text);
-                    }
+            match key.as_ref() {
+                "id" | "type" => {
+                    map.next_value::<String>()?;
                 }
-            } else {
-                let _ = map.next_value::<serde_json::Value>()?;
+                "title" => {
+                    title = Some(get_title(&mut map)?);
+                }
+                _ => return Err(Error::unknown_field(&key, &["id", "type", "title"])),
             }
         }
 
-        if !key_found {
-            return Err(Error::missing_field("title"));
-        }
-
-        Ok(option)
+        title.ok_or(Error::missing_field("title"))
     }
+}
+
+fn get_title<'de, V>(map: &mut V) -> Result<Option<String>, V::Error>
+where
+    V: MapAccess<'de>,
+{
+    let mut title = map.next_value::<Vec<Title>>()?;
+
+    if title.is_empty() {
+        return Ok(None);
+    }
+
+    let plain_text = title.remove(0).plain_text;
+
+    Ok(Some(plain_text))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    type Result<T> = eyre::Result<T>;
 
     #[derive(Debug, Deserialize)]
     struct Record {
@@ -70,7 +73,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializer_if_empty_array() -> Result<()> {
+    fn test_deserializer_if_empty_array() -> Result<(), serde_json::Error> {
         let json = r#"{
             "Name": {
                 "id": "7DUIF",
@@ -87,7 +90,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializer() -> Result<()> {
+    fn test_deserializer() -> Result<(), serde_json::Error> {
         let json = r#"{
             "Name": {
                 "id": "7DUIF",

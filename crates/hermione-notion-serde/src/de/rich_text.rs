@@ -29,39 +29,42 @@ impl<'de> Visitor<'de> for RichTextVisitor {
     where
         V: MapAccess<'de>,
     {
-        let mut option = None;
-        let mut key_found = false;
+        let mut rich_text: Option<Option<String>> = None;
 
         while let Some(key) = map.next_key::<String>()? {
-            if key == "rich_text" {
-                key_found = true;
-                let mut rich_text = map.next_value::<Vec<RichText>>()?;
-
-                if !rich_text.is_empty() {
-                    let plain_text = rich_text.remove(0).plain_text;
-
-                    if !plain_text.is_empty() {
-                        option = Some(plain_text);
-                    }
+            match key.as_str() {
+                "id" | "type" => {
+                    map.next_value::<String>()?;
                 }
-            } else {
-                let _ = map.next_value::<serde_json::Value>()?;
+                "rich_text" => {
+                    rich_text = Some(get_rich_text(&mut map)?);
+                }
+                _ => return Err(Error::unknown_field(&key, &["id", "type", "rich_text"])),
             }
         }
 
-        if !key_found {
-            return Err(Error::missing_field("rich_text"));
-        }
-
-        Ok(option)
+        rich_text.ok_or(Error::missing_field("rich_text"))
     }
+}
+
+fn get_rich_text<'de, V>(map: &mut V) -> Result<Option<String>, V::Error>
+where
+    V: MapAccess<'de>,
+{
+    let mut rich_text = map.next_value::<Vec<RichText>>()?;
+
+    if rich_text.is_empty() {
+        return Ok(None);
+    }
+
+    let plain_text = rich_text.remove(0).plain_text;
+
+    Ok(Some(plain_text))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    type Result<T> = eyre::Result<T>;
 
     #[derive(Debug, Deserialize)]
     struct Record {
@@ -70,7 +73,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializer_if_empty_array() -> Result<()> {
+    fn test_deserializer_if_empty_array() -> Result<(), serde_json::Error> {
         let json = r#"{
             "Description": {
                 "id": "7DUIF",
@@ -87,7 +90,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializer() -> Result<()> {
+    fn test_deserializer() -> Result<(), serde_json::Error> {
         let json = r#"{
             "Description": {
                 "id": "7DUIF",

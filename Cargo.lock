@@ -849,20 +849,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "hermione-powershell"
-version = "0.1.0"
-
-[[package]]
-name = "hermione-wand"
+name = "hermione-notion-serde"
 version = "0.1.0"
 dependencies = [
- "eyre",
- "httpmock",
- "reqwest",
  "serde",
  "serde_json",
- "tokio",
 ]
+
+[[package]]
+name = "hermione-powershell"
+version = "0.1.0"
 
 [[package]]
 name = "hermit-abi"

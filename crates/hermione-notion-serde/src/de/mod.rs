@@ -5,11 +5,8 @@ pub mod unique_id;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use eyre::OptionExt;
     use serde::Deserialize;
     use serde_json::Value;
-
-    type Result<T> = eyre::Result<T>;
 
     #[derive(Debug, Deserialize)]
     struct Record {
@@ -94,7 +91,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializer_from_string() -> Result<()> {
+    fn test_deserializer_from_string() -> Result<(), serde_json::Error> {
         let record: Record = serde_json::from_str(json().as_str())?;
 
         assert_eq!(record.name, None);
@@ -107,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializer_from_value() -> Result<()> {
+    fn test_deserializer_from_value() -> Result<(), serde_json::Error> {
         let value: Value = serde_json::from_str(json().as_str())?;
 
         let record: Record = serde_json::from_value(value)?;
@@ -122,19 +119,18 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializer_from_values() -> Result<()> {
+    fn test_deserializer_from_values() -> Result<(), serde_json::Error> {
         let value: Value = serde_json::from_str(json().as_str())?;
         let values = vec![value];
 
         let records = values
             .into_iter()
             .map(|r| Ok(serde_json::from_value(r)?))
-            .collect::<Result<Vec<Record>>>()?;
+            .collect::<Result<Vec<Record>, serde_json::Error>>()?;
 
-        let record = records
-            .into_iter()
-            .next()
-            .ok_or_eyre("Expected one record")?;
+        assert_eq!(records.len(), 1);
+
+        let record = &records[0];
 
         assert_eq!(record.name, None);
         assert_eq!(record.id, 4);

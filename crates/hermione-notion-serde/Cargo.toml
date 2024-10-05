@@ -1,0 +1,13 @@
+[package]
+name = "hermione-notion-serde"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "hermione_notion_serde"
+
+[dependencies]
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

@@ -5,8 +5,8 @@ members = [
     "crates/hermione-eyes",
     "crates/hermione-json",
     "crates/hermione-memories",
+    "crates/hermione-notion-serde",
     "crates/hermione-notion",
-    "crates/hermione-wand",
     "crates/hermione-powershell",
 ]
 
@@ -29,5 +29,5 @@ hermione-deeds = { path = "crates/hermione-deeds" }
 hermione-json = { path = "crates/hermione-json" }
 hermione-memories = { path = "crates/hermione-memories" }
 hermione-notion = { path = "crates/hermione-notion" }
-hermione-wand = { path = "crates/hermione-wand" }
+hermione-notion-serde = { path = "crates/hermione-notion-serde" }
 hermione-powershell = { path = "crates/hermione-powershell" }

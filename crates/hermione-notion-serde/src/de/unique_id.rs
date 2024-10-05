@@ -29,32 +29,36 @@ impl<'de> Visitor<'de> for UniqueIdVisitor {
     where
         V: MapAccess<'de>,
     {
-        let mut id = 0;
-        let mut key_found = false;
+        let mut id: Option<u64> = None;
 
         while let Some(key) = map.next_key::<String>()? {
-            if key == "unique_id" {
-                key_found = true;
-                let unique_id: UniqueId = map.next_value()?;
-                id = unique_id.number;
-            } else {
-                let _ = map.next_value::<serde_json::Value>()?;
+            match key.as_ref() {
+                "id" | "type" => {
+                    map.next_value::<String>()?;
+                }
+                "unique_id" => {
+                    id = Some(get_id(&mut map)?);
+                }
+                _ => return Err(Error::unknown_field(&key, &["id", "type", "unique_id"])),
             }
         }
 
-        if !key_found {
-            return Err(Error::missing_field("unique_id"));
-        }
-
-        Ok(id)
+        id.ok_or(Error::missing_field("unique_id"))
     }
+}
+
+fn get_id<'de, V>(map: &mut V) -> Result<u64, V::Error>
+where
+    V: MapAccess<'de>,
+{
+    let unique_id = map.next_value::<UniqueId>()?;
+
+    Ok(unique_id.number)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    type Result<T> = eyre::Result<T>;
 
     #[derive(Debug, Deserialize)]
     struct Record {
@@ -63,7 +67,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializer() -> Result<()> {
+    fn test_deserializer() -> Result<(), serde_json::Error> {
         let json = r#"{
             "ID": {
                 "id": "jZ%3DO",
