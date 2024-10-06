@@ -1,3 +1,4 @@
+mod app_dir;
 mod clients;
 mod components;
 mod handlers;
@@ -8,10 +9,10 @@ mod parameters;
 mod presenters;
 mod router;
 mod routes;
-mod settings;
 mod tui;
 mod widgets;
 
+use app_dir::AppDir;
 use clients::memories;
 use router::Router;
 use routes::Route;
@@ -23,12 +24,12 @@ type Model = dyn tui::Model<Route = Route, Message = Message>;
 type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
-    let settings = settings::Settings::setup()?;
+    let app_dir = AppDir::new()?;
 
     tui::install_panic_hook();
-    logs::init(settings.logs_path()?.as_str())?;
+    logs::init(app_dir.path())?;
 
-    let memories = memories::Client::new(settings.path_to_memories())?;
+    let memories = memories::Client::new(app_dir.path())?;
 
     tui::run(Router { memories })?;
 
