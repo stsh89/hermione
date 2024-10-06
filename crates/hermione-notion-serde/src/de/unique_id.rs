@@ -22,7 +22,7 @@ impl<'de> Visitor<'de> for UniqueIdVisitor {
     type Value = u64;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a map with nested unique_id structure")
+        formatter.write_str("a map with id, type, and unique_id fields")
     }
 
     fn visit_map<V>(self, mut map: V) -> std::result::Result<u64, V::Error>
