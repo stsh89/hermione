@@ -11,7 +11,7 @@ mod tests {
     #[derive(Debug, Deserialize)]
     struct Record {
         #[serde(rename(deserialize = "Name"), deserialize_with = "title::deserializer")]
-        name: Option<String>,
+        name: String,
 
         #[serde(
             rename(deserialize = "ID"),
@@ -94,7 +94,7 @@ mod tests {
     fn test_deserializer_from_string() -> Result<(), serde_json::Error> {
         let record: Record = serde_json::from_str(json().as_str())?;
 
-        assert_eq!(record.name, None);
+        assert_eq!(record.name, "");
         assert_eq!(record.id, 4);
         assert_eq!(record.external_id, "");
         assert_eq!(record.last_access_time, "");
@@ -109,7 +109,7 @@ mod tests {
 
         let record: Record = serde_json::from_value(value)?;
 
-        assert_eq!(record.name, None);
+        assert_eq!(record.name, "");
         assert_eq!(record.id, 4);
         assert_eq!(record.external_id, "");
         assert_eq!(record.last_access_time, "");
@@ -132,7 +132,7 @@ mod tests {
 
         let record = &records[0];
 
-        assert_eq!(record.name, None);
+        assert_eq!(record.name, "");
         assert_eq!(record.id, 4);
         assert_eq!(record.external_id, "");
         assert_eq!(record.last_access_time, "");

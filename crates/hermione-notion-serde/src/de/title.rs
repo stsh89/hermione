@@ -4,7 +4,7 @@ use serde::{
 };
 use std::fmt;
 
-pub fn deserializer<'de, D>(deserializer: D) -> std::result::Result<Option<String>, D::Error>
+pub fn deserializer<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -19,17 +19,17 @@ struct Title {
 }
 
 impl<'de> Visitor<'de> for TitleVisitor {
-    type Value = Option<String>;
+    type Value = String;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a map with id, type, and title fields")
     }
 
-    fn visit_map<V>(self, mut map: V) -> std::result::Result<Option<String>, V::Error>
+    fn visit_map<V>(self, mut map: V) -> std::result::Result<Self::Value, V::Error>
     where
         V: MapAccess<'de>,
     {
-        let mut title: Option<Option<String>> = None;
+        let mut title: Option<String> = None;
 
         while let Some(key) = map.next_key::<String>()? {
             match key.as_ref() {
@@ -47,19 +47,19 @@ impl<'de> Visitor<'de> for TitleVisitor {
     }
 }
 
-fn get_title<'de, V>(map: &mut V) -> Result<Option<String>, V::Error>
+fn get_title<'de, V>(map: &mut V) -> Result<String, V::Error>
 where
     V: MapAccess<'de>,
 {
-    let mut title = map.next_value::<Vec<Title>>()?;
+    let mut items = map.next_value::<Vec<Title>>()?;
 
-    if title.is_empty() {
-        return Ok(None);
-    }
+    let value = if let Some(item) = items.pop() {
+        item.plain_text
+    } else {
+        String::new()
+    };
 
-    let plain_text = title.remove(0).plain_text;
-
-    Ok(Some(plain_text))
+    Ok(value)
 }
 
 #[cfg(test)]
@@ -69,7 +69,7 @@ mod tests {
     #[derive(Debug, Deserialize)]
     struct Record {
         #[serde(rename(deserialize = "Name"), deserialize_with = "deserializer")]
-        name: Option<String>,
+        name: String,
     }
 
     #[test]
@@ -84,7 +84,7 @@ mod tests {
 
         let record: Record = serde_json::from_str(json)?;
 
-        assert_eq!(record.name, None);
+        assert_eq!(record.name, "");
 
         Ok(())
     }
@@ -119,7 +119,7 @@ mod tests {
 
         let record: Record = serde_json::from_str(json)?;
 
-        assert_eq!(record.name, Some("Test title".into()));
+        assert_eq!(record.name, "Test title");
 
         Ok(())
     }
