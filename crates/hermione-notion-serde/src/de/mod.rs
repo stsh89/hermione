@@ -23,19 +23,19 @@ mod tests {
             rename(deserialize = "External ID"),
             deserialize_with = "rich_text::deserializer"
         )]
-        external_id: Option<String>,
+        external_id: String,
 
         #[serde(
             rename(deserialize = "Last access time"),
             deserialize_with = "rich_text::deserializer"
         )]
-        last_access_time: Option<String>,
+        last_access_time: String,
 
         #[serde(
             rename(deserialize = "Location"),
             deserialize_with = "rich_text::deserializer"
         )]
-        location: Option<String>,
+        location: String,
     }
 
     fn json() -> String {
@@ -96,9 +96,9 @@ mod tests {
 
         assert_eq!(record.name, None);
         assert_eq!(record.id, 4);
-        assert_eq!(record.external_id, None);
-        assert_eq!(record.last_access_time, None);
-        assert_eq!(record.location, Some("C:\\".to_string()));
+        assert_eq!(record.external_id, "");
+        assert_eq!(record.last_access_time, "");
+        assert_eq!(record.location, "C:\\");
 
         Ok(())
     }
@@ -111,9 +111,9 @@ mod tests {
 
         assert_eq!(record.name, None);
         assert_eq!(record.id, 4);
-        assert_eq!(record.external_id, None);
-        assert_eq!(record.last_access_time, None);
-        assert_eq!(record.location, Some("C:\\".to_string()));
+        assert_eq!(record.external_id, "");
+        assert_eq!(record.last_access_time, "");
+        assert_eq!(record.location, "C:\\");
 
         Ok(())
     }
@@ -134,9 +134,9 @@ mod tests {
 
         assert_eq!(record.name, None);
         assert_eq!(record.id, 4);
-        assert_eq!(record.external_id, None);
-        assert_eq!(record.last_access_time, None);
-        assert_eq!(record.location, Some("C:\\".to_string()));
+        assert_eq!(record.external_id, "");
+        assert_eq!(record.last_access_time, "");
+        assert_eq!(record.location, "C:\\");
 
         Ok(())
     }

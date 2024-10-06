@@ -4,7 +4,7 @@ use serde::{
 };
 use std::fmt;
 
-pub fn deserializer<'de, D>(deserializer: D) -> std::result::Result<Option<String>, D::Error>
+pub fn deserializer<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -19,17 +19,17 @@ struct RichText {
 }
 
 impl<'de> Visitor<'de> for RichTextVisitor {
-    type Value = Option<String>;
+    type Value = String;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a map with nested rich_text structure")
+        formatter.write_str("a map with id, type, and rich_text fields")
     }
 
-    fn visit_map<V>(self, mut map: V) -> std::result::Result<Option<String>, V::Error>
+    fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
     where
         V: MapAccess<'de>,
     {
-        let mut rich_text: Option<Option<String>> = None;
+        let mut rich_text: Option<String> = None;
 
         while let Some(key) = map.next_key::<String>()? {
             match key.as_str() {
@@ -47,19 +47,19 @@ impl<'de> Visitor<'de> for RichTextVisitor {
     }
 }
 
-fn get_rich_text<'de, V>(map: &mut V) -> Result<Option<String>, V::Error>
+fn get_rich_text<'de, V>(map: &mut V) -> Result<String, V::Error>
 where
     V: MapAccess<'de>,
 {
-    let mut rich_text = map.next_value::<Vec<RichText>>()?;
+    let mut items = map.next_value::<Vec<RichText>>()?;
 
-    if rich_text.is_empty() {
-        return Ok(None);
-    }
+    let value = if let Some(item) = items.pop() {
+        item.plain_text
+    } else {
+        String::new()
+    };
 
-    let plain_text = rich_text.remove(0).plain_text;
-
-    Ok(Some(plain_text))
+    Ok(value)
 }
 
 #[cfg(test)]
@@ -69,7 +69,7 @@ mod tests {
     #[derive(Debug, Deserialize)]
     struct Record {
         #[serde(rename(deserialize = "Description"), deserialize_with = "deserializer")]
-        description: Option<String>,
+        description: String,
     }
 
     #[test]
@@ -84,7 +84,7 @@ mod tests {
 
         let record: Record = serde_json::from_str(json)?;
 
-        assert_eq!(record.description, None);
+        assert_eq!(record.description, "");
 
         Ok(())
     }
@@ -119,7 +119,7 @@ mod tests {
 
         let record: Record = serde_json::from_str(json)?;
 
-        assert_eq!(record.description, Some("Test description".into()));
+        assert_eq!(record.description, "Test description");
 
         Ok(())
     }
