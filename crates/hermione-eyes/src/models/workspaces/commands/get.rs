@@ -13,7 +13,7 @@ use ratatui::{
 pub struct Model {
     command: Presenter,
     redirect: Option<Route>,
-    command_palette: components::command_palette::Component,
+    command_palette: Option<components::command_palette::Component>,
 }
 
 pub struct ModelParameters {
@@ -35,7 +35,7 @@ impl tui::Model for Model {
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
             Message::Back => self.back(),
-            Message::ToggleCommandPalette => self.toggle_command_palette(),
+            Message::ActivateCommandPalette => self.activate_command_palette()?,
             Message::Submit => self.submit(),
             Message::SelectNext => self.select_next(),
             Message::SelectPrevious => self.select_previous(),
@@ -65,20 +65,70 @@ impl tui::Model for Model {
 
         frame.render_widget(paragraph, program);
 
-        if self.command_palette.is_active() {
-            self.command_palette.render(frame, frame.area());
+        if let Some(popup) = self.command_palette.as_mut() {
+            popup.render(frame, frame.area());
         }
     }
 }
 
 impl Model {
-    fn handle_command_palette_action(&mut self) {
+    fn activate_command_palette(&mut self) -> Result<()> {
         use components::command_palette::Action;
 
-        let Some(action) = self.command_palette.action() else {
+        self.command_palette = Some(components::command_palette::Component::new(
+            components::command_palette::ComponentParameters {
+                actions: vec![Action::DeleteCommand, Action::EditCommand],
+            },
+        )?);
+
+        Ok(())
+    }
+
+    fn back(&mut self) {
+        let route = Route::Workspaces(routes::workspaces::Route::Commands(
+            routes::workspaces::commands::Route::List(
+                parameters::workspaces::commands::list::Parameters {
+                    workspace_id: self.command.workspace_id.clone(),
+                    search_query: Some(self.command.program.clone()),
+                },
+            ),
+        ));
+
+        self.redirect = Some(route)
+    }
+
+    pub fn new(parameters: ModelParameters) -> Result<Self> {
+        let ModelParameters { command } = parameters;
+
+        Ok(Self {
+            command,
+            redirect: None,
+            command_palette: None,
+        })
+    }
+
+    fn select_next(&mut self) {
+        if let Some(command_palette) = self.command_palette.as_mut() {
+            command_palette.select_next();
+        }
+    }
+
+    fn select_previous(&mut self) {
+        if let Some(command_palette) = self.command_palette.as_mut() {
+            command_palette.select_previous();
+        }
+    }
+
+    fn submit(&mut self) {
+        let Some(action) = self
+            .command_palette
+            .as_ref()
+            .and_then(|command_palette| command_palette.action())
+        else {
             return;
         };
 
+        use components::command_palette::Action;
         match action {
             Action::DeleteCommand => {
                 self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
@@ -109,57 +159,6 @@ impl Model {
             | Action::SetPowershellNoExit
             | Action::StartWindowsTerminal
             | Action::UnsetPowerShellNoExit => {}
-        }
-    }
-
-    fn toggle_command_palette(&mut self) {
-        self.command_palette.toggle();
-    }
-
-    fn back(&mut self) {
-        let route = Route::Workspaces(routes::workspaces::Route::Commands(
-            routes::workspaces::commands::Route::List(
-                parameters::workspaces::commands::list::Parameters {
-                    workspace_id: self.command.workspace_id.clone(),
-                    search_query: Some(self.command.program.clone()),
-                },
-            ),
-        ));
-
-        self.redirect = Some(route)
-    }
-
-    pub fn new(parameters: ModelParameters) -> Result<Self> {
-        use components::command_palette::Action;
-
-        let ModelParameters { command } = parameters;
-
-        Ok(Self {
-            command,
-            redirect: None,
-            command_palette: components::command_palette::Component::new(
-                components::command_palette::ComponentParameters {
-                    actions: vec![Action::DeleteCommand, Action::EditCommand],
-                },
-            )?,
-        })
-    }
-
-    fn select_next(&mut self) {
-        if self.command_palette.is_active() {
-            self.command_palette.select_next();
-        }
-    }
-
-    fn select_previous(&mut self) {
-        if self.command_palette.is_active() {
-            self.command_palette.select_previous();
-        }
-    }
-
-    fn submit(&mut self) {
-        if self.command_palette.is_active() {
-            self.handle_command_palette_action();
         }
     }
 }

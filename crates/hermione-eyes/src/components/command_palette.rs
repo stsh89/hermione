@@ -1,13 +1,13 @@
 use crate::{widgets, Result};
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
+    widgets::{Block, Borders},
     Frame,
 };
 
 pub struct Component {
     actions_state: widgets::list::State,
     actions: Vec<Action>,
-    is_active: bool,
     scroll_state: widgets::scroll::State,
     scroll: usize,
 }
@@ -38,18 +38,6 @@ impl Component {
             .and_then(|index| self.actions.get(index))
     }
 
-    pub fn hide(&mut self) {
-        self.is_active = false;
-    }
-
-    pub fn toggle(&mut self) {
-        self.is_active = !self.is_active;
-    }
-
-    pub fn is_active(&self) -> bool {
-        self.is_active
-    }
-
     pub fn new(parameters: ComponentParameters) -> Result<Self> {
         let ComponentParameters { actions } = parameters;
 
@@ -66,7 +54,6 @@ impl Component {
         Ok(Self {
             actions_state,
             actions,
-            is_active: false,
             scroll_state,
             scroll: 0,
         })
@@ -75,10 +62,9 @@ impl Component {
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
         let area = popup_area(area, 60, 40);
 
-        let list = widgets::list::Widget {
-            title: "Command palette",
-            items: &self.actions,
-        };
+        let block = Block::default().borders(Borders::all());
+
+        let list = widgets::list::Widget::new(&self.actions).block(block);
 
         let scroll = widgets::scroll::Widget {};
 

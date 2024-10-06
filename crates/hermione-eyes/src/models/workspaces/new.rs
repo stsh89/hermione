@@ -46,7 +46,7 @@ impl tui::Model for Model {
             Message::Action
             | Message::SelectNext
             | Message::SelectPrevious
-            | Message::ToggleCommandPalette => {}
+            | Message::ActivateCommandPalette => {}
         }
 
         Ok(None)

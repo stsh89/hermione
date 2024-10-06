@@ -12,7 +12,7 @@ pub enum Message {
     SelectNext,
     SelectPrevious,
     Submit,
-    ToggleCommandPalette,
+    ActivateCommandPalette,
     ToggleFocus,
 }
 
@@ -38,7 +38,7 @@ impl TryFrom<KeyEvent> for Message {
             },
             KeyCode::Char(c) => match key_event.modifiers {
                 KeyModifiers::CONTROL => match c {
-                    'k' => Self::ToggleCommandPalette,
+                    'k' => Self::ActivateCommandPalette,
                     _ => {
                         return Err(anyhow::anyhow!(
                             "Unsupported key code: {:?}",

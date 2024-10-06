@@ -5,7 +5,7 @@ use crate::{
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
-    widgets::Paragraph,
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
@@ -15,9 +15,9 @@ pub struct Model {
     redirect: Option<Route>,
     search: widgets::input::State,
     commands_state: widgets::list::State,
-    command_palette: components::command_palette::Component,
     is_running: bool,
-    powershell: Powershell,
+    powershell_settings: PowershellSettings,
+    active_popup: Option<ActivePopup>,
 }
 
 pub struct ModelParameters {
@@ -26,18 +26,56 @@ pub struct ModelParameters {
     pub search_query: Option<String>,
 }
 
-struct Powershell {
+struct PowershellSettings {
     ///  Does not exit after running startup commands
     no_exit: bool,
 }
 
-impl Powershell {
+impl PowershellSettings {
     fn set_no_exit(&mut self) {
         self.no_exit = true;
     }
 
     fn unset_no_exit(&mut self) {
         self.no_exit = false;
+    }
+}
+
+enum ActivePopup {
+    CommandPalette(components::command_palette::Component),
+    ExitConfirmation(components::confirmation::Component),
+}
+
+impl ActivePopup {
+    fn exit_confirmation() -> Self {
+        let confirmation = components::confirmation::Component::new(
+            components::confirmation::ComponentParameters {
+                message: "Press \"Enter\" to exit...".into(),
+            },
+        );
+
+        Self::ExitConfirmation(confirmation)
+    }
+
+    fn command_palette() -> Result<Self> {
+        use components::command_palette::Action;
+
+        let command_palette = components::command_palette::Component::new(
+            components::command_palette::ComponentParameters {
+                actions: vec![
+                    Action::CopyToClipboard,
+                    Action::DeleteWorkspace,
+                    Action::EditWorkspace,
+                    Action::ListWorkspaces,
+                    Action::NewCommand,
+                    Action::SetPowershellNoExit,
+                    Action::StartWindowsTerminal,
+                    Action::UnsetPowerShellNoExit,
+                ],
+            },
+        )?;
+
+        Ok(Self::CommandPalette(command_palette))
     }
 }
 
@@ -59,7 +97,7 @@ impl tui::Model for Model {
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::ToggleCommandPalette => self.toggle_command_palette(),
+            Message::ActivateCommandPalette => self.activate_command_palette()?,
             Message::Back => self.back(),
             Message::Action => self.execute_command(),
             Message::DeleteAllChars => self.delete_all_chars(),
@@ -96,20 +134,37 @@ impl tui::Model for Model {
             search_area.y + 1,
         ));
 
-        let list = widgets::list::Widget {
-            title: "Commands",
-            items: &self.commands,
-        };
+        let block = Block::default().borders(Borders::all());
+        let list = widgets::list::Widget::new(&self.commands).block(block);
 
         frame.render_stateful_widget(list, commands_area, &mut self.commands_state);
 
-        if self.command_palette.is_active() {
-            self.command_palette.render(frame, frame.area());
+        let Some(popup) = &mut self.active_popup else {
+            return;
+        };
+
+        match popup {
+            ActivePopup::CommandPalette(popup) => popup.render(frame, frame.area()),
+            ActivePopup::ExitConfirmation(popup) => popup.render(frame, frame.area()),
         }
     }
 }
 
 impl Model {
+    fn activate_command_palette(&mut self) -> Result<()> {
+        self.active_popup = Some(ActivePopup::command_palette()?);
+
+        Ok(())
+    }
+
+    fn back(&mut self) {
+        if self.active_popup.is_some() {
+            self.active_popup = None;
+        } else {
+            self.active_popup = Some(ActivePopup::exit_confirmation());
+        }
+    }
+
     fn execute_command(&mut self) {
         let Some(index) = self.commands_state.selected() else {
             return;
@@ -121,7 +176,7 @@ impl Model {
             parameters::powershell::execute_command::Parameters {
                 command_id: command.id.clone(),
                 workspace_id: command.workspace_id.clone(),
-                powershell_no_exit: self.powershell.no_exit,
+                powershell_no_exit: self.powershell_settings.no_exit,
             },
         ));
 
@@ -131,48 +186,8 @@ impl Model {
         self.commands_state.select_first();
     }
 
-    fn handle_command_palette_action(&mut self) {
-        use components::command_palette::Action;
-
-        let Some(action) = self.command_palette.action() else {
-            return;
-        };
-
-        match action {
-            Action::CopyToClipboard => self.copy_to_clipboard(),
-            Action::DeleteWorkspace => {
-                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Delete(
-                    parameters::workspaces::delete::Parameters {
-                        id: self.workspace.id.clone(),
-                    },
-                )))
-            }
-            Action::NewCommand => {
-                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
-                    routes::workspaces::commands::Route::New(
-                        parameters::workspaces::commands::new::Parameters {
-                            workspace_id: self.workspace.id.clone(),
-                        },
-                    ),
-                )))
-            }
-            Action::ListWorkspaces => {
-                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
-                    Default::default(),
-                )));
-            }
-            Action::EditWorkspace => {
-                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Edit(
-                    parameters::workspaces::edit::Parameters {
-                        id: self.workspace.id.clone(),
-                    },
-                )))
-            }
-            Action::SetPowershellNoExit => self.powershell_set_no_exit(),
-            Action::UnsetPowerShellNoExit => self.powershell_unset_no_exit(),
-            Action::StartWindowsTerminal => self.start_windows_terminal(),
-            Action::DeleteCommand | Action::EditCommand | Action::NewWorkspace => {}
-        }
+    fn exit(&mut self) {
+        self.is_running = false;
     }
 
     fn selected_command(&self) -> Option<&presenters::command::Presenter> {
@@ -204,7 +219,6 @@ impl Model {
         self.redirect = self.copy_to_clipboard_parameters().map(|parameters| {
             Route::Powershell(routes::powershell::Route::CopyToClipboard(parameters))
         });
-        self.command_palette.hide();
     }
 
     fn start_windows_terminal(&mut self) {
@@ -213,23 +227,17 @@ impl Model {
                 self.start_windows_terminal_parameters(),
             ),
         ));
-
-        self.command_palette.hide();
     }
 
     fn powershell_set_no_exit(&mut self) {
-        self.powershell.set_no_exit();
-        self.command_palette.hide();
+        self.powershell_settings.set_no_exit();
     }
 
     fn powershell_unset_no_exit(&mut self) {
-        self.powershell.unset_no_exit();
-        self.command_palette.hide();
+        self.powershell_settings.unset_no_exit();
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
-        use components::command_palette::Action;
-
         let ModelParameters {
             commands,
             workspace,
@@ -252,64 +260,93 @@ impl Model {
                 is_active: true,
             }),
             commands_state,
-            command_palette: components::command_palette::Component::new(
-                components::command_palette::ComponentParameters {
-                    actions: vec![
-                        Action::CopyToClipboard,
-                        Action::DeleteWorkspace,
-                        Action::EditWorkspace,
-                        Action::ListWorkspaces,
-                        Action::NewCommand,
-                        Action::SetPowershellNoExit,
-                        Action::StartWindowsTerminal,
-                        Action::UnsetPowerShellNoExit,
-                    ],
-                },
-            )?,
-            powershell: Powershell { no_exit: true },
+            powershell_settings: PowershellSettings { no_exit: true },
+            active_popup: None,
         };
 
         Ok(model)
     }
 
-    fn back(&mut self) {
-        if self.command_palette.is_active() {
-            self.command_palette.toggle();
-
-            return;
-        }
-
-        self.is_running = false;
-    }
-
     fn select_next(&mut self) {
-        if self.command_palette.is_active() {
-            self.command_palette.select_next();
+        if let Some(popup) = self.active_popup.as_mut() {
+            match popup {
+                ActivePopup::CommandPalette(popup) => popup.select_next(),
+                ActivePopup::ExitConfirmation(_popup) => {}
+            };
         } else {
             self.commands_state.select_next();
         }
     }
 
     fn select_previous(&mut self) {
-        if self.command_palette.is_active() {
-            self.command_palette.select_previous();
+        if let Some(popup) = self.active_popup.as_mut() {
+            match popup {
+                ActivePopup::CommandPalette(popup) => popup.select_previous(),
+                ActivePopup::ExitConfirmation(_popup) => {}
+            };
         } else {
             self.commands_state.select_previous();
         }
     }
 
     fn submit(&mut self) {
-        if self.command_palette.is_active() {
-            self.handle_command_palette_action();
+        if let Some(active_popup) = &mut self.active_popup {
+            match active_popup {
+                ActivePopup::CommandPalette(popup) => {
+                    let Some(action) = popup.action() else {
+                        return;
+                    };
+
+                    use components::command_palette::Action;
+
+                    match action {
+                        Action::CopyToClipboard => self.copy_to_clipboard(),
+                        Action::DeleteWorkspace => {
+                            self.redirect =
+                                Some(Route::Workspaces(routes::workspaces::Route::Delete(
+                                    parameters::workspaces::delete::Parameters {
+                                        id: self.workspace.id.clone(),
+                                    },
+                                )))
+                        }
+                        Action::NewCommand => {
+                            self.redirect =
+                                Some(Route::Workspaces(routes::workspaces::Route::Commands(
+                                    routes::workspaces::commands::Route::New(
+                                        parameters::workspaces::commands::new::Parameters {
+                                            workspace_id: self.workspace.id.clone(),
+                                        },
+                                    ),
+                                )))
+                        }
+                        Action::ListWorkspaces => {
+                            self.redirect = Some(Route::Workspaces(
+                                routes::workspaces::Route::List(Default::default()),
+                            ));
+                        }
+                        Action::EditWorkspace => {
+                            self.redirect =
+                                Some(Route::Workspaces(routes::workspaces::Route::Edit(
+                                    parameters::workspaces::edit::Parameters {
+                                        id: self.workspace.id.clone(),
+                                    },
+                                )))
+                        }
+                        Action::SetPowershellNoExit => self.powershell_set_no_exit(),
+                        Action::UnsetPowerShellNoExit => self.powershell_unset_no_exit(),
+                        Action::StartWindowsTerminal => self.start_windows_terminal(),
+                        Action::DeleteCommand | Action::EditCommand | Action::NewWorkspace => {}
+                    }
+                }
+                ActivePopup::ExitConfirmation(_popup) => self.exit(),
+            }
+
+            self.active_popup = None;
 
             return;
         }
 
-        let Some(command) = self
-            .commands_state
-            .selected()
-            .and_then(|i| self.commands.get(i))
-        else {
+        let Some(command) = self.command() else {
             return;
         };
 
@@ -321,6 +358,12 @@ impl Model {
                 },
             ),
         )));
+    }
+
+    fn command(&self) -> Option<&presenters::command::Presenter> {
+        self.commands_state
+            .selected()
+            .and_then(|i| self.commands.get(i))
     }
 
     fn enter_char(&mut self, c: char) {
@@ -376,9 +419,5 @@ impl Model {
 
     fn move_cursor_right(&mut self) {
         self.search.move_cursor_right();
-    }
-
-    fn toggle_command_palette(&mut self) {
-        self.command_palette.toggle();
     }
 }

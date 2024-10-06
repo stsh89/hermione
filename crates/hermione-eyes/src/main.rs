@@ -1,5 +1,6 @@
 mod app_dir;
 mod clients;
+mod colors;
 mod components;
 mod handlers;
 mod logs;

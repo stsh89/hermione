@@ -6,7 +6,7 @@ use crate::{
 };
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Position},
-    widgets::Paragraph,
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
@@ -16,12 +16,41 @@ pub struct Model {
     search: widgets::input::State,
     workspaces_state: widgets::list::State,
     workspaces: Vec<Presenter>,
-    command_palette: components::command_palette::Component,
+    active_popup: Option<ActivePopup>,
 }
 
 pub struct ModelParameters {
     pub workspaces: Vec<Presenter>,
     pub search_query: String,
+}
+
+enum ActivePopup {
+    CommandPalette(components::command_palette::Component),
+    ExitConfirmation(components::confirmation::Component),
+}
+
+impl ActivePopup {
+    fn exit_confirmation() -> Self {
+        let confirmation = components::confirmation::Component::new(
+            components::confirmation::ComponentParameters {
+                message: "Press \"Enter\" to exit...".into(),
+            },
+        );
+
+        Self::ExitConfirmation(confirmation)
+    }
+
+    fn command_palette() -> Result<Self> {
+        use components::command_palette::Action;
+
+        let command_palette = components::command_palette::Component::new(
+            components::command_palette::ComponentParameters {
+                actions: vec![Action::NewWorkspace],
+            },
+        )?;
+
+        Ok(Self::CommandPalette(command_palette))
+    }
 }
 
 impl tui::Model for Model {
@@ -42,7 +71,7 @@ impl tui::Model for Model {
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::ToggleCommandPalette => self.toggle_command_palette(),
+            Message::ActivateCommandPalette => self.activate_command_palette()?,
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
@@ -78,45 +107,42 @@ impl tui::Model for Model {
             search_area.y + 1,
         ));
 
-        let list = widgets::list::Widget {
-            title: "Workspaces",
-            items: &self.workspaces,
-        };
+        let block = Block::default().borders(Borders::all());
+        let list = widgets::list::Widget::new(&self.workspaces).block(block);
 
         frame.render_stateful_widget(list, commands_area, &mut self.workspaces_state);
 
-        if self.command_palette.is_active() {
-            self.command_palette.render(frame, frame.area());
+        let Some(popup) = self.active_popup.as_mut() else {
+            return;
+        };
+
+        match popup {
+            ActivePopup::CommandPalette(popup) => popup.render(frame, frame.area()),
+            ActivePopup::ExitConfirmation(popup) => popup.render(frame, frame.area()),
         }
     }
 }
 
 impl Model {
+    fn activate_command_palette(&mut self) -> Result<()> {
+        self.active_popup = Some(ActivePopup::command_palette()?);
+
+        Ok(())
+    }
+
     fn back(&mut self) {
-        if self.command_palette.is_active() {
-            self.command_palette.toggle();
-
-            return;
+        if self.active_popup.is_some() {
+            self.active_popup = None;
+        } else {
+            self.active_popup = Some(ActivePopup::exit_confirmation());
         }
+    }
 
+    fn exit(&mut self) {
         self.is_running = false;
     }
 
-    fn handle_command_palette_action(&mut self) {
-        use components::command_palette::Action;
-
-        let Some(action) = self.command_palette.action() else {
-            return;
-        };
-
-        if let Action::NewWorkspace = action {
-            self.redirect = Some(Route::Workspaces(routes::workspaces::Route::New))
-        }
-    }
-
     pub fn new(parameters: ModelParameters) -> Result<Self> {
-        use components::command_palette::Action;
-
         let ModelParameters {
             workspaces,
             search_query,
@@ -131,11 +157,7 @@ impl Model {
                 is_active: true,
             }),
             is_running: true,
-            command_palette: components::command_palette::Component::new(
-                components::command_palette::ComponentParameters {
-                    actions: vec![Action::NewWorkspace],
-                },
-            )?,
+            active_popup: None,
         };
 
         if !model.workspaces.is_empty() {
@@ -146,18 +168,28 @@ impl Model {
     }
 
     fn submit(&mut self) {
-        if self.command_palette.is_active() {
-            self.handle_command_palette_action();
+        if let Some(active_popup) = &mut self.active_popup {
+            match active_popup {
+                ActivePopup::CommandPalette(popup) => {
+                    let Some(action) = popup.action() else {
+                        return;
+                    };
+
+                    use components::command_palette::Action;
+
+                    if let Action::NewWorkspace = action {
+                        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::New))
+                    }
+                }
+                ActivePopup::ExitConfirmation(_popup) => self.exit(),
+            }
+
+            self.active_popup = None;
 
             return;
         }
 
-        let maybe_workspace = self
-            .workspaces_state
-            .selected()
-            .and_then(|i| self.workspaces.get(i));
-
-        let Some(workspace) = maybe_workspace else {
+        let Some(workspace) = self.workspace() else {
             return;
         };
 
@@ -174,16 +206,22 @@ impl Model {
     }
 
     fn select_next(&mut self) {
-        if self.command_palette.is_active() {
-            self.command_palette.select_next();
+        if let Some(popup) = self.active_popup.as_mut() {
+            match popup {
+                ActivePopup::CommandPalette(popup) => popup.select_next(),
+                ActivePopup::ExitConfirmation(_popup) => {}
+            };
         } else {
             self.workspaces_state.select_next();
         }
     }
 
     fn select_previous(&mut self) {
-        if self.command_palette.is_active() {
-            self.command_palette.select_previous();
+        if let Some(popup) = self.active_popup.as_mut() {
+            match popup {
+                ActivePopup::CommandPalette(popup) => popup.select_previous(),
+                ActivePopup::ExitConfirmation(_popup) => {}
+            };
         } else {
             self.workspaces_state.select_previous();
         }
@@ -237,7 +275,9 @@ impl Model {
         self.search.move_cursor_right();
     }
 
-    fn toggle_command_palette(&mut self) {
-        self.command_palette.toggle();
+    fn workspace(&self) -> Option<&Presenter> {
+        self.workspaces_state
+            .selected()
+            .and_then(|i| self.workspaces.get(i))
     }
 }
