@@ -1,10 +1,10 @@
 [package]
-name = "hermione-deeds"
+name = "hermione-coordinator"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "hermione_deeds"
+name = "hermione_coordinator"
 
 [dependencies]
 chrono = { workspace = true }

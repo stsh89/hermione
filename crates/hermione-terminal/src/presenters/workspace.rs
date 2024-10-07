@@ -1,4 +1,4 @@
-use hermione_deeds::workspaces::Dto;
+use hermione_coordinator::workspaces::Dto;
 use ratatui::widgets::ListItem;
 
 pub struct Presenter {

@@ -2,7 +2,7 @@ use crate::{
     presenters::{command::Presenter as Command, workspace::Presenter as Workspace},
     Result,
 };
-use hermione_deeds::workspaces::{self, commands::Operations as _, Operations};
+use hermione_coordinator::workspaces::{self, commands::Operations as _, Operations};
 use std::path::Path;
 
 pub struct Client {
