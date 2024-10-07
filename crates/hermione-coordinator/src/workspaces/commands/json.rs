@@ -90,15 +90,22 @@ impl get::Get for Client {
 }
 
 impl list::List for Client {
-    fn list(&self, workspace_id: Id) -> Result<Vec<Entity>> {
+    fn list(&self, parameters: list::ListParameters) -> Result<Vec<Entity>> {
+        let list::ListParameters {
+            workspace_id,
+            program_contains,
+        } = parameters;
+
         let mut records: Vec<Record> = self.read()?;
+
+        if let Some(query) = program_contains.map(|q| q.to_lowercase()) {
+            records.retain(|w| w.program.to_lowercase().contains(&query));
+        }
+
+        records.retain(|record| record.workspace_id == *workspace_id);
         records.sort_unstable_by(|a, b| a.last_execute_time.cmp(&b.last_execute_time).reverse());
 
-        let entities = records
-            .into_iter()
-            .filter(|record| record.workspace_id == *workspace_id)
-            .map(Record::load_entity)
-            .collect();
+        let entities = records.into_iter().map(Record::load_entity).collect();
 
         Ok(entities)
     }

@@ -24,7 +24,7 @@ impl<'a> Handler<'a> {
             .commands()
             .list(ListParameters {
                 workspace_id: &workspace_id,
-                search_query: search_query.as_deref(),
+                program_contains: search_query.as_deref(),
             })?;
 
         let workspace = self.coordinator.workspaces().track_access_time(workspace)?;

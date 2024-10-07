@@ -1,5 +1,5 @@
 use crate::{presenters::command::Presenter, Result};
-use hermione_coordinator::workspaces::commands::{Client, Operations};
+use hermione_coordinator::workspaces::commands::{self, Client, Operations};
 use std::path::Path;
 
 pub struct Coordinator {
@@ -8,7 +8,7 @@ pub struct Coordinator {
 
 pub struct ListParameters<'a> {
     pub workspace_id: &'a str,
-    pub search_query: Option<&'a str>,
+    pub program_contains: Option<&'a str>,
 }
 
 impl Coordinator {
@@ -41,21 +41,13 @@ impl Coordinator {
     pub fn list(&self, parameters: ListParameters) -> Result<Vec<Presenter>> {
         let ListParameters {
             workspace_id,
-            search_query,
+            program_contains,
         } = parameters;
 
-        let commands = self.client.list(workspace_id)?;
-
-        let filter = search_query.as_ref().map(|query| query.to_lowercase());
-
-        let commands = if let Some(filter) = filter {
-            commands
-                .into_iter()
-                .filter(|c| c.program.to_lowercase().contains(&filter))
-                .collect()
-        } else {
-            commands
-        };
+        let commands = self.client.list(commands::ListParameters {
+            workspace_id,
+            program_contains,
+        })?;
 
         Ok(commands.into_iter().map(Into::into).collect())
     }

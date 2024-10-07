@@ -13,7 +13,7 @@ pub trait Operations {
     fn create(&self, data: Dto) -> Result<Dto>;
     fn delete(&self, workspace_id: &str, id: &str) -> Result<()>;
     fn get(&self, workspace_id: &str, id: &str) -> Result<Dto>;
-    fn list(&self, workspace_id: &str) -> Result<Vec<Dto>>;
+    fn list(&self, parameters: ListParameters) -> Result<Vec<Dto>>;
     fn track_execution_time(&self, workspace_id: &str, command_id: &str) -> Result<Dto>;
     fn update(&self, data: Dto) -> Result<Dto>;
 }
@@ -28,6 +28,11 @@ pub struct Dto {
     pub name: String,
     pub program: String,
     pub workspace_id: String,
+}
+
+pub struct ListParameters<'a> {
+    pub program_contains: Option<&'a str>,
+    pub workspace_id: &'a str,
 }
 
 impl Operations for Client {
@@ -68,11 +73,19 @@ impl Operations for Client {
         Ok(Dto::from_entity(workspace))
     }
 
-    fn list(&self, workspace_id: &str) -> Result<Vec<Dto>> {
+    fn list(&self, parameters: ListParameters<'_>) -> Result<Vec<Dto>> {
+        let ListParameters {
+            program_contains,
+            workspace_id,
+        } = parameters;
+
         let workspaces = list::Operation {
             lister: &self.inner,
         }
-        .execute(Id::from_str(workspace_id)?)?;
+        .execute(list::Parameters {
+            workspace_id: Id::from_str(workspace_id)?,
+            program_contains,
+        })?;
 
         Ok(workspaces.into_iter().map(Dto::from_entity).collect())
     }

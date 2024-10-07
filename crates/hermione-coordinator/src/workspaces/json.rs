@@ -96,6 +96,7 @@ impl list::List for Client {
         }
 
         records.sort_unstable_by(|a, b| a.last_access_time.cmp(&b.last_access_time).reverse());
+
         let entities = records.into_iter().map(Record::load_entity).collect();
 
         Ok(entities)
