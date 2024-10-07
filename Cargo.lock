@@ -786,13 +786,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
-name = "hermione-coordinator"
+name = "hermione-deeds"
 version = "0.1.0"
 dependencies = [
  "chrono",
  "eyre",
- "hermione-core",
  "hermione-json",
+ "hermione-memories",
  "serde",
  "serde_json",
  "thiserror",
@@ -800,13 +800,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "hermione-core"
+name = "hermione-eyes"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
+ "dirs",
  "eyre",
- "thiserror",
- "uuid",
+ "hermione-deeds",
+ "hermione-powershell",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -815,6 +822,16 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "hermione-memories"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "eyre",
+ "thiserror",
+ "uuid",
 ]
 
 [[package]]
@@ -842,23 +859,6 @@ dependencies = [
 [[package]]
 name = "hermione-powershell"
 version = "0.1.0"
-
-[[package]]
-name = "hermione-terminal"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "dirs",
- "eyre",
- "hermione-coordinator",
- "hermione-powershell",
- "ratatui",
- "serde",
- "serde_json",
- "tracing",
- "tracing-subscriber",
-]
 
 [[package]]
 name = "hermit-abi"
