@@ -1,12 +1,12 @@
 use crate::{
-    clients::memories::Client,
+    coordinator::Coordinator,
     models::workspaces::commands::edit::{Model, ModelParameters},
     parameters::workspaces::commands::edit::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
-    pub memories: &'a Client,
+    pub coordinator: &'a Coordinator,
 }
 
 impl<'a> Handler<'a> {
@@ -16,7 +16,11 @@ impl<'a> Handler<'a> {
             workspace_id,
         } = parameters;
 
-        let command = self.memories.get_command(&workspace_id, &command_id)?;
+        let command = self
+            .coordinator
+            .workspaces()
+            .commands()
+            .get(&workspace_id, &command_id)?;
 
         Ok(Model::new(ModelParameters { command }))
     }

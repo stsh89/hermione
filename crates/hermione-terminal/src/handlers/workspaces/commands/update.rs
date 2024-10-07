@@ -1,5 +1,5 @@
 use crate::{
-    clients::memories,
+    coordinator::Coordinator,
     models::workspaces::commands::get::{Model, ModelParameters},
     parameters::workspaces::commands::update::Parameters,
     presenters::command::Presenter,
@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub struct Handler<'a> {
-    pub memories: &'a memories::Client,
+    pub coordinator: &'a Coordinator,
 }
 
 impl<'a> Handler<'a> {
@@ -26,7 +26,7 @@ impl<'a> Handler<'a> {
             program,
         };
 
-        let command = self.memories.update_command(command)?;
+        let command = self.coordinator.workspaces().commands().update(command)?;
 
         let model = Model::new(ModelParameters { command })?;
 

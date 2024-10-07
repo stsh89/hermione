@@ -1,12 +1,12 @@
 use crate::{
-    clients::memories::{Client, WorkspacesCommandsListParameters},
+    coordinator::{workspaces::commands::ListParameters, Coordinator},
     models::workspaces::commands::list::{Model, ModelParameters},
     parameters::workspaces::commands::list::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
-    pub memories: &'a Client,
+    pub coordinator: &'a Coordinator,
 }
 
 impl<'a> Handler<'a> {
@@ -16,16 +16,18 @@ impl<'a> Handler<'a> {
             search_query,
         } = parameters;
 
-        let workspace = self.memories.get_workspace(&workspace_id)?;
+        let workspace = self.coordinator.workspaces().get(&workspace_id)?;
 
         let commands = self
-            .memories
-            .list_commands(WorkspacesCommandsListParameters {
+            .coordinator
+            .workspaces()
+            .commands()
+            .list(ListParameters {
                 workspace_id: &workspace_id,
                 search_query: search_query.as_deref(),
             })?;
 
-        let workspace = self.memories.track_workspace_access_time(workspace)?;
+        let workspace = self.coordinator.workspaces().track_access_time(workspace)?;
 
         Model::new(ModelParameters {
             commands,

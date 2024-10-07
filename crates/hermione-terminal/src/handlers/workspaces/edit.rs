@@ -1,19 +1,19 @@
 use crate::{
-    clients::memories::Client,
+    coordinator::Coordinator,
     models::workspaces::edit::{Model, ModelParameters},
     parameters::workspaces::edit::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
-    pub memories: &'a Client,
+    pub coordinator: &'a Coordinator,
 }
 
 impl<'a> Handler<'a> {
     pub fn handle(self, parameters: Parameters) -> Result<Model> {
         let Parameters { id } = parameters;
 
-        let workspace = self.memories.get_workspace(&id)?;
+        let workspace = self.coordinator.workspaces().get(&id)?;
 
         let model = Model::new(ModelParameters { workspace });
 

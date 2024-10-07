@@ -2,13 +2,13 @@ mod powershell;
 mod workspaces;
 
 use crate::{
-    brokers, clients, parameters,
+    brokers, parameters,
     routes::{self, Route},
-    tui, Message, Model, Result,
+    tui, Coordinator, Message, Model, Result,
 };
 
 pub struct Router {
-    pub memories: clients::memories::Client,
+    pub coordinator: Coordinator,
     pub powershell: brokers::powershell::Broker,
 }
 
@@ -24,14 +24,14 @@ impl tui::Router for Router {
 
     fn handle(&self, route: Route) -> Result<Option<Box<Model>>> {
         let Router {
-            memories,
+            coordinator,
             powershell,
         } = self;
 
         match route {
-            Route::Workspaces(route) => workspaces::Router { memories }.handle(route),
+            Route::Workspaces(route) => workspaces::Router { coordinator }.handle(route),
             Route::Powershell(route) => powershell::Router {
-                memories,
+                coordinator,
                 powershell,
             }
             .handle(route),
@@ -41,7 +41,7 @@ impl tui::Router for Router {
 
 impl Router {
     fn initial_route(&self) -> Result<Route> {
-        let mut workspaces = self.memories.list_workspaces()?;
+        let mut workspaces = self.coordinator.workspaces().list()?;
         workspaces.reverse();
 
         let Some(workspace) = workspaces.pop() else {

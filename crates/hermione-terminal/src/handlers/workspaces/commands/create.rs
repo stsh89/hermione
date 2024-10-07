@@ -1,10 +1,10 @@
 use crate::{
-    clients, parameters::workspaces::commands::create::Parameters, presenters::command::Presenter,
-    Result,
+    coordinator::Coordinator, parameters::workspaces::commands::create::Parameters,
+    presenters::command::Presenter, Result,
 };
 
 pub struct Handler<'a> {
-    pub memories: &'a clients::memories::Client,
+    pub coordinator: &'a Coordinator,
 }
 
 impl<'a> Handler<'a> {
@@ -15,7 +15,7 @@ impl<'a> Handler<'a> {
             program,
         } = parameters;
 
-        self.memories.create_command(Presenter {
+        self.coordinator.workspaces().commands().create(Presenter {
             workspace_id: workspace_id.clone(),
             id: String::new(),
             name,

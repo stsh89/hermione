@@ -1,24 +1,23 @@
 use crate::{
-    brokers, clients::memories::Client, handlers::powershell::*, routes::powershell::Route, Model,
-    Result,
+    brokers, handlers::powershell::*, routes::powershell::Route, Coordinator, Model, Result,
 };
 
 pub struct Router<'a> {
-    pub memories: &'a Client,
+    pub coordinator: &'a Coordinator,
     pub powershell: &'a brokers::powershell::Broker,
 }
 
 impl<'a> Router<'a> {
     pub fn handle(self, route: Route) -> Result<Option<Box<Model>>> {
         let Router {
-            memories,
+            coordinator,
             powershell,
         } = self;
 
         match route {
             Route::CopyToClipboard(parameters) => {
                 let handler = copy_to_clipboard::Handler {
-                    memories,
+                    coordinator,
                     powershell,
                 };
 
@@ -28,7 +27,7 @@ impl<'a> Router<'a> {
             }
             Route::ExecuteCommand(parameters) => {
                 let handler = execute_command::Handler {
-                    memories,
+                    coordinator,
                     powershell,
                 };
 

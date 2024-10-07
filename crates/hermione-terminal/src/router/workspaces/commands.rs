@@ -1,22 +1,22 @@
 use crate::{
-    clients, handlers::workspaces::commands::*, parameters, routes::workspaces::commands::Route,
-    Model, Result,
+    coordinator::Coordinator, handlers::workspaces::commands::*, parameters,
+    routes::workspaces::commands::Route, Model, Result,
 };
 
 pub struct Router<'a> {
-    pub memories: &'a clients::memories::Client,
+    pub coordinator: &'a Coordinator,
 }
 
 impl<'a> Router<'a> {
     pub fn handle(self, route: Route) -> Result<Option<Box<Model>>> {
-        let Router { memories } = self;
+        let Router { coordinator } = self;
 
         match route {
             Route::Create(paramters) => {
-                let handler = create::Handler { memories };
+                let handler = create::Handler { coordinator };
                 let command = handler.handle(paramters)?;
 
-                let model = list::Handler { memories }.handle(
+                let model = list::Handler { coordinator }.handle(
                     parameters::workspaces::commands::list::Parameters {
                         workspace_id: command.workspace_id,
                         search_query: Some(command.program),
@@ -26,10 +26,10 @@ impl<'a> Router<'a> {
                 Ok(Some(Box::new(model)))
             }
             Route::Delete(parameters) => {
-                let handler = delete::Handler { memories };
+                let handler = delete::Handler { coordinator };
                 let workspace = handler.handle(parameters)?;
 
-                let model = list::Handler { memories }.handle(
+                let model = list::Handler { coordinator }.handle(
                     parameters::workspaces::commands::list::Parameters {
                         workspace_id: workspace.id,
                         search_query: None,
@@ -39,35 +39,35 @@ impl<'a> Router<'a> {
                 Ok(Some(Box::new(model)))
             }
             Route::Edit(parameters) => {
-                let handler = edit::Handler { memories };
+                let handler = edit::Handler { coordinator };
 
                 let model = handler.handle(parameters)?;
 
                 Ok(Some(Box::new(model)))
             }
             Route::Get(parameters) => {
-                let handler = get::Handler { memories };
+                let handler = get::Handler { coordinator };
 
                 let model = handler.handle(parameters)?;
 
                 Ok(Some(Box::new(model)))
             }
             Route::List(parameters) => {
-                let handler = list::Handler { memories };
+                let handler = list::Handler { coordinator };
 
                 let model = handler.handle(parameters)?;
 
                 Ok(Some(Box::new(model)))
             }
             Route::New(parameters) => {
-                let handler = new::Handler { memories };
+                let handler = new::Handler { coordinator };
 
                 let model = handler.handle(parameters)?;
 
                 Ok(Some(Box::new(model)))
             }
             Route::Update(parameters) => {
-                let handler = update::Handler { memories };
+                let handler = update::Handler { coordinator };
 
                 let model = handler.handle(parameters)?;
 

@@ -1,18 +1,18 @@
 use crate::{
-    clients::memories::Client,
+    coordinator::Coordinator,
     models::workspaces::list::{Model, ModelParameters},
     parameters::workspaces::list::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
-    pub memories: &'a Client,
+    pub coordinator: &'a Coordinator,
 }
 
 impl<'a> Handler<'a> {
     pub fn handle(self, parameters: Parameters) -> Result<Model> {
         let Parameters { search_query } = parameters;
-        let mut workspaces = self.memories.list_workspaces()?;
+        let mut workspaces = self.coordinator.workspaces().list()?;
         let filter = search_query.to_lowercase();
 
         if !filter.is_empty() {

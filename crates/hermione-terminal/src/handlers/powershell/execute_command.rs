@@ -1,7 +1,9 @@
-use crate::{brokers, clients, parameters::powershell::execute_command::Parameters, Result};
+use crate::{
+    brokers, coordinator::Coordinator, parameters::powershell::execute_command::Parameters, Result,
+};
 
 pub struct Handler<'a> {
-    pub memories: &'a clients::memories::Client,
+    pub coordinator: &'a Coordinator,
     pub powershell: &'a brokers::powershell::Broker,
 }
 
@@ -13,8 +15,12 @@ impl<'a> Handler<'a> {
             powershell_no_exit,
         } = parameters;
 
-        let command = self.memories.get_command(&workspace_id, &command_id)?;
-        let workspace = self.memories.get_workspace(&workspace_id)?;
+        let command = self
+            .coordinator
+            .workspaces()
+            .commands()
+            .get(&workspace_id, &command_id)?;
+        let workspace = self.coordinator.workspaces().get(&workspace_id)?;
 
         self.powershell
             .start_windows_terminal(brokers::powershell::WindowsTerminalParameters {
@@ -23,7 +29,10 @@ impl<'a> Handler<'a> {
                 command: Some(&command.program),
             })?;
 
-        self.memories.track_command_execution_time(command)?;
+        self.coordinator
+            .workspaces()
+            .commands()
+            .track_execution_time(command)?;
 
         Ok(())
     }

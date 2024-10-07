@@ -1,10 +1,10 @@
 use crate::{
-    clients, parameters::workspaces::commands::delete::Parameters,
+    coordinator::Coordinator, parameters::workspaces::commands::delete::Parameters,
     presenters::workspace::Presenter, Result,
 };
 
 pub struct Handler<'a> {
-    pub memories: &'a clients::memories::Client,
+    pub coordinator: &'a Coordinator,
 }
 
 impl<'a> Handler<'a> {
@@ -14,7 +14,10 @@ impl<'a> Handler<'a> {
             command_id,
         } = parameters;
 
-        self.memories.delete_command(&workspace_id, &command_id)?;
-        self.memories.get_workspace(&workspace_id)
+        self.coordinator
+            .workspaces()
+            .commands()
+            .delete(&workspace_id, &command_id)?;
+        self.coordinator.workspaces().get(&workspace_id)
     }
 }

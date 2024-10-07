@@ -1,8 +1,8 @@
 mod app_dir;
 mod brokers;
-mod clients;
 mod colors;
 mod components;
+mod coordinator;
 mod handlers;
 mod logs;
 mod message;
@@ -15,7 +15,7 @@ mod tui;
 mod widgets;
 
 use app_dir::AppDir;
-use clients::memories;
+use coordinator::Coordinator;
 use router::Router;
 use routes::Route;
 
@@ -31,10 +31,8 @@ fn main() -> Result<()> {
     tui::install_panic_hook();
     logs::init(app_dir.path())?;
 
-    let memories = memories::Client::new(app_dir.path())?;
-
     tui::run(Router {
-        memories,
+        coordinator: Coordinator::new(app_dir.path())?,
         powershell: brokers::powershell::Broker::new(),
     })?;
 
