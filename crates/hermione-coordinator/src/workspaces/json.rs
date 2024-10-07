@@ -87,10 +87,15 @@ impl get::Get for Client {
 }
 
 impl list::List for Client {
-    fn list(&self) -> Result<Vec<Entity>> {
+    fn list(&self, parameters: list::ListParameters) -> Result<Vec<Entity>> {
+        let list::ListParameters { name_contains } = parameters;
         let mut records = self.read()?;
-        records.sort_unstable_by(|a, b| a.last_access_time.cmp(&b.last_access_time).reverse());
 
+        if let Some(query) = name_contains.map(|q| q.to_lowercase()) {
+            records.retain(|w| w.name.to_lowercase().contains(&query));
+        }
+
+        records.sort_unstable_by(|a, b| a.last_access_time.cmp(&b.last_access_time).reverse());
         let entities = records.into_iter().map(Record::load_entity).collect();
 
         Ok(entities)

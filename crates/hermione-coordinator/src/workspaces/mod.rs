@@ -15,9 +15,13 @@ pub trait Operations {
     fn create(&self, data: Dto) -> Result<Dto>;
     fn delete(&self, id: &str) -> Result<()>;
     fn get(&self, id: &str) -> Result<Dto>;
-    fn list(&self) -> Result<Vec<Dto>>;
+    fn list(&self, parameters: ListParameters) -> Result<Vec<Dto>>;
     fn track_access_time(&self, id: &str) -> Result<Dto>;
     fn update(&self, data: Dto) -> Result<Dto>;
+}
+
+pub struct ListParameters<'a> {
+    pub name_contains: Option<&'a str>,
 }
 
 pub struct Client {
@@ -59,11 +63,13 @@ impl Operations for Client {
         Ok(Dto::from_entity(workspace))
     }
 
-    fn list(&self) -> Result<Vec<Dto>> {
+    fn list(&self, parameters: ListParameters<'_>) -> Result<Vec<Dto>> {
+        let ListParameters { name_contains } = parameters;
+
         let workspaces = list::Operation {
             lister: &self.inner,
         }
-        .execute()?;
+        .execute(list::Parameters { name_contains })?;
 
         Ok(workspaces.into_iter().map(Dto::from_entity).collect())
     }

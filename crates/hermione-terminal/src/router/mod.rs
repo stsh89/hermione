@@ -2,7 +2,9 @@ mod powershell;
 mod workspaces;
 
 use crate::{
-    brokers, parameters,
+    brokers,
+    coordinator::workspaces::ListParameters,
+    parameters,
     routes::{self, Route},
     tui, Coordinator, Message, Model, Result,
 };
@@ -41,7 +43,11 @@ impl tui::Router for Router {
 
 impl Router {
     fn initial_route(&self) -> Result<Route> {
-        let mut workspaces = self.coordinator.workspaces().list()?;
+        let mut workspaces = self
+            .coordinator
+            .workspaces()
+            .list(ListParameters::default())?;
+
         workspaces.reverse();
 
         let Some(workspace) = workspaces.pop() else {

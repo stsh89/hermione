@@ -1,5 +1,5 @@
 use crate::{
-    coordinator::Coordinator,
+    coordinator::{workspaces::ListParameters, Coordinator},
     models::workspaces::list::{Model, ModelParameters},
     parameters::workspaces::delete::Parameters,
     Result,
@@ -14,7 +14,10 @@ impl<'a> Handler<'a> {
         let Parameters { id } = parameters;
 
         self.coordinator.workspaces().delete(&id)?;
-        let workspaces = self.coordinator.workspaces().list()?;
+        let workspaces = self
+            .coordinator
+            .workspaces()
+            .list(ListParameters::default())?;
 
         let model = Model::new(ModelParameters {
             workspaces,

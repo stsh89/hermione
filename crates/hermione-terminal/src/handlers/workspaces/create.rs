@@ -1,5 +1,5 @@
 use crate::{
-    coordinator::Coordinator,
+    coordinator::{workspaces::ListParameters, Coordinator},
     models::workspaces::list::{Model, ModelParameters},
     parameters::workspaces::create::Parameters,
     presenters::workspace::Presenter,
@@ -20,7 +20,10 @@ impl<'a> Handler<'a> {
             name,
         })?;
 
-        let workspaces = self.coordinator.workspaces().list()?;
+        let workspaces = self
+            .coordinator
+            .workspaces()
+            .list(ListParameters::default())?;
 
         let model = Model::new(ModelParameters {
             workspaces,

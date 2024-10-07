@@ -1,12 +1,17 @@
 pub mod commands;
 
 use crate::{presenters::workspace::Presenter, Result};
-use hermione_coordinator::workspaces::{Client, Operations};
+use hermione_coordinator::workspaces::{self, Client, Operations};
 use std::path::Path;
 
 pub struct Coordinator {
     client: Client,
     commands: commands::Coordinator,
+}
+
+#[derive(Default)]
+pub struct ListParameters<'a> {
+    pub name_contains: Option<&'a str>,
 }
 
 impl Coordinator {
@@ -41,8 +46,12 @@ impl Coordinator {
         Ok(workspace.into())
     }
 
-    pub fn list(&self) -> Result<Vec<Presenter>> {
-        let workspaces = self.client.list()?;
+    pub fn list(&self, parameters: ListParameters) -> Result<Vec<Presenter>> {
+        let ListParameters { name_contains } = parameters;
+
+        let workspaces = self
+            .client
+            .list(workspaces::ListParameters { name_contains })?;
 
         Ok(workspaces.into_iter().map(Into::into).collect())
     }
