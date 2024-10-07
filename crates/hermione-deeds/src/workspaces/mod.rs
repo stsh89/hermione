@@ -4,7 +4,7 @@ pub mod commands;
 
 use crate::Result;
 use chrono::{DateTime, Utc};
-use hermione_memories::{
+use hermione_core::{
     entities::workspace::{Entity, LoadParameters, Location, Name, NewParameters},
     operations::workspaces::{create, delete, get, list, track_access_time, update},
     Id,
@@ -69,7 +69,7 @@ impl Operations for Client {
     }
 
     fn track_access_time(&self, id: &str) -> Result<Dto> {
-        use hermione_memories::operations::workspaces::get::Get;
+        use hermione_core::operations::workspaces::get::Get;
         let entity = self.inner.get(Id::from_str(id)?)?;
 
         let entity = track_access_time::Operation {

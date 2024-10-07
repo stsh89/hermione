@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/hermione-core",
     "crates/hermione-deeds",
     "crates/hermione-json",
-    "crates/hermione-memories",
     "crates/hermione-notion-serde",
     "crates/hermione-notion",
     "crates/hermione-powershell",
@@ -25,9 +25,9 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 uuid = "1.10.0"
 
+hermione-core = { path = "crates/hermione-core" }
 hermione-deeds = { path = "crates/hermione-deeds" }
 hermione-json = { path = "crates/hermione-json" }
-hermione-memories = { path = "crates/hermione-memories" }
 hermione-notion = { path = "crates/hermione-notion" }
 hermione-notion-serde = { path = "crates/hermione-notion-serde" }
 hermione-powershell = { path = "crates/hermione-powershell" }

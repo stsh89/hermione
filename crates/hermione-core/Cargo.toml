@@ -1,10 +1,10 @@
 [package]
-name = "hermione-memories"
+name = "hermione-core"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "hermione_memories"
+name = "hermione_core"
 
 [dependencies]
 chrono = {workspace = true}

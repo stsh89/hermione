@@ -9,10 +9,10 @@ name = "hermione_deeds"
 [dependencies]
 chrono = { workspace = true }
 eyre = { workspace = true }
-hermione-memories = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
+hermione-core = { workspace = true }
 hermione-json = { workspace = true }

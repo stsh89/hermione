@@ -2,7 +2,7 @@ mod json;
 
 use crate::Result;
 use chrono::{DateTime, Utc};
-use hermione_memories::{
+use hermione_core::{
     entities::command::{Entity, LoadParameters, Name, NewParameters, Program, ScopedId},
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     Id,
@@ -83,7 +83,7 @@ impl Operations for Client {
             id: Id::from_str(id)?,
         };
 
-        use hermione_memories::operations::workspaces::commands::get::Get;
+        use hermione_core::operations::workspaces::commands::get::Get;
         let entity = self.inner.get(id)?;
 
         let entity = track_execution_time::Operation {

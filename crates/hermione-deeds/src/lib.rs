@@ -14,12 +14,12 @@ pub enum Error {
     Unknown(#[from] eyre::Report),
 }
 
-impl From<hermione_memories::Error> for Error {
-    fn from(value: hermione_memories::Error) -> Self {
+impl From<hermione_core::Error> for Error {
+    fn from(value: hermione_core::Error) -> Self {
         match value {
-            hermione_memories::Error::FailedPrecondition(msg) => Self::FailedPrecondition(msg),
-            hermione_memories::Error::Internal(msg) => Self::Internal(msg),
-            hermione_memories::Error::Unknown(err) => Self::Unknown(err),
+            hermione_core::Error::FailedPrecondition(msg) => Self::FailedPrecondition(msg),
+            hermione_core::Error::Internal(msg) => Self::Internal(msg),
+            hermione_core::Error::Unknown(err) => Self::Unknown(err),
         }
     }
 }

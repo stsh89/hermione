@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
-use hermione_json::collections::Client as InnerClient;
-use hermione_memories::{
+use hermione_core::{
     entities::workspace::{Entity, LoadParameters, Location, Name},
     operations::workspaces::{create, delete, get, list, track_access_time, update},
     Id, Result,
 };
+use hermione_json::collections::Client as InnerClient;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use uuid::Uuid;
