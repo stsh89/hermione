@@ -2,12 +2,12 @@
 resolver = "2"
 members = [
     "crates/hermione-deeds",
-    "crates/hermione-eyes",
     "crates/hermione-json",
     "crates/hermione-memories",
     "crates/hermione-notion-serde",
     "crates/hermione-notion",
     "crates/hermione-powershell",
+    "crates/hermione-terminal",
 ]
 
 [workspace.dependencies]

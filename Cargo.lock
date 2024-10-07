@@ -800,23 +800,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hermione-eyes"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "dirs",
- "eyre",
- "hermione-deeds",
- "hermione-powershell",
- "ratatui",
- "serde",
- "serde_json",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "hermione-json"
 version = "0.1.0"
 dependencies = [
@@ -859,6 +842,23 @@ dependencies = [
 [[package]]
 name = "hermione-powershell"
 version = "0.1.0"
+
+[[package]]
+name = "hermione-terminal"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "dirs",
+ "eyre",
+ "hermione-deeds",
+ "hermione-powershell",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "hermit-abi"

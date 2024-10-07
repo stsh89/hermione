@@ -1,8 +1,8 @@
 [package]
-name = "hermione-eyes"
+name = "hermione-terminal"
 version = "0.1.0"
 edition = "2021"
-default-run = "hermione-eyes"
+default-run = "hermione-terminal"
 
 [dependencies]
 anyhow = { workspace = true }
