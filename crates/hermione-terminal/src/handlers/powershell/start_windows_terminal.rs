@@ -1,18 +1,19 @@
-use crate::{clients, parameters::powershell::start_windows_terminal::Parameters, Result};
+use crate::{brokers, parameters::powershell::start_windows_terminal::Parameters, Result};
 
-pub struct Handler {}
+pub struct Handler<'a> {
+    pub powershell: &'a brokers::powershell::Broker,
+}
 
-impl Handler {
+impl<'a> Handler<'a> {
     pub fn handle(self, parameters: Parameters) -> Result<()> {
         let Parameters { working_directory } = parameters;
 
-        let powershell = clients::powershell::Client::new()?;
-
-        powershell.start_windows_terminal(clients::powershell::WindowsTerminalParameters {
-            command: None,
-            directory: working_directory.as_deref(),
-            no_exit: true,
-        })?;
+        self.powershell
+            .start_windows_terminal(brokers::powershell::WindowsTerminalParameters {
+                command: None,
+                directory: working_directory.as_deref(),
+                no_exit: true,
+            })?;
 
         Ok(())
     }

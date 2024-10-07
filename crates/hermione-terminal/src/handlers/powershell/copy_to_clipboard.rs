@@ -1,11 +1,10 @@
 use crate::{
-    clients::{memories, powershell},
-    parameters::powershell::copy_to_clipboard::Parameters,
-    Result,
+    brokers, clients::memories, parameters::powershell::copy_to_clipboard::Parameters, Result,
 };
 
 pub struct Handler<'a> {
     pub memories: &'a memories::Client,
+    pub powershell: &'a brokers::powershell::Broker,
 }
 
 impl<'a> Handler<'a> {
@@ -16,8 +15,7 @@ impl<'a> Handler<'a> {
         } = parameters;
 
         let command = self.memories.get_command(&workspace_id, &command_id)?;
-        let powershell = powershell::Client::new()?;
 
-        powershell.copy_to_clipboard(&command.program)
+        self.powershell.copy_to_clipboard(&command.program)
     }
 }

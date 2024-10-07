@@ -1,4 +1,5 @@
 mod app_dir;
+mod brokers;
 mod clients;
 mod colors;
 mod components;
@@ -32,7 +33,10 @@ fn main() -> Result<()> {
 
     let memories = memories::Client::new(app_dir.path())?;
 
-    tui::run(Router { memories })?;
+    tui::run(Router {
+        memories,
+        powershell: brokers::powershell::Broker::new(),
+    })?;
 
     tui::restore_terminal()?;
 

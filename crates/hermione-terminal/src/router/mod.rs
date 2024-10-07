@@ -2,13 +2,14 @@ mod powershell;
 mod workspaces;
 
 use crate::{
-    clients, parameters,
+    brokers, clients, parameters,
     routes::{self, Route},
     tui, Message, Model, Result,
 };
 
 pub struct Router {
     pub memories: clients::memories::Client,
+    pub powershell: brokers::powershell::Broker,
 }
 
 impl tui::Router for Router {
@@ -22,11 +23,18 @@ impl tui::Router for Router {
     }
 
     fn handle(&self, route: Route) -> Result<Option<Box<Model>>> {
-        let Router { memories } = self;
+        let Router {
+            memories,
+            powershell,
+        } = self;
 
         match route {
             Route::Workspaces(route) => workspaces::Router { memories }.handle(route),
-            Route::Powershell(route) => powershell::Router { memories }.handle(route),
+            Route::Powershell(route) => powershell::Router {
+                memories,
+                powershell,
+            }
+            .handle(route),
         }
     }
 }
