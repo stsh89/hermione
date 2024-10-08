@@ -9,6 +9,7 @@ name = "hermione_coordinator"
 [dependencies]
 chrono = { workspace = true }
 eyre = { workspace = true }
+rusqlite = { workspace = true, features = ["bundled"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

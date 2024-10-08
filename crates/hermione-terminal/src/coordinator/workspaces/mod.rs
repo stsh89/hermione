@@ -16,7 +16,7 @@ pub struct ListParameters<'a> {
 
 impl Coordinator {
     pub fn new(app_path: &Path) -> Result<Self> {
-        let workspaces_path = app_path.join("workspaces.json");
+        let workspaces_path = app_path.join("workspaces");
 
         Ok(Self {
             client: Client::new(workspaces_path)?,
