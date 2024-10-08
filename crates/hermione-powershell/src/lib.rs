@@ -66,7 +66,6 @@ impl Client {
         let command = format!("Set-Clipboard '{}'", text);
 
         self.write_stdin(&command)?;
-        // self.powershell.wait_with_output()?;
 
         Ok(())
     }
@@ -96,7 +95,6 @@ impl Client {
             .with_command(command);
 
         self.write_stdin(&command.to_string())?;
-        // self.powershell.wait_with_output()?;
 
         Ok(())
     }
