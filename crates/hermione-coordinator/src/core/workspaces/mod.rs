@@ -1,3 +1,5 @@
+pub mod commands;
+
 use chrono::{DateTime, Utc};
 use hermione_core::{
     entities::workspace::{Entity, LoadParameters, Location, Name},

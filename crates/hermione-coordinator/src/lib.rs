@@ -1,3 +1,4 @@
+mod core;
 pub mod workspaces;
 
 pub type Result<T> = std::result::Result<T, Error>;

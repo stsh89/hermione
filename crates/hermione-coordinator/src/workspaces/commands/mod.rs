@@ -1,6 +1,4 @@
-mod json;
-
-use crate::Result;
+use crate::{core, Result};
 use chrono::{DateTime, Utc};
 use hermione_core::{
     entities::command::{Entity, LoadParameters, Name, NewParameters, Program, ScopedId},
@@ -19,7 +17,7 @@ pub trait Operations {
 }
 
 pub struct Client {
-    inner: json::Client,
+    inner: core::workspaces::commands::Client,
 }
 
 pub struct Dto {
@@ -119,7 +117,7 @@ impl Operations for Client {
 
 impl Client {
     pub fn new(path: PathBuf) -> Result<Self> {
-        let inner = json::Client::new(path)?;
+        let inner = core::workspaces::commands::Client::new(path)?;
 
         Ok(Self { inner })
     }
