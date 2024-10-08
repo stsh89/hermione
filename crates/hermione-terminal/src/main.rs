@@ -33,7 +33,7 @@ fn main() -> Result<()> {
 
     tui::run(Router {
         coordinator: Coordinator::new(app_dir.path())?,
-        powershell: brokers::powershell::Broker::new(),
+        powershell: brokers::powershell::Broker::new()?,
     })?;
 
     tui::restore_terminal()?;

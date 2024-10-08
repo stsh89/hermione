@@ -62,11 +62,11 @@ impl WindowsTerminalCommand {
 }
 
 impl Client {
-    pub fn copy_to_clipboard(mut self, text: &str) -> Result<()> {
+    pub fn copy_to_clipboard(&mut self, text: &str) -> Result<()> {
         let command = format!("Set-Clipboard '{}'", text);
 
         self.write_stdin(&command)?;
-        self.powershell.wait_with_output()?;
+        // self.powershell.wait_with_output()?;
 
         Ok(())
     }
@@ -83,7 +83,7 @@ impl Client {
         })
     }
 
-    pub fn start_windows_terminal(mut self, parameters: WindowsTerminalParameters) -> Result<()> {
+    pub fn start_windows_terminal(&mut self, parameters: WindowsTerminalParameters) -> Result<()> {
         let WindowsTerminalParameters {
             directory,
             no_exit,
@@ -96,7 +96,7 @@ impl Client {
             .with_command(command);
 
         self.write_stdin(&command.to_string())?;
-        self.powershell.wait_with_output()?;
+        // self.powershell.wait_with_output()?;
 
         Ok(())
     }
