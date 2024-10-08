@@ -3,7 +3,6 @@ resolver = "2"
 members = [
     "crates/hermione-coordinator",
     "crates/hermione-core",
-    "crates/hermione-json",
     "crates/hermione-notion-serde",
     "crates/hermione-notion",
     "crates/hermione-powershell",
@@ -28,7 +27,6 @@ rusqlite = "0.32.1"
 
 hermione-coordinator = { path = "crates/hermione-coordinator" }
 hermione-core = { path = "crates/hermione-core" }
-hermione-json = { path = "crates/hermione-json" }
 hermione-notion = { path = "crates/hermione-notion" }
 hermione-notion-serde = { path = "crates/hermione-notion-serde" }
 hermione-powershell = { path = "crates/hermione-powershell" }

@@ -24,3 +24,13 @@ impl From<hermione_core::Error> for Error {
         }
     }
 }
+
+trait ErrReport {
+    fn err_report(self) -> eyre::Error;
+}
+
+impl ErrReport for rusqlite::Error {
+    fn err_report(self) -> eyre::Error {
+        eyre::Error::new(self)
+    }
+}

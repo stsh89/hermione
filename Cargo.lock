@@ -813,10 +813,7 @@ dependencies = [
  "chrono",
  "eyre",
  "hermione-core",
- "hermione-json",
  "rusqlite",
- "serde",
- "serde_json",
  "thiserror",
  "uuid",
 ]
@@ -829,14 +826,6 @@ dependencies = [
  "eyre",
  "thiserror",
  "uuid",
-]
-
-[[package]]
-name = "hermione-json"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -2373,7 +2362,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
 dependencies = [
  "getrandom",
- "serde",
 ]
 
 [[package]]

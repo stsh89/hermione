@@ -4,57 +4,79 @@ use hermione_core::{
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     Id, Result,
 };
-use hermione_json::collections::Client as InnerClient;
-use serde::{Deserialize, Serialize};
+use rusqlite::{params, Connection};
 use std::path::PathBuf;
-use uuid::Uuid;
+use uuid::{Bytes, Uuid};
 
-#[derive(Serialize, Deserialize)]
-pub struct Record {
-    id: Uuid,
+use crate::ErrReport;
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_execute_time: Option<DateTime<Utc>>,
-
+struct Record {
+    id: Bytes,
+    last_execute_time: Option<i64>,
     name: String,
     program: String,
-    workspace_id: Uuid,
+    workspace_id: Bytes,
 }
 
 pub struct Client {
-    inner: InnerClient,
+    connection: Connection,
 }
 
 impl Client {
     pub fn new(path: PathBuf) -> eyre::Result<Self> {
-        let manager = InnerClient::new(path)?;
+        let connection = Connection::open(path)?;
 
-        Ok(Self { inner: manager })
-    }
+        connection.execute(
+            "CREATE TABLE IF NOT EXISTS commands (
+                id BLOB PRIMARY KEY,
+                last_execute_time INTEGER,
+                name TEXT NOT NULL,
+                program TEXT NOT NULL,
+                workspace_id BLOB NOT NULL
+            )",
+            (),
+        )?;
 
-    pub fn read(&self) -> eyre::Result<Vec<Record>> {
-        let records = self.inner.read_collection()?;
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS
+            commands_workspace_id_idx
+            ON commands(workspace_id)",
+            (),
+        )?;
 
-        Ok(records)
-    }
-
-    pub fn write(&self, records: Vec<Record>) -> eyre::Result<()> {
-        self.inner.write_collection(records)?;
-
-        Ok(())
+        Ok(Self { connection })
     }
 }
 
 impl create::Create for Client {
     fn create(&self, mut entity: Entity) -> Result<Entity> {
-        let mut records = self.read()?;
         let id = Uuid::new_v4();
         entity.set_id(Id::new(id))?;
 
         let record = Record::from_entity(&entity)?;
-        records.push(record);
 
-        self.write(records)?;
+        let mut statement = self
+            .connection
+            .prepare(
+                "INSERT INTO commands (
+                    id,
+                    last_execute_time,
+                    name,
+                    program,
+                    workspace_id
+                ) VALUES (?1, ?2, ?3, ?4, ?5)",
+            )
+            .map_err(ErrReport::err_report)?;
+
+        statement
+            .execute(params![
+                record.id,
+                record.last_execute_time,
+                record.name,
+                record.program,
+                record.workspace_id
+            ])
+            .map_err(ErrReport::err_report)?;
 
         Ok(entity)
     }
@@ -63,11 +85,15 @@ impl create::Create for Client {
 impl delete::Delete for Client {
     fn delete(&self, id: ScopedId) -> Result<()> {
         let ScopedId { workspace_id, id } = id;
-        let mut records: Vec<Record> = self.read()?;
 
-        records.retain(|record| !(record.id == *id && record.workspace_id == *workspace_id));
+        let mut statement = self
+            .connection
+            .prepare("DELETE FROM commands WHERE id = ?1 AND workspace_id = ?2")
+            .map_err(ErrReport::err_report)?;
 
-        self.write(records)?;
+        statement
+            .execute([id.as_bytes(), workspace_id.as_bytes()])
+            .map_err(ErrReport::err_report)?;
 
         Ok(())
     }
@@ -76,16 +102,26 @@ impl delete::Delete for Client {
 impl get::Get for Client {
     fn get(&self, id: ScopedId) -> Result<Entity> {
         let ScopedId { workspace_id, id } = id;
-        let records: Vec<Record> = self.read()?;
 
-        let record = records
-            .into_iter()
-            .find(|record| record.id == *id && record.workspace_id == *workspace_id)
-            .ok_or_else(|| eyre::eyre!("Workspace with id {} not found", id))?;
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT
+                id,
+                last_execute_time,
+                name,
+                program,
+                workspace_id
+            FROM commands
+            WHERE id = ?1 AND workspace_id = ?2",
+            )
+            .map_err(ErrReport::err_report)?;
 
-        let entity = record.load_entity();
+        let record = statement
+            .query_row([id.as_bytes(), workspace_id.as_bytes()], Record::from_row)
+            .map_err(ErrReport::err_report)?;
 
-        Ok(entity)
+        Ok(Record::load_entity(record))
     }
 }
 
@@ -96,14 +132,33 @@ impl list::List for Client {
             program_contains,
         } = parameters;
 
-        let mut records: Vec<Record> = self.read()?;
+        let program_contains = program_contains
+            .map(|q| format!("%{}%", q.to_lowercase()))
+            .unwrap_or("%%".into());
 
-        if let Some(query) = program_contains.map(|q| q.to_lowercase()) {
-            records.retain(|w| w.program.to_lowercase().contains(&query));
-        }
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT
+                id,
+                last_execute_time,
+                name,
+                program,
+                workspace_id
+            FROM commands
+            WHERE LOWER(program) LIKE ?1 AND workspace_id = ?2
+            ORDER BY last_execute_time DESC, program ASC",
+            )
+            .map_err(ErrReport::err_report)?;
 
-        records.retain(|record| record.workspace_id == *workspace_id);
-        records.sort_unstable_by(|a, b| a.last_execute_time.cmp(&b.last_execute_time).reverse());
+        let records = statement
+            .query_map(
+                params![program_contains, workspace_id.as_bytes()],
+                Record::from_row,
+            )
+            .map_err(ErrReport::err_report)?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(ErrReport::err_report)?;
 
         let entities = records.into_iter().map(Record::load_entity).collect();
 
@@ -113,71 +168,111 @@ impl list::List for Client {
 
 impl track_execution_time::Track for Client {
     fn track(&self, entity: Entity) -> Result<Entity> {
-        let Some(id) = entity.id() else {
-            return Err(
-                eyre::eyre!("Attempt to track access time for workspace without id").into(),
-            );
-        };
+        let record = Record::from_entity(&entity)?;
 
-        let mut records: Vec<Record> = self.read()?;
+        let last_execute_time = Utc::now()
+            .timestamp_nanos_opt()
+            .ok_or(eyre::eyre!("Failed to get timestamp"))?;
 
-        let record = records
-            .iter_mut()
-            .find(|record| record.id == *id && record.workspace_id == *entity.workspace_id())
-            .ok_or(eyre::eyre!("Workspace with id {} not found", id,))?;
+        let mut statement = self
+            .connection
+            .prepare(
+                "UPDATE commands
+                SET last_execute_time = ?1
+                WHERE id = ?2 AND workspace_id = ?3",
+            )
+            .map_err(ErrReport::err_report)?;
 
-        record.last_execute_time = Some(Utc::now());
-
-        self.write(records)?;
+        statement
+            .execute(params![last_execute_time, record.id, record.workspace_id])
+            .map_err(ErrReport::err_report)?;
 
         use get::Get;
         self.get(ScopedId {
-            workspace_id: entity.workspace_id(),
-            id,
+            id: Id::new(Uuid::from_bytes(record.id)),
+            workspace_id: Id::new(Uuid::from_bytes(record.workspace_id)),
         })
     }
 }
 
 impl update::Update for Client {
     fn update(&self, entity: Entity) -> Result<Entity> {
-        let Some(id) = entity.id() else {
-            return Err(eyre::eyre!("Attemp to update workspace without id").into());
-        };
+        let record = Record::from_entity(&entity)?;
 
-        let mut records: Vec<Record> = self.read()?;
+        let mut statement = self
+            .connection
+            .prepare(
+                "UPDATE commands
+                SET
+                    name = ?1,
+                    program = ?2
+                WHERE id = ?3 AND workspace_id = ?4",
+            )
+            .map_err(ErrReport::err_report)?;
 
-        let record = records
-            .iter_mut()
-            .find(|record| record.id == *id && record.workspace_id == *entity.workspace_id())
-            .ok_or_else(|| eyre::eyre!("Workspace with id {}not found", id))?;
+        statement
+            .execute(params![
+                record.name,
+                record.program,
+                record.id,
+                record.workspace_id
+            ])
+            .map_err(ErrReport::err_report)?;
 
-        record.name = entity.name().to_string();
-        record.program = entity.program().to_string();
-
-        self.write(records)?;
-
-        Ok(entity)
+        use get::Get;
+        self.get(ScopedId {
+            id: Id::new(Uuid::from_bytes(record.id)),
+            workspace_id: Id::new(Uuid::from_bytes(record.workspace_id)),
+        })
     }
 }
 
 impl Record {
     fn from_entity(entity: &Entity) -> Result<Self> {
+        let id = *entity
+            .id()
+            .ok_or(eyre::eyre!("Record without id"))?
+            .as_bytes();
+
+        let last_execute_time = entity
+            .last_execute_time()
+            .and_then(|date_time| Into::<DateTime<Utc>>::into(date_time).timestamp_nanos_opt());
+
         Ok(Self {
-            id: *entity.id().ok_or(eyre::eyre!("Record without id"))?,
-            last_execute_time: entity.last_execute_time().map(From::from),
-            program: entity.program().to_string(),
+            id,
+            last_execute_time,
             name: entity.name().to_string(),
-            workspace_id: *entity.workspace_id(),
+            program: entity.program().to_string(),
+            workspace_id: *entity.workspace_id().as_bytes(),
+        })
+    }
+
+    fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+        Ok(Record {
+            id: row.get(0)?,
+            last_execute_time: row.get(1)?,
+            name: row.get(2)?,
+            program: row.get(3)?,
+            workspace_id: row.get(4)?,
         })
     }
 
     fn load_entity(self) -> Entity {
+        let id = Id::new(Uuid::from_bytes(self.id));
+
+        let last_execute_time = self
+            .last_execute_time
+            .map(DateTime::from_timestamp_nanos)
+            .map(From::from);
+
+        let workspace_id = Id::new(Uuid::from_bytes(self.workspace_id));
+
         Entity::load(LoadParameters {
-            id: Id::new(self.id),
-            last_execute_time: self.last_execute_time.map(From::from),
-            program: Program::new(self.program),
+            id,
+            last_execute_time,
             name: Name::new(self.name),
-            workspace_id: Id::new(self.workspace_id),
+            program: Program::new(self.program),
+            workspace_id,
         })
     }
 }

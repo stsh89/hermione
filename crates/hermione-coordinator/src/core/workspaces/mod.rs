@@ -1,20 +1,17 @@
 pub mod commands;
 
+use crate::ErrReport;
 use chrono::{DateTime, Utc};
 use hermione_core::{
     entities::workspace::{Entity, LoadParameters, Location, Name},
-    operations::workspaces::{
-        create, delete,
-        get::{self, Get},
-        list, track_access_time, update,
-    },
+    operations::workspaces::{create, delete, get, list, track_access_time, update},
     Id, Result,
 };
 use rusqlite::{params, Connection};
 use std::path::PathBuf;
 use uuid::{Bytes, Uuid};
 
-pub struct Record {
+struct Record {
     id: Bytes,
     last_access_time: Option<i64>,
     location: Option<String>,
@@ -60,7 +57,7 @@ impl create::Create for Client {
                     name
                 ) VALUES (?1, ?2, ?3, ?4)",
             )
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
         statement
             .execute(params![
@@ -69,7 +66,7 @@ impl create::Create for Client {
                 record.location,
                 record.name
             ])
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
         Ok(entity)
     }
@@ -77,12 +74,14 @@ impl create::Create for Client {
 
 impl delete::Delete for Client {
     fn delete(&self, id: Id) -> Result<()> {
-        let mut stmt = self
+        let mut statement = self
             .connection
             .prepare("DELETE FROM workspaces WHERE id = ?1")
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
-        stmt.execute([id.as_bytes()]).map_err(storage_error)?;
+        statement
+            .execute([id.as_bytes()])
+            .map_err(ErrReport::err_report)?;
 
         Ok(())
     }
@@ -101,11 +100,11 @@ impl get::Get for Client {
                 FROM workspaces
                 WHERE id = ?1",
             )
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
         let record = statement
             .query_row([id.as_bytes()], Record::from_row)
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
         Ok(Record::load_entity(record))
     }
@@ -131,13 +130,13 @@ impl list::List for Client {
                 WHERE LOWER(name) LIKE ?1
                 ORDER BY last_access_time DESC, name ASC",
             )
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
         let records = statement
             .query_map([name_contains], Record::from_row)
-            .map_err(storage_error)?
+            .map_err(ErrReport::err_report)?
             .collect::<std::result::Result<Vec<_>, _>>()
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
         let entities = records.into_iter().map(Record::load_entity).collect();
 
@@ -160,12 +159,13 @@ impl track_access_time::Track for Client {
                 SET last_access_time = ?1
                 WHERE id = ?2",
             )
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
         statement
             .execute(params![last_access_time, record.id])
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
+        use get::Get;
         self.get(Id::new(Uuid::from_bytes(record.id)))
     }
 }
@@ -183,12 +183,13 @@ impl update::Update for Client {
                     name = ?2
                 WHERE id = ?3",
             )
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
         statement
             .execute(params![record.location, record.name, record.id])
-            .map_err(storage_error)?;
+            .map_err(ErrReport::err_report)?;
 
+        use get::Get;
         self.get(Id::new(Uuid::from_bytes(record.id)))
     }
 }
@@ -236,8 +237,4 @@ impl Record {
             name: Name::new(self.name),
         })
     }
-}
-
-fn storage_error(error: rusqlite::Error) -> eyre::Error {
-    eyre::Error::new(error).wrap_err("Storage error")
 }
