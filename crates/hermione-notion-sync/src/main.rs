@@ -73,6 +73,7 @@ async fn create_settings_file(settings_file_path: &Path) -> Result<()> {
             &settings.workspaces_page_id,
             QueryDatabaseParameters {
                 api_key_override: Some(&settings.api_key),
+                page_size: 1,
                 ..Default::default()
             },
         )
