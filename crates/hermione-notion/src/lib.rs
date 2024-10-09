@@ -40,7 +40,6 @@ pub struct QueryDatabaseParameters<'a> {
     pub api_key_override: Option<&'a str>,
     pub page_size: u8,
     pub start_cursor: Option<&'a str>,
-    pub database_id: &'a str,
 }
 
 pub struct PostParameters<'a> {
@@ -50,12 +49,15 @@ pub struct PostParameters<'a> {
 }
 
 impl Client {
-    pub async fn query_database(&self, parameters: QueryDatabaseParameters<'_>) -> Result<Value> {
+    pub async fn query_database(
+        &self,
+        database_id: &str,
+        parameters: QueryDatabaseParameters<'_>,
+    ) -> Result<Value> {
         let QueryDatabaseParameters {
             api_key_override,
             page_size,
             start_cursor,
-            database_id,
         } = parameters;
 
         let uri = format!("databases/{database_id}/query");
@@ -164,6 +166,16 @@ impl Default for ClientParameters {
             timeout: Duration::from_secs(3),
             api_key: None,
             base_url_override: None,
+        }
+    }
+}
+
+impl<'a> Default for QueryDatabaseParameters<'a> {
+    fn default() -> Self {
+        Self {
+            api_key_override: None,
+            page_size: 100,
+            start_cursor: None,
         }
     }
 }

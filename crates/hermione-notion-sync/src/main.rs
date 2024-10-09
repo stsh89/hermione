@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use hermione_notion::QueryDatabaseParameters;
+use hermione_notion::{ClientParameters, QueryDatabaseParameters};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, path::Path};
 
@@ -66,19 +66,16 @@ async fn create_settings_file(settings_file_path: &Path) -> Result<()> {
     clear_screen();
     println!("Settings verification started...");
 
-    let client = hermione_notion::Client::new(hermione_notion::ClientParameters {
-        timeout: std::time::Duration::from_secs(10),
-        api_key: Some(settings.api_key.clone()),
-        base_url_override: None,
-    })?;
+    let client = hermione_notion::Client::new(ClientParameters::default())?;
 
     client
-        .query_database(QueryDatabaseParameters {
-            api_key_override: None,
-            page_size: 1,
-            start_cursor: None,
-            database_id: &settings.workspaces_page_id,
-        })
+        .query_database(
+            &settings.workspaces_page_id,
+            QueryDatabaseParameters {
+                api_key_override: Some(&settings.api_key),
+                ..Default::default()
+            },
+        )
         .await?;
 
     println!("Settings verified!");

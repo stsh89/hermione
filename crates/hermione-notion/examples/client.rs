@@ -75,10 +75,9 @@ async fn query_database(client: Client, action: QueryDatabaseAction) -> Result<V
         api_key_override: None,
         page_size,
         start_cursor: start_cursor.as_deref(),
-        database_id: &database_id,
     };
 
-    let output = client.query_database(parameters).await?;
+    let output = client.query_database(&database_id, parameters).await?;
 
     Ok(output)
 }

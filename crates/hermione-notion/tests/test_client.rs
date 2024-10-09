@@ -49,14 +49,8 @@ async fn it_queries_database() -> Result<()> {
         ..Default::default()
     })?;
 
-    let parameters = QueryDatabaseParameters {
-        api_key_override: None,
-        page_size: 100,
-        start_cursor: None,
-        database_id: "1111",
-    };
-
-    client.query_database(parameters).await?;
+    let parameters = QueryDatabaseParameters::default();
+    client.query_database("1111", parameters).await?;
 
     mock.assert_async().await;
 
