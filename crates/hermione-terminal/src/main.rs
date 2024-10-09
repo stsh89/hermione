@@ -1,4 +1,3 @@
-mod app_dir;
 mod brokers;
 mod colors;
 mod components;
@@ -14,7 +13,6 @@ mod routes;
 mod tui;
 mod widgets;
 
-use app_dir::AppDir;
 use coordinator::Coordinator;
 use router::Router;
 use routes::Route;
@@ -26,13 +24,13 @@ type Model = dyn tui::Model<Route = Route, Message = Message>;
 type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
-    let app_dir = AppDir::new()?;
+    let app_path = hermione_terminal_directory::path()?;
 
     tui::install_panic_hook();
-    logs::init(app_dir.path())?;
+    logs::init(&app_path)?;
 
     tui::run(Router {
-        coordinator: Coordinator::new(app_dir.path().join("hermione.db3").as_path())?,
+        coordinator: Coordinator::new(app_path.join("hermione.db3").as_path())?,
         powershell: brokers::powershell::Broker::new()?,
     })?;
 
