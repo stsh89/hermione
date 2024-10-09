@@ -8,7 +8,7 @@ use hermione_core::{
     Id, Result,
 };
 use rusqlite::{params, Connection};
-use std::path::PathBuf;
+use std::path::Path;
 use uuid::{Bytes, Uuid};
 
 struct Record {
@@ -23,7 +23,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(path: PathBuf) -> eyre::Result<Self> {
+    pub fn new(path: &Path) -> eyre::Result<Self> {
         let connection = Connection::open(path)?;
 
         connection.execute(
@@ -74,9 +74,20 @@ impl create::Create for Client {
 
 impl delete::Delete for Client {
     fn delete(&self, id: Id) -> Result<()> {
+        // TODO: apply transaction
+
         let mut statement = self
             .connection
             .prepare("DELETE FROM workspaces WHERE id = ?1")
+            .map_err(ErrReport::err_report)?;
+
+        statement
+            .execute([id.as_bytes()])
+            .map_err(ErrReport::err_report)?;
+
+        let mut statement = self
+            .connection
+            .prepare("DELETE FROM commands WHERE workspace_id = ?1")
             .map_err(ErrReport::err_report)?;
 
         statement

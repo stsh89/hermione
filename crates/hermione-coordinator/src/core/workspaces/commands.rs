@@ -5,7 +5,7 @@ use hermione_core::{
     Id, Result,
 };
 use rusqlite::{params, Connection};
-use std::path::PathBuf;
+use std::path::Path;
 use uuid::{Bytes, Uuid};
 
 use crate::ErrReport;
@@ -23,7 +23,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(path: PathBuf) -> eyre::Result<Self> {
+    pub fn new(path: &Path) -> eyre::Result<Self> {
         let connection = Connection::open(path)?;
 
         connection.execute(

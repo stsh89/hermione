@@ -32,7 +32,7 @@ fn main() -> Result<()> {
     logs::init(app_dir.path())?;
 
     tui::run(Router {
-        coordinator: Coordinator::new(app_dir.path())?,
+        coordinator: Coordinator::new(app_dir.path().join("hermione.db3").as_path())?,
         powershell: brokers::powershell::Broker::new()?,
     })?;
 

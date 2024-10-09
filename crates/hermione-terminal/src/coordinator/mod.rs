@@ -8,9 +8,9 @@ pub struct Coordinator {
 }
 
 impl Coordinator {
-    pub fn new(app_path: &Path) -> Result<Self> {
+    pub fn new(connection_path: &Path) -> Result<Self> {
         Ok(Self {
-            workspaces: workspaces::Coordinator::new(app_path)?,
+            workspaces: workspaces::Coordinator::new(connection_path)?,
         })
     }
 

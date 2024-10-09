@@ -12,11 +12,9 @@ pub struct ListParameters<'a> {
 }
 
 impl Coordinator {
-    pub fn new(app_path: &Path) -> Result<Self> {
-        let commands_path = app_path.join("commands");
-
+    pub fn new(connection_path: &Path) -> Result<Self> {
         Ok(Self {
-            client: Client::new(commands_path)?,
+            client: Client::new(connection_path)?,
         })
     }
 

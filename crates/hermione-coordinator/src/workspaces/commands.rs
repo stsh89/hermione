@@ -5,7 +5,7 @@ use hermione_core::{
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     Id,
 };
-use std::{path::PathBuf, str::FromStr};
+use std::{path::Path, str::FromStr};
 
 pub trait Operations {
     fn create(&self, data: Dto) -> Result<Dto>;
@@ -116,7 +116,7 @@ impl Operations for Client {
 }
 
 impl Client {
-    pub fn new(path: PathBuf) -> Result<Self> {
+    pub fn new(path: &Path) -> Result<Self> {
         let inner = core::workspaces::commands::Client::new(path)?;
 
         Ok(Self { inner })
