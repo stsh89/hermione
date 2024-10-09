@@ -5,8 +5,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-clap = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
+hermione-notion = { workspace = true }
 hermione-terminal-directory = { workspace = true }

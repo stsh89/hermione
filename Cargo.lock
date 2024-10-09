@@ -951,9 +951,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "hermione-notion",
  "hermione-terminal-directory",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]
