@@ -1,0 +1,12 @@
+[package]
+name = "hermione-notion-sync"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+
+hermione-terminal-directory = { workspace = true }
