@@ -1,3 +1,7 @@
+mod commands;
+mod screen;
+mod settings;
+
 use clap::{Parser, Subcommand};
 use hermione_coordinator::workspaces::{Dto, ListParameters};
 use hermione_notion::{
@@ -12,6 +16,8 @@ use std::{
 
 type Result<T> = anyhow::Result<T>;
 type Error = anyhow::Error;
+
+use settings::{NewSettingsParameters, Settings};
 
 const PAGE_SIZE: u32 = 1;
 
@@ -29,92 +35,26 @@ enum Commands {
     Export,
 }
 
-#[derive(Serialize, Deserialize)]
-struct Settings {
-    api_key: String,
-    workspaces_page_id: String,
-}
-
-impl Settings {
-    fn read(app_path: &Path) -> Result<Self> {
-        let settings_file_path = Settings::path(app_path);
-
-        if !settings_file_path.try_exists()? {
-            return Err(Error::msg("Settings file not found"));
-        }
-
-        let file = File::open(settings_file_path)?;
-        let settings: Self = serde_json::from_reader(file)?;
-
-        Ok(settings)
-    }
-
-    fn path(app_path: &Path) -> PathBuf {
-        app_path.join("notion-sync.json")
-    }
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-
-    let app_path = hermione_terminal_directory::path()?;
+    let directory_path = hermione_terminal_directory::path()?;
 
     let result = match cli.command {
-        Commands::CreateSettingsFile => create_settings_file(&app_path).await,
-        Commands::DeleteSettingsFile => delete_settings_file(&app_path),
-        Commands::Export => export(&app_path).await,
+        Commands::CreateSettingsFile => {
+            commands::create_settings_file::Command::new(&directory_path)?
+                .execute()
+                .await
+        }
+        Commands::DeleteSettingsFile => {
+            commands::delete_settings_file::Command::new(directory_path).execute()
+        }
+        Commands::Export => export(&directory_path).await,
     };
 
     if let Err(error) = result {
         eprintln!("{error}");
     }
-
-    Ok(())
-}
-
-async fn create_settings_file(app_path: &Path) -> Result<()> {
-    let settings_file_path = Settings::path(app_path);
-
-    if settings_file_path.try_exists()? {
-        return Err(Error::msg("Settings file already exists"));
-    }
-
-    clear_screen();
-    let api_key = read_stdin("Enter your Notion API key: ")?;
-
-    clear_screen();
-    let workspaces_page_id = read_stdin("Enter your Notion workspaces page ID: ")?;
-
-    let settings = Settings {
-        api_key,
-        workspaces_page_id,
-    };
-
-    clear_screen();
-    println!("Settings verification started...");
-
-    let client = hermione_notion::Client::new(NewClientParameters {
-        api_key: Some(settings.api_key.clone()),
-        ..Default::default()
-    })?;
-
-    client
-        .query_database(
-            &settings.workspaces_page_id,
-            QueryDatabaseParameters {
-                page_size: 1,
-                ..Default::default()
-            },
-        )
-        .await?;
-
-    println!("Settings verified!");
-
-    let file = File::create(&settings_file_path)?;
-    serde_json::to_writer_pretty(file, &settings)?;
-
-    println!("Settings file created: {}", settings_file_path.display());
 
     Ok(())
 }
@@ -149,7 +89,7 @@ async fn export(app_path: &Path) -> Result<()> {
     })?;
 
     let notion_client = hermione_notion::Client::new(NewClientParameters {
-        api_key: Some(settings.api_key.clone()),
+        api_key: Some(settings.api_key().into()),
         ..Default::default()
     })?;
 
@@ -169,7 +109,7 @@ async fn export(app_path: &Path) -> Result<()> {
 
     let json = notion_client
         .query_database(
-            &settings.workspaces_page_id,
+            settings.workspaces_page_id(),
             QueryDatabaseParameters {
                 page_size: workspaces.len() as u8,
                 filter: Some(filter),
@@ -225,7 +165,7 @@ async fn create_workspace(
 ) -> Result<()> {
     notion_client
         .create_database_entry(
-            &settings.workspaces_page_id,
+            settings.workspaces_page_id(),
             serde_json::json!({
                 "Name": {"title": [{"text": {"content": workspace.name}}]},
                 "External ID": {"rich_text": [{"text": {"content": workspace.id}}]},
@@ -253,31 +193,4 @@ async fn update_workspace(
         .await?;
 
     Ok(())
-}
-
-fn clear_screen() {
-    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-}
-
-fn delete_settings_file(app_path: &Path) -> Result<()> {
-    let settings_file_path = Settings::path(app_path);
-
-    if !settings_file_path.try_exists()? {
-        return Ok(());
-    }
-
-    std::fs::remove_file(settings_file_path)?;
-
-    Ok(())
-}
-
-fn read_stdin(title: &str) -> Result<String> {
-    use std::io::Write;
-
-    let mut buf = String::new();
-    print!("{title}");
-    std::io::stdout().flush()?;
-    std::io::stdin().read_line(&mut buf)?;
-
-    Ok(buf.trim().to_string())
 }
