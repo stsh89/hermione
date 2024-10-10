@@ -1,6 +1,9 @@
 use crate::{
-    coordinator::Coordinator, handlers::workspaces::commands::*, parameters,
-    routes::workspaces::commands::Route, Model, Result,
+    coordinator::Coordinator,
+    handlers::workspaces::commands::*,
+    parameters::{self, workspaces::commands::list::PAGE_SIZE},
+    routes::workspaces::commands::Route,
+    Model, Result,
 };
 
 pub struct Router<'a> {
@@ -19,7 +22,9 @@ impl<'a> Router<'a> {
                 let model = list::Handler { coordinator }.handle(
                     parameters::workspaces::commands::list::Parameters {
                         workspace_id: command.workspace_id,
-                        search_query: Some(command.program),
+                        search_query: command.program,
+                        page_number: 0,
+                        page_size: PAGE_SIZE,
                     },
                 )?;
 
@@ -32,7 +37,9 @@ impl<'a> Router<'a> {
                 let model = list::Handler { coordinator }.handle(
                     parameters::workspaces::commands::list::Parameters {
                         workspace_id: workspace.id,
-                        search_query: None,
+                        search_query: "".to_string(),
+                        page_number: 0,
+                        page_size: PAGE_SIZE,
                     },
                 )?;
 

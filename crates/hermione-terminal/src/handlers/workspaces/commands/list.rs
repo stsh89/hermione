@@ -12,8 +12,10 @@ pub struct Handler<'a> {
 impl<'a> Handler<'a> {
     pub fn handle(self, parameters: Parameters) -> Result<Model> {
         let Parameters {
-            workspace_id,
+            page_number,
+            page_size,
             search_query,
+            workspace_id,
         } = parameters;
 
         let workspace = self.coordinator.workspaces().get(&workspace_id)?;
@@ -24,7 +26,9 @@ impl<'a> Handler<'a> {
             .commands()
             .list(ListParameters {
                 workspace_id: &workspace_id,
-                program_contains: search_query.as_deref(),
+                program_contains: &search_query,
+                page_number,
+                page_size,
             })?;
 
         let workspace = self.coordinator.workspaces().track_access_time(workspace)?;
@@ -33,6 +37,8 @@ impl<'a> Handler<'a> {
             commands,
             workspace,
             search_query,
+            page_number,
+            page_size,
         })
     }
 }

@@ -60,7 +60,9 @@ impl<'a> Router<'a> {
                 let model = handlers::workspaces::commands::list::Handler { coordinator }.handle(
                     parameters::workspaces::commands::list::Parameters {
                         workspace_id: workspace.id,
-                        search_query: None,
+                        search_query: String::new(),
+                        page_number: 0,
+                        page_size: parameters::workspaces::commands::list::PAGE_SIZE,
                     },
                 )?;
 

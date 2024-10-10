@@ -89,7 +89,9 @@ impl Model {
             routes::workspaces::commands::Route::List(
                 parameters::workspaces::commands::list::Parameters {
                     workspace_id: self.command.workspace_id.clone(),
-                    search_query: Some(self.command.program.clone()),
+                    search_query: self.command.program.clone(),
+                    page_number: 0,
+                    page_size: 10,
                 },
             ),
         ));

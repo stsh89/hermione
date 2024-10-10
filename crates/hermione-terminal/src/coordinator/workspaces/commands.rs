@@ -7,8 +7,10 @@ pub struct Coordinator {
 }
 
 pub struct ListParameters<'a> {
+    pub page_number: u32,
+    pub page_size: u32,
+    pub program_contains: &'a str,
     pub workspace_id: &'a str,
-    pub program_contains: Option<&'a str>,
 }
 
 impl Coordinator {
@@ -40,11 +42,15 @@ impl Coordinator {
         let ListParameters {
             workspace_id,
             program_contains,
+            page_number,
+            page_size,
         } = parameters;
 
         let commands = self.client.list(commands::ListParameters {
             workspace_id,
             program_contains,
+            page_number,
+            page_size,
         })?;
 
         Ok(commands.into_iter().map(Into::into).collect())

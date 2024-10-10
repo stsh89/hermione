@@ -226,7 +226,6 @@ impl Model {
 
             if index == self.workspaces.len() - 1 {
                 if self.workspaces.len() < self.page_size as usize {
-                    tracing::info!("******** exit");
                     return;
                 }
 

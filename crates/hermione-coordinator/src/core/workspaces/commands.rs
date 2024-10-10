@@ -125,32 +125,38 @@ impl get::Get for Client {
 impl list::List for Client {
     fn list(&self, parameters: list::ListParameters) -> Result<Vec<Entity>> {
         let list::ListParameters {
-            workspace_id,
+            page_number,
+            page_size,
             program_contains,
+            workspace_id,
         } = parameters;
 
-        let program_contains = program_contains
-            .map(|q| format!("%{}%", q.to_lowercase()))
-            .unwrap_or("%%".into());
+        let program_contains = format!("%{}%", program_contains.to_lowercase());
 
         let mut statement = self
             .connection
             .prepare(
                 "SELECT
-                id,
-                last_execute_time,
-                name,
-                program,
-                workspace_id
-            FROM commands
-            WHERE LOWER(program) LIKE ?1 AND workspace_id = ?2
-            ORDER BY last_execute_time DESC, program ASC",
+                    id,
+                    last_execute_time,
+                    name,
+                    program,
+                    workspace_id
+                FROM commands
+                WHERE LOWER(program) LIKE ?1 AND workspace_id = ?2
+                ORDER BY last_execute_time DESC, program ASC
+                LIMIT ?3 OFFSET ?4",
             )
             .map_err(ErrReport::err_report)?;
 
         let records = statement
             .query_map(
-                params![program_contains, workspace_id.as_bytes()],
+                params![
+                    program_contains,
+                    workspace_id.as_bytes(),
+                    page_size,
+                    page_number * page_size
+                ],
                 Record::from_row,
             )
             .map_err(ErrReport::err_report)?

@@ -12,13 +12,17 @@ where
 }
 
 pub struct Parameters<'a> {
-    pub program_contains: Option<&'a str>,
+    pub page_number: u32,
+    pub page_size: u32,
+    pub program_contains: &'a str,
     pub workspace_id: Id,
 }
 
 pub struct ListParameters<'a> {
+    pub page_number: u32,
+    pub page_size: u32,
+    pub program_contains: &'a str,
     pub workspace_id: Id,
-    pub program_contains: Option<&'a str>,
 }
 
 impl<'a, L> Operation<'a, L>
@@ -27,11 +31,15 @@ where
 {
     pub fn execute(&self, parameters: Parameters) -> Result<Vec<Entity>> {
         let Parameters {
+            page_number,
+            page_size,
             program_contains,
             workspace_id,
         } = parameters;
 
         self.lister.list(ListParameters {
+            page_number,
+            page_size,
             program_contains,
             workspace_id,
         })

@@ -1,4 +1,4 @@
-pub const PAGE_SIZE: u32 = 1;
+pub const PAGE_SIZE: u32 = 100;
 
 pub struct Parameters {
     pub search_query: String,

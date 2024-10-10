@@ -18,12 +18,16 @@ pub struct Model {
     is_running: bool,
     powershell_settings: PowershellSettings,
     active_popup: Option<ActivePopup>,
+    page_number: u32,
+    page_size: u32,
 }
 
 pub struct ModelParameters {
     pub commands: Vec<presenters::command::Presenter>,
     pub workspace: presenters::workspace::Presenter,
-    pub search_query: Option<String>,
+    pub search_query: String,
+    pub page_number: u32,
+    pub page_size: u32,
 }
 
 struct PowershellSettings {
@@ -240,8 +244,10 @@ impl Model {
     pub fn new(parameters: ModelParameters) -> Result<Self> {
         let ModelParameters {
             commands,
-            workspace,
+            page_number,
+            page_size,
             search_query,
+            workspace,
         } = parameters;
 
         let mut commands_state = widgets::list::State::default();
@@ -256,12 +262,14 @@ impl Model {
             workspace,
             redirect: None,
             search: widgets::input::State::new(widgets::input::StateParameters {
-                value: search_query.unwrap_or_default(),
+                value: search_query,
                 is_active: true,
             }),
             commands_state,
             powershell_settings: PowershellSettings { no_exit: true },
             active_popup: None,
+            page_number,
+            page_size,
         };
 
         Ok(model)
@@ -274,6 +282,29 @@ impl Model {
                 ActivePopup::ExitConfirmation(_popup) => {}
             };
         } else {
+            let Some(index) = self.commands_state.selected() else {
+                return;
+            };
+
+            if index == self.commands.len() - 1 {
+                if self.commands.len() < self.page_size as usize {
+                    return;
+                }
+
+                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+                    routes::workspaces::commands::Route::List(
+                        parameters::workspaces::commands::list::Parameters {
+                            search_query: self.search_query(),
+                            workspace_id: self.workspace.id.clone(),
+                            page_number: self.page_number + 1,
+                            page_size: self.page_size,
+                        },
+                    ),
+                )));
+
+                return;
+            }
+
             self.commands_state.select_next();
         }
     }
@@ -285,6 +316,42 @@ impl Model {
                 ActivePopup::ExitConfirmation(_popup) => {}
             };
         } else {
+            let Some(index) = self.commands_state.selected() else {
+                if self.page_number != 0 {
+                    self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+                        routes::workspaces::commands::Route::List(
+                            parameters::workspaces::commands::list::Parameters {
+                                search_query: self.search_query(),
+                                workspace_id: self.workspace.id.clone(),
+                                page_number: self.page_number - 1,
+                                page_size: self.page_size,
+                            },
+                        ),
+                    )));
+                }
+
+                return;
+            };
+
+            if index == 0 {
+                if self.page_number == 0 {
+                    return;
+                }
+
+                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+                    routes::workspaces::commands::Route::List(
+                        parameters::workspaces::commands::list::Parameters {
+                            search_query: self.search_query(),
+                            workspace_id: self.workspace.id.clone(),
+                            page_number: self.page_number - 1,
+                            page_size: self.page_size,
+                        },
+                    ),
+                )));
+
+                return;
+            }
+
             self.commands_state.select_previous();
         }
     }
@@ -374,17 +441,15 @@ impl Model {
                 parameters::workspaces::commands::list::Parameters {
                     search_query: self.search_query(),
                     workspace_id: self.workspace.id.clone(),
+                    page_number: 0,
+                    page_size: self.page_size,
                 },
             ),
         )));
     }
 
-    fn search_query(&self) -> Option<String> {
-        if self.search.value().is_empty() {
-            None
-        } else {
-            Some(self.search.value().to_string())
-        }
+    fn search_query(&self) -> String {
+        self.search.value().to_string()
     }
 
     fn delete_char(&mut self) {
@@ -395,6 +460,8 @@ impl Model {
                 parameters::workspaces::commands::list::Parameters {
                     search_query: self.search_query(),
                     workspace_id: self.workspace.id.clone(),
+                    page_number: 0,
+                    page_size: self.page_size,
                 },
             ),
         )));
@@ -408,6 +475,8 @@ impl Model {
                 parameters::workspaces::commands::list::Parameters {
                     search_query: self.search_query(),
                     workspace_id: self.workspace.id.clone(),
+                    page_number: 0,
+                    page_size: self.page_size,
                 },
             ),
         )));

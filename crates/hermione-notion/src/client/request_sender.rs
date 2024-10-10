@@ -49,7 +49,10 @@ fn retry_after(headers: &header::HeaderMap) -> Result<Duration> {
 }
 
 async fn sleep(duration: Duration) {
-    tracing::info!("Too many requests. Retrying in {} seconds", duration.as_secs());
+    tracing::info!(
+        "Too many requests. Retrying in {} seconds",
+        duration.as_secs()
+    );
 
     tokio::time::sleep(duration).await;
 }

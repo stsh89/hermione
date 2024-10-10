@@ -29,7 +29,9 @@ pub struct Dto {
 }
 
 pub struct ListParameters<'a> {
-    pub program_contains: Option<&'a str>,
+    pub page_number: u32,
+    pub page_size: u32,
+    pub program_contains: &'a str,
     pub workspace_id: &'a str,
 }
 
@@ -75,14 +77,18 @@ impl Operations for Client {
         let ListParameters {
             program_contains,
             workspace_id,
+            page_number,
+            page_size,
         } = parameters;
 
         let workspaces = list::Operation {
             lister: &self.inner,
         }
         .execute(list::Parameters {
-            workspace_id: Id::from_str(workspace_id)?,
+            page_number,
+            page_size,
             program_contains,
+            workspace_id: Id::from_str(workspace_id)?,
         })?;
 
         Ok(workspaces.into_iter().map(Dto::from_entity).collect())
