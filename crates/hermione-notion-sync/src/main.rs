@@ -49,7 +49,11 @@ async fn main() -> Result<()> {
         Commands::DeleteSettingsFile => {
             commands::delete_settings_file::Command::new(directory_path).execute()
         }
-        Commands::Export => export(&directory_path).await,
+        Commands::Export => {
+            commands::export::Command::new(directory_path)?
+                .execute()
+                .await
+        }
     };
 
     if let Err(error) = result {
