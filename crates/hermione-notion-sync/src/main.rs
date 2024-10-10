@@ -13,6 +13,8 @@ use std::{
 type Result<T> = anyhow::Result<T>;
 type Error = anyhow::Error;
 
+const PAGE_SIZE: u32 = 1;
+
 #[derive(Debug, Parser)]
 #[command(about)]
 struct Cli {
@@ -137,26 +139,29 @@ async fn export(app_path: &Path) -> Result<()> {
     let settings = Settings::read(app_path)?;
 
     let coordinator = hermione_coordinator::workspaces::Client::new(app_path)?;
+    let mut page_number = 0;
 
     use hermione_coordinator::workspaces::Operations;
     let workspaces = coordinator.list(ListParameters {
-        name_contains: None,
+        name_contains: "",
+        page_number,
+        page_size: PAGE_SIZE,
     })?;
-
-    let filters: Vec<RichTextFilter> = workspaces
-        .iter()
-        .map(|workspace| RichTextFilter {
-            property: "External ID".to_string(),
-            rich_text: RichTextEqualsFilter {
-                equals: workspace.id.clone(),
-            },
-        })
-        .collect();
 
     let notion_client = hermione_notion::Client::new(NewClientParameters {
         api_key: Some(settings.api_key.clone()),
         ..Default::default()
     })?;
+
+    let filters: Vec<RichTextFilter> = workspaces
+    .iter()
+    .map(|workspace| RichTextFilter {
+        property: "External ID".to_string(),
+        rich_text: RichTextEqualsFilter {
+            equals: workspace.id.clone(),
+        },
+    })
+    .collect();
 
     let filter = serde_json::json!({
         "or": serde_json::json!(filters),

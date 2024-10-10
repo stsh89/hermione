@@ -19,7 +19,9 @@ pub trait Operations {
 }
 
 pub struct ListParameters<'a> {
-    pub name_contains: Option<&'a str>,
+    pub name_contains: &'a str,
+    pub page_number: u32,
+    pub page_size: u32,
 }
 
 pub struct Client {
@@ -62,12 +64,12 @@ impl Operations for Client {
     }
 
     fn list(&self, parameters: ListParameters<'_>) -> Result<Vec<Dto>> {
-        let ListParameters { name_contains } = parameters;
+        let ListParameters { name_contains, page_number, page_size } = parameters;
 
         let workspaces = list::Operation {
             lister: &self.inner,
         }
-        .execute(list::Parameters { name_contains })?;
+        .execute(list::Parameters { name_contains, page_number, page_size })?;
 
         Ok(workspaces.into_iter().map(Dto::from_entity).collect())
     }

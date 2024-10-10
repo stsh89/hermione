@@ -11,22 +11,20 @@ pub struct Handler<'a> {
 
 impl<'a> Handler<'a> {
     pub fn handle(self, parameters: Parameters) -> Result<Model> {
-        let Parameters { search_query } = parameters;
+        let Parameters { search_query, page_number, page_size } = parameters;
 
-        let name_contains = if search_query.is_empty() {
-            None
-        } else {
-            Some(search_query.as_ref())
-        };
+        tracing::info!("Page {}", page_number);
 
         let workspaces = self
             .coordinator
             .workspaces()
-            .list(ListParameters { name_contains })?;
+            .list(ListParameters { name_contains: &search_query, page_number, page_size })?;
 
         Model::new(ModelParameters {
             workspaces,
             search_query,
+            page_number,
+            page_size,
         })
     }
 }

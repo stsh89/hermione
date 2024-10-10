@@ -17,11 +17,15 @@ pub struct Model {
     workspaces_state: widgets::list::State,
     workspaces: Vec<Presenter>,
     active_popup: Option<ActivePopup>,
+    page_number: u32,
+    page_size: u32,
 }
 
 pub struct ModelParameters {
     pub workspaces: Vec<Presenter>,
     pub search_query: String,
+    pub page_number: u32,
+    pub page_size: u32,
 }
 
 enum ActivePopup {
@@ -146,6 +150,8 @@ impl Model {
         let ModelParameters {
             workspaces,
             search_query,
+            page_number,
+            page_size,
         } = parameters;
 
         let mut model = Self {
@@ -158,6 +164,8 @@ impl Model {
             }),
             is_running: true,
             active_popup: None,
+            page_number,
+            page_size,
         };
 
         if !model.workspaces.is_empty() {
@@ -212,6 +220,27 @@ impl Model {
                 ActivePopup::ExitConfirmation(_popup) => {}
             };
         } else {
+            let Some(index) = self.workspaces_state.selected() else {
+                return;
+            };
+
+            if index == self.workspaces.len() - 1 {
+                if self.workspaces.len() < self.page_size as usize {
+                    tracing::info!("******** exit");
+                    return;
+                }
+
+                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
+                    parameters::workspaces::list::Parameters {
+                        search_query: self.search_query(),
+                        page_number: self.page_number + 1,
+                        page_size: self.page_size,
+                    },
+                )));
+
+                return;
+            }
+
             self.workspaces_state.select_next();
         }
     }
@@ -223,6 +252,36 @@ impl Model {
                 ActivePopup::ExitConfirmation(_popup) => {}
             };
         } else {
+            let Some(index) = self.workspaces_state.selected() else {
+                if self.page_number != 0 {
+                    self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
+                        parameters::workspaces::list::Parameters {
+                            search_query: self.search_query(),
+                            page_number: self.page_number - 1,
+                            page_size: self.page_size,
+                        },
+                    )));
+                }
+
+                return;
+            };
+
+            if index == 0 {
+                if self.page_number == 0 {
+                    return;
+                }
+
+                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
+                    parameters::workspaces::list::Parameters {
+                        search_query: self.search_query(),
+                        page_number: self.page_number - 1,
+                        page_size: self.page_size,
+                    },
+                )));
+
+                return;
+            }
+
             self.workspaces_state.select_previous();
         }
     }
@@ -233,6 +292,8 @@ impl Model {
         let route = Route::Workspaces(routes::workspaces::Route::List(
             parameters::workspaces::list::Parameters {
                 search_query: self.search_query(),
+                page_number: 0,
+                page_size: self.page_size,
             },
         ));
 
@@ -249,6 +310,8 @@ impl Model {
         let route = Route::Workspaces(routes::workspaces::Route::List(
             parameters::workspaces::list::Parameters {
                 search_query: self.search_query(),
+                page_number: 0,
+                page_size: self.page_size,
             },
         ));
 
@@ -261,6 +324,8 @@ impl Model {
         let route = Route::Workspaces(routes::workspaces::Route::List(
             parameters::workspaces::list::Parameters {
                 search_query: self.search_query(),
+                page_number: 0,
+                page_size: self.page_size,
             },
         ));
 

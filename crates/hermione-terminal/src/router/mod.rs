@@ -4,7 +4,7 @@ mod workspaces;
 use crate::{
     brokers,
     coordinator::workspaces::ListParameters,
-    parameters,
+    parameters::{self, workspaces::list::PAGE_SIZE},
     routes::{self, Route},
     tui, Coordinator, Message, Model, Result,
 };
@@ -46,7 +46,11 @@ impl Router {
         let mut workspaces = self
             .coordinator
             .workspaces()
-            .list(ListParameters::default())?;
+            .list(ListParameters {
+                page_number: 0,
+                page_size: PAGE_SIZE,
+                name_contains: "",
+            })?;
 
         workspaces.reverse();
 

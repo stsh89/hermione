@@ -9,9 +9,10 @@ pub struct Coordinator {
     commands: commands::Coordinator,
 }
 
-#[derive(Default)]
 pub struct ListParameters<'a> {
-    pub name_contains: Option<&'a str>,
+    pub name_contains: &'a str,
+    pub page_number: u32,
+    pub page_size: u32,
 }
 
 impl Coordinator {
@@ -45,11 +46,11 @@ impl Coordinator {
     }
 
     pub fn list(&self, parameters: ListParameters) -> Result<Vec<Presenter>> {
-        let ListParameters { name_contains } = parameters;
+        let ListParameters { name_contains, page_number, page_size } = parameters;
 
         let workspaces = self
             .client
-            .list(workspaces::ListParameters { name_contains })?;
+            .list(workspaces::ListParameters { name_contains, page_number, page_size })?;
 
         Ok(workspaces.into_iter().map(Into::into).collect())
     }
