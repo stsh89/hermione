@@ -11,17 +11,23 @@ const SETTINGS_FILE_PATH: &str = "notion-sync.json";
 #[derive(Serialize, Deserialize)]
 pub struct Settings {
     api_key: String,
+    commands_page_id: String,
     workspaces_page_id: String,
 }
 
 pub struct NewSettingsParameters {
     pub api_key: String,
+    pub commands_page_id: String,
     pub workspaces_page_id: String,
 }
 
 impl Settings {
     pub fn api_key(&self) -> &str {
         &self.api_key
+    }
+
+    pub fn commands_page_id(&self) -> &str {
+        &self.commands_page_id
     }
 
     pub fn file_path(directory_path: &Path) -> PathBuf {
@@ -31,11 +37,13 @@ impl Settings {
     pub fn new(parameters: NewSettingsParameters) -> Self {
         let NewSettingsParameters {
             api_key,
+            commands_page_id,
             workspaces_page_id,
         } = parameters;
 
         Self {
             api_key,
+            commands_page_id,
             workspaces_page_id,
         }
     }
@@ -62,6 +70,16 @@ impl Settings {
         client
             .query_database(
                 self.workspaces_page_id(),
+                QueryDatabaseParameters {
+                    page_size: 1,
+                    ..Default::default()
+                },
+            )
+            .await?;
+
+        client
+            .query_database(
+                self.commands_page_id(),
                 QueryDatabaseParameters {
                     page_size: 1,
                     ..Default::default()

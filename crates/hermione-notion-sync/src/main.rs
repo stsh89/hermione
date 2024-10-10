@@ -2,7 +2,7 @@ mod commands;
 mod screen;
 mod settings;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 

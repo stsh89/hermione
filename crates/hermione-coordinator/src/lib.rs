@@ -1,12 +1,21 @@
+use rusqlite::Connection;
 use std::path::Path;
 
 mod core;
+mod records;
+
+pub mod commands;
 pub mod workspaces;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+const DATABASE_FILE_PATH: &str = "hermione.db3";
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("{0}")]
+    Database(#[from] rusqlite::Error),
+
     #[error("{0}")]
     FailedPrecondition(String),
 
@@ -37,9 +46,37 @@ impl ErrReport for rusqlite::Error {
     }
 }
 
-fn connection(dir_path: &Path) -> Result<rusqlite::Connection> {
-    let path = dir_path.join("hermione.db3");
-    let connection = rusqlite::Connection::open(path).map_err(ErrReport::err_report)?;
+fn connection(dir_path: &Path) -> Result<Connection> {
+    let path = dir_path.join(DATABASE_FILE_PATH);
+    let connection = Connection::open(path).map_err(ErrReport::err_report)?;
+
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS workspaces (
+            id BLOB PRIMARY KEY,
+            last_access_time INTEGER,
+            location TEXT,
+            name TEXT NOT NULL
+        )",
+        (),
+    )?;
+
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS commands (
+            id BLOB PRIMARY KEY,
+            last_execute_time INTEGER,
+            name TEXT NOT NULL,
+            program TEXT NOT NULL,
+            workspace_id BLOB NOT NULL
+        )",
+        (),
+    )?;
+
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS
+        commands_workspace_id_idx
+        ON commands(workspace_id)",
+        (),
+    )?;
 
     Ok(connection)
 }

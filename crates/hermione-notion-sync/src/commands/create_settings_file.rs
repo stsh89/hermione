@@ -40,10 +40,14 @@ impl ReadOperation {
         let api_key = screen::read_stdin("Enter your Notion API key: ")?;
 
         screen::clear_and_reset_cursor();
+        let commands_page_id = screen::read_stdin("Enter your Notion commands page ID: ")?;
+
+        screen::clear_and_reset_cursor();
         let workspaces_page_id = screen::read_stdin("Enter your Notion workspaces page ID: ")?;
 
         let settings = Settings::new(NewSettingsParameters {
             api_key,
+            commands_page_id,
             workspaces_page_id,
         });
 

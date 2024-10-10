@@ -124,7 +124,7 @@ impl Operations for Client {
 impl Client {
     pub fn new(dir_path: &Path) -> Result<Self> {
         let connection = connection(dir_path)?;
-        let inner = core::workspaces::commands::Client::new(connection)?;
+        let inner = core::workspaces::commands::Client::new(connection);
 
         Ok(Self { inner })
     }

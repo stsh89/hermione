@@ -1,47 +1,21 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use hermione_core::{
-    entities::command::{Entity, LoadParameters, Name, Program, ScopedId},
+    entities::command::{Entity, ScopedId},
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     Id, Result,
 };
 use rusqlite::{params, Connection};
-use uuid::{Bytes, Uuid};
+use uuid::Uuid;
 
-use crate::ErrReport;
-
-struct Record {
-    id: Bytes,
-    last_execute_time: Option<i64>,
-    name: String,
-    program: String,
-    workspace_id: Bytes,
-}
+use crate::{records::command::Record, ErrReport};
 
 pub struct Client {
     connection: Connection,
 }
 
 impl Client {
-    pub fn new(connection: Connection) -> eyre::Result<Self> {
-        connection.execute(
-            "CREATE TABLE IF NOT EXISTS commands (
-                id BLOB PRIMARY KEY,
-                last_execute_time INTEGER,
-                name TEXT NOT NULL,
-                program TEXT NOT NULL,
-                workspace_id BLOB NOT NULL
-            )",
-            (),
-        )?;
-
-        connection.execute(
-            "CREATE INDEX IF NOT EXISTS
-            commands_workspace_id_idx
-            ON commands(workspace_id)",
-            (),
-        )?;
-
-        Ok(Self { connection })
+    pub fn new(connection: Connection) -> Self {
+        Self { connection }
     }
 }
 
@@ -226,56 +200,6 @@ impl update::Update for Client {
         self.get(ScopedId {
             id: Id::new(Uuid::from_bytes(record.id)),
             workspace_id: Id::new(Uuid::from_bytes(record.workspace_id)),
-        })
-    }
-}
-
-impl Record {
-    fn from_entity(entity: &Entity) -> Result<Self> {
-        let id = *entity
-            .id()
-            .ok_or(eyre::eyre!("Record without id"))?
-            .as_bytes();
-
-        let last_execute_time = entity
-            .last_execute_time()
-            .and_then(|date_time| Into::<DateTime<Utc>>::into(date_time).timestamp_nanos_opt());
-
-        Ok(Self {
-            id,
-            last_execute_time,
-            name: entity.name().to_string(),
-            program: entity.program().to_string(),
-            workspace_id: *entity.workspace_id().as_bytes(),
-        })
-    }
-
-    fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
-        Ok(Record {
-            id: row.get(0)?,
-            last_execute_time: row.get(1)?,
-            name: row.get(2)?,
-            program: row.get(3)?,
-            workspace_id: row.get(4)?,
-        })
-    }
-
-    fn load_entity(self) -> Entity {
-        let id = Id::new(Uuid::from_bytes(self.id));
-
-        let last_execute_time = self
-            .last_execute_time
-            .map(DateTime::from_timestamp_nanos)
-            .map(From::from);
-
-        let workspace_id = Id::new(Uuid::from_bytes(self.workspace_id));
-
-        Entity::load(LoadParameters {
-            id,
-            last_execute_time,
-            name: Name::new(self.name),
-            program: Program::new(self.program),
-            workspace_id,
         })
     }
 }

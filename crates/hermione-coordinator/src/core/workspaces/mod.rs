@@ -1,39 +1,22 @@
 pub mod commands;
 
-use crate::ErrReport;
-use chrono::{DateTime, Utc};
+use crate::{records::workspace::Record, ErrReport};
+use chrono::Utc;
 use hermione_core::{
-    entities::workspace::{Entity, LoadParameters, Location, Name},
+    entities::workspace::Entity,
     operations::workspaces::{create, delete, get, list, track_access_time, update},
     Id, Result,
 };
 use rusqlite::{params, Connection};
-use uuid::{Bytes, Uuid};
-
-struct Record {
-    id: Bytes,
-    last_access_time: Option<i64>,
-    location: Option<String>,
-    name: String,
-}
+use uuid::Uuid;
 
 pub struct Client {
     connection: Connection,
 }
 
 impl Client {
-    pub fn new(connection: Connection) -> eyre::Result<Self> {
-        connection.execute(
-            "CREATE TABLE IF NOT EXISTS workspaces (
-                id BLOB PRIMARY KEY,
-                last_access_time INTEGER,
-                location TEXT,
-                name TEXT NOT NULL
-            )",
-            (),
-        )?;
-
-        Ok(Self { connection })
+    pub fn new(connection: Connection) -> Self {
+        Self { connection }
     }
 }
 
@@ -205,50 +188,5 @@ impl update::Update for Client {
 
         use get::Get;
         self.get(Id::new(Uuid::from_bytes(record.id)))
-    }
-}
-
-impl Record {
-    fn from_entity(entity: &Entity) -> Result<Self> {
-        let id = *entity
-            .id()
-            .ok_or(eyre::eyre!("Record without id"))?
-            .as_bytes();
-
-        let last_access_time = entity
-            .last_access_time()
-            .and_then(|date_time| Into::<DateTime<Utc>>::into(date_time).timestamp_nanos_opt());
-
-        Ok(Self {
-            id,
-            last_access_time,
-            location: entity.location().map(ToString::to_string),
-            name: entity.name().to_string(),
-        })
-    }
-
-    fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
-        Ok(Record {
-            id: row.get(0)?,
-            last_access_time: row.get(1)?,
-            location: row.get(2)?,
-            name: row.get(3)?,
-        })
-    }
-
-    fn load_entity(self) -> Entity {
-        let id = Id::new(Uuid::from_bytes(self.id));
-
-        let last_access_time = self
-            .last_access_time
-            .map(DateTime::from_timestamp_nanos)
-            .map(From::from);
-
-        Entity::load(LoadParameters {
-            id,
-            last_access_time,
-            location: self.location.map(Location::new),
-            name: Name::new(self.name),
-        })
     }
 }
