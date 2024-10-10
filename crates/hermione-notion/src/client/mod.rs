@@ -1,10 +1,9 @@
-use crate::{Error, Result};
-use reqwest::{
-    header::{self, RETRY_AFTER},
-    RequestBuilder, StatusCode, Url,
-};
-use serde_json::Value;
-use std::{default, ops::Deref, path::Display, time::Duration};
+mod request_sender;
+
+use crate::{Error, Json, Result};
+use request_sender::RequestSender;
+use reqwest::{header, StatusCode, Url};
+use std::time::Duration;
 
 const NOTION_BASE_URL: &str = "https://api.notion.com/v1/";
 const NOTION_HEADER_CONTENT_TYPE_VALUE: &str = "application/json";
@@ -32,10 +31,7 @@ pub struct SendParameters<'a> {
 
 pub struct Method(reqwest::Method);
 
-pub struct Json(Value);
-
 pub struct QueryDatabaseParameters<'a> {
-    pub api_key_override: Option<&'a str>,
     pub page_size: u8,
     pub start_cursor: Option<&'a str>,
     pub filter: Option<Json>,
@@ -48,7 +44,7 @@ impl Client {
         } else {
             self.api_key
                 .as_deref()
-                .ok_or(eyre::eyre!("Missing Notion API key"))?
+                .ok_or(Error::invalid_argument("Notion API key is not set"))?
         };
 
         Ok(format!("Bearer {api_key}"))
@@ -60,17 +56,16 @@ impl Client {
     ) -> Result<header::HeaderValue> {
         let authorization_string = self.authorization_string(api_key_override)?;
 
-        header::HeaderValue::from_str(&authorization_string)
-            .map_err(|err| Error::Unknown(eyre::Error::new(err)))
+        header::HeaderValue::from_str(&authorization_string).map_err(Error::unexpected)
     }
 
     pub async fn create_database_entry(&self, database_id: &str, properties: Json) -> Result<Json> {
         let uri = "pages";
 
-        let body = Json(serde_json::json!({
+        let body = serde_json::json!({
             "parent": { "database_id": database_id },
-            "properties": properties.value(),
-        }));
+            "properties": properties,
+        });
 
         let parameters = SendParameters {
             body: Some(body),
@@ -88,7 +83,6 @@ impl Client {
         parameters: QueryDatabaseParameters<'_>,
     ) -> Result<Json> {
         let QueryDatabaseParameters {
-            api_key_override,
             page_size,
             start_cursor,
             filter,
@@ -96,21 +90,21 @@ impl Client {
 
         let uri = format!("databases/{database_id}/query");
 
-        let mut body = Json(serde_json::json!({
+        let mut body = serde_json::json!({
             "page_size": page_size,
-        }));
+        });
 
         if let Some(start_cursor) = start_cursor {
-            body.set_key("start_cursor", serde_json::json!(start_cursor));
+            body["start_cursor"] = start_cursor.into();
         }
 
         if let Some(filter) = filter {
-            body.set_key("filter", filter.into());
+            body["filter"] = filter;
         }
 
         let parameters = SendParameters {
             body: Some(body),
-            api_key_override,
+            api_key_override: None,
             uri: &uri,
             method: Method(reqwest::Method::POST),
         };
@@ -159,20 +153,19 @@ impl Client {
         );
 
         if let Some(body) = body {
-            request_builder = request_builder.json(body.value());
+            request_builder = request_builder.json(&body);
         }
 
         let response = RequestSender::new(request_builder).send().await?;
-
         let status = response.status();
 
         if let StatusCode::OK = status {
             let json = response.json().await?;
 
-            return Ok(Json(json));
+            return Ok(json);
         }
 
-        let response_body: Value = response.json().await?;
+        let response_body: Json = response.json().await?;
         let message = response_body["message"].as_str().unwrap_or_default().into();
 
         Err(Error::ApiError {
@@ -184,9 +177,9 @@ impl Client {
     pub async fn update_database_entry(&self, entry_id: &str, properties: Json) -> Result<Json> {
         let uri = format!("pages/{entry_id}");
 
-        let body = Json(serde_json::json!({
-            "properties": properties.value(),
-        }));
+        let body = serde_json::json!({
+            "properties": properties,
+        });
 
         let parameters = SendParameters {
             body: Some(body),
@@ -201,47 +194,7 @@ impl Client {
     fn url(&self, uri: &str) -> Result<Url> {
         self.base_url
             .join(uri)
-            .map_err(|err| Error::Unknown(eyre::Error::new(err)))
-    }
-}
-
-struct RequestSender {
-    request_builder: RequestBuilder,
-}
-
-impl RequestSender {
-    fn new(request_builder: RequestBuilder) -> Self {
-        Self { request_builder }
-    }
-
-    async fn send(self) -> Result<reqwest::Response> {
-        let request_builder = self
-            .request_builder
-            .try_clone()
-            .ok_or(Error::Unknown(eyre::Error::msg("No request builder")))?;
-        let response = request_builder.send().await?;
-
-        if let StatusCode::TOO_MANY_REQUESTS = response.status() {
-            if let Some(value) = response.headers().get(header::RETRY_AFTER) {
-                let seconds = value
-                    .to_str()
-                    .map_err(|err| Error::Unknown(eyre::Error::new(err)))?
-                    .parse::<u64>()
-                    .map_err(|err| Error::Unknown(eyre::Error::new(err)))?;
-
-                println!(
-                    "Notion API is rate limited, retrying in {} seconds",
-                    seconds
-                );
-                tokio::time::sleep(Duration::from_secs(seconds)).await;
-
-                let response = self.request_builder.send().await?;
-
-                return Ok(response);
-            }
-        }
-
-        Ok(response)
+            .map_err(|err| Error::Unexpected(eyre::Error::new(err)))
     }
 }
 
@@ -267,99 +220,9 @@ impl From<Method> for reqwest::Method {
     }
 }
 
-impl Json {
-    fn value(&self) -> &Value {
-        &self.0
-    }
-
-    fn set_key(&mut self, key: &str, value: Value) {
-        self.0[key] = value;
-    }
-
-    pub fn new(value: Value) -> Self {
-        Self(value)
-    }
-
-    pub fn results(&self) -> JsonValue {
-        JsonValue(&self.0["results"])
-    }
-
-    pub fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-}
-
-pub struct JsonValue<'a>(&'a Value);
-
-impl From<Json> for Value {
-    fn from(value: Json) -> Self {
-        value.0
-    }
-}
-
-impl Deref for Json {
-    type Target = Value;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-pub struct JsonValueIterator<'a> {
-    value: &'a JsonValue<'a>,
-    index: usize,
-}
-
-impl<'a> Iterator for JsonValueIterator<'a> {
-    type Item = JsonValue<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index
-            < self
-                .value
-                .0
-                .as_array()
-                .map(|array| array.len())
-                .unwrap_or(0)
-        {
-            let result = self.value.0.get(self.index).map(JsonValue);
-            self.index += 1;
-            result
-        } else {
-            None
-        }
-    }
-}
-
-impl<'a> JsonValue<'a> {
-    pub fn iter(&self) -> JsonValueIterator {
-        JsonValueIterator {
-            value: self,
-            index: 0,
-        }
-    }
-
-    pub fn rich_text(&self, property_name: &str) -> &str {
-        self.0["properties"][property_name]["rich_text"][0]["plain_text"]
-            .as_str()
-            .unwrap_or_default()
-    }
-
-    pub fn title(&self) -> &str {
-        self.0["properties"]["Name"]["title"][0]["plain_text"]
-            .as_str()
-            .unwrap_or_default()
-    }
-
-    pub fn id(&self) -> &str {
-        self.0["id"].as_str().unwrap_or_default()
-    }
-}
-
 impl<'a> Default for QueryDatabaseParameters<'a> {
     fn default() -> Self {
         Self {
-            api_key_override: None,
             page_size: 100,
             start_cursor: None,
             filter: None,
@@ -374,7 +237,7 @@ fn base_url(base_url_override: Option<String>) -> Result<Url> {
         Url::parse(NOTION_BASE_URL)
     };
 
-    url.map_err(|err| Error::Unknown(eyre::Error::new(err)))
+    url.map_err(|err| Error::Unexpected(eyre::Error::new(err)))
 }
 
 fn default_headers() -> header::HeaderMap {

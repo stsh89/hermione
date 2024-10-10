@@ -1,8 +1,10 @@
 use clap::{Parser, Subcommand};
 use hermione_coordinator::workspaces::{Dto, ListParameters};
-use hermione_notion::{Json, NewClientParameters, QueryDatabaseParameters};
+use hermione_notion::{
+    Json, NewClientParameters, NotionPageId, NotionRichTextProperty, NotionTitlePropery,
+    QueryDatabaseParameters,
+};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::{
     fs::File,
     path::{Path, PathBuf},
@@ -90,13 +92,15 @@ async fn create_settings_file(app_path: &Path) -> Result<()> {
     clear_screen();
     println!("Settings verification started...");
 
-    let client = hermione_notion::Client::new(NewClientParameters::default())?;
+    let client = hermione_notion::Client::new(NewClientParameters {
+        api_key: Some(settings.api_key.clone()),
+        ..Default::default()
+    })?;
 
     client
         .query_database(
             &settings.workspaces_page_id,
             QueryDatabaseParameters {
-                api_key_override: Some(&settings.api_key),
                 page_size: 1,
                 ..Default::default()
             },
@@ -126,7 +130,7 @@ struct RichTextEqualsFilter {
 
 #[derive(Deserialize)]
 struct QueryDatabaseOutput {
-    results: Vec<Value>,
+    results: Vec<Json>,
 }
 
 async fn export(app_path: &Path) -> Result<()> {
@@ -154,9 +158,9 @@ async fn export(app_path: &Path) -> Result<()> {
         ..Default::default()
     })?;
 
-    let filter = Json::new(serde_json::json!({
+    let filter = serde_json::json!({
         "or": serde_json::json!(filters),
-    }));
+    });
 
     let json = notion_client
         .query_database(
@@ -176,11 +180,12 @@ async fn export(app_path: &Path) -> Result<()> {
 
     println!("{}", json.to_string());
 
-    let results = json.results();
+    let empty = &vec![];
+    let results = json["results"].as_array().unwrap_or(empty);
 
     for workspace in workspaces {
         let found = results
-            .iter()
+            .into_iter()
             .find(|json_value| json_value.rich_text("External ID") == &workspace.id);
 
         let Some(record) = found else {
@@ -216,11 +221,11 @@ async fn create_workspace(
     notion_client
         .create_database_entry(
             &settings.workspaces_page_id,
-            Json::new(serde_json::json!({
+            serde_json::json!({
                 "Name": {"title": [{"text": {"content": workspace.name}}]},
                 "External ID": {"rich_text": [{"text": {"content": workspace.id}}]},
                 "Location": {"rich_text": [{"text": {"content": workspace.location}}]}
-            })),
+            }),
         )
         .await?;
 
@@ -235,10 +240,10 @@ async fn update_workspace(
     notion_client
         .update_database_entry(
             &page_id,
-            Json::new(serde_json::json!({
+            serde_json::json!({
                 "Name": {"title": [{"text": {"content": workspace.name}}]},
                 "Location": {"rich_text": [{"text": {"content": workspace.location}}]}
-            })),
+            }),
         )
         .await?;
 

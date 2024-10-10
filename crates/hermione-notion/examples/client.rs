@@ -3,7 +3,6 @@ use hermione_notion::{
     Client, Json, Method, NewClientParameters, QueryDatabaseParameters, SendParameters,
 };
 use serde::Deserialize;
-use serde_json::Value;
 use std::{fs, time::Duration};
 
 #[derive(Deserialize)]
@@ -74,7 +73,6 @@ async fn query_database(client: Client, action: QueryDatabaseAction) -> Result<J
     } = action;
 
     let parameters = QueryDatabaseParameters {
-        api_key_override: None,
         page_size,
         start_cursor: start_cursor.as_deref(),
         filter: None,
@@ -89,11 +87,11 @@ async fn post(client: Client, action: PostAction) -> Result<Json> {
     let PostAction { uri } = action;
 
     let file = fs::File::open("body.json")?;
-    let body: Value = serde_json::from_reader(file)?;
+    let body: Json = serde_json::from_reader(file)?;
 
     let parameters = SendParameters {
         api_key_override: None,
-        body: Some(Json::new(body)),
+        body: Some(body),
         uri: &uri,
         method: Method::post(),
     };
@@ -103,7 +101,7 @@ async fn post(client: Client, action: PostAction) -> Result<Json> {
     Ok(output)
 }
 
-fn write_output(path: &str, value: &Value) -> Result<()> {
+fn write_output(path: &str, value: &Json) -> Result<()> {
     let mut file = fs::OpenOptions::new()
         .create(true)
         .write(true)
