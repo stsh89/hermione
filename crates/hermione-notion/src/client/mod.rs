@@ -30,8 +30,10 @@ pub struct SendParameters<'a> {
     pub uri: &'a str,
 }
 
+#[derive(Debug)]
 pub struct Method(reqwest::Method);
 
+#[derive(Debug)]
 pub struct QueryDatabaseParameters<'a> {
     pub page_size: u8,
     pub start_cursor: Option<&'a str>,
@@ -39,6 +41,7 @@ pub struct QueryDatabaseParameters<'a> {
 }
 
 impl Client {
+    #[tracing::instrument(skip(self, properties))]
     pub async fn create_database_entry(&self, database_id: &str, properties: Json) -> Result<Json> {
         let body = serde_json::json!({
             "parent": { "database_id": database_id },
@@ -55,6 +58,7 @@ impl Client {
         self.send(parameters).await
     }
 
+    #[tracing::instrument(skip(self, parameters))]
     pub async fn query_database(
         &self,
         database_id: &str,
@@ -113,6 +117,7 @@ impl Client {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn send(&self, parameters: SendParameters<'_>) -> Result<Json> {
         let SendParameters {
             body,
@@ -120,6 +125,8 @@ impl Client {
             api_key_override,
             method,
         } = parameters;
+
+        tracing::info!(method = ?method, uri = %uri, body = ?body);
 
         let api_key = api_key_override
             .or(self.api_key.as_deref())
@@ -156,6 +163,7 @@ impl Client {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn update_database_entry(&self, entry_id: &str, properties: Json) -> Result<Json> {
         let uri = format!("pages/{entry_id}");
 

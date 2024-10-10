@@ -17,6 +17,7 @@ impl RequestSender {
         Self { request_builder }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn send(self) -> Result<reqwest::Response> {
         let request_builder = self.cloned_request_builder()?;
         let response = request_builder.send().await?;
@@ -48,10 +49,7 @@ fn retry_after(headers: &header::HeaderMap) -> Result<Duration> {
 }
 
 async fn sleep(duration: Duration) {
-    println!(
-        "Too many requests. Retrying in {} seconds",
-        duration.as_secs()
-    );
+    tracing::info!("Too many requests. Retrying in {} seconds", duration.as_secs());
 
     tokio::time::sleep(duration).await;
 }
