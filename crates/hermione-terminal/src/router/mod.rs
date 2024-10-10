@@ -43,14 +43,11 @@ impl tui::Router for Router {
 
 impl Router {
     fn initial_route(&self) -> Result<Route> {
-        let mut workspaces = self
-            .coordinator
-            .workspaces()
-            .list(ListParameters {
-                page_number: 0,
-                page_size: PAGE_SIZE,
-                name_contains: "",
-            })?;
+        let mut workspaces = self.coordinator.workspaces().list(ListParameters {
+            page_number: 0,
+            page_size: PAGE_SIZE,
+            name_contains: "",
+        })?;
 
         workspaces.reverse();
 

@@ -20,14 +20,11 @@ impl<'a> Handler<'a> {
             name,
         })?;
 
-        let workspaces = self
-            .coordinator
-            .workspaces()
-            .list(ListParameters {
-                name_contains: "",
-                page_number: 0,
-                page_size: PAGE_SIZE,
-            })?;
+        let workspaces = self.coordinator.workspaces().list(ListParameters {
+            name_contains: "",
+            page_number: 0,
+            page_size: PAGE_SIZE,
+        })?;
 
         let model = Model::new(ModelParameters {
             workspaces,

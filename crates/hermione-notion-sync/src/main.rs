@@ -1,8 +1,8 @@
 use clap::{Parser, Subcommand};
 use hermione_coordinator::workspaces::{Dto, ListParameters};
 use hermione_notion::{
-    Json, NewClientParameters, NotionPageId, NotionRichTextProperty, NotionTitlePropery,
-    QueryDatabaseParameters,
+    json::{Json, PageId, RichText, Title},
+    NewClientParameters, QueryDatabaseParameters,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -154,14 +154,14 @@ async fn export(app_path: &Path) -> Result<()> {
     })?;
 
     let filters: Vec<RichTextFilter> = workspaces
-    .iter()
-    .map(|workspace| RichTextFilter {
-        property: "External ID".to_string(),
-        rich_text: RichTextEqualsFilter {
-            equals: workspace.id.clone(),
-        },
-    })
-    .collect();
+        .iter()
+        .map(|workspace| RichTextFilter {
+            property: "External ID".to_string(),
+            rich_text: RichTextEqualsFilter {
+                equals: workspace.id.clone(),
+            },
+        })
+        .collect();
 
     let filter = serde_json::json!({
         "or": serde_json::json!(filters),

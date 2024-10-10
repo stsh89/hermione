@@ -11,14 +11,19 @@ pub struct Handler<'a> {
 
 impl<'a> Handler<'a> {
     pub fn handle(self, parameters: Parameters) -> Result<Model> {
-        let Parameters { search_query, page_number, page_size } = parameters;
+        let Parameters {
+            search_query,
+            page_number,
+            page_size,
+        } = parameters;
 
         tracing::info!("Page {}", page_number);
 
-        let workspaces = self
-            .coordinator
-            .workspaces()
-            .list(ListParameters { name_contains: &search_query, page_number, page_size })?;
+        let workspaces = self.coordinator.workspaces().list(ListParameters {
+            name_contains: &search_query,
+            page_number,
+            page_size,
+        })?;
 
         Model::new(ModelParameters {
             workspaces,

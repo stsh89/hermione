@@ -1,14 +1,15 @@
+mod headers;
 mod request_sender;
 
-use crate::{Error, Json, Result};
+use crate::{json::Json, Error, Result};
 use request_sender::RequestSender;
-use reqwest::{header, StatusCode, Url};
+use reqwest::{StatusCode, Url};
 use std::time::Duration;
 
+const DATABASE_QUERY_PAGE_SIZE: u8 = 100;
 const NOTION_BASE_URL: &str = "https://api.notion.com/v1/";
-const NOTION_HEADER_CONTENT_TYPE_VALUE: &str = "application/json";
-const NOTION_HEADER_VERSION_NAME: &str = "notion-version";
-const NOTION_HEADER_VERSION_VALUE: &str = "2022-06-28";
+const PAGES_URI: &str = "pages";
+const REQUEST_TIMEOUT_IN_SECS: u64 = 5;
 
 pub struct Client {
     api_key: Option<String>,
@@ -38,30 +39,7 @@ pub struct QueryDatabaseParameters<'a> {
 }
 
 impl Client {
-    fn authorization_string(&self, api_key_override: Option<&str>) -> Result<String> {
-        let api_key = if let Some(api_key) = api_key_override {
-            api_key
-        } else {
-            self.api_key
-                .as_deref()
-                .ok_or(Error::invalid_argument("Notion API key is not set"))?
-        };
-
-        Ok(format!("Bearer {api_key}"))
-    }
-
-    fn authorization_header_value(
-        &self,
-        api_key_override: Option<&str>,
-    ) -> Result<header::HeaderValue> {
-        let authorization_string = self.authorization_string(api_key_override)?;
-
-        header::HeaderValue::from_str(&authorization_string).map_err(Error::unexpected)
-    }
-
     pub async fn create_database_entry(&self, database_id: &str, properties: Json) -> Result<Json> {
-        let uri = "pages";
-
         let body = serde_json::json!({
             "parent": { "database_id": database_id },
             "properties": properties,
@@ -70,7 +48,7 @@ impl Client {
         let parameters = SendParameters {
             body: Some(body),
             api_key_override: None,
-            uri: &uri,
+            uri: PAGES_URI,
             method: Method(reqwest::Method::POST),
         };
 
@@ -106,7 +84,7 @@ impl Client {
             body: Some(body),
             api_key_override: None,
             uri: &uri,
-            method: Method(reqwest::Method::POST),
+            method: Method::post(),
         };
 
         self.send(parameters).await
@@ -120,7 +98,7 @@ impl Client {
         } = parameters;
 
         let base_url = base_url(base_url_override)?;
-        let headers = default_headers();
+        let headers = headers::default_headers();
 
         let inner = reqwest::Client::builder()
             .default_headers(headers)
@@ -143,14 +121,18 @@ impl Client {
             method,
         } = parameters;
 
+        let api_key = api_key_override
+            .or(self.api_key.as_deref())
+            .ok_or_else(|| {
+                eyre::Error::new(Error::invalid_argument("Notion API key is not set"))
+            })?;
+
         let url = self.url(uri)?;
 
-        let mut request_builder = self.inner.request(method.into(), url);
-
-        request_builder = request_builder.header(
-            header::AUTHORIZATION,
-            self.authorization_header_value(api_key_override)?,
-        );
+        let mut request_builder = self
+            .inner
+            .request(method.into(), url)
+            .headers(headers::authorization(api_key)?);
 
         if let Some(body) = body {
             request_builder = request_builder.json(&body);
@@ -207,7 +189,7 @@ impl Method {
 impl Default for NewClientParameters {
     fn default() -> Self {
         Self {
-            timeout: Duration::from_secs(5),
+            timeout: Duration::from_secs(REQUEST_TIMEOUT_IN_SECS),
             api_key: None,
             base_url_override: None,
         }
@@ -223,7 +205,7 @@ impl From<Method> for reqwest::Method {
 impl<'a> Default for QueryDatabaseParameters<'a> {
     fn default() -> Self {
         Self {
-            page_size: 100,
+            page_size: DATABASE_QUERY_PAGE_SIZE,
             start_cursor: None,
             filter: None,
         }
@@ -238,20 +220,4 @@ fn base_url(base_url_override: Option<String>) -> Result<Url> {
     };
 
     url.map_err(|err| Error::Unexpected(eyre::Error::new(err)))
-}
-
-fn default_headers() -> header::HeaderMap {
-    let mut headers = header::HeaderMap::new();
-
-    headers.insert(
-        header::CONTENT_TYPE,
-        header::HeaderValue::from_static(NOTION_HEADER_CONTENT_TYPE_VALUE),
-    );
-
-    headers.insert(
-        header::HeaderName::from_static(NOTION_HEADER_VERSION_NAME),
-        header::HeaderValue::from_static(NOTION_HEADER_VERSION_VALUE),
-    );
-
-    headers
 }

@@ -28,8 +28,16 @@ where
     L: List,
 {
     pub fn execute(&self, parameters: Parameters) -> Result<Vec<Entity>> {
-        let Parameters { name_contains, page_number, page_size } = parameters;
+        let Parameters {
+            name_contains,
+            page_number,
+            page_size,
+        } = parameters;
 
-        self.lister.list(ListParameters { name_contains, page_number, page_size })
+        self.lister.list(ListParameters {
+            name_contains,
+            page_number,
+            page_size,
+        })
     }
 }

@@ -121,7 +121,11 @@ impl get::Get for Client {
 
 impl list::List for Client {
     fn list(&self, parameters: list::ListParameters) -> Result<Vec<Entity>> {
-        let list::ListParameters { name_contains, page_size, page_number } = parameters;
+        let list::ListParameters {
+            name_contains,
+            page_size,
+            page_number,
+        } = parameters;
 
         let name_contains = format!("%{}%", name_contains.to_lowercase());
 
@@ -141,7 +145,10 @@ impl list::List for Client {
             .map_err(ErrReport::err_report)?;
 
         let records = statement
-            .query_map(params![name_contains, page_size, page_number * page_size], Record::from_row)
+            .query_map(
+                params![name_contains, page_size, page_number * page_size],
+                Record::from_row,
+            )
             .map_err(ErrReport::err_report)?
             .collect::<std::result::Result<Vec<_>, _>>()
             .map_err(ErrReport::err_report)?;

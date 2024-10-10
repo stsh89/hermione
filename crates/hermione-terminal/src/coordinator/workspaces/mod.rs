@@ -46,11 +46,17 @@ impl Coordinator {
     }
 
     pub fn list(&self, parameters: ListParameters) -> Result<Vec<Presenter>> {
-        let ListParameters { name_contains, page_number, page_size } = parameters;
+        let ListParameters {
+            name_contains,
+            page_number,
+            page_size,
+        } = parameters;
 
-        let workspaces = self
-            .client
-            .list(workspaces::ListParameters { name_contains, page_number, page_size })?;
+        let workspaces = self.client.list(workspaces::ListParameters {
+            name_contains,
+            page_number,
+            page_size,
+        })?;
 
         Ok(workspaces.into_iter().map(Into::into).collect())
     }

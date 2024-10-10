@@ -1,6 +1,6 @@
 use anyhow::Result;
 use hermione_notion::{
-    Client, Json, Method, NewClientParameters, QueryDatabaseParameters, SendParameters,
+    json::Json, Client, Method, NewClientParameters, QueryDatabaseParameters, SendParameters,
 };
 use serde::Deserialize;
 use std::{fs, time::Duration};
