@@ -7,7 +7,7 @@ use hermione_notion::{
 use serde::Serialize;
 use std::path::PathBuf;
 
-const PAGE_SIZE: u32 = 1;
+const PAGE_SIZE: u32 = 100;
 
 pub struct Command {
     settings: Settings,
