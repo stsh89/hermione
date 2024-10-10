@@ -1,6 +1,6 @@
 pub mod commands;
 
-use crate::{core, Result};
+use crate::{connection, core, Result};
 use chrono::{DateTime, Utc};
 use hermione_core::{
     entities::workspace::{Entity, LoadParameters, Location, Name, NewParameters},
@@ -95,8 +95,9 @@ impl Operations for Client {
 }
 
 impl Client {
-    pub fn new(path: &Path) -> Result<Self> {
-        let inner = core::workspaces::Client::new(path)?;
+    pub fn new(dir_path: &Path) -> Result<Self> {
+        let connection = connection(dir_path)?;
+        let inner = core::workspaces::Client::new(connection)?;
 
         Ok(Self { inner })
     }

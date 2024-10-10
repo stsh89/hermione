@@ -23,9 +23,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(path: &Path) -> eyre::Result<Self> {
-        let connection = Connection::open(path)?;
-
+    pub fn new(connection: Connection) -> eyre::Result<Self> {
         connection.execute(
             "CREATE TABLE IF NOT EXISTS workspaces (
                 id BLOB PRIMARY KEY,

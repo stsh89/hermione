@@ -12,9 +12,9 @@ pub struct ListParameters<'a> {
 }
 
 impl Coordinator {
-    pub fn new(connection_path: &Path) -> Result<Self> {
+    pub fn new(app_path: &Path) -> Result<Self> {
         Ok(Self {
-            client: Client::new(connection_path)?,
+            client: Client::new(app_path)?,
         })
     }
 

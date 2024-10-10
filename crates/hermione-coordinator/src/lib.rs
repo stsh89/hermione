@@ -1,3 +1,5 @@
+use std::path::Path;
+
 mod core;
 pub mod workspaces;
 
@@ -33,4 +35,11 @@ impl ErrReport for rusqlite::Error {
     fn err_report(self) -> eyre::Error {
         eyre::Error::new(self)
     }
+}
+
+fn connection(dir_path: &Path) -> Result<rusqlite::Connection> {
+    let path = dir_path.join("hermione.db3");
+    let connection = rusqlite::Connection::open(path).map_err(ErrReport::err_report)?;
+
+    Ok(connection)
 }

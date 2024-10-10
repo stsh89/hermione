@@ -1,4 +1,6 @@
-use hermione_notion::{Client, ClientParameters, PostParameters, QueryDatabaseParameters};
+use hermione_notion::{
+    Client, Method, NewClientParameters, QueryDatabaseParameters, SendParameters,
+};
 use httpmock::prelude::*;
 
 type Result<T> = eyre::Result<T>;
@@ -14,18 +16,19 @@ async fn it_makes_custom_post_request() -> Result<()> {
             .status(200);
     });
 
-    let client = Client::new(ClientParameters {
+    let client = Client::new(NewClientParameters {
         base_url_override: Some(base_url.clone()),
         api_key: Some("".to_string()),
         ..Default::default()
     })?;
-    let parameters = PostParameters {
+    let parameters = SendParameters {
         api_key_override: None,
         body: None,
         uri: "/custom/path",
+        method: Method::post(),
     };
 
-    client.post(parameters).await?;
+    client.send(parameters).await?;
 
     mock.assert_async().await;
 
@@ -43,7 +46,7 @@ async fn it_queries_database() -> Result<()> {
             .status(200);
     });
 
-    let client = Client::new(ClientParameters {
+    let client = Client::new(NewClientParameters {
         base_url_override: Some(base_url.clone()),
         api_key: Some("".to_string()),
         ..Default::default()

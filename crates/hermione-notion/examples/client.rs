@@ -1,5 +1,7 @@
 use anyhow::Result;
-use hermione_notion::{Client, ClientParameters, PostParameters, QueryDatabaseParameters};
+use hermione_notion::{
+    Client, Json, Method, NewClientParameters, QueryDatabaseParameters, SendParameters,
+};
 use serde::Deserialize;
 use serde_json::Value;
 use std::{fs, time::Duration};
@@ -48,7 +50,7 @@ async fn main() -> Result<()> {
         base_url_override,
     } = serde_json::from_reader(file)?;
 
-    let client = Client::new(ClientParameters {
+    let client = Client::new(NewClientParameters {
         timeout: Duration::from_secs(timeout_secs),
         api_key: Some(api_key),
         base_url_override,
@@ -64,7 +66,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn query_database(client: Client, action: QueryDatabaseAction) -> Result<Value> {
+async fn query_database(client: Client, action: QueryDatabaseAction) -> Result<Json> {
     let QueryDatabaseAction {
         database_id,
         page_size,
@@ -75,6 +77,7 @@ async fn query_database(client: Client, action: QueryDatabaseAction) -> Result<V
         api_key_override: None,
         page_size,
         start_cursor: start_cursor.as_deref(),
+        filter: None,
     };
 
     let output = client.query_database(&database_id, parameters).await?;
@@ -82,19 +85,20 @@ async fn query_database(client: Client, action: QueryDatabaseAction) -> Result<V
     Ok(output)
 }
 
-async fn post(client: Client, action: PostAction) -> Result<Value> {
+async fn post(client: Client, action: PostAction) -> Result<Json> {
     let PostAction { uri } = action;
 
     let file = fs::File::open("body.json")?;
     let body: Value = serde_json::from_reader(file)?;
 
-    let parameters = PostParameters {
+    let parameters = SendParameters {
         api_key_override: None,
-        body: Some(body),
+        body: Some(Json::new(body)),
         uri: &uri,
+        method: Method::post(),
     };
 
-    let output = client.post(parameters).await?;
+    let output = client.send(parameters).await?;
 
     Ok(output)
 }
