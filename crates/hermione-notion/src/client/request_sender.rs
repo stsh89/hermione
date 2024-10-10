@@ -25,11 +25,11 @@ impl RequestSender {
             return Ok(response);
         };
 
-        let duration = retry_after(&response.headers())?;
+        let duration = retry_after(response.headers())?;
         sleep(duration).await;
 
         let response = self.request_builder.send().await?;
-        return Ok(response);
+        Ok(response)
     }
 }
 

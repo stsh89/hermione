@@ -1,24 +1,16 @@
-use crate::{
-    screen::{self, print},
-    settings::Settings,
-    Result,
-};
+use crate::{screen, settings::Settings, Result};
 use hermione_coordinator::workspaces::{self, Operations};
 use hermione_notion::{
     json::{Json, PageId, RichText, Title},
     QueryDatabaseParameters,
 };
-use serde::{Deserialize, Serialize};
-use std::{
-    ops::Not,
-    path::{Path, PathBuf},
-};
+use serde::Serialize;
+use std::path::PathBuf;
 
 const PAGE_SIZE: u32 = 1;
 
 pub struct Command {
     settings: Settings,
-    directory_path: PathBuf,
     notion_client: hermione_notion::Client,
     workspaces_coordinator: hermione_coordinator::workspaces::Client,
     total_workspaces: u32,
@@ -71,7 +63,6 @@ impl Command {
 
         Ok(Self {
             settings,
-            directory_path,
             notion_client,
             workspaces_coordinator,
             total_workspaces: 0,
@@ -99,13 +90,13 @@ impl Command {
             page_number += 1;
         }
 
-        // screen::clear_and_reset_cursor();
+        screen::clear_and_reset_cursor();
         screen::print("Export summary:");
         screen::print(&format!("Total workspaces: {}", self.total_workspaces));
         screen::print(&format!("Created workspaces: {}", self.created_workspaces));
         screen::print(&format!("Updated workspaces: {}", self.updated_workspaces));
 
-        return Ok(());
+        Ok(())
     }
 
     async fn remote_workspaces(
@@ -144,7 +135,7 @@ impl Command {
             return Ok(Vec::new());
         };
 
-        let workspaces = results.into_iter().map(Into::into).collect();
+        let workspaces = results.iter().map(Into::into).collect();
 
         Ok(workspaces)
     }
@@ -193,13 +184,11 @@ impl Command {
         for local_workspace in local_workspaces {
             self.exported_workspaces += 1;
 
-            // screen::clear_and_reset_cursor();
+            screen::clear_and_reset_cursor();
             screen::print(&format!(
                 "Syncing {}/{} workspaces...",
                 self.exported_workspaces, self.total_workspaces,
             ));
-
-            println!("{:?}", remote_workspaces.get(0));
 
             let remote_workspace = remote_workspaces
                 .iter()

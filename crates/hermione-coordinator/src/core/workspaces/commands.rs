@@ -5,7 +5,6 @@ use hermione_core::{
     Id, Result,
 };
 use rusqlite::{params, Connection};
-use std::path::Path;
 use uuid::{Bytes, Uuid};
 
 use crate::ErrReport;
