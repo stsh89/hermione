@@ -1,6 +1,5 @@
 pub const PAGE_SIZE: u32 = 100;
 
-#[derive(Default)]
 pub struct Parameters {
     pub workspace_id: String,
     pub search_query: String,
