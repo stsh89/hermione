@@ -1,23 +1,24 @@
 use crate::{
-    components, parameters,
-    presenters::command::Presenter,
+    components, layouts, parameters, presenters,
     routes::{self, Route},
     tui, Message, Result,
 };
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
 pub struct Model {
-    command: Presenter,
+    workspace: presenters::workspace::Presenter,
+    command: presenters::command::Presenter,
     redirect: Option<Route>,
     command_palette: Option<components::command_palette::Component>,
 }
 
 pub struct ModelParameters {
-    pub command: Presenter,
+    pub command: presenters::command::Presenter,
+    pub workspace: presenters::workspace::Presenter,
 }
 
 impl tui::Model for Model {
@@ -52,18 +53,26 @@ impl tui::Model for Model {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [header, program] = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Max(1), Constraint::Min(3)])
-            .areas(frame.area());
+        let [main_area, status_bar_area] = layouts::default::Layout::new().areas(frame.area());
 
-        let paragraph = Paragraph::new(self.command.name.as_str()).alignment(Alignment::Center);
-        frame.render_widget(paragraph, header);
+        let [name_area, program_area] = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![Constraint::Max(3), Constraint::Min(3)])
+            .areas(main_area);
+
+        let block = Block::default().borders(Borders::all()).title("Name");
+        let paragraph = Paragraph::new(self.command.name.as_str()).block(block);
+        frame.render_widget(paragraph, name_area);
 
         let block = Block::default().borders(Borders::all()).title("Program");
         let paragraph = Paragraph::new(self.command.program.as_str()).block(block);
+        frame.render_widget(paragraph, program_area);
 
-        frame.render_widget(paragraph, program);
+        let paragraph = Paragraph::new(format!(
+            "List workspaces ▶️{} ▶️List commands ▶️{}",
+            self.workspace.name, self.command.name
+        ));
+        frame.render_widget(paragraph, status_bar_area);
 
         if let Some(popup) = self.command_palette.as_mut() {
             popup.render(frame, frame.area());
@@ -100,10 +109,11 @@ impl Model {
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
-        let ModelParameters { command } = parameters;
+        let ModelParameters { command, workspace } = parameters;
 
         Ok(Self {
             command,
+            workspace,
             redirect: None,
             command_palette: None,
         })

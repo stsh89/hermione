@@ -27,8 +27,9 @@ impl<'a> Handler<'a> {
         };
 
         let command = self.coordinator.workspaces().commands().update(command)?;
+        let workspace = self.coordinator.workspaces().get(&command.workspace_id)?;
 
-        let model = Model::new(ModelParameters { command })?;
+        let model = Model::new(ModelParameters { command, workspace })?;
 
         Ok(model)
     }

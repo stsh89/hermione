@@ -1,17 +1,17 @@
 use crate::{
-    parameters,
-    presenters::command::Presenter,
+    layouts, parameters, presenters,
     routes::{self, Route},
     tui, widgets, Message, Result,
 };
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Position, Rect},
+    layout::{Constraint, Direction, Layout, Position, Rect},
     widgets::Paragraph,
     Frame,
 };
 
 pub struct Model {
-    command: Presenter,
+    command: presenters::command::Presenter,
+    workspace: presenters::workspace::Presenter,
     active_input: CommandProperty,
     name: widgets::input::State,
     program: widgets::input::State,
@@ -19,7 +19,8 @@ pub struct Model {
 }
 
 pub struct ModelParameters {
-    pub command: Presenter,
+    pub command: presenters::command::Presenter,
+    pub workspace: presenters::workspace::Presenter,
 }
 
 enum CommandProperty {
@@ -59,17 +60,11 @@ impl tui::Model for Model {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [header, name_area, program_area] = Layout::default()
+        let [main_area, status_bar_area] = layouts::default::Layout::new().areas(frame.area());
+        let [name_area, program_area] = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![
-                Constraint::Max(1),
-                Constraint::Max(3),
-                Constraint::Min(3),
-            ])
-            .areas(frame.area());
-
-        let paragraph = Paragraph::new("Edit Command").alignment(Alignment::Center);
-        frame.render_widget(paragraph, header);
+            .constraints(vec![Constraint::Max(3), Constraint::Min(3)])
+            .areas(main_area);
 
         for (area, property) in [
             (name_area, CommandProperty::Name),
@@ -77,6 +72,12 @@ impl tui::Model for Model {
         ] {
             self.render_property(frame, area, property);
         }
+
+        let paragraph = Paragraph::new(format!(
+            "List workspaces ▶️{} ▶️List commands ▶️{} ▶️Edit command",
+            self.workspace.name, self.command.name
+        ));
+        frame.render_widget(paragraph, status_bar_area);
     }
 }
 
@@ -130,7 +131,7 @@ impl Model {
     }
 
     pub fn new(parameters: ModelParameters) -> Self {
-        let ModelParameters { command } = parameters;
+        let ModelParameters { command, workspace } = parameters;
 
         Self {
             active_input: CommandProperty::Name,
@@ -144,6 +145,7 @@ impl Model {
                 is_active: false,
             }),
             command,
+            workspace,
         }
     }
 

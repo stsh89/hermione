@@ -1,10 +1,10 @@
 use crate::{
-    parameters,
+    layouts, parameters,
     routes::{self, Route},
     tui, widgets, Message, Result,
 };
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Position, Rect},
+    layout::{Constraint, Direction, Layout, Position, Rect},
     widgets::Paragraph,
     Frame,
 };
@@ -53,17 +53,12 @@ impl tui::Model for Model {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [header, name_area, location_area] = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(vec![
-                Constraint::Max(1),
-                Constraint::Max(3),
-                Constraint::Min(3),
-            ])
-            .areas(frame.area());
+        let [main_area, status_bar_area] = layouts::default::Layout::new().areas(frame.area());
 
-        let paragraph = Paragraph::new("New workspace").alignment(Alignment::Center);
-        frame.render_widget(paragraph, header);
+        let [name_area, location_area] = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![Constraint::Max(3), Constraint::Min(3)])
+            .areas(main_area);
 
         for (area, property) in [
             (name_area, WorkspaceProperty::Name),
@@ -71,6 +66,9 @@ impl tui::Model for Model {
         ] {
             self.render_property(frame, area, property);
         }
+
+        let paragraph = Paragraph::new("New workspace");
+        frame.render_widget(paragraph, status_bar_area);
     }
 }
 

@@ -1,11 +1,11 @@
 use crate::{
-    components, parameters,
+    components, layouts, parameters,
     presenters::workspace::Presenter,
     routes::{self, Route},
     tui, widgets, Message, Result,
 };
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Position},
+    layout::Position,
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
@@ -92,17 +92,8 @@ impl tui::Model for Model {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [header, search_area, commands_area] = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(vec![
-                Constraint::Max(1),
-                Constraint::Max(3),
-                Constraint::Min(3),
-            ])
-            .areas(frame.area());
-
-        let paragraph = Paragraph::new("List workspaces").alignment(Alignment::Center);
-        frame.render_widget(paragraph, header);
+        let [main_area, status_bar_area] = layouts::default::Layout::new().areas(frame.area());
+        let [search_area, list_area] = layouts::search_list::Layout::new().areas(main_area);
 
         let input = widgets::input::Widget { title: "Search" };
         frame.render_stateful_widget(input, search_area, &mut self.search);
@@ -114,7 +105,17 @@ impl tui::Model for Model {
         let block = Block::default().borders(Borders::all());
         let list = widgets::list::Widget::new(&self.workspaces).block(block);
 
-        frame.render_stateful_widget(list, commands_area, &mut self.workspaces_state);
+        frame.render_stateful_widget(list, list_area, &mut self.workspaces_state);
+
+        let paragraph = Paragraph::new(format!(
+            "List workspaces ({}) ▶️{}",
+            self.page_number,
+            self.workspace()
+                .map(|c| c.name.as_str())
+                .unwrap_or_default()
+        ));
+
+        frame.render_widget(paragraph, status_bar_area);
 
         let Some(popup) = self.active_popup.as_mut() else {
             return;
