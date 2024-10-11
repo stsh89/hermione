@@ -1,5 +1,6 @@
 use crate::{
-    layouts, parameters,
+    layouts::{self, Breadcrumbs},
+    parameters,
     routes::{self, Route},
     tui, widgets, Message, Result,
 };
@@ -67,7 +68,7 @@ impl tui::Model for Model {
             self.render_property(frame, area, property);
         }
 
-        let paragraph = Paragraph::new("New workspace");
+        let paragraph = Paragraph::new(self.breadcrumbs());
         frame.render_widget(paragraph, status_bar_area);
     }
 }
@@ -79,6 +80,10 @@ impl Model {
         ));
 
         self.redirect = Some(route);
+    }
+
+    fn breadcrumbs(&self) -> Breadcrumbs {
+        Breadcrumbs::default().add_segment("New workspace")
     }
 
     fn delete_char(&mut self) {

@@ -1,5 +1,7 @@
 use crate::{
-    components, layouts, parameters, presenters,
+    components,
+    layouts::{self, Breadcrumbs},
+    parameters, presenters,
     routes::{self, Route},
     tui, widgets, Message, Result,
 };
@@ -134,13 +136,7 @@ impl tui::Model for Model {
 
         frame.render_stateful_widget(list, list_area, &mut self.commands_state);
 
-        let paragraph = Paragraph::new(format!(
-            "List workspaces ▶️{} ▶️List commands ({}) ▶️{}",
-            self.workspace.name,
-            self.page_number,
-            self.command().map(|c| c.name.as_str()).unwrap_or_default()
-        ));
-
+        let paragraph = Paragraph::new(self.breadcrumbs());
         frame.render_widget(paragraph, status_bar_area);
 
         let Some(popup) = &mut self.active_popup else {
@@ -166,6 +162,19 @@ impl Model {
             self.active_popup = None;
         } else {
             self.active_popup = Some(ActivePopup::exit_confirmation());
+        }
+    }
+
+    fn breadcrumbs(&self) -> Breadcrumbs {
+        let breadcrumbs = Breadcrumbs::default()
+            .add_segment("List workspaces")
+            .add_segment(&self.workspace.name)
+            .add_segment(format!("List commands ({})", self.page_number));
+
+        if let Some(command) = self.command() {
+            breadcrumbs.add_segment(&command.name)
+        } else {
+            breadcrumbs
         }
     }
 

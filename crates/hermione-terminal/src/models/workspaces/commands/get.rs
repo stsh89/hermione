@@ -1,5 +1,7 @@
 use crate::{
-    components, layouts, parameters, presenters,
+    components,
+    layouts::{self, Breadcrumbs},
+    parameters, presenters,
     routes::{self, Route},
     tui, Message, Result,
 };
@@ -68,10 +70,7 @@ impl tui::Model for Model {
         let paragraph = Paragraph::new(self.command.program.as_str()).block(block);
         frame.render_widget(paragraph, program_area);
 
-        let paragraph = Paragraph::new(format!(
-            "List workspaces ▶️{} ▶️List commands ▶️{}",
-            self.workspace.name, self.command.name
-        ));
+        let paragraph = Paragraph::new(self.breadcrumbs());
         frame.render_widget(paragraph, status_bar_area);
 
         if let Some(popup) = self.command_palette.as_mut() {
@@ -106,6 +105,14 @@ impl Model {
         ));
 
         self.redirect = Some(route)
+    }
+
+    fn breadcrumbs(&self) -> Breadcrumbs {
+        Breadcrumbs::default()
+            .add_segment("List workspaces")
+            .add_segment(&self.workspace.name)
+            .add_segment("List commands")
+            .add_segment(&self.command.name)
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
