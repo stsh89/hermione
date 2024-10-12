@@ -21,6 +21,7 @@ enum Commands {
     CreateSettingsFile,
     DeleteSettingsFile,
     Export,
+    ShowSettingsFile,
 }
 
 #[tokio::main]
@@ -32,6 +33,7 @@ async fn main() -> Result<()> {
         Commands::CreateSettingsFile => create_settings_file(directory_path).await,
         Commands::DeleteSettingsFile => delete_settings_file(directory_path),
         Commands::Export => export(directory_path).await,
+        Commands::ShowSettingsFile => show_settings_file(directory_path),
     };
 
     if let Err(error) = result {
@@ -55,4 +57,8 @@ async fn export(directory_path: PathBuf) -> Result<()> {
     commands::export::Command::new(directory_path)?
         .execute()
         .await
+}
+
+fn show_settings_file(directory_path: PathBuf) -> Result<()> {
+    commands::show_settings_file::Command::new(directory_path).execute()
 }
