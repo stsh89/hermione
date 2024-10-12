@@ -1,6 +1,6 @@
 mod popup;
 
-pub mod full_width;
 pub mod search_list;
+pub mod wide;
 
 pub use popup::Popup;

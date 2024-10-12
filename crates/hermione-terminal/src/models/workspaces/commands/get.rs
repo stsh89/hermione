@@ -54,7 +54,7 @@ impl tui::Model for Model {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [main_area, status_bar_area] = layouts::full_width::Layout::new().areas(frame.area());
+        let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
 
         let [name_area, program_area] = Layout::default()
             .direction(Direction::Vertical)
