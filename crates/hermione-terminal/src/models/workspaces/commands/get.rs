@@ -4,7 +4,7 @@ use crate::{
     routes::{self, Route},
     Message, Result,
 };
-use hermione_tui::EventHandler;
+use hermione_tui::app::{self, EventHandler};
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
@@ -23,7 +23,7 @@ pub struct ModelParameters {
     pub workspace: presenters::workspace::Presenter,
 }
 
-impl hermione_tui::Model for Model {
+impl app::Model for Model {
     type Message = Message;
     type Route = Route;
 

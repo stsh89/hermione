@@ -3,18 +3,19 @@ mod workspaces;
 
 use crate::{
     brokers,
-    coordinator::workspaces::ListParameters,
+    coordinator::{workspaces::ListParameters, Coordinator},
     parameters::{self, workspaces::list::PAGE_SIZE},
     routes::{self, Route},
-    Coordinator, Message, Model, Result,
+    Message, Model, Result,
 };
+use hermione_tui::app;
 
 pub struct Router {
     pub coordinator: Coordinator,
     pub powershell: brokers::powershell::Broker,
 }
 
-impl hermione_tui::Router for Router {
+impl app::Router for Router {
     type Route = Route;
     type Message = Message;
 

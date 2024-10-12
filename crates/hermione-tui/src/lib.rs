@@ -1,83 +1,20 @@
-mod input;
+pub mod app;
+pub mod input;
 
 use ratatui::{
     backend::CrosstermBackend,
     crossterm::{
-        event,
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
         ExecutableCommand,
     },
-    Frame, Terminal,
+    Terminal,
 };
 use std::{
     io::{stdout, Stdout},
     panic,
 };
 
-pub use input::Input;
-
 type Result<T> = anyhow::Result<T>;
-
-pub trait Model {
-    type Route;
-    type Message;
-
-    fn handle_event(&self) -> Result<Option<Self::Message>>;
-
-    fn is_running(&self) -> bool {
-        true
-    }
-
-    fn redirect(&mut self) -> Option<Self::Route> {
-        None
-    }
-
-    fn update(&mut self, _message: Self::Message) -> Result<Option<Self::Message>> {
-        Ok(None)
-    }
-
-    fn view(&mut self, _frame: &mut Frame) {}
-}
-
-type BoxedModel<R, M> = Box<dyn Model<Route = R, Message = M>>;
-
-pub trait Router {
-    type Route;
-    type Message;
-
-    fn handle_initial_route(&self) -> Result<Option<BoxedModel<Self::Route, Self::Message>>>;
-    fn handle(&self, route: Self::Route) -> Result<Option<BoxedModel<Self::Route, Self::Message>>>;
-}
-
-pub struct EventHandler<F, T>
-where
-    F: Fn(event::KeyEvent) -> Option<T>,
-{
-    f: F,
-}
-
-impl<F, T> EventHandler<F, T>
-where
-    F: Fn(event::KeyEvent) -> Option<T>,
-{
-    pub fn new(f: F) -> Self {
-        Self { f }
-    }
-
-    pub fn handle_event(self) -> Result<Option<T>> {
-        let tui_event = event::read()?;
-
-        if let event::Event::Key(key) = tui_event {
-            if key.kind == event::KeyEventKind::Press {
-                let message = (self.f)(key);
-
-                return Ok(message);
-            }
-        }
-
-        Ok(None)
-    }
-}
 
 pub fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
     enable_raw_mode()?;
@@ -101,7 +38,7 @@ pub fn restore_terminal() -> Result<()> {
     Ok(())
 }
 
-pub fn run(router: impl Router) -> Result<()> {
+pub fn run(router: impl app::Router) -> Result<()> {
     let mut terminal = init_terminal()?;
 
     let Some(mut model) = router.handle_initial_route()? else {

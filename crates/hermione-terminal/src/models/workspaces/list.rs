@@ -5,7 +5,10 @@ use crate::{
     routes::{self, Route},
     widgets, Message, Result,
 };
-use hermione_tui::{EventHandler, Input};
+use hermione_tui::{
+    app::{self, EventHandler},
+    input::Input,
+};
 use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -58,7 +61,7 @@ impl ActivePopup {
     }
 }
 
-impl hermione_tui::Model for Model {
+impl app::Model for Model {
     type Message = Message;
     type Route = Route;
 

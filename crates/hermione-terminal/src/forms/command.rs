@@ -1,5 +1,5 @@
 use crate::presenters;
-use hermione_tui::Input;
+use hermione_tui::input::Input;
 use ratatui::{
     layout::{Constraint, Direction, Position, Rect},
     widgets::{Block, Borders, Paragraph},
