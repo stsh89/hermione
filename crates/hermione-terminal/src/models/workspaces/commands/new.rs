@@ -1,31 +1,21 @@
 use crate::{
+    forms,
     layouts::{self, Breadcrumbs},
     parameters,
-    presenters::workspace::Presenter,
-    routes::{self, Route},
-    tui, widgets, Message, Result,
+    presenters::{self, workspace::Presenter},
+    routes::Route,
+    tui, Message, Result,
 };
-use ratatui::{
-    layout::{Constraint, Direction, Layout, Position, Rect},
-    widgets::Paragraph,
-    Frame,
-};
+use ratatui::{widgets::Paragraph, Frame};
 
 pub struct Model {
-    workspace: Presenter,
-    name: widgets::input::State,
-    program: widgets::input::State,
+    breadcrumbs: String,
+    form: forms::command::Form,
     redirect: Option<Route>,
-    active_input: CommandProperty,
 }
 
 pub struct ModelParameters {
     pub workspace: Presenter,
-}
-
-enum CommandProperty {
-    Name,
-    Program,
 }
 
 impl tui::Model for Model {
@@ -62,151 +52,92 @@ impl tui::Model for Model {
     fn view(&mut self, frame: &mut Frame) {
         let [main_area, status_bar_area] = layouts::full_width::Layout::new().areas(frame.area());
 
-        let [name_area, program_area] = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Max(3), Constraint::Min(3)])
-            .areas(main_area);
+        self.form.render(frame, main_area);
 
-        for (area, property) in [
-            (name_area, CommandProperty::Name),
-            (program_area, CommandProperty::Program),
-        ] {
-            self.render_property(frame, area, property);
-        }
-
-        let paragraph = Paragraph::new(self.breadcrumbs());
+        let paragraph = Paragraph::new(self.breadcrumbs.as_str());
         frame.render_widget(paragraph, status_bar_area);
     }
 }
 
 impl Model {
     fn back(&mut self) {
-        let route = Route::Workspaces(routes::workspaces::Route::Commands(
-            routes::workspaces::commands::Route::List(
-                parameters::workspaces::commands::list::Parameters {
-                    workspace_id: self.workspace.id.clone(),
-                    search_query: "".into(),
-                    page_number: 0,
-                    page_size: parameters::workspaces::commands::list::PAGE_SIZE,
-                },
-            ),
-        ));
+        use parameters::workspaces::commands::list;
 
-        self.redirect = Some(route);
-    }
+        let command = self.form.command();
 
-    fn breadcrumbs(&self) -> Breadcrumbs {
-        Breadcrumbs::default()
-            .add_segment("List workspaces")
-            .add_segment(&self.workspace.name)
-            .add_segment("New command")
+        self.redirect = Some(
+            list::Parameters {
+                workspace_id: command.workspace_id,
+                search_query: "".into(),
+                page_number: 0,
+                page_size: list::PAGE_SIZE,
+            }
+            .into(),
+        );
     }
 
     pub fn new(parameters: ModelParameters) -> Self {
         let ModelParameters { workspace } = parameters;
 
+        let breadcrumbs = Breadcrumbs::default()
+            .add_segment("List workspaces")
+            .add_segment(&workspace.name)
+            .add_segment("New command")
+            .to_string();
+
+        let command = presenters::command::Presenter {
+            id: String::new(),
+            name: String::new(),
+            program: String::new(),
+            workspace_id: workspace.id,
+        };
+
         Self {
-            workspace,
-            name: widgets::input::State::new(widgets::input::StateParameters {
-                value: String::new(),
-                is_active: true,
-            }),
-            program: widgets::input::State::new(widgets::input::StateParameters {
-                value: String::new(),
-                is_active: false,
-            }),
+            form: command.into(),
             redirect: None,
-            active_input: CommandProperty::Name,
+            breadcrumbs,
         }
     }
 
     fn toggle_focus(&mut self) {
-        self.active_input = match self.active_input {
-            CommandProperty::Name => CommandProperty::Program,
-            CommandProperty::Program => CommandProperty::Name,
-        };
-
-        match self.active_input {
-            CommandProperty::Name => {
-                self.program.deactivate();
-                self.name.activate();
-            }
-            CommandProperty::Program => {
-                self.name.deactivate();
-                self.program.activate();
-            }
-        }
+        self.form.select_next_input();
     }
 
     fn enter_char(&mut self, c: char) {
-        match self.active_input {
-            CommandProperty::Name => self.name.enter_char(c),
-            CommandProperty::Program => self.program.enter_char(c),
-        }
+        self.form.enter_char(c);
     }
 
     fn delete_char(&mut self) {
-        match self.active_input {
-            CommandProperty::Name => self.name.delete_char(),
-            CommandProperty::Program => self.program.delete_char(),
-        }
+        self.form.delete_char();
     }
 
     fn delete_all_chars(&mut self) {
-        match self.active_input {
-            CommandProperty::Name => self.name.delete_all_chars(),
-            CommandProperty::Program => self.program.delete_all_chars(),
-        }
+        self.form.delete_all_chars();
     }
 
     fn move_cursor_left(&mut self) {
-        match self.active_input {
-            CommandProperty::Name => self.name.move_cursor_left(),
-            CommandProperty::Program => self.program.move_cursor_left(),
-        }
+        self.form.move_cursor_left();
     }
 
     fn move_cursor_right(&mut self) {
-        match self.active_input {
-            CommandProperty::Name => self.name.move_cursor_right(),
-            CommandProperty::Program => self.program.move_cursor_right(),
-        }
-    }
-
-    fn render_property(&mut self, frame: &mut Frame, area: Rect, property: CommandProperty) {
-        let title = match property {
-            CommandProperty::Name => "Name",
-            CommandProperty::Program => "Program",
-        };
-
-        let input = widgets::input::Widget { title };
-
-        let state = match property {
-            CommandProperty::Name => &mut self.name,
-            CommandProperty::Program => &mut self.program,
-        };
-
-        frame.render_stateful_widget(input, area, state);
-
-        if state.is_active() {
-            frame.set_cursor_position(Position::new(
-                area.x + state.character_index() as u16 + 1,
-                area.y + 1,
-            ));
-        }
+        self.form.move_cursor_right();
     }
 
     fn submit(&mut self) {
-        let route = Route::Workspaces(routes::workspaces::Route::Commands(
-            routes::workspaces::commands::Route::Create(
-                parameters::workspaces::commands::create::Parameters {
-                    workspace_id: self.workspace.id.clone(),
-                    name: self.name.value().to_string(),
-                    program: self.program.value().to_string(),
-                },
-            ),
-        ));
+        let presenters::command::Presenter {
+            id: _,
+            name,
+            program,
+            workspace_id,
+        } = self.form.command();
 
-        self.redirect = Some(route);
+        self.redirect = Some(
+            parameters::workspaces::commands::create::Parameters {
+                workspace_id,
+                name,
+                program,
+            }
+            .into(),
+        );
     }
 }

@@ -16,19 +16,19 @@ impl<'a> Handler<'a> {
 
         self.coordinator.workspaces().create(Presenter {
             id: String::new(),
-            location: Some(location),
-            name,
+            location,
+            name: name.clone(),
         })?;
 
         let workspaces = self.coordinator.workspaces().list(ListParameters {
-            name_contains: "",
+            name_contains: name.as_str(),
             page_number: 0,
             page_size: PAGE_SIZE,
         })?;
 
         let model = Model::new(ModelParameters {
             workspaces,
-            search_query: String::new(),
+            search_query: name,
             page_number: 0,
             page_size: PAGE_SIZE,
         })?;

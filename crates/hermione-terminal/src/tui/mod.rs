@@ -1,3 +1,5 @@
+mod input;
+
 use crate::Result;
 use ratatui::{
     backend::CrosstermBackend,
@@ -12,6 +14,8 @@ use std::{
     io::{stdout, Stdout},
     panic,
 };
+
+pub use input::Input;
 
 pub trait Model {
     type Route;

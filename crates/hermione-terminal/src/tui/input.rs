@@ -1,47 +1,24 @@
 use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    widgets::{Block, Borders, Paragraph, StatefulWidget},
+    layout::{Position, Rect},
+    widgets::Widget,
+    Frame,
 };
 
-pub struct Widget<'a> {
-    pub title: &'a str,
-}
-
-pub struct State {
+#[derive(Default)]
+pub struct Input {
     value: String,
     character_index: usize,
-    is_active: bool,
 }
 
-pub struct StateParameters {
-    pub value: String,
-    pub is_active: bool,
-}
-
-impl State {
-    pub fn new(parameters: StateParameters) -> Self {
-        let StateParameters { value, is_active } = parameters;
-
-        let mut input = Self {
-            value: String::new(),
-            character_index: 0,
-            is_active,
-        };
+impl Input {
+    pub fn new(value: String) -> Self {
+        let mut input = Self::default();
 
         for c in value.chars() {
             input.enter_char(c);
         }
 
         input
-    }
-
-    pub fn activate(&mut self) {
-        self.is_active = true;
-    }
-
-    pub fn deactivate(&mut self) {
-        self.is_active = false;
     }
 
     pub fn character_index(&self) -> usize {
@@ -107,23 +84,19 @@ impl State {
         new_cursor_pos.clamp(0, self.value.chars().count())
     }
 
-    pub fn is_active(&self) -> bool {
-        self.is_active
+    pub fn render<W>(&self, frame: &mut Frame, area: Rect, widget: W)
+    where
+        W: Widget,
+    {
+        frame.render_widget(widget, area);
+
+        frame.set_cursor_position(Position::new(
+            area.x + self.character_index() as u16 + 1,
+            area.y + 1,
+        ));
     }
 
     pub fn value(&self) -> &str {
         &self.value
-    }
-}
-
-impl<'a> StatefulWidget for Widget<'a> {
-    type State = State;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let block = Block::default().borders(Borders::all()).title(self.title);
-        let paragraph = Paragraph::new(state.value()).block(block);
-
-        use ratatui::widgets::Widget;
-        paragraph.render(area, buf);
     }
 }

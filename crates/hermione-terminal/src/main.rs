@@ -2,6 +2,7 @@ mod brokers;
 mod colors;
 mod components;
 mod coordinator;
+mod forms;
 mod handlers;
 mod layouts;
 mod logs;

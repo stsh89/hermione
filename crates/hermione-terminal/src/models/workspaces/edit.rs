@@ -1,42 +1,29 @@
 use crate::{
+    forms,
     layouts::{self, Breadcrumbs},
-    parameters,
-    presenters::workspace::Presenter,
-    routes::{self, Route},
-    tui, widgets, Message, Result,
+    parameters, presenters, routes, tui, Message, Result,
 };
-use ratatui::{
-    layout::{Constraint, Direction, Layout, Position, Rect},
-    widgets::Paragraph,
-    Frame,
-};
+use ratatui::{widgets::Paragraph, Frame};
 
 pub struct Model {
-    workspace: Presenter,
-    active_input: WorkspaceProperty,
-    location: widgets::input::State,
-    name: widgets::input::State,
-    redirect: Option<Route>,
+    form: forms::workspace::Form,
+    breadcrumbs: String,
+    redirect: Option<routes::Route>,
 }
 
 pub struct ModelParameters {
-    pub workspace: Presenter,
-}
-
-enum WorkspaceProperty {
-    Name,
-    Location,
+    pub workspace: presenters::workspace::Presenter,
 }
 
 impl tui::Model for Model {
     type Message = Message;
-    type Route = Route;
+    type Route = routes::Route;
 
     fn handle_event(&self) -> Result<Option<Self::Message>> {
         tui::EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
     }
 
-    fn redirect(&mut self) -> Option<Route> {
+    fn redirect(&mut self) -> Option<routes::Route> {
         self.redirect.take()
     }
 
@@ -62,149 +49,79 @@ impl tui::Model for Model {
     fn view(&mut self, frame: &mut Frame) {
         let [main_area, status_bar_area] = layouts::full_width::Layout::new().areas(frame.area());
 
-        let [name_area, location_area] = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Max(3), Constraint::Min(3)])
-            .areas(main_area);
+        self.form.render(frame, main_area);
 
-        for (area, property) in [
-            (name_area, WorkspaceProperty::Name),
-            (location_area, WorkspaceProperty::Location),
-        ] {
-            self.render_property(frame, area, property);
-        }
-
-        let paragraph = Paragraph::new(self.breadcrumbs());
+        let paragraph = Paragraph::new(self.breadcrumbs.as_str());
         frame.render_widget(paragraph, status_bar_area);
     }
 }
 
 impl Model {
     fn back(&mut self) {
-        let route = Route::Workspaces(routes::workspaces::Route::Commands(
-            routes::workspaces::commands::Route::List(
-                parameters::workspaces::commands::list::Parameters {
-                    workspace_id: self.workspace.id.clone(),
-                    search_query: "".into(),
-                    page_number: 0,
-                    page_size: parameters::workspaces::commands::list::PAGE_SIZE,
-                },
-            ),
-        ));
+        use parameters::workspaces::commands::list;
 
-        self.redirect = Some(route);
-    }
+        let presenters::workspace::Presenter {
+            id,
+            name: _,
+            location: _,
+        } = self.form.workspace();
 
-    fn breadcrumbs(&self) -> Breadcrumbs {
-        Breadcrumbs::default()
-            .add_segment("List workspaces")
-            .add_segment(&self.workspace.name)
-            .add_segment("Edit workspace")
+        self.redirect = Some(
+            list::Parameters {
+                workspace_id: id,
+                search_query: "".into(),
+                page_number: 0,
+                page_size: list::PAGE_SIZE,
+            }
+            .into(),
+        );
     }
 
     fn delete_char(&mut self) {
-        match self.active_input {
-            WorkspaceProperty::Name => self.name.delete_char(),
-            WorkspaceProperty::Location => self.location.delete_char(),
-        }
+        self.form.delete_char();
     }
 
     fn delete_all_chars(&mut self) {
-        match self.active_input {
-            WorkspaceProperty::Name => self.name.delete_all_chars(),
-            WorkspaceProperty::Location => self.location.delete_all_chars(),
-        }
+        self.form.delete_all_chars();
     }
 
     fn enter_char(&mut self, c: char) {
-        match self.active_input {
-            WorkspaceProperty::Name => self.name.enter_char(c),
-            WorkspaceProperty::Location => self.location.enter_char(c),
-        }
+        self.form.enter_char(c);
     }
 
     fn move_cursor_left(&mut self) {
-        match self.active_input {
-            WorkspaceProperty::Name => self.name.move_cursor_left(),
-            WorkspaceProperty::Location => self.location.move_cursor_left(),
-        }
+        self.form.move_cursor_left();
     }
 
     fn move_cursor_right(&mut self) {
-        match self.active_input {
-            WorkspaceProperty::Name => self.name.move_cursor_right(),
-            WorkspaceProperty::Location => self.location.move_cursor_right(),
-        }
+        self.form.move_cursor_right();
     }
 
     pub fn new(parameters: ModelParameters) -> Self {
         let ModelParameters { workspace } = parameters;
 
+        let breadcrumbs = Breadcrumbs::default()
+            .add_segment("List workspaces")
+            .add_segment(&workspace.name)
+            .add_segment("Edit workspace")
+            .to_string();
+
         Self {
-            name: widgets::input::State::new(widgets::input::StateParameters {
-                value: workspace.name.clone(),
-                is_active: true,
-            }),
             redirect: None,
-            active_input: WorkspaceProperty::Name,
-            location: widgets::input::State::new(widgets::input::StateParameters {
-                value: workspace.location.clone().unwrap_or_default(),
-                is_active: false,
-            }),
-            workspace,
-        }
-    }
-
-    fn render_property(&mut self, frame: &mut Frame, area: Rect, property: WorkspaceProperty) {
-        let title = match property {
-            WorkspaceProperty::Name => "Name",
-            WorkspaceProperty::Location => "Location",
-        };
-
-        let input = widgets::input::Widget { title };
-
-        let state = match property {
-            WorkspaceProperty::Name => &mut self.name,
-            WorkspaceProperty::Location => &mut self.location,
-        };
-
-        frame.render_stateful_widget(input, area, state);
-
-        if state.is_active() {
-            frame.set_cursor_position(Position::new(
-                area.x + state.character_index() as u16 + 1,
-                area.y + 1,
-            ));
+            breadcrumbs,
+            form: workspace.into(),
         }
     }
 
     fn submit(&mut self) {
-        let route = Route::Workspaces(routes::workspaces::Route::Update(
-            parameters::workspaces::update::Parameters {
-                name: self.name.value().to_string(),
-                location: self.location.value().to_string(),
-                id: self.workspace.id.clone(),
-            },
-        ));
+        use parameters::workspaces::update::Parameters;
 
-        self.redirect = Some(route);
+        let presenters::workspace::Presenter { id, name, location } = self.form.workspace();
+
+        self.redirect = Some(Parameters { name, location, id }.into());
     }
 
     fn toggle_focus(&mut self) {
-        self.active_input = match self.active_input {
-            WorkspaceProperty::Name => WorkspaceProperty::Location,
-            WorkspaceProperty::Location => WorkspaceProperty::Name,
-        };
-
-        match self.active_input {
-            WorkspaceProperty::Name => {
-                self.name.activate();
-                self.location.deactivate();
-            }
-            WorkspaceProperty::Location => {
-                self.location.activate();
-                self.name.deactivate();
-            }
-        }
+        self.form.select_next_input();
     }
 }

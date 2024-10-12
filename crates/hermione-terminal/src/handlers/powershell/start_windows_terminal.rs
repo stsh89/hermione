@@ -11,7 +11,7 @@ impl<'a> Handler<'a> {
         self.powershell
             .start_windows_terminal(brokers::powershell::WindowsTerminalParameters {
                 command: None,
-                directory: working_directory.as_deref(),
+                directory: &working_directory,
                 no_exit: true,
             })?;
 

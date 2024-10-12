@@ -3,7 +3,7 @@ use ratatui::widgets::ListItem;
 
 pub struct Presenter {
     pub id: String,
-    pub location: Option<String>,
+    pub location: String,
     pub name: String,
 }
 
@@ -20,7 +20,7 @@ impl From<Presenter> for Dto {
         Dto {
             id,
             last_access_time: None,
-            location,
+            location: Some(location),
             name,
         }
     }
@@ -35,6 +35,10 @@ impl From<Dto> for Presenter {
             name,
         } = value;
 
-        Presenter { id, location, name }
+        Presenter {
+            id,
+            location: location.unwrap_or_default(),
+            name,
+        }
     }
 }

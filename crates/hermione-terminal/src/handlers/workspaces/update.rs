@@ -14,7 +14,7 @@ impl<'a> Handler<'a> {
         let mut workspace = self.coordinator.workspaces().get(&id)?;
 
         workspace.name = name;
-        workspace.location = Some(location);
+        workspace.location = location;
 
         self.coordinator.workspaces().update(workspace)
     }

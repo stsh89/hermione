@@ -1,3 +1,5 @@
+use crate::routes;
+
 pub const PAGE_SIZE: u32 = 100;
 
 pub struct Parameters {
@@ -13,5 +15,11 @@ impl Default for Parameters {
             page_number: 0,
             page_size: PAGE_SIZE,
         }
+    }
+}
+
+impl From<Parameters> for routes::Route {
+    fn from(value: Parameters) -> Self {
+        Self::Workspaces(routes::workspaces::Route::List(value))
     }
 }

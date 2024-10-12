@@ -20,13 +20,14 @@ impl<'a> Handler<'a> {
             .workspaces()
             .commands()
             .get(&workspace_id, &command_id)?;
+
         let workspace = self.coordinator.workspaces().get(&workspace_id)?;
 
         self.powershell
             .start_windows_terminal(brokers::powershell::WindowsTerminalParameters {
-                directory: workspace.location.as_deref(),
+                directory: workspace.location.as_str(),
                 no_exit: powershell_no_exit,
-                command: Some(&command.program),
+                command: Some(command.program.as_str()),
             })?;
 
         self.coordinator

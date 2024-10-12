@@ -3,10 +3,14 @@ use anyhow::anyhow;
 use hermione_powershell::Client;
 use std::sync::{RwLock, RwLockWriteGuard};
 
-pub use hermione_powershell::WindowsTerminalParameters;
-
 pub struct Broker {
     client: RwLock<Client>,
+}
+
+pub struct WindowsTerminalParameters<'a> {
+    pub directory: &'a str,
+    pub command: Option<&'a str>,
+    pub no_exit: bool,
 }
 
 impl Broker {
@@ -27,8 +31,20 @@ impl Broker {
     }
 
     pub fn start_windows_terminal(&self, parameters: WindowsTerminalParameters) -> Result<()> {
+        let WindowsTerminalParameters {
+            directory,
+            command,
+            no_exit,
+        } = parameters;
+
+        let directory = directory.is_empty().then_some(directory);
+
         self.client()?
-            .start_windows_terminal(parameters)
+            .start_windows_terminal(hermione_powershell::WindowsTerminalParameters {
+                directory,
+                command,
+                no_exit,
+            })
             .map_err(|err| anyhow!(err))
     }
 }

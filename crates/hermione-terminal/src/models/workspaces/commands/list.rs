@@ -3,10 +3,10 @@ use crate::{
     layouts::{self, Breadcrumbs},
     parameters, presenters,
     routes::{self, Route},
-    tui, widgets, Message, Result,
+    tui::{self, Input},
+    widgets, Message, Result,
 };
 use ratatui::{
-    layout::Position,
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
@@ -15,7 +15,7 @@ pub struct Model {
     workspace: presenters::workspace::Presenter,
     commands: Vec<presenters::command::Presenter>,
     redirect: Option<Route>,
-    search: widgets::input::State,
+    search: Input,
     commands_state: widgets::list::State,
     is_running: bool,
     powershell_settings: PowershellSettings,
@@ -124,12 +124,9 @@ impl tui::Model for Model {
         let [main_area, status_bar_area] = layouts::full_width::Layout::new().areas(frame.area());
         let [search_area, list_area] = layouts::search_list::Layout::new().areas(main_area);
 
-        let input = widgets::input::Widget { title: "Search" };
-        frame.render_stateful_widget(input, search_area, &mut self.search);
-        frame.set_cursor_position(Position::new(
-            search_area.x + self.search.character_index() as u16 + 1,
-            search_area.y + 1,
-        ));
+        let block = Block::default().borders(Borders::ALL).title("Search");
+        let paragraph = Paragraph::new(self.search.value()).block(block);
+        self.search.render(frame, search_area, paragraph);
 
         let block = Block::default().borders(Borders::all());
         let list = widgets::list::Widget::new(&self.commands).block(block);
@@ -270,10 +267,7 @@ impl Model {
             commands,
             workspace,
             redirect: None,
-            search: widgets::input::State::new(widgets::input::StateParameters {
-                value: search_query,
-                is_active: true,
-            }),
+            search: Input::new(search_query),
             commands_state,
             powershell_settings: PowershellSettings { no_exit: true },
             active_popup: None,

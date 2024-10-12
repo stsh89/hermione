@@ -1,3 +1,3 @@
 pub struct Parameters {
-    pub working_directory: Option<String>,
+    pub working_directory: String,
 }
