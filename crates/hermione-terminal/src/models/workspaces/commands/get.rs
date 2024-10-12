@@ -2,8 +2,9 @@ use crate::{
     breadcrumbs::Breadcrumbs,
     components, layouts, parameters, presenters,
     routes::{self, Route},
-    tui, Message, Result,
+    Message, Result,
 };
+use hermione_tui::EventHandler;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
@@ -22,12 +23,12 @@ pub struct ModelParameters {
     pub workspace: presenters::workspace::Presenter,
 }
 
-impl tui::Model for Model {
+impl hermione_tui::Model for Model {
     type Message = Message;
     type Route = Route;
 
     fn handle_event(&self) -> Result<Option<Self::Message>> {
-        tui::EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
+        EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
     }
 
     fn redirect(&mut self) -> Option<Route> {

@@ -1,6 +1,5 @@
 mod input;
 
-use crate::Result;
 use ratatui::{
     backend::CrosstermBackend,
     crossterm::{
@@ -16,6 +15,8 @@ use std::{
 };
 
 pub use input::Input;
+
+type Result<T> = anyhow::Result<T>;
 
 pub trait Model {
     type Route;
@@ -101,8 +102,6 @@ pub fn restore_terminal() -> Result<()> {
 }
 
 pub fn run(router: impl Router) -> Result<()> {
-    tracing::info!("App started");
-
     let mut terminal = init_terminal()?;
 
     let Some(mut model) = router.handle_initial_route()? else {
@@ -124,8 +123,6 @@ pub fn run(router: impl Router) -> Result<()> {
             }
         }
     }
-
-    tracing::info!("App stopped");
 
     Ok(())
 }

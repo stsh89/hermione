@@ -13,7 +13,6 @@ mod parameters;
 mod presenters;
 mod router;
 mod routes;
-mod tui;
 mod widgets;
 
 use coordinator::Coordinator;
@@ -23,21 +22,21 @@ use routes::Route;
 pub use message::Message;
 
 type Error = anyhow::Error;
-type Model = dyn tui::Model<Route = Route, Message = Message>;
+type Model = dyn hermione_tui::Model<Route = Route, Message = Message>;
 type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
     let app_path = hermione_terminal_directory::path()?;
 
-    tui::install_panic_hook();
+    hermione_tui::install_panic_hook();
     logs::init(&app_path)?;
 
-    tui::run(Router {
+    hermione_tui::run(Router {
         coordinator: Coordinator::new(&app_path)?,
         powershell: brokers::powershell::Broker::new()?,
     })?;
 
-    tui::restore_terminal()?;
+    hermione_tui::restore_terminal()?;
 
     Ok(())
 }

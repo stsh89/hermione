@@ -974,6 +974,7 @@ dependencies = [
  "hermione-coordinator",
  "hermione-powershell",
  "hermione-terminal-directory",
+ "hermione-tui",
  "ratatui",
  "serde",
  "serde_json",
@@ -987,6 +988,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "dirs",
+]
+
+[[package]]
+name = "hermione-tui"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ratatui",
 ]
 
 [[package]]

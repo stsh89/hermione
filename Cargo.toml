@@ -7,8 +7,9 @@ members = [
     "crates/hermione-notion-sync",
     "crates/hermione-notion",
     "crates/hermione-powershell",
-    "crates/hermione-terminal",
     "crates/hermione-terminal-directory",
+    "crates/hermione-terminal",
+    "crates/hermione-tui",
 ]
 
 [workspace.dependencies]
@@ -35,3 +36,4 @@ hermione-notion-serde = { path = "crates/hermione-notion-serde" }
 hermione-notion-sync = { path = "crates/hermione-notion-sync" }
 hermione-powershell = { path = "crates/hermione-powershell" }
 hermione-terminal-directory = { path = "crates/hermione-terminal-directory" }
+hermione-tui = { path = "crates/hermione-tui" }

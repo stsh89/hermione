@@ -3,9 +3,9 @@ use crate::{
     components, layouts, parameters,
     presenters::workspace::Presenter,
     routes::{self, Route},
-    tui::{self, Input},
     widgets, Message, Result,
 };
+use hermione_tui::{EventHandler, Input};
 use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -58,12 +58,12 @@ impl ActivePopup {
     }
 }
 
-impl tui::Model for Model {
+impl hermione_tui::Model for Model {
     type Message = Message;
     type Route = Route;
 
     fn handle_event(&self) -> Result<Option<Self::Message>> {
-        tui::EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
+        EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
     }
 
     fn is_running(&self) -> bool {

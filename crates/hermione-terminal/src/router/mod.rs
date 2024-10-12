@@ -6,7 +6,7 @@ use crate::{
     coordinator::workspaces::ListParameters,
     parameters::{self, workspaces::list::PAGE_SIZE},
     routes::{self, Route},
-    tui, Coordinator, Message, Model, Result,
+    Coordinator, Message, Model, Result,
 };
 
 pub struct Router {
@@ -14,7 +14,7 @@ pub struct Router {
     pub powershell: brokers::powershell::Broker,
 }
 
-impl tui::Router for Router {
+impl hermione_tui::Router for Router {
     type Route = Route;
     type Message = Message;
 
