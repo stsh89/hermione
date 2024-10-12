@@ -37,7 +37,11 @@ impl Broker {
             no_exit,
         } = parameters;
 
-        let directory = directory.is_empty().then_some(directory);
+        let directory = if directory.is_empty() {
+            None
+        } else {
+            Some(directory)
+        };
 
         self.client()?
             .start_windows_terminal(hermione_powershell::WindowsTerminalParameters {
