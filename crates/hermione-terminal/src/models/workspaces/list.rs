@@ -1,7 +1,6 @@
 use crate::{
-    components,
-    layouts::{self, Breadcrumbs},
-    parameters,
+    breadcrumbs::Breadcrumbs,
+    components, layouts, parameters,
     presenters::workspace::Presenter,
     routes::{self, Route},
     tui::{self, Input},

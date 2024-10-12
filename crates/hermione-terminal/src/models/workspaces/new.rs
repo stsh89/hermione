@@ -1,7 +1,5 @@
 use crate::{
-    forms,
-    layouts::{self, Breadcrumbs},
-    parameters, presenters, routes, tui, Message, Result,
+    breadcrumbs::Breadcrumbs, forms, layouts, parameters, presenters, routes, tui, Message, Result,
 };
 use ratatui::{widgets::Paragraph, Frame};
 
