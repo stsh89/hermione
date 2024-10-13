@@ -24,7 +24,7 @@ impl app::Model for Model {
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::Back => self.back(),
+            Message::Cancel => self.back(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),

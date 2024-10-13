@@ -3,7 +3,7 @@ use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub enum Message {
     Action,
-    Back,
+    Cancel,
     DeleteAllChars,
     DeleteChar,
     EnterChar(char),
@@ -24,7 +24,7 @@ impl TryFrom<KeyEvent> for Message {
             KeyCode::Tab => Self::ToggleFocus,
             KeyCode::Up => Self::SelectPrevious,
             KeyCode::Down => Self::SelectNext,
-            KeyCode::Esc => Self::Back,
+            KeyCode::Esc => Self::Cancel,
             KeyCode::Enter => match key_event.modifiers {
                 KeyModifiers::CONTROL => Self::Action,
                 _ => Self::Submit,

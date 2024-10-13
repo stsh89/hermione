@@ -106,7 +106,7 @@ impl app::Model for Model {
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
             Message::ActivateCommandPalette => self.activate_command_palette()?,
-            Message::Back => self.back(),
+            Message::Cancel => self.cancel(),
             Message::Action => self.execute_command(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
@@ -156,11 +156,11 @@ impl Model {
         Ok(())
     }
 
-    fn back(&mut self) {
+    fn cancel(&mut self) {
         if self.active_popup.is_some() {
             self.active_popup = None;
         } else {
-            self.active_popup = Some(ActivePopup::exit_confirmation());
+            self.redirect = Some(parameters::workspaces::list::Parameters::default().into())
         }
     }
 

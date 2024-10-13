@@ -37,7 +37,7 @@ impl app::Model for Model {
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::Back => self.back(),
+            Message::Cancel => self.back(),
             Message::ActivateCommandPalette => self.activate_command_palette()?,
             Message::Submit => self.submit(),
             Message::SelectNext => self.select_next(),

@@ -83,7 +83,7 @@ impl app::Model for Model {
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
-            Message::Back => self.back(),
+            Message::Cancel => self.back(),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::SelectNext => self.select_next(),
