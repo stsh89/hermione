@@ -1,6 +1,7 @@
 mod breadcrumbs;
 mod brokers;
 mod colors;
+mod command_palette;
 mod components;
 mod coordinator;
 mod forms;

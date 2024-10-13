@@ -1,6 +1,7 @@
 use crate::{
     breadcrumbs::Breadcrumbs,
-    components, layouts, parameters, presenters,
+    command_palette::{self, CommandPalette, NewCommandPaletteParameters},
+    layouts, parameters, presenters,
     routes::{self, Route},
     Message, Result,
 };
@@ -15,7 +16,7 @@ pub struct Model {
     workspace: presenters::workspace::Presenter,
     command: presenters::command::Presenter,
     redirect: Option<Route>,
-    command_palette: Option<components::command_palette::Component>,
+    command_palette: Option<CommandPalette>,
 }
 
 pub struct ModelParameters {
@@ -81,13 +82,11 @@ impl app::Model for Model {
 
 impl Model {
     fn activate_command_palette(&mut self) -> Result<()> {
-        use components::command_palette::Action;
+        use command_palette::Action;
 
-        self.command_palette = Some(components::command_palette::Component::new(
-            components::command_palette::ComponentParameters {
-                actions: vec![Action::DeleteCommand, Action::EditCommand],
-            },
-        )?);
+        self.command_palette = Some(CommandPalette::new(NewCommandPaletteParameters {
+            actions: vec![Action::DeleteCommand, Action::EditCommand],
+        })?);
 
         Ok(())
     }
@@ -147,7 +146,7 @@ impl Model {
             return;
         };
 
-        use components::command_palette::Action;
+        use command_palette::Action;
         match action {
             Action::DeleteCommand => {
                 self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(

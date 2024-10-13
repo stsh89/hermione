@@ -1,5 +1,6 @@
 use crate::{
     breadcrumbs::Breadcrumbs,
+    command_palette::{self, CommandPalette, NewCommandPaletteParameters},
     components, layouts, parameters,
     presenters::workspace::Presenter,
     routes::{self, Route},
@@ -33,7 +34,7 @@ pub struct ModelParameters {
 }
 
 enum ActivePopup {
-    CommandPalette(components::command_palette::Component),
+    CommandPalette(CommandPalette),
     ExitConfirmation(components::confirmation::Component),
 }
 
@@ -49,13 +50,11 @@ impl ActivePopup {
     }
 
     fn command_palette() -> Result<Self> {
-        use components::command_palette::Action;
+        use command_palette::Action;
 
-        let command_palette = components::command_palette::Component::new(
-            components::command_palette::ComponentParameters {
-                actions: vec![Action::NewWorkspace],
-            },
-        )?;
+        let command_palette = CommandPalette::new(NewCommandPaletteParameters {
+            actions: vec![Action::NewWorkspace],
+        })?;
 
         Ok(Self::CommandPalette(command_palette))
     }
@@ -186,7 +185,7 @@ impl Model {
                         return;
                     };
 
-                    use components::command_palette::Action;
+                    use command_palette::Action;
 
                     if let Action::NewWorkspace = action {
                         self.redirect = Some(Route::Workspaces(routes::workspaces::Route::New))

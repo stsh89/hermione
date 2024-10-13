@@ -5,14 +5,14 @@ use ratatui::{
     Frame,
 };
 
-pub struct Component {
+pub struct CommandPalette {
     actions_state: widgets::list::State,
     actions: Vec<Action>,
     scroll_state: widgets::scroll::State,
     scroll: usize,
 }
 
-pub struct ComponentParameters {
+pub struct NewCommandPaletteParameters {
     pub actions: Vec<Action>,
 }
 
@@ -31,15 +31,15 @@ pub enum Action {
     UnsetPowerShellNoExit,
 }
 
-impl Component {
+impl CommandPalette {
     pub fn action(&self) -> Option<&Action> {
         self.actions_state
             .selected()
             .and_then(|index| self.actions.get(index))
     }
 
-    pub fn new(parameters: ComponentParameters) -> Result<Self> {
-        let ComponentParameters { actions } = parameters;
+    pub fn new(parameters: NewCommandPaletteParameters) -> Result<Self> {
+        let NewCommandPaletteParameters { actions } = parameters;
 
         if actions.is_empty() {
             return Err(anyhow::anyhow!(
