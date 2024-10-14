@@ -57,18 +57,17 @@ impl app::Model for Model {
 
 impl Model {
     fn back(&mut self) {
-        use parameters::workspaces::commands::list;
+        use parameters::workspaces::list;
 
         let presenters::workspace::Presenter {
-            id,
-            name: _,
+            id: _,
+            name: search_query,
             location: _,
         } = self.form.workspace();
 
         self.redirect = Some(
             list::Parameters {
-                workspace_id: id,
-                search_query: "".into(),
+                search_query,
                 page_number: 0,
                 page_size: list::PAGE_SIZE,
             }

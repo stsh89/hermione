@@ -1,10 +1,7 @@
 mod commands;
 
 use crate::{
-    handlers::{self, workspaces::*},
-    parameters,
-    routes::workspaces::Route,
-    Coordinator, Model, Result,
+    handlers::workspaces::*, parameters, routes::workspaces::Route, Coordinator, Model, Result,
 };
 
 pub struct Router<'a> {
@@ -57,10 +54,9 @@ impl<'a> Router<'a> {
 
                 let workspace = handler.handle(parameters)?;
 
-                let model = handlers::workspaces::commands::list::Handler { coordinator }.handle(
-                    parameters::workspaces::commands::list::Parameters {
-                        workspace_id: workspace.id,
-                        search_query: String::new(),
+                let model = list::Handler { coordinator }.handle(
+                    parameters::workspaces::list::Parameters {
+                        search_query: workspace.name,
                         page_number: 0,
                         page_size: parameters::workspaces::commands::list::PAGE_SIZE,
                     },

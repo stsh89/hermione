@@ -102,9 +102,7 @@ impl InputContract for CommandInput {
     }
 
     fn value(&self) -> Option<&str> {
-        let Some(index) = self.index else {
-            return None;
-        };
+        let index = self.index?;
 
         found_commands(&self.search_query, &self.commands)
             .get(index)

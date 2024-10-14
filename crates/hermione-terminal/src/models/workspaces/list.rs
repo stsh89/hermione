@@ -204,19 +204,17 @@ impl Model {
             return;
         };
 
-        if index == self.workspaces.len() - 1 {
-            if self.workspaces.len() == self.page_size as usize {
-                self.set_redirect(
-                    parameters::workspaces::list::Parameters {
-                        search_query: self.search_query.clone(),
-                        page_number: self.page_number + 1,
-                        page_size: self.page_size,
-                    }
-                    .into(),
-                );
+        if index == self.workspaces.len() - 1 && self.workspaces.len() == self.page_size as usize {
+            self.set_redirect(
+                parameters::workspaces::list::Parameters {
+                    search_query: self.search_query.clone(),
+                    page_number: self.page_number + 1,
+                    page_size: self.page_size,
+                }
+                .into(),
+            );
 
-                return;
-            }
+            return;
         }
 
         self.workspaces_state.select_next();
