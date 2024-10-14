@@ -1,7 +1,7 @@
 use crate::{
-    coordinator::Coordinator,
-    models::workspaces::commands::get::{Model, ModelParameters},
-    parameters::workspaces::commands::update::Parameters,
+    coordinator::{self, Coordinator},
+    models::workspaces::commands::list::{Model, ModelParameters},
+    parameters::{self, workspaces::commands::update::Parameters},
     presenters::command::Presenter,
     Result,
 };
@@ -28,8 +28,22 @@ impl<'a> Handler<'a> {
 
         let command = self.coordinator.workspaces().commands().update(command)?;
         let workspace = self.coordinator.workspaces().get(&command.workspace_id)?;
+        let commands = self.coordinator.workspaces().commands().list(
+            coordinator::workspaces::commands::ListParameters {
+                page_number: 0,
+                page_size: parameters::workspaces::commands::list::PAGE_SIZE,
+                program_contains: &command.program,
+                workspace_id: &workspace.id,
+            },
+        )?;
 
-        let model = Model::new(ModelParameters { command, workspace })?;
+        let model = Model::new(ModelParameters {
+            commands,
+            workspace,
+            search_query: command.program,
+            page_number: 0,
+            page_size: parameters::workspaces::commands::list::PAGE_SIZE,
+        })?;
 
         Ok(model)
     }

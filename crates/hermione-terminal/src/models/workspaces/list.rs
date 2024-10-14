@@ -58,7 +58,7 @@ impl app::Model for Model {
             Message::SelectPrevious => self.select_previous(),
             Message::Submit => self.submit()?,
             Message::ToggleFocus => self.toggle_focus(),
-            Message::Action | Message::ActivateCommandPalette => {}
+            Message::Action => {}
         }
 
         Ok(None)
@@ -296,6 +296,7 @@ impl Model {
             .and_then(|i| self.workspaces.get(i))
     }
 }
+
 enum Action {
     DeleteWorkspace,
     EditWorkspace,

@@ -52,13 +52,6 @@ impl<'a> Router<'a> {
 
                 Ok(Some(Box::new(model)))
             }
-            Route::Get(parameters) => {
-                let handler = get::Handler { coordinator };
-
-                let model = handler.handle(parameters)?;
-
-                Ok(Some(Box::new(model)))
-            }
             Route::List(parameters) => {
                 let handler = list::Handler { coordinator };
 

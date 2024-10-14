@@ -36,10 +36,7 @@ impl app::Model for Model {
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::Submit => self.submit(),
-            Message::Action
-            | Message::SelectNext
-            | Message::SelectPrevious
-            | Message::ActivateCommandPalette => {}
+            Message::Action | Message::SelectNext | Message::SelectPrevious => {}
         }
 
         Ok(None)

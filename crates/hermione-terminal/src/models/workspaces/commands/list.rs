@@ -1,14 +1,11 @@
 use crate::{
     breadcrumbs::Breadcrumbs,
-    command_palette::{self, CommandPalette, NewCommandPaletteParameters},
     layouts, parameters, presenters,
     routes::{self, Route},
-    widgets, Message, Result,
+    smart_input::{NewSmartInputParameters, SmartInput, Value},
+    widgets, Error, Message, Result,
 };
-use hermione_tui::{
-    app::{self, EventHandler},
-    input::Input,
-};
+use hermione_tui::app::{self, EventHandler};
 use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -18,12 +15,13 @@ pub struct Model {
     workspace: presenters::workspace::Presenter,
     commands: Vec<presenters::command::Presenter>,
     redirect: Option<Route>,
-    search: Input,
     commands_state: widgets::list::State,
     powershell_settings: PowershellSettings,
-    command_palette: Option<CommandPalette>,
     page_number: u32,
     page_size: u32,
+    smart_input: SmartInput,
+    search_query: String,
+    is_running: bool,
 }
 
 pub struct ModelParameters {
@@ -58,7 +56,7 @@ impl app::Model for Model {
     }
 
     fn is_running(&self) -> bool {
-        true
+        self.is_running
     }
 
     fn redirect(&mut self) -> Option<Route> {
@@ -67,7 +65,6 @@ impl app::Model for Model {
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::ActivateCommandPalette => self.activate_command_palette()?,
             Message::Cancel => self.cancel(),
             Message::Action => self.execute_command(),
             Message::DeleteAllChars => self.delete_all_chars(),
@@ -77,8 +74,8 @@ impl app::Model for Model {
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::SelectNext => self.select_next(),
             Message::SelectPrevious => self.select_previous(),
-            Message::Submit => self.submit(),
-            Message::ToggleFocus => {}
+            Message::Submit => self.submit()?,
+            Message::ToggleFocus => self.toggle_focus(),
         }
 
         Ok(None)
@@ -86,58 +83,26 @@ impl app::Model for Model {
 
     fn view(&mut self, frame: &mut Frame) {
         let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
-        let [search_area, list_area] = layouts::search_list::Layout::new().areas(main_area);
+        let [list_area, input_area] = layouts::search_list::Layout::new().areas(main_area);
 
         let block = Block::default().borders(Borders::all());
         let list = widgets::list::Widget::new(&self.commands).block(block);
 
         frame.render_stateful_widget(list, list_area, &mut self.commands_state);
+        self.smart_input.render(frame, input_area);
 
         let paragraph = Paragraph::new(self.breadcrumbs());
         frame.render_widget(paragraph, status_bar_area);
-
-        let block = Block::default().borders(Borders::ALL).title("Search");
-        let paragraph = Paragraph::new(self.search.value()).block(block);
-
-        let Some(command_palette) = &mut self.command_palette else {
-            self.search.render(frame, search_area, paragraph);
-
-            return;
-        };
-
-        frame.render_widget(paragraph, search_area);
-        command_palette.render(frame, frame.area())
     }
 }
 
 impl Model {
-    fn activate_command_palette(&mut self) -> Result<()> {
-        use command_palette::Action;
-
-        let command_palette = CommandPalette::new(NewCommandPaletteParameters {
-            actions: vec![
-                Action::CopyToClipboard,
-                Action::DeleteWorkspace,
-                Action::EditWorkspace,
-                Action::ListWorkspaces,
-                Action::NewCommand,
-                Action::SetPowershellNoExit,
-                Action::StartWindowsTerminal,
-                Action::UnsetPowerShellNoExit,
-            ],
-        })?;
-
-        self.command_palette = Some(command_palette);
-
-        Ok(())
+    fn toggle_focus(&mut self) {
+        self.smart_input.toggle_input();
     }
 
     fn cancel(&mut self) {
-        if self.command_palette.is_some() {
-            self.command_palette = None;
-        } else {
-            self.redirect = Some(parameters::workspaces::list::Parameters::default().into())
-        }
+        self.smart_input.reset();
     }
 
     fn breadcrumbs(&self) -> Breadcrumbs {
@@ -174,7 +139,11 @@ impl Model {
         self.commands_state.select_first();
     }
 
-    fn selected_command(&self) -> Option<&presenters::command::Presenter> {
+    fn exit(&mut self) {
+        self.is_running = false;
+    }
+
+    fn command(&self) -> Option<&presenters::command::Presenter> {
         self.commands_state
             .selected()
             .and_then(|index| self.commands.get(index))
@@ -183,12 +152,12 @@ impl Model {
     fn copy_to_clipboard_parameters(
         &self,
     ) -> Option<parameters::powershell::copy_to_clipboard::Parameters> {
-        self.selected_command().map(|command| {
-            parameters::powershell::copy_to_clipboard::Parameters {
+        self.command().map(
+            |command| parameters::powershell::copy_to_clipboard::Parameters {
                 workspace_id: self.workspace.id.clone(),
                 command_id: command.id.clone(),
-            }
-        })
+            },
+        )
     }
 
     fn start_windows_terminal_parameters(
@@ -211,14 +180,18 @@ impl Model {
                 self.start_windows_terminal_parameters(),
             ),
         ));
+
+        self.smart_input.reset();
     }
 
     fn powershell_set_no_exit(&mut self) {
         self.powershell_settings.set_no_exit();
+        self.smart_input.reset();
     }
 
     fn powershell_unset_no_exit(&mut self) {
         self.powershell_settings.unset_no_exit();
+        self.smart_input.reset();
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
@@ -236,229 +209,279 @@ impl Model {
             commands_state.select_first();
         }
 
-        let model = Self {
-            command_palette: None,
+        let mut model = Self {
             commands_state,
             commands,
             page_number,
             page_size,
             powershell_settings: PowershellSettings { no_exit: true },
             redirect: None,
-            search: Input::new(search_query),
+            smart_input: smart_input(),
             workspace,
+            search_query,
+            is_running: true,
         };
+
+        if !model.search_query.is_empty() {
+            for c in model.search_query.chars() {
+                model.smart_input.enter_char(c);
+            }
+        }
 
         Ok(model)
     }
 
     fn select_next(&mut self) {
-        if let Some(command_palette) = self.command_palette.as_mut() {
-            command_palette.select_next();
-        } else {
-            let Some(index) = self.commands_state.selected() else {
-                return;
-            };
+        let Some(index) = self.commands_state.selected() else {
+            return;
+        };
 
-            if index == self.commands.len() - 1 {
-                if self.commands.len() < self.page_size as usize {
-                    return;
-                }
-
-                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
-                    routes::workspaces::commands::Route::List(
-                        parameters::workspaces::commands::list::Parameters {
-                            search_query: self.search_query(),
-                            workspace_id: self.workspace.id.clone(),
-                            page_number: self.page_number + 1,
-                            page_size: self.page_size,
-                        },
-                    ),
-                )));
-
+        if index == self.commands.len() - 1 {
+            if self.commands.len() < self.page_size as usize {
                 return;
             }
 
-            self.commands_state.select_next();
+            self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+                routes::workspaces::commands::Route::List(
+                    parameters::workspaces::commands::list::Parameters {
+                        search_query: self.search_query.clone(),
+                        workspace_id: self.workspace.id.clone(),
+                        page_number: self.page_number + 1,
+                        page_size: self.page_size,
+                    },
+                ),
+            )));
+
+            return;
         }
+
+        self.commands_state.select_next();
     }
 
     fn select_previous(&mut self) {
-        if let Some(command_palette) = self.command_palette.as_mut() {
-            command_palette.select_previous();
-        } else {
-            let Some(index) = self.commands_state.selected() else {
-                if self.page_number != 0 {
-                    self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
-                        routes::workspaces::commands::Route::List(
-                            parameters::workspaces::commands::list::Parameters {
-                                search_query: self.search_query(),
-                                workspace_id: self.workspace.id.clone(),
-                                page_number: self.page_number - 1,
-                                page_size: self.page_size,
-                            },
-                        ),
-                    )));
-                }
-
-                return;
-            };
-
-            if index == 0 {
-                if self.page_number == 0 {
-                    return;
-                }
-
+        let Some(index) = self.commands_state.selected() else {
+            if self.page_number != 0 {
                 self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
                     routes::workspaces::commands::Route::List(
                         parameters::workspaces::commands::list::Parameters {
-                            search_query: self.search_query(),
+                            search_query: self.search_query.clone(),
                             workspace_id: self.workspace.id.clone(),
                             page_number: self.page_number - 1,
                             page_size: self.page_size,
                         },
                     ),
                 )));
-
-                return;
             }
 
-            self.commands_state.select_previous();
-        }
-    }
-
-    fn submit(&mut self) {
-        if let Some(command_palette) = &mut self.command_palette {
-            let Some(action) = command_palette.action() else {
-                return;
-            };
-
-            use command_palette::Action;
-
-            match action {
-                Action::CopyToClipboard => self.copy_to_clipboard(),
-                Action::DeleteWorkspace => {
-                    self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Delete(
-                        parameters::workspaces::delete::Parameters {
-                            id: self.workspace.id.clone(),
-                        },
-                    )))
-                }
-                Action::NewCommand => {
-                    self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
-                        routes::workspaces::commands::Route::New(
-                            parameters::workspaces::commands::new::Parameters {
-                                workspace_id: self.workspace.id.clone(),
-                            },
-                        ),
-                    )))
-                }
-                Action::ListWorkspaces => {
-                    self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
-                        Default::default(),
-                    )));
-                }
-                Action::EditWorkspace => {
-                    self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Edit(
-                        parameters::workspaces::edit::Parameters {
-                            id: self.workspace.id.clone(),
-                        },
-                    )))
-                }
-                Action::SetPowershellNoExit => self.powershell_set_no_exit(),
-                Action::UnsetPowerShellNoExit => self.powershell_unset_no_exit(),
-                Action::StartWindowsTerminal => self.start_windows_terminal(),
-                Action::DeleteCommand | Action::EditCommand | Action::NewWorkspace => {}
-            }
-
-            self.command_palette = None;
-
-            return;
-        }
-
-        let Some(command) = self.command() else {
             return;
         };
 
-        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
-            routes::workspaces::commands::Route::Get(
-                parameters::workspaces::commands::get::Parameters {
-                    workspace_id: self.workspace.id.clone(),
-                    command_id: command.id.clone(),
-                },
-            ),
-        )));
+        if index == 0 {
+            if self.page_number == 0 {
+                return;
+            }
+
+            self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
+                routes::workspaces::commands::Route::List(
+                    parameters::workspaces::commands::list::Parameters {
+                        search_query: self.search_query.clone(),
+                        workspace_id: self.workspace.id.clone(),
+                        page_number: self.page_number - 1,
+                        page_size: self.page_size,
+                    },
+                ),
+            )));
+
+            return;
+        }
+
+        self.commands_state.select_previous();
     }
 
-    fn command(&self) -> Option<&presenters::command::Presenter> {
-        self.commands_state
-            .selected()
-            .and_then(|i| self.commands.get(i))
+    fn set_redirect(&mut self, route: Route) {
+        self.redirect = Some(route);
+    }
+
+    fn new_command_parameters(&self) -> parameters::workspaces::commands::new::Parameters {
+        parameters::workspaces::commands::new::Parameters {
+            workspace_id: self.workspace.id.clone(),
+        }
+    }
+
+    fn submit(&mut self) -> Result<()> {
+        let Some(Value::Command(command)) = self.smart_input.value() else {
+            return Ok(());
+        };
+
+        let action = Action::try_from(command)?;
+
+        match action {
+            Action::DeleteCommand => {
+                if let Some(command) = self.command() {
+                    self.set_redirect(
+                        parameters::workspaces::commands::delete::Parameters {
+                            workspace_id: self.workspace.id.clone(),
+                            command_id: command.id.clone(),
+                        }
+                        .into(),
+                    )
+                }
+            }
+            Action::EditCommand => {
+                if let Some(command) = self.command() {
+                    self.set_redirect(
+                        parameters::workspaces::commands::edit::Parameters {
+                            workspace_id: self.workspace.id.clone(),
+                            command_id: command.id.clone(),
+                        }
+                        .into(),
+                    )
+                }
+            }
+            Action::Exit => self.exit(),
+            Action::ListWorkspaces => self.set_redirect(Route::Workspaces(
+                routes::workspaces::Route::List(parameters::workspaces::list::Parameters {
+                    page_number: 0,
+                    page_size: self.page_size,
+                    search_query: "".into(),
+                }),
+            )),
+            Action::NewCommand => {
+                self.set_redirect(self.new_command_parameters().into());
+            }
+            Action::CopyToClipboard => self.copy_to_clipboard(),
+            Action::StartWindowsTerminal => self.start_windows_terminal(),
+            Action::PowerShellSetNoExit => self.powershell_set_no_exit(),
+            Action::PowerShellUnsetNoExit => self.powershell_unset_no_exit(),
+        }
+
+        Ok(())
     }
 
     fn enter_char(&mut self, c: char) {
-        if let Some(command_palette) = &mut self.command_palette {
-            command_palette.enter_char(c);
+        self.smart_input.enter_char(c);
+
+        let Some(Value::Base(search_query)) = self.smart_input.value() else {
             return;
-        }
+        };
 
-        self.search.enter_char(c);
-
-        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
-            routes::workspaces::commands::Route::List(
-                parameters::workspaces::commands::list::Parameters {
-                    search_query: self.search_query(),
-                    workspace_id: self.workspace.id.clone(),
-                    page_number: 0,
-                    page_size: self.page_size,
-                },
-            ),
-        )));
-    }
-
-    fn search_query(&self) -> String {
-        self.search.value().to_string()
+        self.set_redirect(
+            parameters::workspaces::commands::list::Parameters {
+                search_query: search_query.into(),
+                workspace_id: self.workspace.id.clone(),
+                page_number: 0,
+                page_size: self.page_size,
+            }
+            .into(),
+        );
     }
 
     fn delete_char(&mut self) {
-        if let Some(command_palette) = &mut self.command_palette {
-            command_palette.delete_char();
+        self.smart_input.delete_char();
+
+        let Some(Value::Base(search_query)) = self.smart_input.value() else {
             return;
-        }
+        };
 
-        self.search.delete_char();
-
-        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
-            routes::workspaces::commands::Route::List(
-                parameters::workspaces::commands::list::Parameters {
-                    search_query: self.search_query(),
-                    workspace_id: self.workspace.id.clone(),
-                    page_number: 0,
-                    page_size: self.page_size,
-                },
-            ),
-        )));
+        self.set_redirect(
+            parameters::workspaces::commands::list::Parameters {
+                search_query: search_query.into(),
+                workspace_id: self.workspace.id.clone(),
+                page_number: 0,
+                page_size: self.page_size,
+            }
+            .into(),
+        );
     }
 
     fn delete_all_chars(&mut self) {
-        self.search.delete_all_chars();
+        self.smart_input.reset_input();
 
-        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
-            routes::workspaces::commands::Route::List(
-                parameters::workspaces::commands::list::Parameters {
-                    search_query: self.search_query(),
-                    workspace_id: self.workspace.id.clone(),
-                    page_number: 0,
-                    page_size: self.page_size,
-                },
-            ),
-        )));
+        let Some(Value::Base(search_query)) = self.smart_input.value() else {
+            return;
+        };
+
+        self.set_redirect(
+            parameters::workspaces::commands::list::Parameters {
+                search_query: search_query.into(),
+                workspace_id: self.workspace.id.clone(),
+                page_number: 0,
+                page_size: self.page_size,
+            }
+            .into(),
+        );
     }
 
     fn move_cursor_left(&mut self) {
-        self.search.move_cursor_left();
+        self.smart_input.move_cursor_left();
     }
 
     fn move_cursor_right(&mut self) {
-        self.search.move_cursor_right();
+        self.smart_input.move_cursor_right();
     }
+}
+
+enum Action {
+    CopyToClipboard,
+    DeleteCommand,
+    EditCommand,
+    Exit,
+    ListWorkspaces,
+    NewCommand,
+    StartWindowsTerminal,
+    PowerShellSetNoExit,
+    PowerShellUnsetNoExit,
+}
+
+impl From<Action> for String {
+    fn from(action: Action) -> Self {
+        let action = match action {
+            Action::CopyToClipboard => "Copy to clipboard",
+            Action::DeleteCommand => "Delete command",
+            Action::EditCommand => "Edit command",
+            Action::Exit => "Exit",
+            Action::ListWorkspaces => "List workspaces",
+            Action::NewCommand => "New command",
+            Action::StartWindowsTerminal => "Start Windows Terminal",
+            Action::PowerShellSetNoExit => "Set PowerShell -NoExit",
+            Action::PowerShellUnsetNoExit => "Unset PowerShell -NoExit",
+        };
+
+        action.into()
+    }
+}
+
+impl TryFrom<&str> for Action {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Self> {
+        match value {
+            "Copy to clipboard" => Ok(Self::CopyToClipboard),
+            "Delete command" => Ok(Self::DeleteCommand),
+            "Edit command" => Ok(Self::EditCommand),
+            "Exit" => Ok(Self::Exit),
+            "List workspaces" => Ok(Self::ListWorkspaces),
+            "New command" => Ok(Self::NewCommand),
+            "Set PowerShell -NoExit" => Ok(Self::PowerShellSetNoExit),
+            "Start Windows Terminal" => Ok(Self::StartWindowsTerminal),
+            "Unset PowerShell -NoExit" => Ok(Self::PowerShellUnsetNoExit),
+            _ => Err(anyhow::anyhow!("Unknown action: {}", value)),
+        }
+    }
+}
+
+fn smart_input() -> SmartInput {
+    SmartInput::new(NewSmartInputParameters {
+        commands: vec![
+            Action::CopyToClipboard.into(),
+            Action::DeleteCommand.into(),
+            Action::EditCommand.into(),
+            Action::Exit.into(),
+            Action::ListWorkspaces.into(),
+            Action::NewCommand.into(),
+            Action::PowerShellSetNoExit.into(),
+            Action::PowerShellUnsetNoExit.into(),
+            Action::StartWindowsTerminal.into(),
+        ],
+    })
 }

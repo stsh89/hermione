@@ -38,10 +38,7 @@ impl app::Model for Model {
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::Submit => self.submit(),
-            Message::Action
-            | Message::SelectNext
-            | Message::SelectPrevious
-            | Message::ActivateCommandPalette => {}
+            Message::Action | Message::SelectNext | Message::SelectPrevious => {}
         }
 
         Ok(None)
@@ -62,9 +59,11 @@ impl Model {
         let command = self.form.command();
 
         self.redirect = Some(
-            parameters::workspaces::commands::get::Parameters {
+            parameters::workspaces::commands::list::Parameters {
                 workspace_id: command.workspace_id,
-                command_id: command.id,
+                search_query: command.name,
+                page_number: 0,
+                page_size: parameters::workspaces::commands::list::PAGE_SIZE,
             }
             .into(),
         );
