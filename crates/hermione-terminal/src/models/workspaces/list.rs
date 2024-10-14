@@ -85,7 +85,11 @@ impl Model {
     }
 
     fn cancel(&mut self) {
-        self.smart_input.reset();
+        self.smart_input.reset_input();
+
+        if !self.search_query.is_empty() {
+            self.set_redirect(parameters::workspaces::list::Parameters::default().into());
+        }
     }
 
     fn breadcrumbs(&self) -> Breadcrumbs {
@@ -151,6 +155,8 @@ impl Model {
 
     fn submit(&mut self) -> Result<()> {
         let Some(Value::Command(command)) = self.smart_input.value() else {
+            self.smart_input.reset_input();
+
             return Ok(());
         };
 

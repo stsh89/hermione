@@ -102,7 +102,19 @@ impl Model {
     }
 
     fn cancel(&mut self) {
-        self.smart_input.reset();
+        self.smart_input.reset_input();
+
+        if !self.search_query.is_empty() {
+            self.set_redirect(
+                parameters::workspaces::commands::list::Parameters {
+                    workspace_id: self.workspace.id.clone(),
+                    search_query: "".into(),
+                    page_number: 0,
+                    page_size: self.page_size,
+                }
+                .into(),
+            );
+        }
     }
 
     fn breadcrumbs(&self) -> Breadcrumbs {
@@ -172,6 +184,8 @@ impl Model {
         self.redirect = self.copy_to_clipboard_parameters().map(|parameters| {
             Route::Powershell(routes::powershell::Route::CopyToClipboard(parameters))
         });
+
+        self.smart_input.reset_input();
     }
 
     fn start_windows_terminal(&mut self) {
@@ -181,17 +195,17 @@ impl Model {
             ),
         ));
 
-        self.smart_input.reset();
+        self.smart_input.reset_input();
     }
 
     fn powershell_set_no_exit(&mut self) {
         self.powershell_settings.set_no_exit();
-        self.smart_input.reset();
+        self.smart_input.reset_input();
     }
 
     fn powershell_unset_no_exit(&mut self) {
         self.powershell_settings.unset_no_exit();
-        self.smart_input.reset();
+        self.smart_input.reset_input();
     }
 
     pub fn new(parameters: ModelParameters) -> Result<Self> {
@@ -310,6 +324,8 @@ impl Model {
 
     fn submit(&mut self) -> Result<()> {
         let Some(Value::Command(command)) = self.smart_input.value() else {
+            self.smart_input.reset_input();
+
             return Ok(());
         };
 

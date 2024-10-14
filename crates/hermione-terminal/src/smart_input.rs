@@ -46,15 +46,6 @@ pub struct NewSmartInputParameters {
 }
 
 impl SmartInput {
-    pub fn reset(&mut self) {
-        if matches!(self.mode, Mode::Base) {
-            return;
-        }
-
-        self.mode = Mode::Base;
-        self.inner = Box::new(BaseInput::default());
-    }
-
     fn set_command_mode(&mut self) {
         self.mode = Mode::Command;
         self.inner = Box::new(CommandInput::new(NewCommandInputParameters {
@@ -88,7 +79,8 @@ impl SmartInput {
         self.inner.delete_char();
 
         if self.inner.is_empty() && !matches!(self.mode, Mode::Base) {
-            self.reset();
+            self.mode = Mode::Base;
+            self.inner = Box::new(BaseInput::default());
         }
     }
 
