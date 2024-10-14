@@ -8,7 +8,7 @@ impl Layout {
     pub fn new() -> Self {
         let layout = ratatui::layout::Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Max(3), Constraint::Min(1)]);
+            .constraints(vec![Constraint::Min(3), Constraint::Max(3)]);
 
         Self { layout }
     }

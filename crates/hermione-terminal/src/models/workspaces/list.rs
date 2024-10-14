@@ -1,15 +1,12 @@
 use crate::{
     breadcrumbs::Breadcrumbs,
-    command_palette::{self, CommandPalette, NewCommandPaletteParameters},
-    components, layouts, parameters,
+    layouts, parameters,
     presenters::workspace::Presenter,
     routes::{self, Route},
-    widgets, Message, Result,
+    smart_input::{NewSmartInputParameters, SmartInput, Value},
+    widgets, Error, Message, Result,
 };
-use hermione_tui::{
-    app::{self, EventHandler},
-    input::Input,
-};
+use hermione_tui::app::{self, EventHandler};
 use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -18,12 +15,12 @@ use ratatui::{
 pub struct Model {
     is_running: bool,
     redirect: Option<Route>,
-    search: Input,
     workspaces_state: widgets::list::State,
     workspaces: Vec<Presenter>,
-    active_popup: Option<ActivePopup>,
     page_number: u32,
     page_size: u32,
+    smart_input: SmartInput,
+    search_query: String,
 }
 
 pub struct ModelParameters {
@@ -31,33 +28,6 @@ pub struct ModelParameters {
     pub search_query: String,
     pub page_number: u32,
     pub page_size: u32,
-}
-
-enum ActivePopup {
-    CommandPalette(CommandPalette),
-    ExitConfirmation(components::confirmation::Component),
-}
-
-impl ActivePopup {
-    fn exit_confirmation() -> Self {
-        let confirmation = components::confirmation::Component::new(
-            components::confirmation::ComponentParameters {
-                message: "Press \"Enter\" to exit...".into(),
-            },
-        );
-
-        Self::ExitConfirmation(confirmation)
-    }
-
-    fn command_palette() -> Result<Self> {
-        use command_palette::Action;
-
-        let command_palette = CommandPalette::new(NewCommandPaletteParameters {
-            actions: vec![Action::NewWorkspace],
-        })?;
-
-        Ok(Self::CommandPalette(command_palette))
-    }
 }
 
 impl app::Model for Model {
@@ -78,17 +48,17 @@ impl app::Model for Model {
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::ActivateCommandPalette => self.activate_command_palette()?,
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
-            Message::Cancel => self.back(),
+            Message::Cancel => self.cancel(),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::SelectNext => self.select_next(),
             Message::SelectPrevious => self.select_previous(),
-            Message::Submit => self.submit(),
-            Message::Action | Message::ToggleFocus => {}
+            Message::Submit => self.submit()?,
+            Message::ToggleFocus => self.toggle_focus(),
+            Message::Action | Message::ActivateCommandPalette => {}
         }
 
         Ok(None)
@@ -96,55 +66,37 @@ impl app::Model for Model {
 
     fn view(&mut self, frame: &mut Frame) {
         let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
-        let [search_area, list_area] = layouts::search_list::Layout::new().areas(main_area);
-
-        let block = Block::default().borders(Borders::ALL).title("Search");
-        let paragraph = Paragraph::new(self.search.value()).block(block);
-        self.search.render(frame, search_area, paragraph);
+        let [list_area, input_area] = layouts::search_list::Layout::new().areas(main_area);
 
         let block = Block::default().borders(Borders::all());
         let list = widgets::list::Widget::new(&self.workspaces).block(block);
 
         frame.render_stateful_widget(list, list_area, &mut self.workspaces_state);
+        self.smart_input.render(frame, input_area);
 
         let paragraph = Paragraph::new(self.breadcrumbs());
         frame.render_widget(paragraph, status_bar_area);
-
-        let Some(popup) = self.active_popup.as_mut() else {
-            return;
-        };
-
-        match popup {
-            ActivePopup::CommandPalette(popup) => popup.render(frame, frame.area()),
-            ActivePopup::ExitConfirmation(popup) => popup.render(frame, frame.area()),
-        }
     }
 }
 
 impl Model {
-    fn activate_command_palette(&mut self) -> Result<()> {
-        self.active_popup = Some(ActivePopup::command_palette()?);
-
-        Ok(())
+    fn toggle_focus(&mut self) {
+        self.smart_input.toggle_input();
     }
 
-    fn back(&mut self) {
-        if self.active_popup.is_some() {
-            self.active_popup = None;
-        } else {
-            self.active_popup = Some(ActivePopup::exit_confirmation());
-        }
+    fn cancel(&mut self) {
+        self.smart_input.reset();
     }
 
     fn breadcrumbs(&self) -> Breadcrumbs {
-        let breadcrumbs =
-            Breadcrumbs::default().add_segment(format!("List workspaces ({})", self.page_number));
+        let base_segment = format!("List workspaces ({})", self.page_number);
+        let breadcrumbs = Breadcrumbs::default().add_segment(base_segment);
 
-        if let Some(workspace) = self.workspace() {
-            breadcrumbs.add_segment(&workspace.name)
-        } else {
-            breadcrumbs
-        }
+        let Some(workspace) = self.workspace() else {
+            return breadcrumbs;
+        };
+
+        breadcrumbs.add_segment(&workspace.name)
     }
 
     fn exit(&mut self) {
@@ -163,184 +115,181 @@ impl Model {
             workspaces,
             redirect: None,
             workspaces_state: widgets::list::State::default(),
-            search: Input::new(search_query),
             is_running: true,
-            active_popup: None,
             page_number,
             page_size,
+            smart_input: smart_input(),
+            search_query,
         };
 
         if !model.workspaces.is_empty() {
             model.workspaces_state.select_first();
         }
 
+        if !model.search_query.is_empty() {
+            for c in model.search_query.chars() {
+                model.smart_input.enter_char(c);
+            }
+        }
+
         Ok(model)
     }
 
-    fn submit(&mut self) {
-        if let Some(active_popup) = &mut self.active_popup {
-            match active_popup {
-                ActivePopup::CommandPalette(popup) => {
-                    let Some(action) = popup.action() else {
-                        return;
-                    };
+    fn set_redirect(&mut self, route: Route) {
+        self.redirect = Some(route);
+    }
 
-                    use command_palette::Action;
+    fn set_list_workspaces_redirect(&mut self, search_query: String) {
+        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
+            parameters::workspaces::list::Parameters {
+                search_query,
+                page_number: 0,
+                page_size: self.page_size,
+            },
+        )));
+    }
 
-                    if let Action::NewWorkspace = action {
-                        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::New))
-                    }
-                }
-                ActivePopup::ExitConfirmation(_popup) => self.exit(),
-            }
-
-            self.active_popup = None;
-
-            return;
-        }
-
-        let Some(workspace) = self.workspace() else {
-            return;
+    fn submit(&mut self) -> Result<()> {
+        let Some(Value::Command(command)) = self.smart_input.value() else {
+            return Ok(());
         };
 
-        let route = Route::Workspaces(routes::workspaces::Route::Commands(
-            routes::workspaces::commands::Route::List(
-                parameters::workspaces::commands::list::Parameters {
-                    workspace_id: workspace.id.clone(),
-                    search_query: "".into(),
-                    page_number: 0,
-                    page_size: parameters::workspaces::commands::list::PAGE_SIZE,
-                },
-            ),
-        ));
+        let action = Action::try_from(command)?;
 
-        self.redirect = Some(route);
+        match action {
+            Action::DeleteWorkspace => {
+                if let Some(workspace) = self.workspace() {
+                    self.set_redirect(
+                        parameters::workspaces::delete::Parameters {
+                            id: workspace.id.clone(),
+                        }
+                        .into(),
+                    )
+                }
+            }
+            Action::EditWorkspace => {
+                if let Some(workspace) = self.workspace() {
+                    self.set_redirect(
+                        parameters::workspaces::edit::Parameters {
+                            id: workspace.id.clone(),
+                        }
+                        .into(),
+                    );
+                }
+            }
+            Action::Exit => self.exit(),
+            Action::ListCommands => {
+                if let Some(workspace) = self.workspace() {
+                    self.set_redirect(
+                        parameters::workspaces::commands::list::Parameters {
+                            workspace_id: workspace.id.clone(),
+                            search_query: "".into(),
+                            page_number: 0,
+                            page_size: parameters::workspaces::commands::list::PAGE_SIZE,
+                        }
+                        .into(),
+                    );
+                }
+            }
+            Action::NewWorkspace => {
+                self.set_redirect(Route::Workspaces(routes::workspaces::Route::New))
+            }
+        }
+
+        Ok(())
     }
 
     fn select_next(&mut self) {
-        if let Some(popup) = self.active_popup.as_mut() {
-            match popup {
-                ActivePopup::CommandPalette(popup) => popup.select_next(),
-                ActivePopup::ExitConfirmation(_popup) => {}
-            };
-        } else {
-            let Some(index) = self.workspaces_state.selected() else {
-                return;
-            };
+        let Some(index) = self.workspaces_state.selected() else {
+            return;
+        };
 
-            if index == self.workspaces.len() - 1 {
-                if self.workspaces.len() < self.page_size as usize {
-                    return;
-                }
-
-                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
+        if index == self.workspaces.len() - 1 {
+            if self.workspaces.len() == self.page_size as usize {
+                self.set_redirect(
                     parameters::workspaces::list::Parameters {
-                        search_query: self.search_query(),
+                        search_query: self.search_query.clone(),
                         page_number: self.page_number + 1,
                         page_size: self.page_size,
-                    },
-                )));
+                    }
+                    .into(),
+                );
 
                 return;
             }
-
-            self.workspaces_state.select_next();
         }
+
+        self.workspaces_state.select_next();
     }
 
     fn select_previous(&mut self) {
-        if let Some(popup) = self.active_popup.as_mut() {
-            match popup {
-                ActivePopup::CommandPalette(popup) => popup.select_previous(),
-                ActivePopup::ExitConfirmation(_popup) => {}
-            };
-        } else {
-            let Some(index) = self.workspaces_state.selected() else {
-                if self.page_number != 0 {
-                    self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
-                        parameters::workspaces::list::Parameters {
-                            search_query: self.search_query(),
-                            page_number: self.page_number - 1,
-                            page_size: self.page_size,
-                        },
-                    )));
-                }
-
-                return;
-            };
-
-            if index == 0 {
-                if self.page_number == 0 {
-                    return;
-                }
-
-                self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
+        let Some(index) = self.workspaces_state.selected() else {
+            if self.page_number != 0 {
+                self.set_redirect(
                     parameters::workspaces::list::Parameters {
-                        search_query: self.search_query(),
+                        search_query: self.search_query.clone(),
                         page_number: self.page_number - 1,
                         page_size: self.page_size,
-                    },
-                )));
-
-                return;
+                    }
+                    .into(),
+                );
             }
 
-            self.workspaces_state.select_previous();
+            return;
+        };
+
+        if index == 0 && self.page_number != 0 {
+            self.set_redirect(
+                parameters::workspaces::list::Parameters {
+                    search_query: self.search_query.clone(),
+                    page_number: self.page_number - 1,
+                    page_size: self.page_size,
+                }
+                .into(),
+            );
+
+            return;
         }
+
+        self.workspaces_state.select_previous();
     }
 
     fn enter_char(&mut self, c: char) {
-        self.search.enter_char(c);
+        self.smart_input.enter_char(c);
 
-        let route = Route::Workspaces(routes::workspaces::Route::List(
-            parameters::workspaces::list::Parameters {
-                search_query: self.search_query(),
-                page_number: 0,
-                page_size: self.page_size,
-            },
-        ));
+        let Some(Value::Base(search_query)) = self.smart_input.value() else {
+            return;
+        };
 
-        self.redirect = Some(route);
-    }
-
-    fn search_query(&self) -> String {
-        self.search.value().to_string()
+        self.set_list_workspaces_redirect(search_query.into());
     }
 
     fn delete_char(&mut self) {
-        self.search.delete_char();
+        self.smart_input.delete_char();
 
-        let route = Route::Workspaces(routes::workspaces::Route::List(
-            parameters::workspaces::list::Parameters {
-                search_query: self.search_query(),
-                page_number: 0,
-                page_size: self.page_size,
-            },
-        ));
+        let Some(Value::Base(search_query)) = self.smart_input.value() else {
+            return;
+        };
 
-        self.redirect = Some(route);
+        self.set_list_workspaces_redirect(search_query.into());
     }
 
     fn delete_all_chars(&mut self) {
-        self.search.delete_all_chars();
+        self.smart_input.reset_input();
 
-        let route = Route::Workspaces(routes::workspaces::Route::List(
-            parameters::workspaces::list::Parameters {
-                search_query: self.search_query(),
-                page_number: 0,
-                page_size: self.page_size,
-            },
-        ));
+        let Some(Value::Base(search_query)) = self.smart_input.value() else {
+            return;
+        };
 
-        self.redirect = Some(route);
+        self.set_list_workspaces_redirect(search_query.into());
     }
 
     fn move_cursor_left(&mut self) {
-        self.search.move_cursor_left();
+        self.smart_input.move_cursor_left();
     }
 
     fn move_cursor_right(&mut self) {
-        self.search.move_cursor_right();
+        self.smart_input.move_cursor_right();
     }
 
     fn workspace(&self) -> Option<&Presenter> {
@@ -348,4 +297,52 @@ impl Model {
             .selected()
             .and_then(|i| self.workspaces.get(i))
     }
+}
+enum Action {
+    DeleteWorkspace,
+    EditWorkspace,
+    Exit,
+    ListCommands,
+    NewWorkspace,
+}
+
+impl From<Action> for String {
+    fn from(action: Action) -> Self {
+        let action = match action {
+            Action::DeleteWorkspace => "Delete workspace",
+            Action::EditWorkspace => "Edit workspace",
+            Action::Exit => "Exit",
+            Action::ListCommands => "List commands",
+            Action::NewWorkspace => "New workspace",
+        };
+
+        action.into()
+    }
+}
+
+impl TryFrom<&str> for Action {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Self> {
+        match value {
+            "Delete workspace" => Ok(Self::DeleteWorkspace),
+            "Edit workspace" => Ok(Self::EditWorkspace),
+            "Exit" => Ok(Self::Exit),
+            "List commands" => Ok(Self::ListCommands),
+            "New workspace" => Ok(Self::NewWorkspace),
+            _ => Err(anyhow::anyhow!("Unknown action: {}", value)),
+        }
+    }
+}
+
+fn smart_input() -> SmartInput {
+    SmartInput::new(NewSmartInputParameters {
+        commands: vec![
+            Action::DeleteWorkspace.into(),
+            Action::EditWorkspace.into(),
+            Action::Exit.into(),
+            Action::ListCommands.into(),
+            Action::NewWorkspace.into(),
+        ],
+    })
 }

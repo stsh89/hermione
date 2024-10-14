@@ -88,10 +88,6 @@ impl app::Model for Model {
         let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
         let [search_area, list_area] = layouts::search_list::Layout::new().areas(main_area);
 
-        let block = Block::default().borders(Borders::ALL).title("Search");
-        let paragraph = Paragraph::new(self.search.value()).block(block);
-        self.search.render(frame, search_area, paragraph);
-
         let block = Block::default().borders(Borders::all());
         let list = widgets::list::Widget::new(&self.commands).block(block);
 
@@ -100,10 +96,16 @@ impl app::Model for Model {
         let paragraph = Paragraph::new(self.breadcrumbs());
         frame.render_widget(paragraph, status_bar_area);
 
+        let block = Block::default().borders(Borders::ALL).title("Search");
+        let paragraph = Paragraph::new(self.search.value()).block(block);
+
         let Some(command_palette) = &mut self.command_palette else {
+            self.search.render(frame, search_area, paragraph);
+
             return;
         };
 
+        frame.render_widget(paragraph, search_area);
         command_palette.render(frame, frame.area())
     }
 }
@@ -394,6 +396,11 @@ impl Model {
     }
 
     fn enter_char(&mut self, c: char) {
+        if let Some(command_palette) = &mut self.command_palette {
+            command_palette.enter_char(c);
+            return;
+        }
+
         self.search.enter_char(c);
 
         self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
@@ -413,6 +420,11 @@ impl Model {
     }
 
     fn delete_char(&mut self) {
+        if let Some(command_palette) = &mut self.command_palette {
+            command_palette.delete_char();
+            return;
+        }
+
         self.search.delete_char();
 
         self.redirect = Some(Route::Workspaces(routes::workspaces::Route::Commands(
