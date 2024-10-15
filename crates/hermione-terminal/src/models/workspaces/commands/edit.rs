@@ -64,7 +64,7 @@ impl Model {
         self.redirect = Some(
             parameters::workspaces::commands::list::Parameters {
                 workspace_id: command.workspace_id,
-                search_query: command.name,
+                search_query: command.program,
                 page_number: 0,
                 page_size: parameters::workspaces::commands::list::PAGE_SIZE,
                 powershell_no_exit: false,
