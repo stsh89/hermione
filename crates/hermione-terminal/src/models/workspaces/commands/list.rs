@@ -478,8 +478,8 @@ impl From<Action> for String {
             Action::ListWorkspaces => "List workspaces",
             Action::NewCommand => "New command",
             Action::StartWindowsTerminal => "Start Windows Terminal",
-            Action::PowerShellSetNoExit => "Set PowerShell -NoExit",
-            Action::PowerShellUnsetNoExit => "Unset PowerShell -NoExit",
+            Action::PowerShellSetNoExit => "PowerShell set -NoExit",
+            Action::PowerShellUnsetNoExit => "PowerShell unset -NoExit",
         };
 
         action.into()
@@ -497,9 +497,9 @@ impl TryFrom<&str> for Action {
             "Exit" => Ok(Self::Exit),
             "List workspaces" => Ok(Self::ListWorkspaces),
             "New command" => Ok(Self::NewCommand),
-            "Set PowerShell -NoExit" => Ok(Self::PowerShellSetNoExit),
+            "PowerShell set -NoExit" => Ok(Self::PowerShellSetNoExit),
+            "PowerShell unset -NoExit" => Ok(Self::PowerShellUnsetNoExit),
             "Start Windows Terminal" => Ok(Self::StartWindowsTerminal),
-            "Unset PowerShell -NoExit" => Ok(Self::PowerShellUnsetNoExit),
             _ => Err(anyhow::anyhow!("Unknown action: {}", value)),
         }
     }
