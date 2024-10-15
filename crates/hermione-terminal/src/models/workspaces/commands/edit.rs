@@ -64,6 +64,7 @@ impl Model {
                 search_query: command.name,
                 page_number: 0,
                 page_size: parameters::workspaces::commands::list::PAGE_SIZE,
+                powershell_no_exit: false,
             }
             .into(),
         );

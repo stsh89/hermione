@@ -7,6 +7,7 @@ pub struct Parameters {
     pub search_query: String,
     pub page_number: u32,
     pub page_size: u32,
+    pub powershell_no_exit: bool,
 }
 
 impl From<Parameters> for routes::Route {

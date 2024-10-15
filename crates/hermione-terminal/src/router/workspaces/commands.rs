@@ -25,6 +25,7 @@ impl<'a> Router<'a> {
                         search_query: command.program,
                         page_number: 0,
                         page_size: PAGE_SIZE,
+                        powershell_no_exit: false,
                     },
                 )?;
 
@@ -40,6 +41,7 @@ impl<'a> Router<'a> {
                         search_query: "".to_string(),
                         page_number: 0,
                         page_size: PAGE_SIZE,
+                        powershell_no_exit: false,
                     },
                 )?;
 

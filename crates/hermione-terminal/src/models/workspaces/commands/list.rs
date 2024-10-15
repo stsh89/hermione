@@ -16,7 +16,7 @@ pub struct Model {
     commands: Vec<presenters::command::Presenter>,
     redirect: Option<Route>,
     commands_state: widgets::list::State,
-    powershell_settings: PowershellSettings,
+    powershell_settings: PowerShellSettings,
     page_number: u32,
     page_size: u32,
     smart_input: SmartInput,
@@ -26,18 +26,19 @@ pub struct Model {
 
 pub struct ModelParameters {
     pub commands: Vec<presenters::command::Presenter>,
-    pub workspace: presenters::workspace::Presenter,
-    pub search_query: String,
     pub page_number: u32,
     pub page_size: u32,
+    pub powershell_no_exit: bool,
+    pub search_query: String,
+    pub workspace: presenters::workspace::Presenter,
 }
 
-struct PowershellSettings {
+struct PowerShellSettings {
     ///  Does not exit after running startup commands
     no_exit: bool,
 }
 
-impl PowershellSettings {
+impl PowerShellSettings {
     fn set_no_exit(&mut self) {
         self.no_exit = true;
     }
@@ -111,6 +112,7 @@ impl Model {
                     search_query: "".into(),
                     page_number: 0,
                     page_size: self.page_size,
+                    powershell_no_exit: self.powershell_settings.no_exit,
                 }
                 .into(),
             );
@@ -213,6 +215,7 @@ impl Model {
             commands,
             page_number,
             page_size,
+            powershell_no_exit,
             search_query,
             workspace,
         } = parameters;
@@ -228,7 +231,9 @@ impl Model {
             commands,
             page_number,
             page_size,
-            powershell_settings: PowershellSettings { no_exit: true },
+            powershell_settings: PowerShellSettings {
+                no_exit: powershell_no_exit,
+            },
             redirect: None,
             smart_input: smart_input(),
             workspace,
@@ -262,6 +267,7 @@ impl Model {
                         workspace_id: self.workspace.id.clone(),
                         page_number: self.page_number + 1,
                         page_size: self.page_size,
+                        powershell_no_exit: self.powershell_settings.no_exit,
                     },
                 ),
             )));
@@ -282,6 +288,7 @@ impl Model {
                             workspace_id: self.workspace.id.clone(),
                             page_number: self.page_number - 1,
                             page_size: self.page_size,
+                            powershell_no_exit: self.powershell_settings.no_exit,
                         },
                     ),
                 )));
@@ -302,6 +309,7 @@ impl Model {
                         workspace_id: self.workspace.id.clone(),
                         page_number: self.page_number - 1,
                         page_size: self.page_size,
+                        powershell_no_exit: self.powershell_settings.no_exit,
                     },
                 ),
             )));
@@ -387,6 +395,7 @@ impl Model {
                 workspace_id: self.workspace.id.clone(),
                 page_number: 0,
                 page_size: self.page_size,
+                powershell_no_exit: self.powershell_settings.no_exit,
             }
             .into(),
         );
@@ -405,6 +414,7 @@ impl Model {
                 workspace_id: self.workspace.id.clone(),
                 page_number: 0,
                 page_size: self.page_size,
+                powershell_no_exit: self.powershell_settings.no_exit,
             }
             .into(),
         );
@@ -423,6 +433,7 @@ impl Model {
                 workspace_id: self.workspace.id.clone(),
                 page_number: 0,
                 page_size: self.page_size,
+                powershell_no_exit: self.powershell_settings.no_exit,
             }
             .into(),
         );

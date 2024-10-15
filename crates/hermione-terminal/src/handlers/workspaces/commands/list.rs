@@ -14,6 +14,7 @@ impl<'a> Handler<'a> {
         let Parameters {
             page_number,
             page_size,
+            powershell_no_exit,
             search_query,
             workspace_id,
         } = parameters;
@@ -35,10 +36,11 @@ impl<'a> Handler<'a> {
 
         Model::new(ModelParameters {
             commands,
-            workspace,
-            search_query,
             page_number,
             page_size,
+            powershell_no_exit,
+            search_query,
+            workspace,
         })
     }
 }

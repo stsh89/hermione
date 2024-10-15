@@ -63,6 +63,7 @@ impl Router {
                     search_query: "".into(),
                     page_number: 0,
                     page_size: parameters::workspaces::commands::list::PAGE_SIZE,
+                    powershell_no_exit: false,
                 },
             ),
         )))

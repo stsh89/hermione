@@ -43,6 +43,7 @@ impl<'a> Handler<'a> {
             search_query: command.program,
             page_number: 0,
             page_size: parameters::workspaces::commands::list::PAGE_SIZE,
+            powershell_no_exit: false,
         })?;
 
         Ok(model)
