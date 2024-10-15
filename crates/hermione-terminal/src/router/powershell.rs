@@ -1,10 +1,10 @@
 use crate::{
-    brokers, handlers::powershell::*, routes::powershell::Route, Coordinator, Model, Result,
+    clients, handlers::powershell::*, routes::powershell::Route, Coordinator, Model, Result,
 };
 
 pub struct Router<'a> {
     pub coordinator: &'a Coordinator,
-    pub powershell: &'a brokers::powershell::Broker,
+    pub powershell: &'a clients::powershell::PowerShell,
 }
 
 impl<'a> Router<'a> {

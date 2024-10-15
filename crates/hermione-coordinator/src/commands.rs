@@ -1,6 +1,6 @@
-use std::rc::Rc;
 use crate::{core, Connection, Result};
 use hermione_core::{entities::command::Entity, operations::commands::list};
+use std::rc::Rc;
 
 pub trait Operations {
     fn list(&self, parameters: ListParameters) -> Result<Vec<Dto>>;

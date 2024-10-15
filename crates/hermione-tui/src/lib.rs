@@ -20,11 +20,13 @@ pub fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
     let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+
     Ok(terminal)
 }
 
 pub fn install_panic_hook() {
     let original_hook = panic::take_hook();
+
     panic::set_hook(Box::new(move |panic_info| {
         stdout().execute(LeaveAlternateScreen).unwrap();
         disable_raw_mode().unwrap();
@@ -35,15 +37,15 @@ pub fn install_panic_hook() {
 pub fn restore_terminal() -> Result<()> {
     stdout().execute(LeaveAlternateScreen)?;
     disable_raw_mode()?;
+
     Ok(())
 }
 
-pub fn run(router: impl app::Router) -> Result<()> {
+pub fn run<R, M>(
+    router: impl app::Router<Route = R, Message = M>,
+    mut model: Box<dyn app::Model<Route = R, Message = M>>,
+) -> Result<()> {
     let mut terminal = init_terminal()?;
-
-    let Some(mut model) = router.handle_initial_route()? else {
-        return Ok(());
-    };
 
     while model.is_running() {
         terminal.draw(|f| model.view(f))?;

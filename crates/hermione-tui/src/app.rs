@@ -31,7 +31,6 @@ pub trait Router {
     type Route;
     type Message;
 
-    fn handle_initial_route(&self) -> Result<Option<BoxedModel<Self::Route, Self::Message>>>;
     fn handle(&self, route: Self::Route) -> Result<Option<BoxedModel<Self::Route, Self::Message>>>;
 }
 

@@ -1,6 +1,5 @@
 pub mod commands;
 
-use std::rc::Rc;
 use crate::{records::workspace::Record, Connection, ErrReport};
 use chrono::Utc;
 use hermione_core::{
@@ -9,6 +8,7 @@ use hermione_core::{
     Id, Result,
 };
 use rusqlite::params;
+use std::rc::Rc;
 use uuid::Uuid;
 
 pub struct Client {

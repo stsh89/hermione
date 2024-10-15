@@ -1,10 +1,10 @@
 use crate::{
-    brokers, coordinator::Coordinator, parameters::powershell::execute_command::Parameters, Result,
+    clients, coordinator::Coordinator, parameters::powershell::execute_command::Parameters, Result,
 };
 
 pub struct Handler<'a> {
     pub coordinator: &'a Coordinator,
-    pub powershell: &'a brokers::powershell::Broker,
+    pub powershell: &'a clients::powershell::PowerShell,
 }
 
 impl<'a> Handler<'a> {
@@ -24,7 +24,7 @@ impl<'a> Handler<'a> {
         let workspace = self.coordinator.workspaces().get(&workspace_id)?;
 
         self.powershell
-            .start_windows_terminal(brokers::powershell::WindowsTerminalParameters {
+            .start_windows_terminal(clients::powershell::WindowsTerminalParameters {
                 directory: workspace.location.as_str(),
                 no_exit: powershell_no_exit,
                 command: Some(command.program.as_str()),

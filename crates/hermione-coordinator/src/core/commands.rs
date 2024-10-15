@@ -1,7 +1,7 @@
-use std::rc::Rc;
 use crate::{records::command::Record, Connection, ErrReport};
 use hermione_core::{entities::command::Entity, operations::commands::list, Result};
 use rusqlite::params;
+use std::rc::Rc;
 
 pub struct Client {
     connection: Rc<Connection>,

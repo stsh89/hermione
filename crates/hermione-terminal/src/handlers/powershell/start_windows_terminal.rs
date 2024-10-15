@@ -1,7 +1,7 @@
-use crate::{brokers, parameters::powershell::start_windows_terminal::Parameters, Result};
+use crate::{clients, parameters::powershell::start_windows_terminal::Parameters, Result};
 
 pub struct Handler<'a> {
-    pub powershell: &'a brokers::powershell::Broker,
+    pub powershell: &'a clients::powershell::PowerShell,
 }
 
 impl<'a> Handler<'a> {
@@ -9,7 +9,7 @@ impl<'a> Handler<'a> {
         let Parameters { working_directory } = parameters;
 
         self.powershell
-            .start_windows_terminal(brokers::powershell::WindowsTerminalParameters {
+            .start_windows_terminal(clients::powershell::WindowsTerminalParameters {
                 command: None,
                 directory: &working_directory,
                 no_exit: true,

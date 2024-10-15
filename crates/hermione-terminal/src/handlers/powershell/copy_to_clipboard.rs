@@ -1,11 +1,11 @@
 use crate::{
-    brokers, coordinator::Coordinator, parameters::powershell::copy_to_clipboard::Parameters,
+    clients, coordinator::Coordinator, parameters::powershell::copy_to_clipboard::Parameters,
     Result,
 };
 
 pub struct Handler<'a> {
     pub coordinator: &'a Coordinator,
-    pub powershell: &'a brokers::powershell::Broker,
+    pub powershell: &'a clients::powershell::PowerShell,
 }
 
 impl<'a> Handler<'a> {

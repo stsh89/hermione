@@ -1,10 +1,9 @@
 use crate::Result;
 use anyhow::anyhow;
-use hermione_powershell::Client;
 use std::sync::{RwLock, RwLockWriteGuard};
 
-pub struct Broker {
-    client: RwLock<Client>,
+pub struct PowerShell {
+    inner: RwLock<hermione_powershell::Client>,
 }
 
 pub struct WindowsTerminalParameters<'a> {
@@ -13,9 +12,9 @@ pub struct WindowsTerminalParameters<'a> {
     pub no_exit: bool,
 }
 
-impl Broker {
-    fn client(&self) -> Result<RwLockWriteGuard<'_, Client>> {
-        self.client.write().map_err(|err| anyhow!("{}", err))
+impl PowerShell {
+    fn client(&self) -> Result<RwLockWriteGuard<'_, hermione_powershell::Client>> {
+        self.inner.write().map_err(|err| anyhow!("{}", err))
     }
 
     pub fn copy_to_clipboard(&self, text: &str) -> Result<()> {
@@ -26,7 +25,7 @@ impl Broker {
 
     pub fn new() -> Result<Self> {
         Ok(Self {
-            client: RwLock::new(Client::new()?),
+            inner: RwLock::new(hermione_powershell::Client::new()?),
         })
     }
 

@@ -359,6 +359,7 @@ impl Model {
                     )
                 }
             }
+            Action::ExecuteCommand => self.execute_command(),
             Action::EditCommand => {
                 if let Some(command) = self.command() {
                     self.set_redirect(
@@ -460,6 +461,7 @@ enum Action {
     CopyToClipboard,
     DeleteCommand,
     EditCommand,
+    ExecuteCommand,
     Exit,
     ListWorkspaces,
     NewCommand,
@@ -474,6 +476,7 @@ impl From<Action> for String {
             Action::CopyToClipboard => "Copy to clipboard",
             Action::DeleteCommand => "Delete command",
             Action::EditCommand => "Edit command",
+            Action::ExecuteCommand => "Execute command",
             Action::Exit => "Exit",
             Action::ListWorkspaces => "List workspaces",
             Action::NewCommand => "New command",
@@ -494,6 +497,7 @@ impl TryFrom<&str> for Action {
             "Copy to clipboard" => Ok(Self::CopyToClipboard),
             "Delete command" => Ok(Self::DeleteCommand),
             "Edit command" => Ok(Self::EditCommand),
+            "Execute command" => Ok(Self::ExecuteCommand),
             "Exit" => Ok(Self::Exit),
             "List workspaces" => Ok(Self::ListWorkspaces),
             "New command" => Ok(Self::NewCommand),
@@ -511,6 +515,7 @@ fn smart_input() -> SmartInput {
             Action::CopyToClipboard.into(),
             Action::DeleteCommand.into(),
             Action::EditCommand.into(),
+            Action::ExecuteCommand.into(),
             Action::Exit.into(),
             Action::ListWorkspaces.into(),
             Action::NewCommand.into(),
