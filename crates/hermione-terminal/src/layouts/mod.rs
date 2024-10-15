@@ -17,6 +17,9 @@ pub struct StatusBar<'a> {
     selector: Option<&'a str>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    search: Option<&'a str>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     page: Option<u32>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -59,6 +62,13 @@ impl<'a> StatusBar<'a> {
     pub fn pwsh(self, pwsh: &'a str) -> Self {
         Self {
             pwsh: Some(pwsh),
+            ..self
+        }
+    }
+
+    pub fn search(self, search: &'a str) -> Self {
+        Self {
+            search: Some(search),
             ..self
         }
     }
