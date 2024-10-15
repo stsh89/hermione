@@ -7,7 +7,7 @@ use hermione_core::{
     operations::workspaces::{create, delete, get, list, track_access_time, update},
     Id,
 };
-use std::{str::FromStr};
+use std::str::FromStr;
 
 pub trait Operations {
     fn create(&self, data: Dto) -> Result<Dto>;
