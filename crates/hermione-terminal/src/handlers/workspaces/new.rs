@@ -1,9 +1,9 @@
-use crate::models::workspaces::new::Model;
+use crate::{models::workspaces::new::Model, Result};
 
 pub struct Handler {}
 
 impl Handler {
-    pub fn handle(self) -> Model {
+    pub fn handle(self) -> Result<Model> {
         Model::new()
     }
 }

@@ -1,11 +1,13 @@
 use crate::{
-    breadcrumbs::Breadcrumbs, forms, layouts, parameters, presenters, routes, Message, Result,
+    forms,
+    layouts::{self, StatusBar},
+    parameters, presenters, routes, Message, Result,
 };
 use hermione_tui::app::{self, EventHandler};
 use ratatui::{widgets::Paragraph, Frame};
 
 pub struct Model {
-    breadcrumbs: String,
+    status_bar: String,
     form: forms::workspace::Form,
     redirect: Option<routes::Route>,
 }
@@ -43,7 +45,7 @@ impl app::Model for Model {
 
         self.form.render(frame, main_area);
 
-        let paragraph = Paragraph::new(self.breadcrumbs.as_str());
+        let paragraph = Paragraph::new(self.status_bar.as_str());
         frame.render_widget(paragraph, status_bar_area);
     }
 }
@@ -75,16 +77,14 @@ impl Model {
         self.form.move_cursor_right();
     }
 
-    pub fn new() -> Self {
-        let breadcrumbs = Breadcrumbs::default()
-            .add_segment("New workspace")
-            .to_string();
+    pub fn new() -> Result<Self> {
+        let status_bar = StatusBar::default().use_case("New workspace").try_into()?;
 
-        Self {
-            breadcrumbs,
+        Ok(Self {
+            status_bar,
             form: forms::workspace::Form::default(),
             redirect: None,
-        }
+        })
     }
 
     fn submit(&mut self) {

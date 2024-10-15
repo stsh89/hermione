@@ -1,6 +1,6 @@
 use crate::{
-    breadcrumbs::Breadcrumbs,
-    layouts, parameters, presenters,
+    layouts::{self, StatusBar},
+    parameters, presenters,
     routes::{self, Route},
     smart_input::{NewSmartInputParameters, SmartInput, Value},
     widgets, Error, Message, Result,
@@ -92,7 +92,7 @@ impl app::Model for Model {
         frame.render_stateful_widget(list, list_area, &mut self.commands_state);
         self.smart_input.render(frame, input_area);
 
-        let paragraph = Paragraph::new(self.breadcrumbs());
+        let paragraph = Paragraph::new(self.status_bar());
         frame.render_widget(paragraph, status_bar_area);
     }
 }
@@ -119,17 +119,21 @@ impl Model {
         }
     }
 
-    fn breadcrumbs(&self) -> Breadcrumbs {
-        let breadcrumbs = Breadcrumbs::default()
-            .add_segment("List workspaces")
-            .add_segment(&self.workspace.name)
-            .add_segment(format!("List commands ({})", self.page_number));
+    fn status_bar(&self) -> String {
+        let mut status_bar = StatusBar::default()
+            .use_case("List commands")
+            .workspace(&self.workspace.name)
+            .page(self.page_number);
 
         if let Some(command) = self.command() {
-            breadcrumbs.add_segment(&command.name)
-        } else {
-            breadcrumbs
+            status_bar = status_bar.selector(&command.name);
         }
+
+        if self.powershell_settings.no_exit {
+            status_bar = status_bar.pwsh("-NoExit");
+        }
+
+        status_bar.try_into().unwrap_or_default()
     }
 
     fn execute_command(&mut self) {

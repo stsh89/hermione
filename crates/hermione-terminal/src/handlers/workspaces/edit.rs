@@ -15,8 +15,6 @@ impl<'a> Handler<'a> {
 
         let workspace = self.coordinator.workspaces().get(&id)?;
 
-        let model = Model::new(ModelParameters { workspace });
-
-        Ok(model)
+        Model::new(ModelParameters { workspace })
     }
 }

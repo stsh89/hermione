@@ -1,6 +1,6 @@
 use crate::{
-    breadcrumbs::Breadcrumbs,
-    layouts, parameters,
+    layouts::{self, StatusBar},
+    parameters,
     presenters::workspace::Presenter,
     routes::{self, Route},
     smart_input::{NewSmartInputParameters, SmartInput, Value},
@@ -74,7 +74,7 @@ impl app::Model for Model {
         frame.render_stateful_widget(list, list_area, &mut self.workspaces_state);
         self.smart_input.render(frame, input_area);
 
-        let paragraph = Paragraph::new(self.breadcrumbs());
+        let paragraph = Paragraph::new(self.status_bar());
         frame.render_widget(paragraph, status_bar_area);
     }
 }
@@ -92,15 +92,16 @@ impl Model {
         }
     }
 
-    fn breadcrumbs(&self) -> Breadcrumbs {
-        let base_segment = format!("List workspaces ({})", self.page_number);
-        let breadcrumbs = Breadcrumbs::default().add_segment(base_segment);
+    fn status_bar(&self) -> String {
+        let mut status_bar = StatusBar::default()
+            .use_case("List workspaces")
+            .page(self.page_number);
 
-        let Some(workspace) = self.workspace() else {
-            return breadcrumbs;
-        };
+        if let Some(workspace) = self.workspace() {
+            status_bar = status_bar.workspace(&workspace.name);
+        }
 
-        breadcrumbs.add_segment(&workspace.name)
+        status_bar.try_into().unwrap_or_default()
     }
 
     fn exit(&mut self) {

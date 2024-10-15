@@ -45,7 +45,7 @@ impl<'a> Router<'a> {
             Route::New => {
                 let handler = new::Handler {};
 
-                let model = handler.handle();
+                let model = handler.handle()?;
 
                 Ok(Some(Box::new(model)))
             }

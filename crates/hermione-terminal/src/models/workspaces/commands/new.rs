@@ -1,6 +1,7 @@
 use crate::{
-    breadcrumbs::Breadcrumbs,
-    forms, layouts, parameters,
+    forms,
+    layouts::{self, StatusBar},
+    parameters,
     presenters::{self, workspace::Presenter},
     routes::Route,
     Message, Result,
@@ -9,7 +10,7 @@ use hermione_tui::app::{self, EventHandler};
 use ratatui::{widgets::Paragraph, Frame};
 
 pub struct Model {
-    breadcrumbs: String,
+    status_bar: String,
     form: forms::command::Form,
     redirect: Option<Route>,
 }
@@ -51,7 +52,7 @@ impl app::Model for Model {
 
         self.form.render(frame, main_area);
 
-        let paragraph = Paragraph::new(self.breadcrumbs.as_str());
+        let paragraph = Paragraph::new(self.status_bar.as_str());
         frame.render_widget(paragraph, status_bar_area);
     }
 }
@@ -74,14 +75,13 @@ impl Model {
         );
     }
 
-    pub fn new(parameters: ModelParameters) -> Self {
+    pub fn new(parameters: ModelParameters) -> Result<Self> {
         let ModelParameters { workspace } = parameters;
 
-        let breadcrumbs = Breadcrumbs::default()
-            .add_segment("List workspaces")
-            .add_segment(&workspace.name)
-            .add_segment("New command")
-            .to_string();
+        let status_bar = StatusBar::default()
+            .use_case("New command")
+            .workspace(&workspace.name)
+            .try_into()?;
 
         let command = presenters::command::Presenter {
             id: String::new(),
@@ -90,11 +90,11 @@ impl Model {
             workspace_id: workspace.id,
         };
 
-        Self {
+        Ok(Self {
             form: command.into(),
             redirect: None,
-            breadcrumbs,
-        }
+            status_bar,
+        })
     }
 
     fn toggle_focus(&mut self) {
