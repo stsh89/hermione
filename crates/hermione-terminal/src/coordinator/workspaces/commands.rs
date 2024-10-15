@@ -1,6 +1,8 @@
 use crate::{presenters::command::Presenter, Result};
-use hermione_coordinator::workspaces::commands::{self, Client, Operations};
-use std::path::Path;
+use hermione_coordinator::{
+    workspaces::commands::{self, Client, Operations},
+    Connection,
+};
 
 pub struct Coordinator {
     client: Client,
@@ -14,9 +16,9 @@ pub struct ListParameters<'a> {
 }
 
 impl Coordinator {
-    pub fn new(app_path: &Path) -> Result<Self> {
+    pub fn new(connection: Connection) -> Result<Self> {
         Ok(Self {
-            client: Client::new(app_path)?,
+            client: Client::new(connection)?,
         })
     }
 

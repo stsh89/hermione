@@ -1,7 +1,6 @@
+use crate::{records::command::Record, Connection, ErrReport};
 use hermione_core::{entities::command::Entity, operations::commands::list, Result};
-use rusqlite::{params, Connection};
-
-use crate::{records::command::Record, ErrReport};
+use rusqlite::params;
 
 pub struct Client {
     connection: Connection,

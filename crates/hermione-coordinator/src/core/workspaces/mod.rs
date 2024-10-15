@@ -1,13 +1,13 @@
 pub mod commands;
 
-use crate::{records::workspace::Record, ErrReport};
+use crate::{records::workspace::Record, Connection, ErrReport};
 use chrono::Utc;
 use hermione_core::{
     entities::workspace::Entity,
     operations::workspaces::{create, delete, get, list, track_access_time, update},
     Id, Result,
 };
-use rusqlite::{params, Connection};
+use rusqlite::params;
 use uuid::Uuid;
 
 pub struct Client {

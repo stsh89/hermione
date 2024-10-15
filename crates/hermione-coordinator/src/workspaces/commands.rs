@@ -1,11 +1,11 @@
-use crate::{connection, core, Result};
+use crate::{core, Connection, Result};
 use chrono::{DateTime, Utc};
 use hermione_core::{
     entities::command::{Entity, LoadParameters, Name, NewParameters, Program, ScopedId},
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     Id,
 };
-use std::{path::Path, str::FromStr};
+use std::str::FromStr;
 
 pub trait Operations {
     fn create(&self, data: Dto) -> Result<Dto>;
@@ -122,8 +122,7 @@ impl Operations for Client {
 }
 
 impl Client {
-    pub fn new(dir_path: &Path) -> Result<Self> {
-        let connection = connection(dir_path)?;
+    pub fn new(connection: Connection) -> Result<Self> {
         let inner = core::workspaces::commands::Client::new(connection);
 
         Ok(Self { inner })

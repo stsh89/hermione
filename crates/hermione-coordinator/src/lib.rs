@@ -1,5 +1,7 @@
-use rusqlite::Connection;
-use std::path::Path;
+use std::{
+    ops::Deref,
+    path::{Path, PathBuf},
+};
 
 mod core;
 mod records;
@@ -10,6 +12,11 @@ pub mod workspaces;
 pub type Result<T> = std::result::Result<T, Error>;
 
 const DATABASE_FILE_PATH: &str = "hermione.db3";
+
+pub struct Connection {
+    inner: rusqlite::Connection,
+    dir_path: PathBuf,
+}
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -46,37 +53,60 @@ impl ErrReport for rusqlite::Error {
     }
 }
 
-fn connection(dir_path: &Path) -> Result<Connection> {
-    let path = dir_path.join(DATABASE_FILE_PATH);
-    let connection = Connection::open(path).map_err(ErrReport::err_report)?;
+impl Deref for Connection {
+    type Target = rusqlite::Connection;
 
-    connection.execute(
-        "CREATE TABLE IF NOT EXISTS workspaces (
-            id BLOB PRIMARY KEY,
-            last_access_time INTEGER,
-            location TEXT,
-            name TEXT NOT NULL
-        )",
-        (),
-    )?;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
 
-    connection.execute(
-        "CREATE TABLE IF NOT EXISTS commands (
-            id BLOB PRIMARY KEY,
-            last_execute_time INTEGER,
-            name TEXT NOT NULL,
-            program TEXT NOT NULL,
-            workspace_id BLOB NOT NULL
-        )",
-        (),
-    )?;
+impl Connection {
+    pub fn open(dir_path: &Path) -> Result<Self> {
+        let path = dir_path.join(DATABASE_FILE_PATH);
+        let connection = rusqlite::Connection::open(path).map_err(ErrReport::err_report)?;
 
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS
-        commands_workspace_id_idx
-        ON commands(workspace_id)",
-        (),
-    )?;
+        connection.execute(
+            "CREATE TABLE IF NOT EXISTS workspaces (
+                id BLOB PRIMARY KEY,
+                last_access_time INTEGER,
+                location TEXT,
+                name TEXT NOT NULL
+            )",
+            (),
+        )?;
 
-    Ok(connection)
+        connection.execute(
+            "CREATE TABLE IF NOT EXISTS commands (
+                id BLOB PRIMARY KEY,
+                last_execute_time INTEGER,
+                name TEXT NOT NULL,
+                program TEXT NOT NULL,
+                workspace_id BLOB NOT NULL
+            )",
+            (),
+        )?;
+
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS
+            commands_workspace_id_idx
+            ON commands(workspace_id)",
+            (),
+        )?;
+
+        Ok(Self {
+            inner: connection,
+            dir_path: dir_path.to_path_buf(),
+        })
+    }
+
+    pub fn try_clone(&self) -> Result<Self> {
+        let path = self.dir_path.join(DATABASE_FILE_PATH);
+        let inner = rusqlite::Connection::open(path).map_err(ErrReport::err_report)?;
+
+        Ok(Self {
+            inner,
+            dir_path: self.dir_path.clone(),
+        })
+    }
 }

@@ -2,6 +2,7 @@ use crate::{screen, settings::Settings, Result};
 use hermione_coordinator::{
     commands::{self, Operations as _},
     workspaces::{self, Operations as _},
+    Connection,
 };
 use hermione_notion::{
     json::{Json, PageId, RichText, Title},
@@ -175,9 +176,10 @@ impl Command {
             ..Default::default()
         })?;
 
-        let workspaces_coordinator = workspaces::Client::new(&directory_path)?;
+        let connection = Connection::open(&directory_path)?;
 
-        let commands_coordinator = commands::Client::new(&directory_path)?;
+        let workspaces_coordinator = workspaces::Client::new(connection.try_clone()?)?;
+        let commands_coordinator = commands::Client::new(connection)?;
 
         Ok(Self {
             settings,

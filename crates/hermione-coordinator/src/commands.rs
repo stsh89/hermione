@@ -1,6 +1,5 @@
-use crate::{connection, core, Result};
+use crate::{core, Connection, Result};
 use hermione_core::{entities::command::Entity, operations::commands::list};
-use std::path::Path;
 
 pub trait Operations {
     fn list(&self, parameters: ListParameters) -> Result<Vec<Dto>>;
@@ -42,8 +41,7 @@ impl Operations for Client {
 }
 
 impl Client {
-    pub fn new(dir_path: &Path) -> Result<Self> {
-        let connection = connection(dir_path)?;
+    pub fn new(connection: Connection) -> Result<Self> {
         let inner = core::commands::Client::new(connection);
 
         Ok(Self { inner })

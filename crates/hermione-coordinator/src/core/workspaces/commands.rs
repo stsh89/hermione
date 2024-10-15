@@ -1,13 +1,12 @@
+use crate::{records::command::Record, Connection, ErrReport};
 use chrono::Utc;
 use hermione_core::{
     entities::command::{Entity, ScopedId},
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     Id, Result,
 };
-use rusqlite::{params, Connection};
+use rusqlite::params;
 use uuid::Uuid;
-
-use crate::{records::command::Record, ErrReport};
 
 pub struct Client {
     connection: Connection,
