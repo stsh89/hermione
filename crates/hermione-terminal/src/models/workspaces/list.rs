@@ -98,7 +98,7 @@ impl Model {
             .page(self.page_number);
 
         if let Some(workspace) = self.workspace() {
-            status_bar = status_bar.workspace(&workspace.name);
+            status_bar = status_bar.selector(&workspace.name);
         }
 
         if !self.search_query.is_empty() {
