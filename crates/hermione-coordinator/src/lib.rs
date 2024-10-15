@@ -1,7 +1,4 @@
-use std::{
-    ops::Deref,
-    path::{Path, PathBuf},
-};
+use std::{ops::Deref, path::Path};
 
 mod core;
 mod records;
@@ -13,10 +10,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 const DATABASE_FILE_PATH: &str = "hermione.db3";
 
-pub struct Connection {
-    inner: rusqlite::Connection,
-    dir_path: PathBuf,
-}
+pub struct Connection(rusqlite::Connection);
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -57,7 +51,7 @@ impl Deref for Connection {
     type Target = rusqlite::Connection;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        &self.0
     }
 }
 
@@ -94,19 +88,6 @@ impl Connection {
             (),
         )?;
 
-        Ok(Self {
-            inner: connection,
-            dir_path: dir_path.to_path_buf(),
-        })
-    }
-
-    pub fn try_clone(&self) -> Result<Self> {
-        let path = self.dir_path.join(DATABASE_FILE_PATH);
-        let inner = rusqlite::Connection::open(path).map_err(ErrReport::err_report)?;
-
-        Ok(Self {
-            inner,
-            dir_path: self.dir_path.clone(),
-        })
+        Ok(Self(connection))
     }
 }

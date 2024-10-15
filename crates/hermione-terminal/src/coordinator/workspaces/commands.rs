@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{presenters::command::Presenter, Result};
 use hermione_coordinator::{
     workspaces::commands::{self, Client, Operations},
@@ -16,10 +18,10 @@ pub struct ListParameters<'a> {
 }
 
 impl Coordinator {
-    pub fn new(connection: Connection) -> Result<Self> {
-        Ok(Self {
-            client: Client::new(connection)?,
-        })
+    pub fn new(connection: Rc<Connection>) -> Self {
+        Self {
+            client: Client::new(connection),
+        }
     }
 
     pub fn create(&self, command: Presenter) -> Result<Presenter> {

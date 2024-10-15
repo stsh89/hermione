@@ -1,7 +1,8 @@
 pub mod workspaces;
 
 use crate::Result;
-use std::path::Path;
+use hermione_coordinator::Connection;
+use std::{path::Path, rc::Rc};
 
 pub struct Coordinator {
     workspaces: workspaces::Coordinator,
@@ -9,8 +10,10 @@ pub struct Coordinator {
 
 impl Coordinator {
     pub fn new(app_path: &Path) -> Result<Self> {
+        let connection = Rc::new(Connection::open(app_path)?);
+
         Ok(Self {
-            workspaces: workspaces::Coordinator::new(app_path)?,
+            workspaces: workspaces::Coordinator::new(connection),
         })
     }
 

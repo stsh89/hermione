@@ -5,7 +5,7 @@ use hermione_coordinator::{
     workspaces::{self, Client, Operations},
     Connection,
 };
-use std::path::Path;
+use std::rc::Rc;
 
 pub struct Coordinator {
     client: Client,
@@ -19,13 +19,11 @@ pub struct ListParameters<'a> {
 }
 
 impl Coordinator {
-    pub fn new(app_path: &Path) -> Result<Self> {
-        let connection = Connection::open(app_path)?;
-
-        Ok(Self {
-            client: Client::new(connection.try_clone()?)?,
-            commands: commands::Coordinator::new(connection)?,
-        })
+    pub fn new(connection: Rc<Connection>) -> Self {
+        Self {
+            client: Client::new(connection.clone()),
+            commands: commands::Coordinator::new(connection),
+        }
     }
 
     pub fn create(&self, workspace: Presenter) -> Result<Presenter> {

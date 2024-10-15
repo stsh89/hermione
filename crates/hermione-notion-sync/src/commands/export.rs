@@ -9,7 +9,7 @@ use hermione_notion::{
     QueryDatabaseParameters,
 };
 use serde::Serialize;
-use std::path::PathBuf;
+use std::{path::PathBuf, rc::Rc};
 
 const PAGE_SIZE: u32 = 100;
 
@@ -176,10 +176,10 @@ impl Command {
             ..Default::default()
         })?;
 
-        let connection = Connection::open(&directory_path)?;
+        let connection = Rc::new(Connection::open(&directory_path)?);
 
-        let workspaces_coordinator = workspaces::Client::new(connection.try_clone()?)?;
-        let commands_coordinator = commands::Client::new(connection)?;
+        let workspaces_coordinator = workspaces::Client::new(connection.clone());
+        let commands_coordinator = commands::Client::new(connection);
 
         Ok(Self {
             settings,

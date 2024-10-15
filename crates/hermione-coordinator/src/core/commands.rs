@@ -1,13 +1,14 @@
+use std::rc::Rc;
 use crate::{records::command::Record, Connection, ErrReport};
 use hermione_core::{entities::command::Entity, operations::commands::list, Result};
 use rusqlite::params;
 
 pub struct Client {
-    connection: Connection,
+    connection: Rc<Connection>,
 }
 
 impl Client {
-    pub fn new(connection: Connection) -> Self {
+    pub fn new(connection: Rc<Connection>) -> Self {
         Self { connection }
     }
 }

@@ -1,3 +1,5 @@
+use std::{rc::Rc, str::FromStr};
+
 use crate::{core, Connection, Result};
 use chrono::{DateTime, Utc};
 use hermione_core::{
@@ -5,7 +7,6 @@ use hermione_core::{
     operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
     Id,
 };
-use std::str::FromStr;
 
 pub trait Operations {
     fn create(&self, data: Dto) -> Result<Dto>;
@@ -122,10 +123,10 @@ impl Operations for Client {
 }
 
 impl Client {
-    pub fn new(connection: Connection) -> Result<Self> {
+    pub fn new(connection: Rc<Connection>) -> Self {
         let inner = core::workspaces::commands::Client::new(connection);
 
-        Ok(Self { inner })
+        Self { inner }
     }
 }
 

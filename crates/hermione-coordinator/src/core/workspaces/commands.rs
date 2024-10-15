@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use crate::{records::command::Record, Connection, ErrReport};
 use chrono::Utc;
 use hermione_core::{
@@ -9,11 +10,11 @@ use rusqlite::params;
 use uuid::Uuid;
 
 pub struct Client {
-    connection: Connection,
+    connection: Rc<Connection>,
 }
 
 impl Client {
-    pub fn new(connection: Connection) -> Self {
+    pub fn new(connection: Rc<Connection>) -> Self {
         Self { connection }
     }
 }

@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use crate::{core, Connection, Result};
 use hermione_core::{entities::command::Entity, operations::commands::list};
 
@@ -41,10 +42,10 @@ impl Operations for Client {
 }
 
 impl Client {
-    pub fn new(connection: Connection) -> Result<Self> {
+    pub fn new(connection: Rc<Connection>) -> Self {
         let inner = core::commands::Client::new(connection);
 
-        Ok(Self { inner })
+        Self { inner }
     }
 }
 
