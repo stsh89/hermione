@@ -101,6 +101,10 @@ impl Model {
             status_bar = status_bar.workspace(&workspace.name);
         }
 
+        if !self.search_query.is_empty() {
+            status_bar = status_bar.search(&self.search_query);
+        }
+
         status_bar.try_into().unwrap_or_default()
     }
 
