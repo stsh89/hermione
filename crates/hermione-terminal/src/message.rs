@@ -12,7 +12,7 @@ pub enum Message {
     SelectNext,
     SelectPrevious,
     Submit,
-    ToggleFocus,
+    Tab,
 }
 
 impl TryFrom<KeyEvent> for Message {
@@ -20,7 +20,7 @@ impl TryFrom<KeyEvent> for Message {
 
     fn try_from(key_event: KeyEvent) -> Result<Self> {
         let message = match key_event.code {
-            KeyCode::Tab => Self::ToggleFocus,
+            KeyCode::Tab => Self::Tab,
             KeyCode::Up => Self::SelectPrevious,
             KeyCode::Down => Self::SelectNext,
             KeyCode::Esc => Self::Cancel,

@@ -40,7 +40,7 @@ impl app::Model for Model {
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::Submit => self.submit(),
-            Message::ToggleFocus => self.toggle_focus(),
+            Message::Tab => self.toggle_focus(),
             Message::Action | Message::SelectNext | Message::SelectPrevious => {}
         }
 
