@@ -3,7 +3,6 @@ mod colors;
 mod coordinator;
 mod forms;
 mod handlers;
-mod inputs;
 mod layouts;
 mod logs;
 mod message;

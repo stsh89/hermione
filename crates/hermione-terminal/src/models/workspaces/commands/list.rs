@@ -2,7 +2,7 @@ use crate::{
     layouts::{self, StatusBar},
     parameters, presenters,
     routes::{self, Route},
-    smart_input::{NewSmartInputParameters, SmartInput, Value},
+    smart_input::{NewSmartInputParameters, SmartInput},
     widgets, Error, Message, Result,
 };
 use hermione_tui::app::{self, EventHandler};
@@ -99,7 +99,7 @@ impl app::Model for Model {
 
 impl Model {
     fn toggle_focus(&mut self) {
-        self.smart_input.toggle_input();
+        self.smart_input.autocomplete();
     }
 
     fn cancel(&mut self) {
@@ -339,7 +339,7 @@ impl Model {
     }
 
     fn submit(&mut self) -> Result<()> {
-        let Some(Value::Command(command)) = self.smart_input.value() else {
+        let Some(command) = self.smart_input.command() else {
             self.smart_input.reset_input();
 
             return Ok(());
@@ -394,7 +394,7 @@ impl Model {
     fn enter_char(&mut self, c: char) {
         self.smart_input.enter_char(c);
 
-        let Some(Value::Base(search_query)) = self.smart_input.value() else {
+        let Some(search_query) = self.smart_input.search() else {
             return;
         };
 
@@ -413,7 +413,7 @@ impl Model {
     fn delete_char(&mut self) {
         self.smart_input.delete_char();
 
-        let Some(Value::Base(search_query)) = self.smart_input.value() else {
+        let Some(search_query) = self.smart_input.search() else {
             return;
         };
 
@@ -432,7 +432,7 @@ impl Model {
     fn delete_all_chars(&mut self) {
         self.smart_input.reset_input();
 
-        let Some(Value::Base(search_query)) = self.smart_input.value() else {
+        let Some(search_query) = self.smart_input.search() else {
             return;
         };
 
