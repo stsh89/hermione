@@ -58,7 +58,7 @@ impl app::Model for Model {
             Message::SelectPrevious => self.select_previous(),
             Message::Submit => self.submit()?,
             Message::Tab => self.toggle_focus(),
-            Message::Action => {}
+            Message::ExecuteCommand => {}
         }
 
         Ok(None)

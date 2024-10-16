@@ -67,7 +67,7 @@ impl app::Model for Model {
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
             Message::Cancel => self.cancel(),
-            Message::Action => self.execute_command(),
+            Message::ExecuteCommand => self.execute_command(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
