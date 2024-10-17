@@ -51,15 +51,14 @@ fn get_title<'de, V>(map: &mut V) -> Result<String, V::Error>
 where
     V: MapAccess<'de>,
 {
-    let mut items = map.next_value::<Vec<Title>>()?;
+    let text = map
+        .next_value::<Vec<Title>>()?
+        .into_iter()
+        .map(|t| t.plain_text)
+        .collect::<Vec<String>>()
+        .join("");
 
-    let value = if let Some(item) = items.pop() {
-        item.plain_text
-    } else {
-        String::new()
-    };
-
-    Ok(value)
+    Ok(text)
 }
 
 #[cfg(test)]
