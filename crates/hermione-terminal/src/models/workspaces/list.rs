@@ -266,11 +266,9 @@ impl Model {
     fn enter_char(&mut self, c: char) {
         self.smart_input.enter_char(c);
 
-        let Some(search_query) = self.smart_input.search() else {
-            return;
+        if let Some(search_query) = self.smart_input.search() {
+            self.set_list_workspaces_redirect(search_query.into());
         };
-
-        self.set_list_workspaces_redirect(search_query.into());
     }
 
     fn delete_char(&mut self) {
