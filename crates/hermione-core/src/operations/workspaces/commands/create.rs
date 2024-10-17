@@ -13,6 +13,12 @@ where
     S: Create,
 {
     pub fn execute(&self, command: Entity) -> Result<Entity> {
+        if command.id().is_some() {
+            return Err(Error::FailedPrecondition(
+                "Command id is already set".to_string(),
+            ));
+        }
+
         let command = self.creator.create(command)?;
 
         if command.id().is_none() {

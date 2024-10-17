@@ -13,6 +13,12 @@ where
     S: Create,
 {
     pub fn execute(&self, workspace: Entity) -> Result<Entity> {
+        if workspace.id().is_some() {
+            return Err(Error::FailedPrecondition(
+                "Workspace id is already set".to_string(),
+            ));
+        }
+
         let workspace = self.creator.create(workspace)?;
 
         if workspace.id().is_none() {
