@@ -54,6 +54,10 @@ impl Preprocessor {
         first
     }
 
+    pub fn search_query(&self) -> &str {
+        &self.search_query
+    }
+
     pub fn update_search_query(&mut self, value: &str) {
         self.index = None;
         self.search_query = value.into();

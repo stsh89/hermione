@@ -88,11 +88,13 @@ impl SmartInput {
             Preprocessor::Command(preprocessor) => {
                 preprocessor.append_search_query(c);
 
-                let Some(command) = preprocessor.next_command(&self.commands) else {
-                    return;
+                let value = if let Some(command) = preprocessor.next_command(&self.commands) {
+                    command.into()
+                } else {
+                    preprocessor.search_query().into()
                 };
 
-                self.update_command_input(command.into());
+                self.update_command_input(value);
             }
         }
     }
