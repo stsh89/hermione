@@ -126,8 +126,6 @@ impl Client {
             method,
         } = parameters;
 
-        tracing::info!(method = ?method, uri = %uri, body = ?body);
-
         let api_key = api_key_override
             .or(self.api_key.as_deref())
             .ok_or_else(|| {
