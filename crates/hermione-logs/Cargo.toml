@@ -8,4 +8,4 @@ name = "hermione_logs"
 
 [dependencies]
 anyhow = { workspace = true }
-tracing-subscriber = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["json"] }
