@@ -86,10 +86,9 @@ impl SmartInput {
 
         match preprocessor {
             Preprocessor::Command(preprocessor) => {
-                let search = command_search(&self.input).unwrap_or_default();
+                preprocessor.append_search_query(c);
 
-                let Some(command) = preprocessor.find_command(search, self.commands.as_slice())
-                else {
+                let Some(command) = preprocessor.next_command(&self.commands) else {
                     return;
                 };
 
@@ -139,7 +138,8 @@ impl SmartInput {
         };
 
         match preprocessor {
-            Preprocessor::Command(_preprocessor) => {
+            Preprocessor::Command(preprocessor) => {
+                preprocessor.update_search_query("");
                 self.input.enter_char(COMMAND_PREFIX);
             }
         }

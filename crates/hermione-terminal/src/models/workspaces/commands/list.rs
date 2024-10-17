@@ -392,6 +392,8 @@ impl Model {
             Action::PowerShellUnsetNoExit => self.powershell_unset_no_exit(),
         }
 
+        self.smart_input.reset_input();
+
         Ok(())
     }
 

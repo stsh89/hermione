@@ -5,56 +5,53 @@ pub struct Preprocessor {
 }
 
 impl Preprocessor {
+    pub fn append_search_query(&mut self, c: char) {
+        self.index = None;
+        self.search_query.push(c);
+    }
+
     pub fn command<'a>(&self, commands: &'a [String]) -> Option<&'a str> {
         let index = self.index?;
 
-        self.find_commands(commands).get(index).map(|c| c.as_str())
+        self.filter_commands(commands).into_iter().nth(index)
     }
 
-    pub fn find_command<'a>(&mut self, query: &str, commands: &'a [String]) -> Option<&'a str> {
-        self.index = None;
-        self.search_query = query.into();
-
-        let found_commands = self.find_commands(commands);
-
-        let command = found_commands.first()?;
-
-        self.index = Some(0);
-        Some(command)
-    }
-
-    fn find_commands<'a>(&self, commands: &'a [String]) -> Vec<&'a String> {
+    fn filter_commands<'a>(&self, commands: &'a [String]) -> Vec<&'a str> {
         let search_query = self.search_query.to_lowercase();
 
         commands
             .iter()
             .filter(|c| c.to_lowercase().starts_with(&search_query))
+            .map(|c| c.as_str())
             .collect()
     }
 
     pub fn next_command<'a>(&mut self, commands: &'a [String]) -> Option<&'a str> {
-        let found_commands = self.find_commands(commands);
+        let mut first = None;
 
-        let Some(index) = self.index else {
-            return found_commands.first().map(|c| c.as_str());
-        };
+        for (index, command) in self.filter_commands(commands).into_iter().enumerate() {
+            if index == 0 {
+                first = Some(command);
+            }
 
-        let index = index + 1;
-        self.index = Some(index);
+            let Some(i) = self.index else {
+                self.index = Some(index);
 
-        if let Some(command) = found_commands.get(index) {
-            return Some(command.as_str());
+                return Some(command);
+            };
+
+            if index == i + 1 {
+                self.index = Some(index);
+
+                return Some(command);
+            }
         }
 
-        self.index = Some(0);
-
-        if let Some(command) = found_commands.first() {
-            return Some(command.as_str());
+        if first.is_some() {
+            self.index = Some(0);
         }
 
-        self.index = None;
-
-        None
+        first
     }
 
     pub fn update_search_query(&mut self, value: &str) {
