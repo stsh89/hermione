@@ -2,10 +2,12 @@ use crate::{records::command::Record, Connection, ErrReport};
 use chrono::Utc;
 use hermione_core::{
     entities::command::{Entity, ScopedId},
-    operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
+    operations::workspaces::commands::{
+        create, delete, find, get, list, track_execution_time, update,
+    },
     Id, Result,
 };
-use rusqlite::params;
+use rusqlite::{params, OptionalExtension, Statement};
 use std::rc::Rc;
 use uuid::Uuid;
 
@@ -16,6 +18,24 @@ pub struct Client {
 impl Client {
     pub fn new(connection: Rc<Connection>) -> Self {
         Self { connection }
+    }
+
+    fn select_command(&self) -> Result<Statement> {
+        let statement = self
+            .connection
+            .prepare(
+                "SELECT
+                    id,
+                    last_execute_time,
+                    name,
+                    program,
+                    workspace_id
+                FROM commands
+                WHERE id = ?1 AND workspace_id = ?2",
+            )
+            .map_err(ErrReport::err_report)?;
+
+        Ok(statement)
     }
 }
 
@@ -70,25 +90,26 @@ impl delete::Delete for Client {
     }
 }
 
+impl find::Find for Client {
+    fn find(&self, id: ScopedId) -> Result<Option<Entity>> {
+        let ScopedId { workspace_id, id } = id;
+
+        let record = self
+            .select_command()?
+            .query_row([id.as_bytes(), workspace_id.as_bytes()], Record::from_row)
+            .optional()
+            .map_err(ErrReport::err_report)?;
+
+        Ok(record.map(Record::load_entity))
+    }
+}
+
 impl get::Get for Client {
     fn get(&self, id: ScopedId) -> Result<Entity> {
         let ScopedId { workspace_id, id } = id;
 
-        let mut statement = self
-            .connection
-            .prepare(
-                "SELECT
-                id,
-                last_execute_time,
-                name,
-                program,
-                workspace_id
-            FROM commands
-            WHERE id = ?1 AND workspace_id = ?2",
-            )
-            .map_err(ErrReport::err_report)?;
-
-        let record = statement
+        let record = self
+            .select_command()?
             .query_row([id.as_bytes(), workspace_id.as_bytes()], Record::from_row)
             .map_err(ErrReport::err_report)?;
 

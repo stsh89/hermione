@@ -4,13 +4,16 @@ use crate::{core, Connection, Result};
 use chrono::{DateTime, Utc};
 use hermione_core::{
     entities::command::{Entity, LoadParameters, Name, NewParameters, Program, ScopedId},
-    operations::workspaces::commands::{create, delete, get, list, track_execution_time, update},
+    operations::workspaces::commands::{
+        create, delete, find, get, list, track_execution_time, update,
+    },
     Id,
 };
 
 pub trait Operations {
     fn create(&self, data: Dto) -> Result<Dto>;
     fn delete(&self, workspace_id: &str, id: &str) -> Result<()>;
+    fn find(&self, workspace_id: &str, id: &str) -> Result<Option<Dto>>;
     fn get(&self, workspace_id: &str, id: &str) -> Result<Dto>;
     fn list(&self, parameters: ListParameters) -> Result<Vec<Dto>>;
     fn track_execution_time(&self, workspace_id: &str, command_id: &str) -> Result<Dto>;
@@ -38,12 +41,12 @@ pub struct ListParameters<'a> {
 
 impl Operations for Client {
     fn create(&self, data: Dto) -> Result<Dto> {
-        let workspace = create::Operation {
+        let command = create::Operation {
             creator: &self.inner,
         }
         .execute(data.new_entity()?)?;
 
-        Ok(Dto::from_entity(workspace))
+        Ok(Dto::from_entity(command))
     }
 
     fn delete(&self, workspace_id: &str, id: &str) -> Result<()> {
@@ -60,18 +63,32 @@ impl Operations for Client {
         Ok(())
     }
 
+    fn find(&self, workspace_id: &str, id: &str) -> Result<Option<Dto>> {
+        let id = ScopedId {
+            workspace_id: Id::from_str(workspace_id)?,
+            id: Id::from_str(id)?,
+        };
+
+        let command = find::Operation {
+            finder: &self.inner,
+        }
+        .execute(id)?;
+
+        Ok(command.map(Dto::from_entity))
+    }
+
     fn get(&self, workspace_id: &str, id: &str) -> Result<Dto> {
         let id = ScopedId {
             workspace_id: Id::from_str(workspace_id)?,
             id: Id::from_str(id)?,
         };
 
-        let workspace = get::Operation {
+        let command = get::Operation {
             getter: &self.inner,
         }
         .execute(id)?;
 
-        Ok(Dto::from_entity(workspace))
+        Ok(Dto::from_entity(command))
     }
 
     fn list(&self, parameters: ListParameters<'_>) -> Result<Vec<Dto>> {
@@ -82,7 +99,7 @@ impl Operations for Client {
             page_size,
         } = parameters;
 
-        let workspaces = list::Operation {
+        let commands = list::Operation {
             lister: &self.inner,
         }
         .execute(list::Parameters {
@@ -92,7 +109,7 @@ impl Operations for Client {
             workspace_id: Id::from_str(workspace_id)?,
         })?;
 
-        Ok(workspaces.into_iter().map(Dto::from_entity).collect())
+        Ok(commands.into_iter().map(Dto::from_entity).collect())
     }
 
     fn track_execution_time(&self, workspace_id: &str, id: &str) -> Result<Dto> {
@@ -113,12 +130,12 @@ impl Operations for Client {
     }
 
     fn update(&self, data: Dto) -> Result<Dto> {
-        let workspace = update::Operation {
+        let command = update::Operation {
             updater: &self.inner,
         }
         .execute(data.load_entity()?)?;
 
-        Ok(Dto::from_entity(workspace))
+        Ok(Dto::from_entity(command))
     }
 }
 

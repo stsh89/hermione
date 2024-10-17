@@ -4,10 +4,10 @@ use crate::{records::workspace::Record, Connection, ErrReport};
 use chrono::Utc;
 use hermione_core::{
     entities::workspace::Entity,
-    operations::workspaces::{create, delete, get, list, track_access_time, update},
+    operations::workspaces::{create, delete, find, get, list, track_access_time, update},
     Id, Result,
 };
-use rusqlite::params;
+use rusqlite::{params, OptionalExtension, Statement};
 use std::rc::Rc;
 use uuid::Uuid;
 
@@ -18,6 +18,23 @@ pub struct Client {
 impl Client {
     pub fn new(connection: Rc<Connection>) -> Self {
         Self { connection }
+    }
+
+    fn select_workspace(&self) -> Result<Statement> {
+        let statement = self
+            .connection
+            .prepare(
+                "SELECT
+                    id,
+                    last_access_time,
+                    location,
+                    name
+                FROM workspaces
+                WHERE id = ?1",
+            )
+            .map_err(ErrReport::err_report)?;
+
+        Ok(statement)
     }
 }
 
@@ -79,22 +96,22 @@ impl delete::Delete for Client {
     }
 }
 
-impl get::Get for Client {
-    fn get(&self, id: Id) -> Result<Entity> {
-        let mut statement = self
-            .connection
-            .prepare(
-                "SELECT
-                    id,
-                    last_access_time,
-                    location,
-                    name
-                FROM workspaces
-                WHERE id = ?1",
-            )
+impl find::Find for Client {
+    fn find(&self, id: Id) -> Result<Option<Entity>> {
+        let record = self
+            .select_workspace()?
+            .query_row([id.as_bytes()], Record::from_row)
+            .optional()
             .map_err(ErrReport::err_report)?;
 
-        let record = statement
+        Ok(record.map(Record::load_entity))
+    }
+}
+
+impl get::Get for Client {
+    fn get(&self, id: Id) -> Result<Entity> {
+        let record = self
+            .select_workspace()?
             .query_row([id.as_bytes()], Record::from_row)
             .map_err(ErrReport::err_report)?;
 
