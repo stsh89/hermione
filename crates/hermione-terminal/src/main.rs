@@ -4,7 +4,6 @@ mod coordinator;
 mod forms;
 mod handlers;
 mod layouts;
-mod logs;
 mod message;
 mod models;
 mod parameters;
@@ -20,6 +19,8 @@ use hermione_tui::app;
 use message::Message;
 use router::Router;
 use routes::Route;
+
+const LOGS_FILE_NAME: &str = "hermione.logs";
 
 type Error = anyhow::Error;
 type Model = dyn app::Model<Route = Route, Message = Message>;
@@ -40,7 +41,7 @@ fn main() -> Result<()> {
         return Ok(());
     };
 
-    logs::init(&app_path)?;
+    hermione_logs::init(&app_path.join(LOGS_FILE_NAME))?;
 
     hermione_tui::install_panic_hook();
     hermione_tui::run(router, model)?;

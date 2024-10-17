@@ -924,6 +924,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hermione-logs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "hermione-notion"
 version = "0.1.0"
 dependencies = [
@@ -953,6 +961,7 @@ dependencies = [
  "anyhow",
  "clap",
  "hermione-coordinator",
+ "hermione-logs",
  "hermione-notion",
  "hermione-terminal-directory",
  "serde",
@@ -972,6 +981,7 @@ dependencies = [
  "chrono",
  "eyre",
  "hermione-coordinator",
+ "hermione-logs",
  "hermione-powershell",
  "hermione-terminal-directory",
  "hermione-tui",

@@ -10,6 +10,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
+hermione-coordinator = { workspace = true }
+hermione-logs = { workspace = true }
 hermione-notion = { workspace = true }
 hermione-terminal-directory = { workspace = true }
-hermione-coordinator = { workspace = true }

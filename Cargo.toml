@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/hermione-coordinator",
     "crates/hermione-core",
+    "crates/hermione-logs",
     "crates/hermione-notion-serde",
     "crates/hermione-notion-sync",
     "crates/hermione-notion",
@@ -37,3 +38,4 @@ hermione-notion-sync = { path = "crates/hermione-notion-sync" }
 hermione-powershell = { path = "crates/hermione-powershell" }
 hermione-terminal-directory = { path = "crates/hermione-terminal-directory" }
 hermione-tui = { path = "crates/hermione-tui" }
+hermione-logs = { path = "crates/hermione-logs" }

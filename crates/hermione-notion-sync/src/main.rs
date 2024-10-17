@@ -2,9 +2,10 @@ mod commands;
 mod screen;
 mod settings;
 
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+const LOGS_FILE_NAME: &str = "hermione-notion-sync.logs";
 
 type Result<T> = anyhow::Result<T>;
 type Error = anyhow::Error;
@@ -28,6 +29,8 @@ enum Commands {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
     let directory_path = hermione_terminal_directory::path()?;
+
+    hermione_logs::init(&directory_path.join(LOGS_FILE_NAME))?;
 
     let result = match cli.command {
         Commands::CreateSettingsFile => create_settings_file(directory_path).await,

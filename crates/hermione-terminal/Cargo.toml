@@ -15,6 +15,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["json"] }
 
 hermione-coordinator = { workspace = true }
+hermione-logs = { workspace = true }
 hermione-powershell = { workspace = true }
 hermione-terminal-directory = { workspace = true }
 hermione-tui = { workspace = true }
