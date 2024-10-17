@@ -4,7 +4,7 @@ use crate::{core, Connection, Result};
 use chrono::{DateTime, Utc};
 use hermione_core::{
     entities::workspace::{Entity, LoadParameters, Location, Name, NewParameters},
-    operations::workspaces::{create, delete, find, get, list, track_access_time, update},
+    operations::workspaces::{create, delete, find, get, import, list, track_access_time, update},
     Id,
 };
 use std::{rc::Rc, str::FromStr};
@@ -14,6 +14,7 @@ pub trait Operations {
     fn delete(&self, id: &str) -> Result<()>;
     fn find(&self, id: &str) -> Result<Option<Dto>>;
     fn get(&self, id: &str) -> Result<Dto>;
+    fn import(&self, data: Dto) -> Result<Dto>;
     fn list(&self, parameters: ListParameters) -> Result<Vec<Dto>>;
     fn track_access_time(&self, id: &str) -> Result<Dto>;
     fn update(&self, data: Dto) -> Result<Dto>;
@@ -69,6 +70,15 @@ impl Operations for Client {
             getter: &self.inner,
         }
         .execute(Id::from_str(id)?)?;
+
+        Ok(Dto::from_entity(workspace))
+    }
+
+    fn import(&self, data: Dto) -> Result<Dto> {
+        let workspace = import::Operation {
+            importer: &self.inner,
+        }
+        .execute(data.new_entity())?;
 
         Ok(Dto::from_entity(workspace))
     }

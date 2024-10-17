@@ -3,7 +3,7 @@ use chrono::Utc;
 use hermione_core::{
     entities::command::{Entity, ScopedId},
     operations::workspaces::commands::{
-        create, delete, find, get, list, track_execution_time, update,
+        create, delete, find, get, import, list, track_execution_time, update,
     },
     Id, Result,
 };
@@ -18,6 +18,30 @@ pub struct Client {
 impl Client {
     pub fn new(connection: Rc<Connection>) -> Self {
         Self { connection }
+    }
+
+    fn insert(&self, record: Record) -> Result<()> {
+        self.connection
+            .prepare(
+                "INSERT INTO commands (
+                    id,
+                    last_execute_time,
+                    name,
+                    program,
+                    workspace_id
+                ) VALUES (?1, ?2, ?3, ?4, ?5)",
+            )
+            .map_err(ErrReport::err_report)?
+            .execute(params![
+                record.id,
+                record.last_execute_time,
+                record.name,
+                record.program,
+                record.workspace_id
+            ])
+            .map_err(ErrReport::err_report)?;
+
+        Ok(())
     }
 
     fn select_command(&self) -> Result<Statement> {
@@ -45,29 +69,7 @@ impl create::Create for Client {
         entity.set_id(Id::new(id))?;
 
         let record = Record::from_entity(&entity)?;
-
-        let mut statement = self
-            .connection
-            .prepare(
-                "INSERT INTO commands (
-                    id,
-                    last_execute_time,
-                    name,
-                    program,
-                    workspace_id
-                ) VALUES (?1, ?2, ?3, ?4, ?5)",
-            )
-            .map_err(ErrReport::err_report)?;
-
-        statement
-            .execute(params![
-                record.id,
-                record.last_execute_time,
-                record.name,
-                record.program,
-                record.workspace_id
-            ])
-            .map_err(ErrReport::err_report)?;
+        self.insert(record)?;
 
         Ok(entity)
     }
@@ -114,6 +116,16 @@ impl get::Get for Client {
             .map_err(ErrReport::err_report)?;
 
         Ok(Record::load_entity(record))
+    }
+}
+
+impl import::Import for Client {
+    fn import(&self, entity: Entity) -> Result<Entity> {
+        let record = Record::from_entity(&entity)?;
+
+        self.insert(record)?;
+
+        Ok(entity)
     }
 }
 

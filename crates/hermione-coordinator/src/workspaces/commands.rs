@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use hermione_core::{
     entities::command::{Entity, LoadParameters, Name, NewParameters, Program, ScopedId},
     operations::workspaces::commands::{
-        create, delete, find, get, list, track_execution_time, update,
+        create, delete, find, get, import, list, track_execution_time, update,
     },
     Id,
 };
@@ -15,6 +15,7 @@ pub trait Operations {
     fn delete(&self, workspace_id: &str, id: &str) -> Result<()>;
     fn find(&self, workspace_id: &str, id: &str) -> Result<Option<Dto>>;
     fn get(&self, workspace_id: &str, id: &str) -> Result<Dto>;
+    fn import(&self, data: Dto) -> Result<Dto>;
     fn list(&self, parameters: ListParameters) -> Result<Vec<Dto>>;
     fn track_execution_time(&self, workspace_id: &str, command_id: &str) -> Result<Dto>;
     fn update(&self, data: Dto) -> Result<Dto>;
@@ -87,6 +88,15 @@ impl Operations for Client {
             getter: &self.inner,
         }
         .execute(id)?;
+
+        Ok(Dto::from_entity(command))
+    }
+
+    fn import(&self, data: Dto) -> Result<Dto> {
+        let command = import::Operation {
+            importer: &self.inner,
+        }
+        .execute(data.new_entity()?)?;
 
         Ok(Dto::from_entity(command))
     }

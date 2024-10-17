@@ -4,7 +4,7 @@ use crate::{records::workspace::Record, Connection, ErrReport};
 use chrono::Utc;
 use hermione_core::{
     entities::workspace::Entity,
-    operations::workspaces::{create, delete, find, get, list, track_access_time, update},
+    operations::workspaces::{create, delete, find, get, import, list, track_access_time, update},
     Id, Result,
 };
 use rusqlite::{params, OptionalExtension, Statement};
@@ -18,6 +18,28 @@ pub struct Client {
 impl Client {
     pub fn new(connection: Rc<Connection>) -> Self {
         Self { connection }
+    }
+
+    fn insert(&self, record: Record) -> Result<()> {
+        self.connection
+            .prepare(
+                "INSERT INTO workspaces (
+                    id,
+                    last_access_time,
+                    location,
+                    name
+                ) VALUES (?1, ?2, ?3, ?4)",
+            )
+            .map_err(ErrReport::err_report)?
+            .execute(params![
+                record.id,
+                record.last_access_time,
+                record.location,
+                record.name
+            ])
+            .map_err(ErrReport::err_report)?;
+
+        Ok(())
     }
 
     fn select_workspace(&self) -> Result<Statement> {
@@ -45,26 +67,7 @@ impl create::Create for Client {
 
         let record = Record::from_entity(&entity)?;
 
-        let mut statement = self
-            .connection
-            .prepare(
-                "INSERT INTO workspaces (
-                    id,
-                    last_access_time,
-                    location,
-                    name
-                ) VALUES (?1, ?2, ?3, ?4)",
-            )
-            .map_err(ErrReport::err_report)?;
-
-        statement
-            .execute(params![
-                record.id,
-                record.last_access_time,
-                record.location,
-                record.name
-            ])
-            .map_err(ErrReport::err_report)?;
+        self.insert(record)?;
 
         Ok(entity)
     }
@@ -116,6 +119,16 @@ impl get::Get for Client {
             .map_err(ErrReport::err_report)?;
 
         Ok(Record::load_entity(record))
+    }
+}
+
+impl import::Import for Client {
+    fn import(&self, entity: Entity) -> Result<Entity> {
+        let record = Record::from_entity(&entity)?;
+
+        self.insert(record)?;
+
+        Ok(entity)
     }
 }
 
