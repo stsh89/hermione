@@ -17,8 +17,6 @@ impl<'a> Handler<'a> {
             page_size,
         } = parameters;
 
-        tracing::info!("Page {}", page_number);
-
         let workspaces = self.coordinator.workspaces().list(ListParameters {
             name_contains: &search_query,
             page_number,
