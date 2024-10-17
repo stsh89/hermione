@@ -9,7 +9,7 @@ name = "hermione_notion"
 [dependencies]
 eyre = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
@@ -19,3 +19,4 @@ tracing = { workspace = true }
 anyhow = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 httpmock = "0.7.0"
+hermione-notion-serde = { workspace = true }

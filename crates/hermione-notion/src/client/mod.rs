@@ -3,7 +3,8 @@ mod request_sender;
 
 use crate::{json::Json, Error, Result};
 use request_sender::RequestSender;
-use reqwest::{StatusCode, Url};
+use reqwest::{Response, StatusCode, Url};
+use serde::{de::DeserializeOwned, Deserialize};
 use std::time::Duration;
 
 const DATABASE_QUERY_PAGE_SIZE: u8 = 100;
@@ -40,6 +41,22 @@ pub struct QueryDatabaseParameters<'a> {
     pub filter: Option<Json>,
 }
 
+#[derive(Deserialize)]
+pub struct QueryDatabaseResponse<T> {
+    #[serde(rename(deserialize = "results"))]
+    pub database_pages: Vec<DatabasePage<T>>,
+
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct DatabasePage<T> {
+    #[serde(rename(deserialize = "id"))]
+    pub page_id: String,
+
+    pub properties: T,
+}
+
 impl Client {
     #[tracing::instrument(skip(self, properties))]
     pub async fn create_database_entry(&self, database_id: &str, properties: Json) -> Result<Json> {
@@ -58,12 +75,45 @@ impl Client {
         self.send(parameters).await
     }
 
+    async fn execute(&self, parameters: SendParameters<'_>) -> Result<Response> {
+        let SendParameters {
+            body,
+            uri,
+            api_key_override,
+            method,
+        } = parameters;
+
+        let api_key = api_key_override
+            .or(self.api_key.as_deref())
+            .ok_or_else(|| {
+                eyre::Error::new(Error::invalid_argument("Notion API key is not set"))
+            })?;
+
+        let url = self.url(uri)?;
+
+        let mut request_builder = self
+            .inner
+            .request(method.into(), url)
+            .headers(headers::authorization(api_key)?);
+
+        if let Some(body) = body {
+            request_builder = request_builder.json(&body);
+        }
+
+        let response = RequestSender::new(request_builder).send().await?;
+
+        Ok(response)
+    }
+
     #[tracing::instrument(skip(self, parameters))]
-    pub async fn query_database(
+    pub async fn query_database<T>(
         &self,
         database_id: &str,
         parameters: QueryDatabaseParameters<'_>,
-    ) -> Result<Json> {
+    ) -> Result<QueryDatabaseResponse<T>>
+    where
+        T: DeserializeOwned,
+    {
         let QueryDatabaseParameters {
             page_size,
             start_cursor,
@@ -91,7 +141,14 @@ impl Client {
             method: Method::post(),
         };
 
-        self.send(parameters).await
+        let response = self.execute(parameters).await?;
+
+        let database_query_result = response
+            .json::<QueryDatabaseResponse<T>>()
+            .await
+            .map_err(eyre::Error::new)?;
+
+        Ok(database_query_result)
     }
 
     pub fn new(parameters: NewClientParameters) -> Result<Self> {
@@ -119,31 +176,7 @@ impl Client {
 
     #[tracing::instrument(skip_all)]
     pub async fn send(&self, parameters: SendParameters<'_>) -> Result<Json> {
-        let SendParameters {
-            body,
-            uri,
-            api_key_override,
-            method,
-        } = parameters;
-
-        let api_key = api_key_override
-            .or(self.api_key.as_deref())
-            .ok_or_else(|| {
-                eyre::Error::new(Error::invalid_argument("Notion API key is not set"))
-            })?;
-
-        let url = self.url(uri)?;
-
-        let mut request_builder = self
-            .inner
-            .request(method.into(), url)
-            .headers(headers::authorization(api_key)?);
-
-        if let Some(body) = body {
-            request_builder = request_builder.json(&body);
-        }
-
-        let response = RequestSender::new(request_builder).send().await?;
+        let response = self.execute(parameters).await?;
         let status = response.status();
 
         if let StatusCode::OK = status {

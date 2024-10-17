@@ -937,6 +937,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "eyre",
+ "hermione-notion-serde",
  "httpmock",
  "reqwest",
  "serde",
@@ -963,6 +964,7 @@ dependencies = [
  "hermione-coordinator",
  "hermione-logs",
  "hermione-notion",
+ "hermione-notion-serde",
  "hermione-terminal-directory",
  "serde",
  "serde_json",

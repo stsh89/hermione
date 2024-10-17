@@ -1,36 +1,16 @@
 use anyhow::Result;
-use hermione_notion::{
-    json::Json, Client, Method, NewClientParameters, QueryDatabaseParameters, SendParameters,
-};
+use hermione_notion::{json::Json, Client, Method, NewClientParameters, SendParameters};
 use serde::Deserialize;
-use std::{fs, time::Duration};
+use std::{
+    fs::{self, File},
+    time::Duration,
+};
 
 #[derive(Deserialize)]
 struct Settings {
     api_key: String,
     timeout_secs: u64,
     base_url_override: Option<String>,
-    action: Action,
-}
-
-#[derive(Deserialize)]
-enum Action {
-    #[serde(rename = "query_database")]
-    QueryDatabase(QueryDatabaseAction),
-
-    #[serde(rename = "post")]
-    Post(PostAction),
-}
-
-#[derive(Deserialize)]
-struct QueryDatabaseAction {
-    database_id: String,
-    page_size: u8,
-    start_cursor: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct PostAction {
     uri: String,
 }
 
@@ -39,13 +19,14 @@ async fn main() -> Result<()> {
     let dir = std::env::var("CARGO_MANIFEST_DIR")?;
     let settings_path = format!("{dir}/settings.json");
     let output_path = format!("{dir}/output.json");
+    let body = File::open(format!("{dir}/body.json"))?;
 
     let file = fs::File::open(settings_path)?;
 
     let Settings {
         api_key,
         timeout_secs,
-        action,
+        uri,
         base_url_override,
     } = serde_json::from_reader(file)?;
 
@@ -55,39 +36,15 @@ async fn main() -> Result<()> {
         base_url_override,
     })?;
 
-    let output = match action {
-        Action::QueryDatabase(action) => query_database(client, action).await?,
-        Action::Post(action) => post(client, action).await?,
-    };
+    let output = post(client, &uri, body).await?;
 
     write_output(&output_path, &output)?;
 
     Ok(())
 }
 
-async fn query_database(client: Client, action: QueryDatabaseAction) -> Result<Json> {
-    let QueryDatabaseAction {
-        database_id,
-        page_size,
-        start_cursor,
-    } = action;
-
-    let parameters = QueryDatabaseParameters {
-        page_size,
-        start_cursor: start_cursor.as_deref(),
-        filter: None,
-    };
-
-    let output = client.query_database(&database_id, parameters).await?;
-
-    Ok(output)
-}
-
-async fn post(client: Client, action: PostAction) -> Result<Json> {
-    let PostAction { uri } = action;
-
-    let file = fs::File::open("body.json")?;
-    let body: Json = serde_json::from_reader(file)?;
+async fn post(client: Client, uri: &str, file: File) -> Result<Json> {
+    let body: Json = serde_json::from_reader(&file)?;
 
     let parameters = SendParameters {
         api_key_override: None,

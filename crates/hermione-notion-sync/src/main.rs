@@ -1,4 +1,5 @@
 mod commands;
+mod notion;
 mod screen;
 mod settings;
 mod statistics;
@@ -25,6 +26,7 @@ enum Commands {
     Export,
     Import,
     ShowSettingsFile,
+    VerifySettingsFile,
 }
 
 #[tokio::main]
@@ -40,6 +42,7 @@ async fn main() -> Result<()> {
         Commands::Export => export(directory_path).await,
         Commands::ShowSettingsFile => show_settings_file(directory_path),
         Commands::Import => import(directory_path).await,
+        Commands::VerifySettingsFile => verify_settings_file(directory_path).await,
     };
 
     if let Err(error) = result {
@@ -73,4 +76,10 @@ async fn import(directory_path: PathBuf) -> Result<()> {
 
 fn show_settings_file(directory_path: PathBuf) -> Result<()> {
     commands::show_settings_file::Command::new(directory_path).execute()
+}
+
+async fn verify_settings_file(directory_path: PathBuf) -> Result<()> {
+    commands::verify_settings_file::Command::new(directory_path)
+        .execute()
+        .await
 }

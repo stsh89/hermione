@@ -1,4 +1,7 @@
-use crate::{Error, Result};
+use crate::{
+    notion::{Command, Workspace},
+    Error, Result,
+};
 use hermione_notion::{Client, NewClientParameters, QueryDatabaseParameters};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -68,7 +71,7 @@ impl Settings {
         })?;
 
         client
-            .query_database(
+            .query_database::<Workspace>(
                 self.workspaces_page_id(),
                 QueryDatabaseParameters {
                     page_size: 1,
@@ -78,7 +81,7 @@ impl Settings {
             .await?;
 
         client
-            .query_database(
+            .query_database::<Command>(
                 self.commands_page_id(),
                 QueryDatabaseParameters {
                     page_size: 1,

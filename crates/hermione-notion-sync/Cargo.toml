@@ -13,4 +13,5 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 hermione-coordinator = { workspace = true }
 hermione-logs = { workspace = true }
 hermione-notion = { workspace = true }
+hermione-notion-serde = { workspace = true }
 hermione-terminal-directory = { workspace = true }

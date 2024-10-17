@@ -1,5 +1,5 @@
 use crate::{
-    screen,
+    notion, screen,
     settings::Settings,
     statistics::{Action, Statistics},
     Result,
@@ -9,10 +9,7 @@ use hermione_coordinator::{
     workspaces::{self, Operations as _},
     Connection,
 };
-use hermione_notion::{
-    json::{Json, PageId, RichText, Title},
-    QueryDatabaseParameters,
-};
+use hermione_notion::{DatabasePage, QueryDatabaseParameters, QueryDatabaseResponse};
 use serde::Serialize;
 use std::{path::PathBuf, rc::Rc};
 
@@ -49,22 +46,6 @@ struct RichTextFilter {
 #[derive(Serialize)]
 struct RichTextEqualsFilter {
     equals: String,
-}
-
-#[derive(Debug)]
-struct NotionWorkspace {
-    external_id: String,
-    location: String,
-    name: String,
-    id: String,
-}
-
-#[derive(Debug)]
-struct NotionCommand {
-    external_id: String,
-    id: String,
-    name: String,
-    program: String,
 }
 
 impl Command {
@@ -205,7 +186,10 @@ impl Command {
         })
     }
 
-    async fn remote_commands(&self, commands: &[commands::Dto]) -> Result<Vec<NotionCommand>> {
+    async fn remote_commands(
+        &self,
+        commands: &[commands::Dto],
+    ) -> Result<QueryDatabaseResponse<notion::Command>> {
         let filters: Vec<RichTextFilter> = commands
             .iter()
             .map(|commands| RichTextFilter {
@@ -220,7 +204,7 @@ impl Command {
             "or": serde_json::json!(filters),
         });
 
-        let json = self
+        let query_database_response = self
             .notion_client
             .query_database(
                 self.settings.commands_page_id(),
@@ -232,21 +216,13 @@ impl Command {
             )
             .await?;
 
-        let results = json["results"].as_array();
-
-        let Some(results) = results else {
-            return Ok(Vec::new());
-        };
-
-        let commands = results.iter().map(Into::into).collect();
-
-        Ok(commands)
+        Ok(query_database_response)
     }
 
     async fn remote_workspaces(
         &self,
         workspaces: &[workspaces::Dto],
-    ) -> Result<Vec<NotionWorkspace>> {
+    ) -> Result<QueryDatabaseResponse<notion::Workspace>> {
         let filters: Vec<RichTextFilter> = workspaces
             .iter()
             .map(|workspace| RichTextFilter {
@@ -261,7 +237,7 @@ impl Command {
             "or": serde_json::json!(filters),
         });
 
-        let json = self
+        let query_database_response = self
             .notion_client
             .query_database(
                 self.settings.workspaces_page_id(),
@@ -273,37 +249,29 @@ impl Command {
             )
             .await?;
 
-        let results = json["results"].as_array();
-
-        let Some(results) = results else {
-            return Ok(Vec::new());
-        };
-
-        let workspaces = results.iter().map(Into::into).collect();
-
-        Ok(workspaces)
+        Ok(query_database_response)
     }
 
     async fn export_commands_batch(&mut self, local_commands: Vec<commands::Dto>) -> Result<()> {
-        let remote_commands = self.remote_commands(&local_commands).await?;
+        let query_database_response = self.remote_commands(&local_commands).await?;
 
         for local_command in local_commands {
             screen::clear_and_reset_cursor();
             screen::print("Exporting commands to Notion...");
 
-            let remote_command = remote_commands
+            let page = query_database_response
+                .database_pages
                 .iter()
-                .find(|remote_command| remote_command.external_id == local_command.id);
+                .find(|page| page.properties.external_id == local_command.id);
 
-            let Some(remote_command) = remote_command else {
+            let Some(page) = page else {
                 self.create_remote_command(local_command).await?;
 
                 continue;
             };
 
-            if !self.verify_remote_command(&local_command, remote_command) {
-                self.update_remote_command(local_command, remote_command)
-                    .await?;
+            if !self.verify_remote_command(&local_command, &page.properties) {
+                self.update_remote_command(local_command, page).await?;
             }
 
             screen::print(&format!(
@@ -325,19 +293,19 @@ impl Command {
             screen::clear_and_reset_cursor();
             screen::print("Exporting workspaces to Notion...");
 
-            let remote_workspace = remote_workspaces
+            let page = remote_workspaces
+                .database_pages
                 .iter()
-                .find(|remote_workspace| remote_workspace.external_id == local_workspace.id);
+                .find(|page| page.properties.external_id == local_workspace.id);
 
-            let Some(remote_workspace) = remote_workspace else {
+            let Some(page) = page else {
                 self.create_remote_workspace(local_workspace).await?;
 
                 continue;
             };
 
-            if !self.verify_remote_workspace(&local_workspace, remote_workspace) {
-                self.update_remote_workspace(local_workspace, remote_workspace)
-                    .await?;
+            if !self.verify_remote_workspace(&local_workspace, &page.properties) {
+                self.update_remote_workspace(local_workspace, page).await?;
             }
 
             screen::print(&format!(
@@ -352,11 +320,11 @@ impl Command {
     async fn update_remote_command(
         &mut self,
         local_command: commands::Dto,
-        remote_command: &NotionCommand,
+        database_page: &DatabasePage<notion::Command>,
     ) -> Result<()> {
         self.notion_client
             .update_database_entry(
-                &remote_command.id,
+                &database_page.page_id,
                 serde_json::json!({
                     "Name": {"title": [{"text": {"content": local_command.name}}]},
                     "Program": {"rich_text": [{"text": {"content": local_command.program}}]}
@@ -372,11 +340,11 @@ impl Command {
     async fn update_remote_workspace(
         &mut self,
         local_workspace: workspaces::Dto,
-        remote_workspace: &NotionWorkspace,
+        database_page: &DatabasePage<notion::Workspace>,
     ) -> Result<()> {
         self.notion_client
             .update_database_entry(
-                &remote_workspace.id,
+                &database_page.page_id,
                 serde_json::json!({
                     "Name": {"title": [{"text": {"content": local_workspace.name}}]},
                     "Location": {"rich_text": [{"text": {"content": local_workspace.location}}]}
@@ -392,7 +360,7 @@ impl Command {
     fn verify_remote_command(
         &mut self,
         local_command: &commands::Dto,
-        remote_command: &NotionCommand,
+        remote_command: &notion::Command,
     ) -> bool {
         let verified = remote_command == local_command;
 
@@ -406,7 +374,7 @@ impl Command {
     fn verify_remote_workspace(
         &mut self,
         local_workspace: &workspaces::Dto,
-        remote_workspace: &NotionWorkspace,
+        remote_workspace: &notion::Workspace,
     ) -> bool {
         let verified = remote_workspace == local_workspace;
 
@@ -415,39 +383,5 @@ impl Command {
         }
 
         verified
-    }
-}
-
-impl From<&Json> for NotionWorkspace {
-    fn from(json: &Json) -> Self {
-        NotionWorkspace {
-            id: json.id().into(),
-            external_id: json.rich_text("External ID").into(),
-            location: json.rich_text("Location").into(),
-            name: json.title().into(),
-        }
-    }
-}
-
-impl From<&Json> for NotionCommand {
-    fn from(json: &Json) -> Self {
-        NotionCommand {
-            id: json.id().into(),
-            external_id: json.rich_text("External ID").into(),
-            program: json.rich_text("Program").into(),
-            name: json.title().into(),
-        }
-    }
-}
-
-impl PartialEq<workspaces::Dto> for NotionWorkspace {
-    fn eq(&self, other: &workspaces::Dto) -> bool {
-        self.name == other.name && self.location == other.location.as_deref().unwrap_or_default()
-    }
-}
-
-impl PartialEq<commands::Dto> for NotionCommand {
-    fn eq(&self, other: &commands::Dto) -> bool {
-        self.name == other.name && self.program == other.program
     }
 }

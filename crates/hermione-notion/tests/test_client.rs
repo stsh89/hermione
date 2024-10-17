@@ -1,9 +1,26 @@
 use hermione_notion::{
     Client, Method, NewClientParameters, QueryDatabaseParameters, SendParameters,
 };
+use hermione_notion_serde::de;
 use httpmock::prelude::*;
+use serde::Deserialize;
 
 type Result<T> = eyre::Result<T>;
+
+#[derive(Deserialize)]
+struct Product {
+    #[serde(
+        rename(deserialize = "Name"),
+        deserialize_with = "de::title::deserializer"
+    )]
+    name: String,
+
+    #[serde(
+        rename(deserialize = "Description"),
+        deserialize_with = "de::rich_text::deserializer"
+    )]
+    description: String,
+}
 
 #[tokio::test]
 async fn it_makes_custom_post_request() -> Result<()> {
@@ -21,6 +38,7 @@ async fn it_makes_custom_post_request() -> Result<()> {
         api_key: Some("".to_string()),
         ..Default::default()
     })?;
+
     let parameters = SendParameters {
         api_key_override: None,
         body: None,
@@ -53,7 +71,7 @@ async fn it_queries_database() -> Result<()> {
     })?;
 
     let parameters = QueryDatabaseParameters::default();
-    client.query_database("1111", parameters).await?;
+    client.query_database::<Product>("1111", parameters).await?;
 
     mock.assert_async().await;
 

@@ -1,5 +1,5 @@
 use crate::{
-    screen,
+    notion, screen,
     settings::Settings,
     statistics::{Action, Statistics},
     Result,
@@ -12,14 +12,11 @@ use hermione_coordinator::{
     },
     Connection,
 };
-use hermione_notion::{
-    json::{Json, PageId, RichText, Title},
-    QueryDatabaseParameters,
-};
+use hermione_notion::{DatabasePage, QueryDatabaseParameters, QueryDatabaseResponse};
 use serde::Serialize;
 use std::{path::PathBuf, rc::Rc};
 
-const PAGE_SIZE: u8 = 1;
+const PAGE_SIZE: u8 = 100;
 
 pub struct Command {
     settings: Settings,
@@ -43,46 +40,17 @@ struct Summary {
     updated: u32,
 }
 
-#[derive(Debug)]
-struct NotionWorkspace {
-    external_id: String,
-    location: String,
-    name: String,
-    id: String,
-}
-
-#[derive(Debug)]
-struct NotionCommand {
-    external_id: String,
-    id: String,
-    name: String,
-    program: String,
-    workspace_id: String,
-}
-
 impl Command {
-    async fn create_local_command(&mut self, remote_command: NotionCommand) -> Result<()> {
-        self.commands_coordinator.import(commands::Dto {
-            id: remote_command.external_id,
-            last_execute_time: None,
-            name: remote_command.name,
-            program: remote_command.program,
-            workspace_id: remote_command.workspace_id,
-        })?;
-
+    async fn create_local_command(&mut self, remote_command: notion::Command) -> Result<()> {
+        self.commands_coordinator.import(remote_command.into())?;
         self.commands_statistics.track_action(Action::Create);
 
         Ok(())
     }
 
-    async fn create_local_workspace(&mut self, remote_workspace: NotionWorkspace) -> Result<()> {
-        self.workspaces_coordinator.import(workspaces::Dto {
-            id: remote_workspace.external_id,
-            last_access_time: None,
-            location: Some(remote_workspace.location),
-            name: remote_workspace.name,
-        })?;
-
+    async fn create_local_workspace(&mut self, remote_workspace: notion::Workspace) -> Result<()> {
+        self.workspaces_coordinator
+            .import(remote_workspace.into())?;
         self.workspaces_statistics.track_action(Action::Create);
 
         Ok(())
@@ -116,28 +84,34 @@ impl Command {
     }
 
     async fn import_commands(&mut self) -> Result<()> {
-        let (mut remote_commands, mut pagination_token) = self.remote_commands(None).await?;
-        self.import_commands_batch(remote_commands).await?;
+        let mut query_database_response = self.remote_commands(None).await?;
+        self.import_commands_batch(query_database_response.database_pages)
+            .await?;
 
-        while pagination_token.is_some() {
-            (remote_commands, pagination_token) =
-                self.remote_commands(pagination_token.as_deref()).await?;
+        while query_database_response.next_cursor.is_some() {
+            query_database_response = self
+                .remote_commands(query_database_response.next_cursor.as_deref())
+                .await?;
 
-            self.import_commands_batch(remote_commands).await?;
+            self.import_commands_batch(query_database_response.database_pages)
+                .await?;
         }
 
         Ok(())
     }
 
     async fn import_workspaces(&mut self) -> Result<()> {
-        let (mut remote_workspaces, mut pagination_token) = self.remote_workspaces(None).await?;
-        self.import_workspaces_batch(remote_workspaces).await?;
+        let mut query_database_response = self.remote_workspaces(None).await?;
+        self.import_workspaces_batch(query_database_response.database_pages)
+            .await?;
 
-        while pagination_token.is_some() {
-            (remote_workspaces, pagination_token) =
-                self.remote_workspaces(pagination_token.as_deref()).await?;
+        while query_database_response.next_cursor.is_some() {
+            query_database_response = self
+                .remote_workspaces(query_database_response.next_cursor.as_deref())
+                .await?;
 
-            self.import_workspaces_batch(remote_workspaces).await?;
+            self.import_workspaces_batch(query_database_response.database_pages)
+                .await?;
         }
 
         Ok(())
@@ -145,58 +119,40 @@ impl Command {
 
     async fn remote_commands(
         &self,
-        pagination_token: Option<&str>,
-    ) -> Result<(Vec<NotionCommand>, Option<String>)> {
-        let json = self
+        start_cursor: Option<&str>,
+    ) -> Result<QueryDatabaseResponse<notion::Command>> {
+        let query_database_response = self
             .notion_client
             .query_database(
                 self.settings.commands_page_id(),
                 QueryDatabaseParameters {
                     page_size: PAGE_SIZE,
-                    start_cursor: pagination_token.as_deref(),
+                    start_cursor,
                     ..Default::default()
                 },
             )
             .await?;
 
-        let pagination_token = json["next_cursor"].as_str().map(Into::into);
-        let results = json["results"].as_array();
-
-        let Some(results) = results else {
-            return Ok((Vec::new(), None));
-        };
-
-        let commands = results.iter().map(Into::into).collect();
-
-        Ok((commands, pagination_token))
+        Ok(query_database_response)
     }
 
     async fn remote_workspaces(
         &self,
-        pagination_token: Option<&str>,
-    ) -> Result<(Vec<NotionWorkspace>, Option<String>)> {
-        let json = self
+        start_cursor: Option<&str>,
+    ) -> Result<QueryDatabaseResponse<notion::Workspace>> {
+        let query_database_response = self
             .notion_client
             .query_database(
                 self.settings.workspaces_page_id(),
                 QueryDatabaseParameters {
                     page_size: PAGE_SIZE,
-                    start_cursor: pagination_token.as_deref(),
+                    start_cursor,
                     ..Default::default()
                 },
             )
             .await?;
 
-        let pagination_token = json["next_cursor"].as_str().map(Into::into);
-        let results = json["results"].as_array();
-
-        let Some(results) = results else {
-            return Ok((Vec::new(), None));
-        };
-
-        let commands = results.iter().map(Into::into).collect();
-
-        Ok((commands, pagination_token))
+        Ok(query_database_response)
     }
 
     pub fn new(directory_path: PathBuf) -> Result<Self> {
@@ -221,8 +177,16 @@ impl Command {
         })
     }
 
-    async fn import_commands_batch(&mut self, remote_commands: Vec<NotionCommand>) -> Result<()> {
-        for remote_command in remote_commands {
+    async fn import_commands_batch(
+        &mut self,
+        pages: Vec<DatabasePage<notion::Command>>,
+    ) -> Result<()> {
+        for page in pages {
+            let DatabasePage {
+                page_id: _,
+                properties: remote_command,
+            } = page;
+
             screen::clear_and_reset_cursor();
             screen::print("Importing commands from Notion...");
 
@@ -251,9 +215,14 @@ impl Command {
 
     async fn import_workspaces_batch(
         &mut self,
-        remote_workspaces: Vec<NotionWorkspace>,
+        pages: Vec<DatabasePage<notion::Workspace>>,
     ) -> Result<()> {
-        for remote_workspace in remote_workspaces {
+        for page in pages {
+            let DatabasePage {
+                page_id: _,
+                properties: remote_workspace,
+            } = page;
+
             screen::clear_and_reset_cursor();
             screen::print("Importing workspaces from Notion...");
 
@@ -280,28 +249,16 @@ impl Command {
         Ok(())
     }
 
-    async fn update_local_command(&mut self, remote_command: NotionCommand) -> Result<()> {
-        self.commands_coordinator.update(commands::Dto {
-            id: remote_command.external_id,
-            last_execute_time: None,
-            name: remote_command.name,
-            program: remote_command.program,
-            workspace_id: remote_command.workspace_id,
-        })?;
-
+    async fn update_local_command(&mut self, remote_command: notion::Command) -> Result<()> {
+        self.commands_coordinator.update(remote_command.into())?;
         self.commands_statistics.track_action(Action::Update);
 
         Ok(())
     }
 
-    async fn update_local_workspace(&mut self, remote_workspace: NotionWorkspace) -> Result<()> {
-        self.workspaces_coordinator.update(workspaces::Dto {
-            id: remote_workspace.external_id,
-            last_access_time: None,
-            location: Some(remote_workspace.location),
-            name: remote_workspace.name,
-        })?;
-
+    async fn update_local_workspace(&mut self, remote_workspace: notion::Workspace) -> Result<()> {
+        self.workspaces_coordinator
+            .update(remote_workspace.into())?;
         self.workspaces_statistics.track_action(Action::Update);
 
         Ok(())
@@ -309,7 +266,7 @@ impl Command {
 
     fn verify_local_command(
         &mut self,
-        remote_command: &NotionCommand,
+        remote_command: &notion::Command,
         local_command: &commands::Dto,
     ) -> bool {
         let verified = remote_command == local_command;
@@ -323,7 +280,7 @@ impl Command {
 
     fn verify_local_workspace(
         &mut self,
-        remote_workspace: &NotionWorkspace,
+        remote_workspace: &notion::Workspace,
         local_workspace: &workspaces::Dto,
     ) -> bool {
         let verified = remote_workspace == local_workspace;
@@ -333,40 +290,5 @@ impl Command {
         }
 
         verified
-    }
-}
-
-impl From<&Json> for NotionWorkspace {
-    fn from(json: &Json) -> Self {
-        NotionWorkspace {
-            id: json.id().into(),
-            external_id: json.rich_text("External ID").into(),
-            location: json.rich_text("Location").into(),
-            name: json.title().into(),
-        }
-    }
-}
-
-impl From<&Json> for NotionCommand {
-    fn from(json: &Json) -> Self {
-        NotionCommand {
-            id: json.id().into(),
-            external_id: json.rich_text("External ID").into(),
-            program: json.rich_text("Program").into(),
-            name: json.title().into(),
-            workspace_id: json.rich_text("Workspace ID").into(),
-        }
-    }
-}
-
-impl PartialEq<workspaces::Dto> for NotionWorkspace {
-    fn eq(&self, other: &workspaces::Dto) -> bool {
-        self.name == other.name && self.location == other.location.as_deref().unwrap_or_default()
-    }
-}
-
-impl PartialEq<commands::Dto> for NotionCommand {
-    fn eq(&self, other: &commands::Dto) -> bool {
-        self.name == other.name && self.program == other.program
     }
 }
