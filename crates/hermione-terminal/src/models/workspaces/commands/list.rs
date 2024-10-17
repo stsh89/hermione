@@ -339,9 +339,13 @@ impl Model {
     }
 
     fn submit(&mut self) -> Result<()> {
-        let Some(command) = self.smart_input.command() else {
+        if self.smart_input.search().is_some() {
             self.smart_input.reset_input();
 
+            return Ok(());
+        }
+
+        let Some(command) = self.smart_input.command() else {
             return Ok(());
         };
 
