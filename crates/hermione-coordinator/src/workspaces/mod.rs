@@ -78,7 +78,7 @@ impl Operations for Client {
         let workspace = import::Operation {
             importer: &self.inner,
         }
-        .execute(data.new_entity())?;
+        .execute(data.load_entity()?)?;
 
         Ok(Dto::from_entity(workspace))
     }

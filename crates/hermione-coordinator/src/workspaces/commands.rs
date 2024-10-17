@@ -96,7 +96,7 @@ impl Operations for Client {
         let command = import::Operation {
             importer: &self.inner,
         }
-        .execute(data.new_entity()?)?;
+        .execute(data.load_entity()?)?;
 
         Ok(Dto::from_entity(command))
     }

@@ -238,9 +238,9 @@ impl Command {
             return Ok(Vec::new());
         };
 
-        let workspaces = results.iter().map(Into::into).collect();
+        let commands = results.iter().map(Into::into).collect();
 
-        Ok(workspaces)
+        Ok(commands)
     }
 
     async fn remote_workspaces(

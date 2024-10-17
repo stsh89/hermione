@@ -23,6 +23,7 @@ enum Commands {
     CreateSettingsFile,
     DeleteSettingsFile,
     Export,
+    Import,
     ShowSettingsFile,
 }
 
@@ -38,6 +39,7 @@ async fn main() -> Result<()> {
         Commands::DeleteSettingsFile => delete_settings_file(directory_path),
         Commands::Export => export(directory_path).await,
         Commands::ShowSettingsFile => show_settings_file(directory_path),
+        Commands::Import => import(directory_path).await,
     };
 
     if let Err(error) = result {
@@ -59,6 +61,12 @@ fn delete_settings_file(directory_path: PathBuf) -> Result<()> {
 
 async fn export(directory_path: PathBuf) -> Result<()> {
     commands::export::Command::new(directory_path)?
+        .execute()
+        .await
+}
+
+async fn import(directory_path: PathBuf) -> Result<()> {
+    commands::import::Command::new(directory_path)?
         .execute()
         .await
 }
