@@ -1,4 +1,9 @@
-use crate::{screen, settings::Settings, Result};
+use crate::{
+    screen,
+    settings::Settings,
+    statistics::{Action, Statistics},
+    Result,
+};
 use hermione_coordinator::{
     commands::{self, Operations as _},
     workspaces::{self, Operations as _},
@@ -18,14 +23,21 @@ pub struct Command {
     notion_client: hermione_notion::Client,
     workspaces_coordinator: workspaces::Client,
     commands_coordinator: commands::Client,
-    total_workspaces: u32,
-    created_workspaces: u32,
-    updated_workspaces: u32,
-    exported_workspaces: u32,
-    total_commands: u32,
-    created_commands: u32,
-    updated_commands: u32,
-    exported_commands: u32,
+    workspaces_statistics: Statistics,
+    commands_statistics: Statistics,
+}
+
+#[derive(Serialize)]
+struct StatisticsSummary {
+    commands: Summary,
+    workspaces: Summary,
+}
+
+#[derive(Serialize)]
+struct Summary {
+    created: u32,
+    total: u32,
+    updated: u32,
 }
 
 #[derive(Serialize)]
@@ -69,7 +81,8 @@ impl Command {
             )
             .await?;
 
-        self.created_commands += 1;
+        self.commands_statistics.track_action(Action::Create);
+
         Ok(())
     }
 
@@ -85,7 +98,8 @@ impl Command {
             )
             .await?;
 
-        self.created_workspaces += 1;
+        self.workspaces_statistics.track_action(Action::Create);
+
         Ok(())
     }
 
@@ -94,20 +108,26 @@ impl Command {
         self.export_commands().await?;
 
         screen::clear_and_reset_cursor();
-
-        screen::print("Workspaces export summary:");
-        screen::print(&format!("Total workspaces: {}", self.total_workspaces));
-        screen::print(&format!("Created workspaces: {}", self.created_workspaces));
-        screen::print(&format!("Updated workspaces: {}", self.updated_workspaces));
-
-        screen::print("");
-
-        screen::print("Commands export summary:");
-        screen::print(&format!("Total commands: {}", self.total_commands));
-        screen::print(&format!("Created commands: {}", self.created_commands));
-        screen::print(&format!("Updated commands: {}", self.updated_commands));
+        self.print_statistics_summary();
 
         Ok(())
+    }
+
+    fn print_statistics_summary(&self) {
+        let summary = StatisticsSummary {
+            workspaces: Summary {
+                created: self.workspaces_statistics.counter(Action::Create),
+                total: self.workspaces_statistics.total(),
+                updated: self.workspaces_statistics.counter(Action::Update),
+            },
+            commands: Summary {
+                created: self.commands_statistics.counter(Action::Create),
+                total: self.commands_statistics.total(),
+                updated: self.commands_statistics.counter(Action::Update),
+            },
+        };
+
+        screen::print(&serde_json::to_string_pretty(&summary).unwrap_or_default());
     }
 
     async fn export_commands(&mut self) -> Result<()> {
@@ -115,14 +135,12 @@ impl Command {
 
         loop {
             let local_commands = self.local_commands(page_number)?;
-            self.total_commands += local_commands.len() as u32;
 
             if local_commands.is_empty() {
                 return Ok(());
             }
 
-            let remote_commands = self.remote_commands(&local_commands).await?;
-            self.sync_commands(local_commands, remote_commands).await?;
+            self.export_commands_batch(local_commands).await?;
 
             page_number += 1;
         }
@@ -133,15 +151,12 @@ impl Command {
 
         loop {
             let local_workspaces = self.local_workspaces(page_number)?;
-            self.total_workspaces += local_workspaces.len() as u32;
 
             if local_workspaces.is_empty() {
                 return Ok(());
             }
 
-            let remote_workspaces = self.remote_workspaces(&local_workspaces).await?;
-            self.sync_workspaces(local_workspaces, remote_workspaces)
-                .await?;
+            self.export_workspaces_batch(local_workspaces).await?;
 
             page_number += 1;
         }
@@ -177,23 +192,16 @@ impl Command {
         })?;
 
         let connection = Rc::new(Connection::open(&directory_path)?);
-
         let workspaces_coordinator = workspaces::Client::new(connection.clone());
         let commands_coordinator = commands::Client::new(connection);
 
         Ok(Self {
-            settings,
-            notion_client,
             commands_coordinator,
+            commands_statistics: Statistics::default(),
+            notion_client,
+            settings,
             workspaces_coordinator,
-            total_workspaces: 0,
-            created_workspaces: 0,
-            updated_workspaces: 0,
-            exported_workspaces: 0,
-            total_commands: 0,
-            created_commands: 0,
-            updated_commands: 0,
-            exported_commands: 0,
+            workspaces_statistics: Statistics::default(),
         })
     }
 
@@ -276,67 +284,66 @@ impl Command {
         Ok(workspaces)
     }
 
-    async fn sync_commands(
-        &mut self,
-        local_commands: Vec<commands::Dto>,
-        remote_commands: Vec<NotionCommand>,
-    ) -> Result<()> {
-        for local_command in local_commands {
-            self.exported_commands += 1;
+    async fn export_commands_batch(&mut self, local_commands: Vec<commands::Dto>) -> Result<()> {
+        let remote_commands = self.remote_commands(&local_commands).await?;
 
+        for local_command in local_commands {
             screen::clear_and_reset_cursor();
-            screen::print(&format!(
-                "Syncing {}/{} commands...",
-                self.exported_commands, self.total_commands,
-            ));
+            screen::print("Exporting commands to Notion...");
 
             let remote_command = remote_commands
                 .iter()
                 .find(|remote_command| remote_command.external_id == local_command.id);
 
-            if let Some(remote_command) = remote_command {
-                if remote_command == &local_command {
-                    continue;
-                }
+            let Some(remote_command) = remote_command else {
+                self.create_remote_command(local_command).await?;
 
+                continue;
+            };
+
+            if !self.verify_remote_command(&local_command, remote_command) {
                 self.update_remote_command(local_command, remote_command)
                     .await?;
-            } else {
-                self.create_remote_command(local_command).await?;
             }
+
+            screen::print(&format!(
+                "Exported {} commands...",
+                self.commands_statistics.total()
+            ));
         }
 
         Ok(())
     }
 
-    async fn sync_workspaces(
+    async fn export_workspaces_batch(
         &mut self,
         local_workspaces: Vec<workspaces::Dto>,
-        remote_workspaces: Vec<NotionWorkspace>,
     ) -> Result<()> {
-        for local_workspace in local_workspaces {
-            self.exported_workspaces += 1;
+        let remote_workspaces = self.remote_workspaces(&local_workspaces).await?;
 
+        for local_workspace in local_workspaces {
             screen::clear_and_reset_cursor();
-            screen::print(&format!(
-                "Syncing {}/{} workspaces...",
-                self.exported_workspaces, self.total_workspaces,
-            ));
+            screen::print("Exporting workspaces to Notion...");
 
             let remote_workspace = remote_workspaces
                 .iter()
                 .find(|remote_workspace| remote_workspace.external_id == local_workspace.id);
 
-            if let Some(remote_workspace) = remote_workspace {
-                if remote_workspace == &local_workspace {
-                    continue;
-                }
+            let Some(remote_workspace) = remote_workspace else {
+                self.create_remote_workspace(local_workspace).await?;
 
+                continue;
+            };
+
+            if !self.verify_remote_workspace(&local_workspace, remote_workspace) {
                 self.update_remote_workspace(local_workspace, remote_workspace)
                     .await?;
-            } else {
-                self.create_remote_workspace(local_workspace).await?;
             }
+
+            screen::print(&format!(
+                "Exported {} workspaces...",
+                self.workspaces_statistics.total()
+            ));
         }
 
         Ok(())
@@ -357,7 +364,7 @@ impl Command {
             )
             .await?;
 
-        self.updated_commands += 1;
+        self.commands_statistics.track_action(Action::Update);
 
         Ok(())
     }
@@ -377,9 +384,37 @@ impl Command {
             )
             .await?;
 
-        self.updated_workspaces += 1;
+        self.workspaces_statistics.track_action(Action::Update);
 
         Ok(())
+    }
+
+    fn verify_remote_command(
+        &mut self,
+        local_command: &commands::Dto,
+        remote_command: &NotionCommand,
+    ) -> bool {
+        let verified = remote_command == local_command;
+
+        if verified {
+            self.commands_statistics.track_action(Action::Verify);
+        }
+
+        verified
+    }
+
+    fn verify_remote_workspace(
+        &mut self,
+        local_workspace: &workspaces::Dto,
+        remote_workspace: &NotionWorkspace,
+    ) -> bool {
+        let verified = remote_workspace == local_workspace;
+
+        if verified {
+            self.workspaces_statistics.track_action(Action::Verify);
+        }
+
+        verified
     }
 }
 

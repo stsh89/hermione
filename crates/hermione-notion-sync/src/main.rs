@@ -1,6 +1,7 @@
 mod commands;
 mod screen;
 mod settings;
+mod statistics;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
