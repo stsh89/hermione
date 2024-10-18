@@ -1,12 +1,22 @@
 use crate::{
-    screen,
+    screen::{self, Input},
     settings::{NewSettingsParameters, Settings},
     Error, Result,
 };
 use std::path::{Path, PathBuf};
 
-pub struct Command {
+const API_KEY_PROMPT: &str = "Enter your Notion API key";
+const COMMANDS_PAGE_ID_PROMPT: &str = "Enter your Notion commands page ID";
+const WORKSPACES_PAGE_ID_PROMPT: &str = "Enter your Notion workspaces page ID";
+
+pub struct Operation {
     file_path: PathBuf,
+}
+
+impl crate::Operation for Operation {
+    fn execute(&self) -> crate::OperationResult {
+        Box::pin(self.run())
+    }
 }
 
 struct ReadOperation;
@@ -15,9 +25,9 @@ struct VerifyOperation(Settings);
 
 struct WriteOperation(Settings);
 
-impl Command {
-    pub fn new(directory_path: &Path) -> Result<Self> {
-        let file_path = Settings::file_path(directory_path);
+impl Operation {
+    pub fn new(directory_path: PathBuf) -> Result<Self> {
+        let file_path = Settings::file_path(&directory_path);
 
         if file_path.try_exists()? {
             return Err(Error::msg("Settings file already exists"));
@@ -26,7 +36,7 @@ impl Command {
         Ok(Self { file_path })
     }
 
-    pub async fn execute(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         ReadOperation::read()?
             .verify()
             .await?
@@ -36,19 +46,15 @@ impl Command {
 
 impl ReadOperation {
     fn read() -> Result<VerifyOperation> {
-        screen::clear_and_reset_cursor();
-        let api_key = screen::read_stdin("Enter your Notion API key: ")?;
-
-        screen::clear_and_reset_cursor();
-        let commands_page_id = screen::read_stdin("Enter your Notion commands page ID: ")?;
-
-        screen::clear_and_reset_cursor();
-        let workspaces_page_id = screen::read_stdin("Enter your Notion workspaces page ID: ")?;
+        let read_input = |prompt: &str| {
+            screen::clear_and_reset_cursor();
+            Input::new(prompt).read()
+        };
 
         let settings = Settings::new(NewSettingsParameters {
-            api_key,
-            commands_page_id,
-            workspaces_page_id,
+            api_key: read_input(API_KEY_PROMPT)?,
+            commands_page_id: read_input(COMMANDS_PAGE_ID_PROMPT)?,
+            workspaces_page_id: read_input(WORKSPACES_PAGE_ID_PROMPT)?,
         });
 
         Ok(VerifyOperation(settings))

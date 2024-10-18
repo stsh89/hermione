@@ -1,7 +1,7 @@
 use crate::{
-    notion, screen,
+    notion::{Action, Command, Statistics, Workspace},
+    screen,
     settings::Settings,
-    statistics::{Action, Statistics},
     Result,
 };
 use hermione_coordinator::{
@@ -15,13 +15,19 @@ use std::{path::PathBuf, rc::Rc};
 
 const PAGE_SIZE: u32 = 100;
 
-pub struct Command {
+pub struct Operation {
     settings: Settings,
     notion_client: hermione_notion::Client,
     workspaces_coordinator: workspaces::Client,
     commands_coordinator: commands::Client,
     workspaces_statistics: Statistics,
     commands_statistics: Statistics,
+}
+
+impl crate::Operation for Operation {
+    fn execute(&self) -> crate::OperationResult {
+        Box::pin(self.run())
+    }
 }
 
 #[derive(Serialize)]
@@ -48,8 +54,8 @@ struct RichTextEqualsFilter {
     equals: String,
 }
 
-impl Command {
-    async fn create_remote_command(&mut self, local_command: commands::Dto) -> Result<()> {
+impl Operation {
+    async fn create_remote_command(&self, local_command: commands::Dto) -> Result<()> {
         self.notion_client
             .create_database_entry(
                 self.settings.commands_page_id(),
@@ -62,12 +68,12 @@ impl Command {
             )
             .await?;
 
-        self.commands_statistics.track_action(Action::Create);
+        self.commands_statistics.track(Action::Create);
 
         Ok(())
     }
 
-    async fn create_remote_workspace(&mut self, local_workspace: workspaces::Dto) -> Result<()> {
+    async fn create_remote_workspace(&self, local_workspace: workspaces::Dto) -> Result<()> {
         self.notion_client
             .create_database_entry(
                 self.settings.workspaces_page_id(),
@@ -79,12 +85,12 @@ impl Command {
             )
             .await?;
 
-        self.workspaces_statistics.track_action(Action::Create);
+        self.workspaces_statistics.track(Action::Create);
 
         Ok(())
     }
 
-    pub async fn execute(mut self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         self.export_workspaces().await?;
         self.export_commands().await?;
 
@@ -97,21 +103,21 @@ impl Command {
     fn print_statistics_summary(&self) {
         let summary = StatisticsSummary {
             workspaces: Summary {
-                created: self.workspaces_statistics.counter(Action::Create),
+                created: self.workspaces_statistics.count(Action::Create),
                 total: self.workspaces_statistics.total(),
-                updated: self.workspaces_statistics.counter(Action::Update),
+                updated: self.workspaces_statistics.count(Action::Update),
             },
             commands: Summary {
-                created: self.commands_statistics.counter(Action::Create),
+                created: self.commands_statistics.count(Action::Create),
                 total: self.commands_statistics.total(),
-                updated: self.commands_statistics.counter(Action::Update),
+                updated: self.commands_statistics.count(Action::Update),
             },
         };
 
         screen::print(&serde_json::to_string(&summary).unwrap_or_default());
     }
 
-    async fn export_commands(&mut self) -> Result<()> {
+    async fn export_commands(&self) -> Result<()> {
         let mut page_number = 0;
 
         loop {
@@ -127,7 +133,7 @@ impl Command {
         }
     }
 
-    async fn export_workspaces(&mut self) -> Result<()> {
+    async fn export_workspaces(&self) -> Result<()> {
         let mut page_number = 0;
 
         loop {
@@ -178,18 +184,18 @@ impl Command {
 
         Ok(Self {
             commands_coordinator,
-            commands_statistics: Statistics::default(),
+            commands_statistics: Statistics::new(),
             notion_client,
             settings,
             workspaces_coordinator,
-            workspaces_statistics: Statistics::default(),
+            workspaces_statistics: Statistics::new(),
         })
     }
 
     async fn remote_commands(
         &self,
         commands: &[commands::Dto],
-    ) -> Result<QueryDatabaseResponse<notion::Command>> {
+    ) -> Result<QueryDatabaseResponse<Command>> {
         let filters: Vec<RichTextFilter> = commands
             .iter()
             .map(|commands| RichTextFilter {
@@ -222,7 +228,7 @@ impl Command {
     async fn remote_workspaces(
         &self,
         workspaces: &[workspaces::Dto],
-    ) -> Result<QueryDatabaseResponse<notion::Workspace>> {
+    ) -> Result<QueryDatabaseResponse<Workspace>> {
         let filters: Vec<RichTextFilter> = workspaces
             .iter()
             .map(|workspace| RichTextFilter {
@@ -252,7 +258,7 @@ impl Command {
         Ok(query_database_response)
     }
 
-    async fn export_commands_batch(&mut self, local_commands: Vec<commands::Dto>) -> Result<()> {
+    async fn export_commands_batch(&self, local_commands: Vec<commands::Dto>) -> Result<()> {
         let query_database_response = self.remote_commands(&local_commands).await?;
 
         for local_command in local_commands {
@@ -283,10 +289,7 @@ impl Command {
         Ok(())
     }
 
-    async fn export_workspaces_batch(
-        &mut self,
-        local_workspaces: Vec<workspaces::Dto>,
-    ) -> Result<()> {
+    async fn export_workspaces_batch(&self, local_workspaces: Vec<workspaces::Dto>) -> Result<()> {
         let remote_workspaces = self.remote_workspaces(&local_workspaces).await?;
 
         for local_workspace in local_workspaces {
@@ -318,9 +321,9 @@ impl Command {
     }
 
     async fn update_remote_command(
-        &mut self,
+        &self,
         local_command: commands::Dto,
-        database_page: &DatabasePage<notion::Command>,
+        database_page: &DatabasePage<Command>,
     ) -> Result<()> {
         self.notion_client
             .update_database_entry(
@@ -332,15 +335,15 @@ impl Command {
             )
             .await?;
 
-        self.commands_statistics.track_action(Action::Update);
+        self.commands_statistics.track(Action::Update);
 
         Ok(())
     }
 
     async fn update_remote_workspace(
-        &mut self,
+        &self,
         local_workspace: workspaces::Dto,
-        database_page: &DatabasePage<notion::Workspace>,
+        database_page: &DatabasePage<Workspace>,
     ) -> Result<()> {
         self.notion_client
             .update_database_entry(
@@ -352,34 +355,34 @@ impl Command {
             )
             .await?;
 
-        self.workspaces_statistics.track_action(Action::Update);
+        self.workspaces_statistics.track(Action::Update);
 
         Ok(())
     }
 
     fn verify_remote_command(
-        &mut self,
+        &self,
         local_command: &commands::Dto,
-        remote_command: &notion::Command,
+        remote_command: &Command,
     ) -> bool {
         let verified = remote_command == local_command;
 
         if verified {
-            self.commands_statistics.track_action(Action::Verify);
+            self.commands_statistics.track(Action::Verify);
         }
 
         verified
     }
 
     fn verify_remote_workspace(
-        &mut self,
+        &self,
         local_workspace: &workspaces::Dto,
-        remote_workspace: &notion::Workspace,
+        remote_workspace: &Workspace,
     ) -> bool {
         let verified = remote_workspace == local_workspace;
 
         if verified {
-            self.workspaces_statistics.track_action(Action::Verify);
+            self.workspaces_statistics.track(Action::Verify);
         }
 
         verified

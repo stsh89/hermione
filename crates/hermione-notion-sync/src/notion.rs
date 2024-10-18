@@ -1,6 +1,24 @@
+use std::{
+    collections::HashMap,
+    sync::atomic::{AtomicU32, Ordering},
+};
+
 use hermione_coordinator::{commands, workspaces};
 use hermione_notion_serde::de;
 use serde::Deserialize;
+
+const DEFAULT_ORDERING: Ordering = Ordering::Relaxed;
+
+pub struct Statistics {
+    counters: HashMap<Action, AtomicU32>,
+}
+
+#[derive(Eq, Hash, PartialEq)]
+pub enum Action {
+    Create,
+    Update,
+    Verify,
+}
 
 #[derive(Deserialize)]
 pub struct Command {
@@ -118,6 +136,38 @@ impl From<Workspace> for workspaces::Dto {
             last_access_time: None,
             location: Some(location),
             name,
+        }
+    }
+}
+
+impl Statistics {
+    pub fn count(&self, action: Action) -> u32 {
+        self.counters
+            .get(&action)
+            .map(|counter| counter.load(DEFAULT_ORDERING))
+            .unwrap_or_default()
+    }
+
+    pub fn total(&self) -> u32 {
+        self.counters
+            .values()
+            .map(|counter| counter.load(DEFAULT_ORDERING))
+            .sum()
+    }
+
+    pub fn track(&self, action: Action) {
+        self.counters
+            .get(&action)
+            .map(|counter| counter.fetch_add(1, DEFAULT_ORDERING));
+    }
+
+    pub fn new() -> Self {
+        Self {
+            counters: HashMap::from([
+                (Action::Create, AtomicU32::new(0)),
+                (Action::Update, AtomicU32::new(0)),
+                (Action::Verify, AtomicU32::new(0)),
+            ]),
         }
     }
 }

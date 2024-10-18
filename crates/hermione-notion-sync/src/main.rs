@@ -1,26 +1,39 @@
-mod commands;
 mod notion;
+mod operations;
 mod screen;
 mod settings;
-mod statistics;
 
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use std::{future::Future, path::PathBuf, pin::Pin};
 
 const LOGS_FILE_NAME: &str = "hermione-notion-sync.logs";
 
-type Result<T> = anyhow::Result<T>;
 type Error = anyhow::Error;
+type OperationResult<'a> = Pin<Box<dyn Future<Output = Result<()>> + 'a>>;
+type Result<T> = anyhow::Result<T>;
+
+pub trait Operation {
+    // async fn execute(&self) -> Result<()>;
+    fn execute(&self) -> OperationResult;
+}
+
+pub struct App {
+    /// Parsed command line arguments
+    cli: Cli,
+
+    /// The path to the directory where the settings file should be found or is actually located.
+    path: PathBuf,
+}
 
 #[derive(Debug, Parser)]
 #[command(about)]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: CliCommand,
 }
 
 #[derive(Debug, Subcommand)]
-enum Commands {
+enum CliCommand {
     CreateSettingsFile,
     DeleteSettingsFile,
     Export,
@@ -31,55 +44,53 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let cli = Cli::parse();
-    let directory_path = hermione_terminal_directory::path()?;
+    initialize()?.build_operation()?.execute().await
+}
 
-    hermione_logs::init(&directory_path.join(LOGS_FILE_NAME))?;
+impl App {
+    fn build_operation(self) -> Result<Box<dyn Operation>> {
+        let boxed_operation: Box<dyn Operation> = match self.cli.command {
+            CliCommand::CreateSettingsFile => {
+                let operation = operations::create_settings_file::Operation::new(self.path)?;
 
-    let result = match cli.command {
-        Commands::CreateSettingsFile => create_settings_file(directory_path).await,
-        Commands::DeleteSettingsFile => delete_settings_file(directory_path),
-        Commands::Export => export(directory_path).await,
-        Commands::ShowSettingsFile => show_settings_file(directory_path),
-        Commands::Import => import(directory_path).await,
-        Commands::VerifySettingsFile => verify_settings_file(directory_path).await,
-    };
+                Box::new(operation)
+            }
+            CliCommand::DeleteSettingsFile => {
+                let operation = operations::delete_settings_file::Operation::new(self.path);
 
-    if let Err(error) = result {
-        eprintln!("{error}");
+                Box::new(operation)
+            }
+            CliCommand::Export => {
+                let operation = operations::export::Operation::new(self.path)?;
+
+                Box::new(operation)
+            }
+            CliCommand::Import => {
+                let operation = operations::import::Operation::new(self.path)?;
+
+                Box::new(operation)
+            }
+            CliCommand::ShowSettingsFile => {
+                let operation = operations::show_settings_file::Operation::new(self.path);
+
+                Box::new(operation)
+            }
+            CliCommand::VerifySettingsFile => {
+                let operation = operations::verify_settings_file::Operation::new(self.path);
+
+                Box::new(operation)
+            }
+        };
+
+        Ok(boxed_operation)
     }
-
-    Ok(())
 }
 
-async fn create_settings_file(directory_path: PathBuf) -> Result<()> {
-    commands::create_settings_file::Command::new(&directory_path)?
-        .execute()
-        .await
-}
+pub fn initialize() -> Result<App> {
+    let cli = Cli::parse();
+    let path = hermione_terminal_directory::path()?;
 
-fn delete_settings_file(directory_path: PathBuf) -> Result<()> {
-    commands::delete_settings_file::Command::new(directory_path).execute()
-}
+    hermione_logs::init(&path.join(LOGS_FILE_NAME))?;
 
-async fn export(directory_path: PathBuf) -> Result<()> {
-    commands::export::Command::new(directory_path)?
-        .execute()
-        .await
-}
-
-async fn import(directory_path: PathBuf) -> Result<()> {
-    commands::import::Command::new(directory_path)?
-        .execute()
-        .await
-}
-
-fn show_settings_file(directory_path: PathBuf) -> Result<()> {
-    commands::show_settings_file::Command::new(directory_path).execute()
-}
-
-async fn verify_settings_file(directory_path: PathBuf) -> Result<()> {
-    commands::verify_settings_file::Command::new(directory_path)
-        .execute()
-        .await
+    Ok(App { cli, path })
 }
