@@ -13,15 +13,14 @@ type OperationResult<'a> = Pin<Box<dyn Future<Output = Result<()>> + 'a>>;
 type Result<T> = anyhow::Result<T>;
 
 pub trait Operation {
-    // async fn execute(&self) -> Result<()>;
     fn execute(&self) -> OperationResult;
 }
 
 pub struct App {
-    /// Parsed command line arguments
+    /// Parsed command line arguments.
     cli: Cli,
 
-    /// The path to the directory where the settings file should be found or is actually located.
+    /// The path to the directory where all the files related to the Notion Sync app are stored.
     path: PathBuf,
 }
 
@@ -44,39 +43,67 @@ enum CliCommand {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    initialize()?.build_operation()?.execute().await
+    App::new()?.enable_tracing()?.run().await
 }
 
 impl App {
-    fn build_operation(self) -> Result<Box<dyn Operation>> {
-        let boxed_operation: Box<dyn Operation> = match self.cli.command {
+    fn enable_tracing(self) -> Result<Self> {
+        hermione_logs::init(&self.path.join(LOGS_FILE_NAME))?;
+
+        Ok(self)
+    }
+
+    fn new() -> Result<App> {
+        let cli = Cli::parse();
+        let path = hermione_terminal_directory::path()?;
+
+        Ok(App { cli, path })
+    }
+
+    async fn run(self) -> Result<()> {
+        let operation: Box<dyn Operation> = self.try_into()?;
+
+        operation.execute().await
+    }
+}
+
+impl TryFrom<App> for Box<dyn Operation> {
+    type Error = Error;
+
+    fn try_from(value: App) -> std::result::Result<Self, Self::Error> {
+        let App {
+            cli: Cli { command },
+            path,
+        } = value;
+
+        let boxed_operation: Box<dyn Operation> = match command {
             CliCommand::CreateSettingsFile => {
-                let operation = operations::create_settings_file::Operation::new(self.path)?;
+                let operation = operations::create_settings_file::Operation::new(path)?;
 
                 Box::new(operation)
             }
             CliCommand::DeleteSettingsFile => {
-                let operation = operations::delete_settings_file::Operation::new(self.path);
+                let operation = operations::delete_settings_file::Operation::new(path);
 
                 Box::new(operation)
             }
             CliCommand::Export => {
-                let operation = operations::export::Operation::new(self.path)?;
+                let operation = operations::export::Operation::new(path)?;
 
                 Box::new(operation)
             }
             CliCommand::Import => {
-                let operation = operations::import::Operation::new(self.path)?;
+                let operation = operations::import::Operation::new(path)?;
 
                 Box::new(operation)
             }
             CliCommand::ShowSettingsFile => {
-                let operation = operations::show_settings_file::Operation::new(self.path);
+                let operation = operations::show_settings_file::Operation::new(path);
 
                 Box::new(operation)
             }
             CliCommand::VerifySettingsFile => {
-                let operation = operations::verify_settings_file::Operation::new(self.path);
+                let operation = operations::verify_settings_file::Operation::new(path);
 
                 Box::new(operation)
             }
@@ -84,13 +111,4 @@ impl App {
 
         Ok(boxed_operation)
     }
-}
-
-pub fn initialize() -> Result<App> {
-    let cli = Cli::parse();
-    let path = hermione_terminal_directory::path()?;
-
-    hermione_logs::init(&path.join(LOGS_FILE_NAME))?;
-
-    Ok(App { cli, path })
 }
