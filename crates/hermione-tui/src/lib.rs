@@ -45,6 +45,8 @@ pub fn run<R, M>(
     router: impl app::Router<Route = R, Message = M>,
     mut model: Box<dyn app::Model<Route = R, Message = M>>,
 ) -> Result<()> {
+    install_panic_hook();
+
     let mut terminal = init_terminal()?;
 
     while model.is_running() {
@@ -63,5 +65,5 @@ pub fn run<R, M>(
         }
     }
 
-    Ok(())
+    restore_terminal()
 }

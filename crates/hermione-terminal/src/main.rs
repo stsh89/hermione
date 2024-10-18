@@ -19,56 +19,55 @@ use hermione_tui::app;
 use message::Message;
 use router::Router;
 use routes::Route;
+use std::path::PathBuf;
 
 const LOGS_FILE_NAME: &str = "hermione.logs";
+const INITIAL_ROUTE: Route = Route::Workspaces(routes::workspaces::Route::Home);
 
 type Error = anyhow::Error;
 type Model = dyn app::Model<Route = Route, Message = Message>;
 type Result<T> = anyhow::Result<T>;
 
-fn main() -> Result<()> {
-    let app_path = hermione_terminal_directory::path()?;
-    let coordinator = Coordinator::new(&app_path)?;
-    let powershell = PowerShell::new()?;
-    let route = initial_route(&coordinator)?;
+pub struct App {
+    /// The path to the directory where all the files related to the Hermione app are stored.
+    path: PathBuf,
 
-    let router = Router {
-        coordinator,
-        powershell,
-    };
-
-    let Some(model) = router.dispatch(route)? else {
-        return Ok(());
-    };
-
-    hermione_logs::init(&app_path.join(LOGS_FILE_NAME))?;
-
-    hermione_tui::install_panic_hook();
-    hermione_tui::run(router, model)?;
-    hermione_tui::restore_terminal()?;
-
-    Ok(())
+    router: Router,
 }
 
-pub fn initial_route(coordinator: &Coordinator) -> Result<Route> {
-    use coordinator::workspaces::ListParameters;
+impl App {
+    fn enable_tracing(self) -> Result<Self> {
+        hermione_logs::init(&self.path.join(LOGS_FILE_NAME))?;
 
-    let workspaces = coordinator.workspaces().list(ListParameters {
-        page_number: 0,
-        page_size: 1,
-        name_contains: "",
-    })?;
-
-    let Some(workspace) = workspaces.into_iter().next() else {
-        return Ok(Route::Workspaces(routes::workspaces::Route::New));
-    };
-
-    Ok(parameters::workspaces::commands::list::Parameters {
-        workspace_id: workspace.id,
-        search_query: "".into(),
-        page_number: 0,
-        page_size: parameters::workspaces::commands::list::PAGE_SIZE,
-        powershell_no_exit: false,
+        Ok(self)
     }
-    .into())
+
+    fn new() -> Result<Self> {
+        let path = hermione_terminal_directory::path()?;
+        let coordinator = Coordinator::new(&path)?;
+        let powershell = PowerShell::new()?;
+
+        let router = Router {
+            coordinator,
+            powershell,
+        };
+
+        Ok(Self { path, router })
+    }
+
+    fn run(self) -> Result<()> {
+        let App { path: _, router } = self;
+
+        let Some(model) = router.dispatch(INITIAL_ROUTE)? else {
+            return Err(anyhow::anyhow!("Transparent initial route"));
+        };
+
+        hermione_tui::run(router, model)?;
+
+        Ok(())
+    }
+}
+
+fn main() -> Result<()> {
+    App::new()?.enable_tracing()?.run()
 }
