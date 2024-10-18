@@ -71,7 +71,14 @@ async fn it_queries_database() -> Result<()> {
     })?;
 
     let parameters = QueryDatabaseParameters::default();
-    client.query_database::<Product>("1111", parameters).await?;
+    let response = client.query_database::<Product>("1111", parameters).await?;
+
+    assert_eq!(response.database_pages.len(), 1);
+
+    let page = response.database_pages.into_iter().next().unwrap();
+
+    assert_eq!(page.properties.name, "Tuscan kale");
+    assert_eq!(page.properties.description, "A dark green leafy vegetable");
 
     mock.assert_async().await;
 
