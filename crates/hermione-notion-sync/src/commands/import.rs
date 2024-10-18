@@ -80,7 +80,7 @@ impl Command {
             },
         };
 
-        screen::print(&serde_json::to_string_pretty(&summary).unwrap_or_default());
+        screen::print(&serde_json::to_string(&summary).unwrap_or_default());
     }
 
     async fn import_commands(&mut self) -> Result<()> {
