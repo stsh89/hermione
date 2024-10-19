@@ -58,7 +58,6 @@ pub struct DatabasePage<T> {
 }
 
 impl Client {
-    #[tracing::instrument(skip(self, properties))]
     pub async fn create_database_entry(&self, database_id: &str, properties: Json) -> Result<Json> {
         let body = serde_json::json!({
             "parent": { "database_id": database_id },
@@ -105,7 +104,6 @@ impl Client {
         Ok(response)
     }
 
-    #[tracing::instrument(skip(self, parameters))]
     pub async fn query_database<T>(
         &self,
         database_id: &str,
@@ -174,7 +172,6 @@ impl Client {
         })
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn send(&self, parameters: SendParameters<'_>) -> Result<Json> {
         let response = self.execute(parameters).await?;
         let status = response.status();
@@ -194,7 +191,6 @@ impl Client {
         })
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn update_database_entry(&self, entry_id: &str, properties: Json) -> Result<Json> {
         let uri = format!("pages/{entry_id}");
 

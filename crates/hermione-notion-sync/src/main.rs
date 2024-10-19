@@ -4,9 +4,10 @@ mod screen;
 mod settings;
 
 use clap::{Parser, Subcommand};
-use std::{future::Future, path::PathBuf, pin::Pin};
+use hermione_tracing::{NewTracerParameters, Tracer};
+use std::{future::Future, path::Path, pin::Pin};
 
-const LOGS_FILE_NAME: &str = "hermione-notion-sync.logs";
+const LOGS_FILE_NAME_PREFIX: &str = "hermione-notion-sync-logs";
 
 type Error = anyhow::Error;
 type OperationResult<'a> = Pin<Box<dyn Future<Output = Result<()>> + 'a>>;
@@ -16,12 +17,9 @@ pub trait Operation {
     fn execute(&self) -> OperationResult;
 }
 
-pub struct App {
-    /// Parsed command line arguments.
+struct App<'a> {
     cli: Cli,
-
-    /// The path to the directory where all the files related to the Notion Sync app are stored.
-    path: PathBuf,
+    directory: &'a Path,
 }
 
 #[derive(Debug, Parser)]
@@ -43,72 +41,69 @@ enum CliCommand {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    App::new()?.enable_tracing()?.run().await
+    let directory = hermione_terminal_directory::path()?;
+    let cli = Cli::parse();
+
+    let app = App {
+        cli,
+        directory: &directory,
+    };
+
+    let tracer = Tracer::new(NewTracerParameters {
+        directory: &directory,
+        filename_prefix: LOGS_FILE_NAME_PREFIX,
+    });
+
+    let _guard = tracer.init_non_blocking()?;
+
+    if let Err(err) = run(app).await {
+        tracing::error!(error = ?err);
+        return Err(err);
+    }
+
+    Ok(())
 }
 
-impl App {
-    fn enable_tracing(self) -> Result<Self> {
-        hermione_logs::init(&self.path.join(LOGS_FILE_NAME))?;
+async fn run(app: App<'_>) -> Result<()> {
+    let App {
+        cli: Cli { command },
+        directory,
+    } = app;
 
-        Ok(self)
-    }
+    let operation: Box<dyn Operation> = match command {
+        CliCommand::CreateSettingsFile => {
+            let operation = operations::create_settings_file::Operation::new(directory)?;
 
-    fn new() -> Result<App> {
-        let cli = Cli::parse();
-        let path = hermione_terminal_directory::path()?;
+            Box::new(operation)
+        }
+        CliCommand::DeleteSettingsFile => {
+            let operation =
+                operations::delete_settings_file::Operation::new(directory.to_path_buf());
 
-        Ok(App { cli, path })
-    }
+            Box::new(operation)
+        }
+        CliCommand::Export => {
+            let operation = operations::export::Operation::new(directory)?;
 
-    async fn run(self) -> Result<()> {
-        let operation: Box<dyn Operation> = self.try_into()?;
+            Box::new(operation)
+        }
+        CliCommand::Import => {
+            let operation = operations::import::Operation::new(directory)?;
 
-        operation.execute().await
-    }
-}
+            Box::new(operation)
+        }
+        CliCommand::ShowSettingsFile => {
+            let operation = operations::show_settings_file::Operation::new(directory.to_path_buf());
 
-impl TryFrom<App> for Box<dyn Operation> {
-    type Error = Error;
+            Box::new(operation)
+        }
+        CliCommand::VerifySettingsFile => {
+            let operation =
+                operations::verify_settings_file::Operation::new(directory.to_path_buf());
 
-    fn try_from(value: App) -> std::result::Result<Self, Self::Error> {
-        let App {
-            cli: Cli { command },
-            path,
-        } = value;
+            Box::new(operation)
+        }
+    };
 
-        let boxed_operation: Box<dyn Operation> = match command {
-            CliCommand::CreateSettingsFile => {
-                let operation = operations::create_settings_file::Operation::new(path)?;
-
-                Box::new(operation)
-            }
-            CliCommand::DeleteSettingsFile => {
-                let operation = operations::delete_settings_file::Operation::new(path);
-
-                Box::new(operation)
-            }
-            CliCommand::Export => {
-                let operation = operations::export::Operation::new(path)?;
-
-                Box::new(operation)
-            }
-            CliCommand::Import => {
-                let operation = operations::import::Operation::new(path)?;
-
-                Box::new(operation)
-            }
-            CliCommand::ShowSettingsFile => {
-                let operation = operations::show_settings_file::Operation::new(path);
-
-                Box::new(operation)
-            }
-            CliCommand::VerifySettingsFile => {
-                let operation = operations::verify_settings_file::Operation::new(path);
-
-                Box::new(operation)
-            }
-        };
-
-        Ok(boxed_operation)
-    }
+    operation.execute().await
 }

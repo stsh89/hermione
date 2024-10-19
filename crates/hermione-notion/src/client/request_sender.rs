@@ -17,7 +17,6 @@ impl RequestSender {
         Self { request_builder }
     }
 
-    #[tracing::instrument(skip(self))]
     pub async fn send(self) -> Result<reqwest::Response> {
         let request_builder = self.cloned_request_builder()?;
         let response = request_builder.send().await?;

@@ -26,8 +26,8 @@ struct VerifyOperation(Settings);
 struct WriteOperation(Settings);
 
 impl Operation {
-    pub fn new(directory_path: PathBuf) -> Result<Self> {
-        let file_path = Settings::file_path(&directory_path);
+    pub fn new(directory_path: &Path) -> Result<Self> {
+        let file_path = Settings::file_path(directory_path);
 
         if file_path.try_exists()? {
             return Err(Error::msg("Settings file already exists"));

@@ -13,61 +13,48 @@ mod routes;
 mod smart_input;
 mod widgets;
 
+use hermione_tracing::{NewTracerParameters, Tracer};
+pub(crate) use message::*;
+
 use clients::powershell::PowerShell;
 use coordinator::Coordinator;
 use hermione_tui::app;
-use message::Message;
 use router::Router;
 use routes::Route;
-use std::path::PathBuf;
 
-const LOGS_FILE_NAME: &str = "hermione.logs";
+const LOGS_FILE_NAME_PREFIX: &str = "hermione-terminal-logs";
 const INITIAL_ROUTE: Route = Route::Workspaces(routes::workspaces::Route::Home);
 
 type Error = anyhow::Error;
 type Model = dyn app::Model<Route = Route, Message = Message>;
 type Result<T> = anyhow::Result<T>;
 
-pub struct App {
-    /// The path to the directory where all the files related to the Hermione app are stored.
-    path: PathBuf,
-
-    router: Router,
-}
-
-impl App {
-    fn enable_tracing(self) -> Result<Self> {
-        hermione_logs::init(&self.path.join(LOGS_FILE_NAME))?;
-
-        Ok(self)
-    }
-
-    fn new() -> Result<Self> {
-        let path = hermione_terminal_directory::path()?;
-        let coordinator = Coordinator::new(&path)?;
-        let powershell = PowerShell::new()?;
-
-        let router = Router {
-            coordinator,
-            powershell,
-        };
-
-        Ok(Self { path, router })
-    }
-
-    fn run(self) -> Result<()> {
-        let App { path: _, router } = self;
-
-        let Some(model) = router.dispatch(INITIAL_ROUTE)? else {
-            return Err(anyhow::anyhow!("Transparent initial route"));
-        };
-
-        hermione_tui::run(router, model)?;
-
-        Ok(())
-    }
-}
-
 fn main() -> Result<()> {
-    App::new()?.enable_tracing()?.run()
+    let directory = hermione_terminal_directory::path()?;
+
+    let coordinator = Coordinator::new(&directory)?;
+    let powershell = PowerShell::new()?;
+
+    let router = Router {
+        coordinator,
+        powershell,
+    };
+
+    let Some(model) = router.dispatch(INITIAL_ROUTE)? else {
+        return Err(anyhow::anyhow!("Transparent initial route"));
+    };
+
+    let tracer = Tracer::new(NewTracerParameters {
+        directory: &directory,
+        filename_prefix: LOGS_FILE_NAME_PREFIX,
+    });
+
+    let _guard = tracer.init_non_blocking()?;
+
+    if let Err(err) = hermione_tui::run(router, model) {
+        tracing::error!(error = ?err);
+        return Err(err);
+    };
+
+    Ok(())
 }

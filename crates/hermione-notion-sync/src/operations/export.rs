@@ -11,7 +11,7 @@ use hermione_coordinator::{
 };
 use hermione_notion::{DatabasePage, QueryDatabaseParameters, QueryDatabaseResponse};
 use serde::Serialize;
-use std::{path::PathBuf, rc::Rc};
+use std::{path::Path, rc::Rc};
 
 const PAGE_SIZE: u32 = 100;
 
@@ -170,15 +170,15 @@ impl Operation {
         Ok(workspaces)
     }
 
-    pub fn new(directory_path: PathBuf) -> Result<Self> {
-        let settings = Settings::read(&directory_path)?;
+    pub fn new(directory_path: &Path) -> Result<Self> {
+        let settings = Settings::read(directory_path)?;
 
         let notion_client = hermione_notion::Client::new(hermione_notion::NewClientParameters {
             api_key: Some(settings.api_key().into()),
             ..Default::default()
         })?;
 
-        let connection = Rc::new(Connection::open(&directory_path)?);
+        let connection = Rc::new(Connection::open(directory_path)?);
         let workspaces_coordinator = workspaces::Client::new(connection.clone());
         let commands_coordinator = commands::Client::new(connection);
 
