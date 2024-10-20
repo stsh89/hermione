@@ -3,7 +3,7 @@ use crate::{
     handlers::workspaces::commands::*,
     parameters::{self, workspaces::commands::list::PAGE_SIZE},
     routes::workspaces::commands::Route,
-    Model, Result,
+    BoxedModel, Result,
 };
 
 pub struct Router<'a> {
@@ -11,7 +11,7 @@ pub struct Router<'a> {
 }
 
 impl<'a> Router<'a> {
-    pub fn handle(self, route: Route) -> Result<Option<Box<Model>>> {
+    pub fn handle(self, route: Route) -> Result<Option<BoxedModel>> {
         let Router { coordinator } = self;
 
         match route {

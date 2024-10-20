@@ -14,19 +14,17 @@ mod smart_input;
 mod widgets;
 
 use hermione_tracing::{NewTracerParameters, Tracer};
+
 pub(crate) use message::*;
 
 use clients::powershell::PowerShell;
 use coordinator::Coordinator;
-use hermione_tui::app;
 use router::Router;
-use routes::Route;
 
 const LOGS_FILE_NAME_PREFIX: &str = "hermione-terminal-logs";
-const INITIAL_ROUTE: Route = Route::Workspaces(routes::workspaces::Route::Home);
 
+type BoxedModel = Box<dyn hermione_tui::Model<Message = Message, Route = routes::Route>>;
 type Error = anyhow::Error;
-type Model = dyn app::Model<Route = Route, Message = Message>;
 type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
@@ -40,10 +38,6 @@ fn main() -> Result<()> {
         powershell,
     };
 
-    let Some(model) = router.dispatch(INITIAL_ROUTE)? else {
-        return Err(anyhow::anyhow!("Transparent initial route"));
-    };
-
     let tracer = Tracer::new(NewTracerParameters {
         directory: &directory,
         filename_prefix: LOGS_FILE_NAME_PREFIX,
@@ -51,7 +45,7 @@ fn main() -> Result<()> {
 
     let _guard = tracer.init_non_blocking()?;
 
-    if let Err(err) = hermione_tui::run(router, model) {
+    if let Err(err) = hermione_tui::run(router) {
         tracing::error!(error = ?err);
         return Err(err);
     };

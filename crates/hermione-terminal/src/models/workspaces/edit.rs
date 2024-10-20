@@ -3,7 +3,7 @@ use crate::{
     layouts::{self, StatusBar},
     parameters, presenters, routes, Message, Result,
 };
-use hermione_tui::app::{self, EventHandler};
+use hermione_tui::EventHandler;
 use ratatui::{widgets::Paragraph, Frame};
 
 pub struct Model {
@@ -16,7 +16,7 @@ pub struct ModelParameters {
     pub workspace: presenters::workspace::Presenter,
 }
 
-impl app::Model for Model {
+impl hermione_tui::Model for Model {
     type Message = Message;
     type Route = routes::Route;
 

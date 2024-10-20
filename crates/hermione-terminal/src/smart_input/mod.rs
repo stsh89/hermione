@@ -1,6 +1,6 @@
 mod preprocessors;
 
-use hermione_tui::input::Input;
+use hermione_tui::Input;
 use ratatui::{
     layout::Rect,
     widgets::{Block, Borders, Paragraph},

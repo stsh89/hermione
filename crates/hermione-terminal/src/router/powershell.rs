@@ -1,5 +1,5 @@
 use crate::{
-    clients, handlers::powershell::*, routes::powershell::Route, Coordinator, Model, Result,
+    clients, handlers::powershell::*, routes::powershell::Route, BoxedModel, Coordinator, Result,
 };
 
 pub struct Router<'a> {
@@ -8,7 +8,7 @@ pub struct Router<'a> {
 }
 
 impl<'a> Router<'a> {
-    pub fn handle(self, route: Route) -> Result<Option<Box<Model>>> {
+    pub fn handle(self, route: Route) -> Result<Option<BoxedModel>> {
         let Router {
             coordinator,
             powershell,

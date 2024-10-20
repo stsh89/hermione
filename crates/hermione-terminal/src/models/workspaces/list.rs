@@ -6,7 +6,7 @@ use crate::{
     smart_input::{NewSmartInputParameters, SmartInput},
     widgets, Error, Message, Result,
 };
-use hermione_tui::app::{self, EventHandler};
+use hermione_tui::EventHandler;
 use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -30,7 +30,7 @@ pub struct ModelParameters {
     pub page_size: u32,
 }
 
-impl app::Model for Model {
+impl hermione_tui::Model for Model {
     type Message = Message;
     type Route = Route;
 

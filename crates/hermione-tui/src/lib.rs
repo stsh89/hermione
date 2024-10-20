@@ -1,5 +1,5 @@
-pub mod app;
-pub mod input;
+mod app;
+mod input;
 
 use ratatui::{
     backend::CrosstermBackend,
@@ -13,6 +13,9 @@ use std::{
     io::{stdout, Stdout},
     panic,
 };
+
+pub use app::*;
+pub use input::*;
 
 type Result<T> = anyhow::Result<T>;
 
@@ -41,13 +44,11 @@ pub fn restore_terminal() -> Result<()> {
     Ok(())
 }
 
-pub fn run<R, M>(
-    router: impl app::Router<Route = R, Message = M>,
-    mut model: Box<dyn app::Model<Route = R, Message = M>>,
-) -> Result<()> {
+pub fn run<R, M>(router: impl app::Router<Route = R, Message = M>) -> Result<()> {
     install_panic_hook();
 
     let mut terminal = init_terminal()?;
+    let mut model = router.default_model()?;
 
     while model.is_running() {
         terminal.draw(|f| model.view(f))?;
