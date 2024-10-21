@@ -1,9 +1,11 @@
-const DEFAULT_WINDOWS_TERMINAL_COMMAND: &str = "wt pwsh";
-
 type Result<T> = std::result::Result<T, Error>;
 
-pub trait Execute {
-    fn execute(&self, input: &str) -> Result<()>;
+pub trait CopyToClipboard {
+    fn copy_to_clipboard(&self, text: &str) -> Result<()>;
+}
+
+pub trait OpenWindowsTerminal {
+    fn open_windows_terminal(&self) -> Result<()>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -12,87 +14,34 @@ pub enum Error {
     Unknown(#[from] eyre::Error),
 }
 
-pub struct PowerShellArguments {
-    /// Executes the specified commands (and any parameters) as though they
-    /// were typed at the PowerShell command prompt, and then exits, unless the
-    /// NoExit parameter is specified.
-    pub command: Option<String>,
-
-    /// Does not exit after running startup commands.
-    pub no_exit: bool,
-
-    /// Sets the initial working directory by executing at startup.
-    pub working_directory: Option<String>,
-}
-
-pub struct CopyToClipboard<'a, T>
+pub struct CopyToClipboardOperation<'a, T>
 where
-    T: Execute,
+    T: CopyToClipboard,
 {
     pub powershell: &'a T,
 }
 
-pub struct OpenWindowsTerminal<'a, T>
+pub struct OpenWindowsTerminalOperation<'a, T>
 where
-    T: Execute,
+    T: OpenWindowsTerminal,
 {
     pub powershell: &'a T,
 }
 
-impl<'a, T> CopyToClipboard<'a, T>
+impl<'a, T> CopyToClipboardOperation<'a, T>
 where
-    T: Execute,
+    T: CopyToClipboard,
 {
     pub fn execute(&self, text: &str) -> Result<()> {
-        let input = format!("Set-Clipboard '{}'", text);
-
-        self.powershell.execute(&input)
+        self.powershell.copy_to_clipboard(text)
     }
 }
 
-impl<'a, T> OpenWindowsTerminal<'a, T>
+impl<'a, T> OpenWindowsTerminalOperation<'a, T>
 where
-    T: Execute,
+    T: OpenWindowsTerminal,
 {
-    pub fn execute(&self, arguments: Option<PowerShellArguments>) -> Result<()> {
-        let input = WindowsTerminalCommand { arguments }.into_powershell_input();
-
-        self.powershell.execute(&input)
-    }
-}
-
-struct WindowsTerminalCommand {
-    arguments: Option<PowerShellArguments>,
-}
-
-impl WindowsTerminalCommand {
-    fn into_powershell_input(self) -> String {
-        let input = DEFAULT_WINDOWS_TERMINAL_COMMAND.to_string();
-
-        let Some(arguments) = self.arguments else {
-            return input;
-        };
-
-        let mut input = vec![input];
-
-        let PowerShellArguments {
-            command,
-            no_exit,
-            working_directory,
-        } = arguments;
-
-        if let Some(command) = command {
-            input.push(format!("-Command {{{command}}}"));
-        }
-
-        if no_exit {
-            input.push("-NoExit".into());
-        }
-
-        if let Some(working_directory) = working_directory {
-            input.push(format!("-WorkingDirectory {working_directory}"));
-        }
-
-        input.join(" ")
+    pub fn execute(&self) -> Result<()> {
+        self.powershell.open_windows_terminal()
     }
 }
