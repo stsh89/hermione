@@ -36,7 +36,7 @@ impl<'a> Router<'a> {
                 Ok(None)
             }
             Route::StartWindowsTerminal(parameters) => {
-                let handler = start_windows_terminal::Handler { powershell };
+                let handler = open_windows_terminal::Handler { powershell };
 
                 handler.handle(parameters)?;
 

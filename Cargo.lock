@@ -985,6 +985,11 @@ dependencies = [
 [[package]]
 name = "hermione-powershell"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "eyre",
+ "thiserror",
+]
 
 [[package]]
 name = "hermione-terminal"

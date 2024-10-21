@@ -23,12 +23,13 @@ impl<'a> Handler<'a> {
 
         let workspace = self.coordinator.workspaces().get(&workspace_id)?;
 
-        self.powershell
-            .start_windows_terminal(clients::powershell::WindowsTerminalParameters {
-                directory: workspace.location.as_str(),
+        self.powershell.open_windows_terminal(
+            clients::powershell::OpenWindowsTerminalParameters {
+                working_directory: workspace.location.as_str(),
                 no_exit: powershell_no_exit,
                 command: Some(command.program.as_str()),
-            })?;
+            },
+        )?;
 
         self.coordinator
             .workspaces()

@@ -1,112 +1,83 @@
+mod core;
+
+use core::{CopyToClipboard, Error, Execute, OpenWindowsTerminal, PowerShellArguments};
 use std::{
-    fmt, io,
+    io,
     process::{Child, Command, Stdio},
+    sync::RwLock,
 };
 
-type Result<T> = std::result::Result<T, io::Error>;
-
 pub struct Client {
-    powershell: Child,
+    inner: RwLock<Child>,
 }
 
-pub struct WindowsTerminalParameters<'a> {
+pub struct PowerShellParameters<'a> {
     pub command: Option<&'a str>,
-    pub directory: Option<&'a str>,
     pub no_exit: bool,
+    pub working_directory: Option<&'a str>,
 }
 
-struct WindowsTerminalCommand {
-    command: String,
-}
+impl Execute for RwLock<Child> {
+    fn execute(&self, input: &str) -> Result<(), Error> {
+        let mut process = self.write().map_err(|err| eyre::eyre!("{}", err))?;
 
-impl Default for WindowsTerminalCommand {
-    fn default() -> Self {
-        Self {
-            command: "wt pwsh".to_string(),
-        }
-    }
-}
+        let stdin = process.stdin.as_mut().ok_or(eyre::eyre!(
+            "Can't obtain handle for writing to the PowerShell's standard input"
+        ))?;
 
-impl fmt::Display for WindowsTerminalCommand {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.command)
-    }
-}
+        use io::Write;
+        writeln!(stdin, "{}", input).map_err(eyre::Error::new)?;
 
-impl WindowsTerminalCommand {
-    fn with_working_directory(mut self, directory: Option<&str>) -> Self {
-        if let Some(directory) = directory {
-            let arg = format!(" -WorkingDirectory {directory}");
-
-            self.command.push_str(&arg);
-        }
-
-        self
-    }
-
-    fn with_no_exit(mut self, no_exit: bool) -> Self {
-        if no_exit {
-            self.command.push_str(" -NoExit");
-        }
-
-        self
-    }
-
-    fn with_command(mut self, command: Option<&str>) -> Self {
-        if let Some(command) = command {
-            self.command.push_str(&format!(" -Command {{{command}}}"));
-        }
-
-        self
+        Ok(())
     }
 }
 
 impl Client {
-    pub fn copy_to_clipboard(&mut self, text: &str) -> Result<()> {
-        let command = format!("Set-Clipboard '{}'", text);
-
-        self.write_stdin(&command)?;
-
-        Ok(())
-    }
-
-    pub fn new() -> Result<Self> {
+    pub fn new() -> anyhow::Result<Self> {
         let mut cmd = Command::new("pwsh");
 
         cmd.stdin(Stdio::piped());
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
 
+        let child = cmd.spawn()?;
+
         Ok(Self {
-            powershell: cmd.spawn()?,
+            inner: RwLock::new(child),
         })
     }
 
-    pub fn start_windows_terminal(&mut self, parameters: WindowsTerminalParameters) -> Result<()> {
-        let WindowsTerminalParameters {
-            directory,
-            no_exit,
-            command,
-        } = parameters;
-
-        let command = WindowsTerminalCommand::default()
-            .with_working_directory(directory)
-            .with_no_exit(no_exit)
-            .with_command(command);
-
-        self.write_stdin(&command.to_string())?;
+    pub fn copy_to_clipboard(&self, text: &str) -> anyhow::Result<()> {
+        CopyToClipboard {
+            powershell: &self.inner,
+        }
+        .execute(text)?;
 
         Ok(())
     }
 
-    fn write_stdin(&mut self, input: &str) -> Result<()> {
-        let stdin = self.powershell.stdin.as_mut().ok_or(io::Error::new(
-            io::ErrorKind::Other,
-            "Powershell stdin not found",
-        ))?;
+    pub fn open_windows_terminal(
+        &self,
+        parameters: Option<PowerShellParameters>,
+    ) -> anyhow::Result<()> {
+        let arguments = parameters.map(|args| {
+            let PowerShellParameters {
+                working_directory,
+                command,
+                no_exit,
+            } = args;
 
-        use io::Write;
-        writeln!(stdin, "{}", input)?;
+            PowerShellArguments {
+                command: command.map(ToString::to_string),
+                no_exit,
+                working_directory: working_directory.map(ToString::to_string),
+            }
+        });
+
+        OpenWindowsTerminal {
+            powershell: &self.inner,
+        }
+        .execute(arguments)?;
 
         Ok(())
     }

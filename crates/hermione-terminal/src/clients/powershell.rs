@@ -1,53 +1,38 @@
 use crate::Result;
-use anyhow::anyhow;
-use std::sync::{RwLock, RwLockWriteGuard};
+use hermione_powershell::{Client, PowerShellParameters};
 
 pub struct PowerShell {
-    inner: RwLock<hermione_powershell::Client>,
+    inner: Client,
 }
 
-pub struct WindowsTerminalParameters<'a> {
-    pub directory: &'a str,
+pub struct OpenWindowsTerminalParameters<'a> {
     pub command: Option<&'a str>,
     pub no_exit: bool,
+    pub working_directory: &'a str,
 }
 
 impl PowerShell {
-    fn client(&self) -> Result<RwLockWriteGuard<'_, hermione_powershell::Client>> {
-        self.inner.write().map_err(|err| anyhow!("{}", err))
-    }
-
     pub fn copy_to_clipboard(&self, text: &str) -> Result<()> {
-        self.client()?
-            .copy_to_clipboard(text)
-            .map_err(|err| anyhow!(err))
+        self.inner.copy_to_clipboard(text)
     }
 
     pub fn new() -> Result<Self> {
         Ok(Self {
-            inner: RwLock::new(hermione_powershell::Client::new()?),
+            inner: Client::new()?,
         })
     }
 
-    pub fn start_windows_terminal(&self, parameters: WindowsTerminalParameters) -> Result<()> {
-        let WindowsTerminalParameters {
-            directory,
+    pub fn open_windows_terminal(&self, parameters: OpenWindowsTerminalParameters) -> Result<()> {
+        let OpenWindowsTerminalParameters {
             command,
             no_exit,
+            working_directory,
         } = parameters;
 
-        let directory = if directory.is_empty() {
-            None
-        } else {
-            Some(directory)
-        };
-
-        self.client()?
-            .start_windows_terminal(hermione_powershell::WindowsTerminalParameters {
-                directory,
-                command,
-                no_exit,
-            })
-            .map_err(|err| anyhow!(err))
+        self.inner.open_windows_terminal(Some(PowerShellParameters {
+            command,
+            no_exit,
+            working_directory: Some(working_directory),
+        }))
     }
 }

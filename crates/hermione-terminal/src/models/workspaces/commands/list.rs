@@ -182,10 +182,10 @@ impl Model {
         )
     }
 
-    fn start_windows_terminal_parameters(
+    fn open_windows_terminal_parameters(
         &self,
-    ) -> parameters::powershell::start_windows_terminal::Parameters {
-        parameters::powershell::start_windows_terminal::Parameters {
+    ) -> parameters::powershell::open_windows_terminal::Parameters {
+        parameters::powershell::open_windows_terminal::Parameters {
             working_directory: self.workspace.location.clone(),
         }
     }
@@ -198,10 +198,10 @@ impl Model {
         self.smart_input.reset_input();
     }
 
-    fn start_windows_terminal(&mut self) {
+    fn open_windows_terminal(&mut self) {
         self.redirect = Some(Route::Powershell(
             routes::powershell::Route::StartWindowsTerminal(
-                self.start_windows_terminal_parameters(),
+                self.open_windows_terminal_parameters(),
             ),
         ));
 
@@ -387,9 +387,9 @@ impl Model {
                 self.set_redirect(self.new_command_parameters().into());
             }
             Action::CopyToClipboard => self.copy_to_clipboard(),
-            Action::StartWindowsTerminal => self.start_windows_terminal(),
-            Action::PowerShellSetNoExit => self.powershell_set_no_exit(),
-            Action::PowerShellUnsetNoExit => self.powershell_unset_no_exit(),
+            Action::OpenWindowsTerminal => self.open_windows_terminal(),
+            Action::SetPowerShellNoExit => self.powershell_set_no_exit(),
+            Action::UnsetPowerShellNoExit => self.powershell_unset_no_exit(),
         }
 
         self.smart_input.reset_input();
@@ -471,9 +471,9 @@ enum Action {
     Exit,
     ListWorkspaces,
     NewCommand,
-    StartWindowsTerminal,
-    PowerShellSetNoExit,
-    PowerShellUnsetNoExit,
+    OpenWindowsTerminal,
+    SetPowerShellNoExit,
+    UnsetPowerShellNoExit,
 }
 
 impl From<Action> for String {
@@ -486,9 +486,9 @@ impl From<Action> for String {
             Action::Exit => "Exit",
             Action::ListWorkspaces => "List workspaces",
             Action::NewCommand => "New command",
-            Action::StartWindowsTerminal => "Start Windows Terminal",
-            Action::PowerShellSetNoExit => "PowerShell set -NoExit",
-            Action::PowerShellUnsetNoExit => "PowerShell unset -NoExit",
+            Action::OpenWindowsTerminal => "Open Windows Terminal",
+            Action::SetPowerShellNoExit => "Set PowerShell -NoExit",
+            Action::UnsetPowerShellNoExit => "Unset PowerShell -NoExit",
         };
 
         action.into()
@@ -507,9 +507,9 @@ impl TryFrom<&str> for Action {
             "Exit" => Ok(Self::Exit),
             "List workspaces" => Ok(Self::ListWorkspaces),
             "New command" => Ok(Self::NewCommand),
-            "PowerShell set -NoExit" => Ok(Self::PowerShellSetNoExit),
-            "PowerShell unset -NoExit" => Ok(Self::PowerShellUnsetNoExit),
-            "Start Windows Terminal" => Ok(Self::StartWindowsTerminal),
+            "Open Windows Terminal" => Ok(Self::OpenWindowsTerminal),
+            "Set PowerShell -NoExit" => Ok(Self::SetPowerShellNoExit),
+            "Unset PowerShell -NoExit" => Ok(Self::UnsetPowerShellNoExit),
             _ => Err(anyhow::anyhow!("Unknown action: {}", value)),
         }
     }
@@ -525,9 +525,9 @@ fn smart_input() -> SmartInput {
             Action::Exit.into(),
             Action::ListWorkspaces.into(),
             Action::NewCommand.into(),
-            Action::PowerShellSetNoExit.into(),
-            Action::PowerShellUnsetNoExit.into(),
-            Action::StartWindowsTerminal.into(),
+            Action::SetPowerShellNoExit.into(),
+            Action::UnsetPowerShellNoExit.into(),
+            Action::OpenWindowsTerminal.into(),
         ],
     })
 }
