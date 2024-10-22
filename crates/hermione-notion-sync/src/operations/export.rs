@@ -5,21 +5,21 @@ use crate::{
     Result,
 };
 use hermione_coordinator::{
-    commands::{self, Operations as _},
-    workspaces::{self, Operations as _},
+    commands::{CommandDto, CommandsClient, ListCommandsInput},
+    workspaces::{ListWorkspacesInput, WorkspaceDto, WorkspacesClient},
     Connection,
 };
 use hermione_notion::{DatabasePage, QueryDatabaseParameters, QueryDatabaseResponse};
 use serde::Serialize;
-use std::{path::Path, rc::Rc};
+use std::path::Path;
 
 const PAGE_SIZE: u32 = 100;
 
 pub struct Operation {
     settings: Settings,
     notion_client: hermione_notion::Client,
-    workspaces_coordinator: workspaces::Client,
-    commands_coordinator: commands::Client,
+    workspaces_coordinator: WorkspacesClient,
+    commands_coordinator: CommandsClient,
     workspaces_statistics: Statistics,
     commands_statistics: Statistics,
 }
@@ -55,7 +55,7 @@ struct RichTextEqualsFilter {
 }
 
 impl Operation {
-    async fn create_remote_command(&self, local_command: commands::Dto) -> Result<()> {
+    async fn create_remote_command(&self, local_command: CommandDto) -> Result<()> {
         self.notion_client
             .create_database_entry(
                 self.settings.commands_page_id(),
@@ -73,7 +73,7 @@ impl Operation {
         Ok(())
     }
 
-    async fn create_remote_workspace(&self, local_workspace: workspaces::Dto) -> Result<()> {
+    async fn create_remote_workspace(&self, local_workspace: WorkspaceDto) -> Result<()> {
         self.notion_client
             .create_database_entry(
                 self.settings.workspaces_page_id(),
@@ -149,8 +149,8 @@ impl Operation {
         }
     }
 
-    fn local_commands(&self, page_number: u32) -> Result<Vec<commands::Dto>> {
-        let commands = self.commands_coordinator.list(commands::ListParameters {
+    fn local_commands(&self, page_number: u32) -> Result<Vec<CommandDto>> {
+        let commands = self.commands_coordinator.list_commands(ListCommandsInput {
             page_number,
             page_size: PAGE_SIZE,
         })?;
@@ -158,10 +158,10 @@ impl Operation {
         Ok(commands)
     }
 
-    fn local_workspaces(&self, page_number: u32) -> Result<Vec<workspaces::Dto>> {
+    fn local_workspaces(&self, page_number: u32) -> Result<Vec<WorkspaceDto>> {
         let workspaces = self
             .workspaces_coordinator
-            .list(workspaces::ListParameters {
+            .list_workspaces(ListWorkspacesInput {
                 name_contains: "",
                 page_number,
                 page_size: PAGE_SIZE,
@@ -178,9 +178,9 @@ impl Operation {
             ..Default::default()
         })?;
 
-        let connection = Rc::new(Connection::open(directory_path)?);
-        let workspaces_coordinator = workspaces::Client::new(connection.clone());
-        let commands_coordinator = commands::Client::new(connection);
+        let connection = Connection::new(directory_path)?;
+        let workspaces_coordinator = WorkspacesClient::new(&connection)?;
+        let commands_coordinator = CommandsClient::new(&connection)?;
 
         Ok(Self {
             commands_coordinator,
@@ -194,7 +194,7 @@ impl Operation {
 
     async fn remote_commands(
         &self,
-        commands: &[commands::Dto],
+        commands: &[CommandDto],
     ) -> Result<QueryDatabaseResponse<Command>> {
         let filters: Vec<RichTextFilter> = commands
             .iter()
@@ -227,7 +227,7 @@ impl Operation {
 
     async fn remote_workspaces(
         &self,
-        workspaces: &[workspaces::Dto],
+        workspaces: &[WorkspaceDto],
     ) -> Result<QueryDatabaseResponse<Workspace>> {
         let filters: Vec<RichTextFilter> = workspaces
             .iter()
@@ -258,7 +258,7 @@ impl Operation {
         Ok(query_database_response)
     }
 
-    async fn export_commands_batch(&self, local_commands: Vec<commands::Dto>) -> Result<()> {
+    async fn export_commands_batch(&self, local_commands: Vec<CommandDto>) -> Result<()> {
         let query_database_response = self.remote_commands(&local_commands).await?;
 
         for local_command in local_commands {
@@ -289,7 +289,7 @@ impl Operation {
         Ok(())
     }
 
-    async fn export_workspaces_batch(&self, local_workspaces: Vec<workspaces::Dto>) -> Result<()> {
+    async fn export_workspaces_batch(&self, local_workspaces: Vec<WorkspaceDto>) -> Result<()> {
         let remote_workspaces = self.remote_workspaces(&local_workspaces).await?;
 
         for local_workspace in local_workspaces {
@@ -322,7 +322,7 @@ impl Operation {
 
     async fn update_remote_command(
         &self,
-        local_command: commands::Dto,
+        local_command: CommandDto,
         database_page: &DatabasePage<Command>,
     ) -> Result<()> {
         self.notion_client
@@ -342,7 +342,7 @@ impl Operation {
 
     async fn update_remote_workspace(
         &self,
-        local_workspace: workspaces::Dto,
+        local_workspace: WorkspaceDto,
         database_page: &DatabasePage<Workspace>,
     ) -> Result<()> {
         self.notion_client
@@ -360,11 +360,7 @@ impl Operation {
         Ok(())
     }
 
-    fn verify_remote_command(
-        &self,
-        local_command: &commands::Dto,
-        remote_command: &Command,
-    ) -> bool {
+    fn verify_remote_command(&self, local_command: &CommandDto, remote_command: &Command) -> bool {
         let verified = remote_command == local_command;
 
         if verified {
@@ -376,7 +372,7 @@ impl Operation {
 
     fn verify_remote_workspace(
         &self,
-        local_workspace: &workspaces::Dto,
+        local_workspace: &WorkspaceDto,
         remote_workspace: &Workspace,
     ) -> bool {
         let verified = remote_workspace == local_workspace;

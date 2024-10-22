@@ -1,39 +1,44 @@
 use crate::{
     layouts::{self, StatusBar},
-    routes, CreateWorkspaceParameters, ListWorkspacesParameters, Message, Result, WorkspaceForm,
-    WorkspacePresenter,
+    CommandForm, CommandPresenter, ListWorkspaceCommandsParameters, Message, Result, Route,
+    UpdateWorkspaceCommandParameters, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{widgets::Paragraph, Frame};
 
-pub struct NewWorkspaceModel {
+pub struct EditWorkspaceCommandModel {
     status_bar: String,
-    form: WorkspaceForm,
-    redirect: Option<routes::Route>,
+    form: CommandForm,
+    redirect: Option<Route>,
 }
 
-impl Model for NewWorkspaceModel {
+pub struct EditWorkspaceCommandModelParameters {
+    pub command: CommandPresenter,
+    pub workspace: WorkspacePresenter,
+}
+
+impl Model for EditWorkspaceCommandModel {
     type Message = Message;
-    type Route = routes::Route;
+    type Route = Route;
 
     fn handle_event(&self) -> Result<Option<Self::Message>> {
         EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
     }
 
-    fn redirect(&mut self) -> Option<routes::Route> {
+    fn redirect(&mut self) -> Option<Route> {
         self.redirect.take()
     }
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
             Message::Cancel => self.back(),
+            Message::Tab => self.toggle_focus(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::Submit => self.submit(),
-            Message::Tab => self.toggle_focus(),
             Message::ExecuteCommand | Message::SelectNext | Message::SelectPrevious => {}
         }
 
@@ -50,17 +55,28 @@ impl Model for NewWorkspaceModel {
     }
 }
 
-impl NewWorkspaceModel {
+impl EditWorkspaceCommandModel {
     fn back(&mut self) {
-        self.redirect = Some(ListWorkspacesParameters::default().into());
-    }
+        let command = self.form.command();
 
-    fn delete_all_chars(&mut self) {
-        self.form.delete_all_chars();
+        self.redirect = Some(
+            ListWorkspaceCommandsParameters {
+                workspace_id: command.workspace_id,
+                search_query: command.program,
+                page_number: 0,
+                page_size: LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+                powershell_no_exit: false,
+            }
+            .into(),
+        );
     }
 
     fn delete_char(&mut self) {
         self.form.delete_char();
+    }
+
+    fn delete_all_chars(&mut self) {
+        self.form.delete_all_chars();
     }
 
     fn enter_char(&mut self, c: char) {
@@ -75,24 +91,39 @@ impl NewWorkspaceModel {
         self.form.move_cursor_right();
     }
 
-    pub fn new() -> Result<Self> {
-        let status_bar = StatusBar::default().use_case("New workspace").try_into()?;
+    pub fn new(parameters: EditWorkspaceCommandModelParameters) -> Result<Self> {
+        let EditWorkspaceCommandModelParameters { command, workspace } = parameters;
+
+        let status_bar = StatusBar::default()
+            .use_case("Edit command")
+            .workspace(&workspace.name)
+            .command(&command.name)
+            .try_into()?;
 
         Ok(Self {
             status_bar,
-            form: WorkspaceForm::default(),
             redirect: None,
+            form: command.into(),
         })
     }
 
     fn submit(&mut self) {
-        let WorkspacePresenter {
-            id: _,
+        let CommandPresenter {
+            id,
             name,
-            location,
-        } = self.form.workspace();
+            program,
+            workspace_id,
+        } = self.form.command();
 
-        self.redirect = Some(CreateWorkspaceParameters { name, location }.into());
+        self.redirect = Some(
+            UpdateWorkspaceCommandParameters {
+                name,
+                program,
+                workspace_id,
+                command_id: id,
+            }
+            .into(),
+        );
     }
 
     fn toggle_focus(&mut self) {

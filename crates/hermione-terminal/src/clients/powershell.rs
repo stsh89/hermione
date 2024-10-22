@@ -1,17 +1,17 @@
 use crate::Result;
 use hermione_powershell::{Client, PowerShellParameters};
 
-pub struct PowerShell {
+pub struct PowerShellClient {
     inner: Client,
 }
 
-pub struct OpenWindowsTerminalParameters<'a> {
+pub struct PowerShellOpenWindowsTerminalClientParameters<'a> {
     pub command: Option<&'a str>,
     pub no_exit: bool,
     pub working_directory: &'a str,
 }
 
-impl PowerShell {
+impl PowerShellClient {
     pub fn copy_to_clipboard(&self, text: &str) -> Result<()> {
         self.inner.copy_to_clipboard(text)
     }
@@ -22,8 +22,11 @@ impl PowerShell {
         })
     }
 
-    pub fn open_windows_terminal(&self, parameters: OpenWindowsTerminalParameters) -> Result<()> {
-        let OpenWindowsTerminalParameters {
+    pub fn open_windows_terminal(
+        &self,
+        parameters: PowerShellOpenWindowsTerminalClientParameters,
+    ) -> Result<()> {
+        let PowerShellOpenWindowsTerminalClientParameters {
             command,
             no_exit,
             working_directory,

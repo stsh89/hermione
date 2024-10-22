@@ -1,36 +1,35 @@
 use crate::{
     layouts::{self, StatusBar},
-    parameters,
-    presenters::workspace::Presenter,
-    routes::{self, Route},
     smart_input::{NewSmartInputParameters, SmartInput},
-    widgets, Error, Message, Result,
+    widgets, DeleteWorkspaceParameters, EditWorkspaceParameters, Error,
+    ListWorkspaceCommandsParameters, ListWorkspacesParameters, Message, Result, Route,
+    WorkspacePresenter, WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
-use hermione_tui::EventHandler;
+use hermione_tui::{EventHandler, Model};
 use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
-pub struct Model {
+pub struct ListWorkspacesModel {
     is_running: bool,
     redirect: Option<Route>,
     workspaces_state: widgets::list::State,
-    workspaces: Vec<Presenter>,
+    workspaces: Vec<WorkspacePresenter>,
     page_number: u32,
     page_size: u32,
     smart_input: SmartInput,
     search_query: String,
 }
 
-pub struct ModelParameters {
-    pub workspaces: Vec<Presenter>,
+pub struct ListWorkspaceModelParameters {
+    pub workspaces: Vec<WorkspacePresenter>,
     pub search_query: String,
     pub page_number: u32,
     pub page_size: u32,
 }
 
-impl hermione_tui::Model for Model {
+impl Model for ListWorkspacesModel {
     type Message = Message;
     type Route = Route;
 
@@ -79,7 +78,7 @@ impl hermione_tui::Model for Model {
     }
 }
 
-impl Model {
+impl ListWorkspacesModel {
     fn toggle_focus(&mut self) {
         self.smart_input.autocomplete();
     }
@@ -88,7 +87,7 @@ impl Model {
         self.smart_input.reset_input();
 
         if !self.search_query.is_empty() {
-            self.set_redirect(parameters::workspaces::list::Parameters::default().into());
+            self.set_redirect(ListWorkspacesParameters::default().into());
         }
     }
 
@@ -112,8 +111,8 @@ impl Model {
         self.is_running = false;
     }
 
-    pub fn new(parameters: ModelParameters) -> Result<Self> {
-        let ModelParameters {
+    pub fn new(parameters: ListWorkspaceModelParameters) -> Result<Self> {
+        let ListWorkspaceModelParameters {
             workspaces,
             search_query,
             page_number,
@@ -149,13 +148,14 @@ impl Model {
     }
 
     fn set_list_workspaces_redirect(&mut self, search_query: String) {
-        self.redirect = Some(Route::Workspaces(routes::workspaces::Route::List(
-            parameters::workspaces::list::Parameters {
+        self.redirect = Some(
+            ListWorkspacesParameters {
                 search_query,
                 page_number: 0,
                 page_size: self.page_size,
-            },
-        )));
+            }
+            .into(),
+        );
     }
 
     fn submit(&mut self) -> Result<()> {
@@ -170,7 +170,7 @@ impl Model {
             Action::DeleteWorkspace => {
                 if let Some(workspace) = self.workspace() {
                     self.set_redirect(
-                        parameters::workspaces::delete::Parameters {
+                        DeleteWorkspaceParameters {
                             id: workspace.id.clone(),
                         }
                         .into(),
@@ -180,7 +180,7 @@ impl Model {
             Action::EditWorkspace => {
                 if let Some(workspace) = self.workspace() {
                     self.set_redirect(
-                        parameters::workspaces::edit::Parameters {
+                        EditWorkspaceParameters {
                             id: workspace.id.clone(),
                         }
                         .into(),
@@ -191,20 +191,18 @@ impl Model {
             Action::ListCommands => {
                 if let Some(workspace) = self.workspace() {
                     self.set_redirect(
-                        parameters::workspaces::commands::list::Parameters {
+                        ListWorkspaceCommandsParameters {
                             workspace_id: workspace.id.clone(),
                             search_query: "".into(),
                             page_number: 0,
-                            page_size: parameters::workspaces::commands::list::PAGE_SIZE,
+                            page_size: LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
                             powershell_no_exit: false,
                         }
                         .into(),
                     );
                 }
             }
-            Action::NewWorkspace => {
-                self.set_redirect(Route::Workspaces(routes::workspaces::Route::New))
-            }
+            Action::NewWorkspace => self.set_redirect(Route::Workspaces(WorkspacesRoute::New)),
         }
 
         Ok(())
@@ -217,7 +215,7 @@ impl Model {
 
         if index == self.workspaces.len() - 1 && self.workspaces.len() == self.page_size as usize {
             self.set_redirect(
-                parameters::workspaces::list::Parameters {
+                ListWorkspacesParameters {
                     search_query: self.search_query.clone(),
                     page_number: self.page_number + 1,
                     page_size: self.page_size,
@@ -235,7 +233,7 @@ impl Model {
         let Some(index) = self.workspaces_state.selected() else {
             if self.page_number != 0 {
                 self.set_redirect(
-                    parameters::workspaces::list::Parameters {
+                    ListWorkspacesParameters {
                         search_query: self.search_query.clone(),
                         page_number: self.page_number - 1,
                         page_size: self.page_size,
@@ -249,7 +247,7 @@ impl Model {
 
         if index == 0 && self.page_number != 0 {
             self.set_redirect(
-                parameters::workspaces::list::Parameters {
+                ListWorkspacesParameters {
                     search_query: self.search_query.clone(),
                     page_number: self.page_number - 1,
                     page_size: self.page_size,
@@ -299,7 +297,7 @@ impl Model {
         self.smart_input.move_cursor_right();
     }
 
-    fn workspace(&self) -> Option<&Presenter> {
+    fn workspace(&self) -> Option<&WorkspacePresenter> {
         self.workspaces_state
             .selected()
             .and_then(|i| self.workspaces.get(i))

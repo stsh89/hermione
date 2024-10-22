@@ -1,64 +1,16 @@
-use std::{ops::Deref, path::Path};
-
-mod core;
-mod records;
+use std::path::{Path, PathBuf};
 
 pub mod commands;
 pub mod workspaces;
 
-pub type Result<T> = std::result::Result<T, Error>;
-
 const DATABASE_FILE_PATH: &str = "hermione.db3";
 
-pub struct Connection(rusqlite::Connection);
-
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("{0}")]
-    Database(#[from] rusqlite::Error),
-
-    #[error("{0}")]
-    FailedPrecondition(String),
-
-    #[error("{0}")]
-    Internal(String),
-
-    #[error(transparent)]
-    Unknown(#[from] eyre::Report),
-}
-
-impl From<hermione_core::Error> for Error {
-    fn from(value: hermione_core::Error) -> Self {
-        match value {
-            hermione_core::Error::FailedPrecondition(msg) => Self::FailedPrecondition(msg),
-            hermione_core::Error::Internal(msg) => Self::Internal(msg),
-            hermione_core::Error::Unknown(err) => Self::Unknown(err),
-        }
-    }
-}
-
-trait ErrReport {
-    fn err_report(self) -> eyre::Error;
-}
-
-impl ErrReport for rusqlite::Error {
-    fn err_report(self) -> eyre::Error {
-        eyre::Error::new(self)
-    }
-}
-
-impl Deref for Connection {
-    type Target = rusqlite::Connection;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+pub struct Connection(PathBuf);
 
 impl Connection {
-    pub fn open(dir_path: &Path) -> Result<Self> {
+    pub fn new(dir_path: &Path) -> anyhow::Result<Self> {
         let path = dir_path.join(DATABASE_FILE_PATH);
-        let connection = rusqlite::Connection::open(path).map_err(ErrReport::err_report)?;
+        let connection = rusqlite::Connection::open(&path)?;
 
         connection.execute(
             "CREATE TABLE IF NOT EXISTS workspaces (
@@ -88,6 +40,16 @@ impl Connection {
             (),
         )?;
 
-        Ok(Self(connection))
+        Ok(Self(path))
+    }
+
+    fn open(&self) -> rusqlite::Result<rusqlite::Connection> {
+        let connection = rusqlite::Connection::open(self.path())?;
+
+        Ok(connection)
+    }
+
+    fn path(&self) -> &Path {
+        &self.0
     }
 }

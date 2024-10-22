@@ -5,24 +5,21 @@ use crate::{
     Result,
 };
 use hermione_coordinator::{
-    workspaces::{
-        self,
-        commands::{self, Operations as _},
-        Operations as _,
-    },
+    commands::{CommandDto, CommandsClient},
+    workspaces::{WorkspaceDto, WorkspacesClient},
     Connection,
 };
 use hermione_notion::{DatabasePage, QueryDatabaseParameters, QueryDatabaseResponse};
 use serde::Serialize;
-use std::{path::Path, rc::Rc};
+use std::path::Path;
 
 const PAGE_SIZE: u8 = 100;
 
 pub struct Operation {
     settings: Settings,
     notion_client: hermione_notion::Client,
-    workspaces_coordinator: workspaces::Client,
-    commands_coordinator: commands::Client,
+    workspaces_coordinator: WorkspacesClient,
+    commands_coordinator: CommandsClient,
     workspaces_statistics: Statistics,
     commands_statistics: Statistics,
 }
@@ -48,7 +45,8 @@ struct Summary {
 
 impl Operation {
     async fn create_local_command(&self, remote_command: Command) -> Result<()> {
-        self.commands_coordinator.import(remote_command.into())?;
+        self.commands_coordinator
+            .import_command(remote_command.into())?;
         self.commands_statistics.track(Action::Create);
 
         Ok(())
@@ -56,7 +54,7 @@ impl Operation {
 
     async fn create_local_workspace(&self, remote_workspace: Workspace) -> Result<()> {
         self.workspaces_coordinator
-            .import(remote_workspace.into())?;
+            .import_workspace(remote_workspace.into())?;
         self.workspaces_statistics.track(Action::Create);
 
         Ok(())
@@ -169,9 +167,9 @@ impl Operation {
             ..Default::default()
         })?;
 
-        let connection = Rc::new(Connection::open(directory_path)?);
-        let workspaces_coordinator = workspaces::Client::new(connection.clone());
-        let commands_coordinator = commands::Client::new(connection.clone());
+        let connection = Connection::new(directory_path)?;
+        let workspaces_coordinator = WorkspacesClient::new(&connection)?;
+        let commands_coordinator = CommandsClient::new(&connection)?;
 
         Ok(Self {
             commands_coordinator,
@@ -193,9 +191,10 @@ impl Operation {
             screen::clear_and_reset_cursor();
             screen::print("Importing commands from Notion...");
 
-            let local_command = self
-                .commands_coordinator
-                .find(&remote_command.workspace_id, &remote_command.external_id)?;
+            let local_command = self.commands_coordinator.find_command_in_workspace(
+                &remote_command.workspace_id,
+                &remote_command.external_id,
+            )?;
 
             let Some(local_command) = local_command else {
                 self.create_local_command(remote_command).await?;
@@ -250,7 +249,8 @@ impl Operation {
     }
 
     async fn update_local_command(&self, remote_command: Command) -> Result<()> {
-        self.commands_coordinator.update(remote_command.into())?;
+        self.commands_coordinator
+            .update_command(remote_command.into())?;
         self.commands_statistics.track(Action::Update);
 
         Ok(())
@@ -258,17 +258,13 @@ impl Operation {
 
     async fn update_local_workspace(&self, remote_workspace: Workspace) -> Result<()> {
         self.workspaces_coordinator
-            .update(remote_workspace.into())?;
+            .update_workspace(remote_workspace.into())?;
         self.workspaces_statistics.track(Action::Update);
 
         Ok(())
     }
 
-    fn verify_local_command(
-        &self,
-        remote_command: &Command,
-        local_command: &commands::Dto,
-    ) -> bool {
+    fn verify_local_command(&self, remote_command: &Command, local_command: &CommandDto) -> bool {
         let verified = remote_command == local_command;
 
         if verified {
@@ -281,7 +277,7 @@ impl Operation {
     fn verify_local_workspace(
         &self,
         remote_workspace: &Workspace,
-        local_workspace: &workspaces::Dto,
+        local_workspace: &WorkspaceDto,
     ) -> bool {
         let verified = remote_workspace == local_workspace;
 

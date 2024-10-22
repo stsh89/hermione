@@ -1,4 +1,4 @@
-use crate::presenters;
+use crate::CommandPresenter;
 use hermione_tui::Input;
 use ratatui::{
     layout::{Constraint, Direction, Position, Rect},
@@ -10,7 +10,7 @@ const NAME: &str = "Name";
 const PROGRAM: &str = "Program";
 
 #[derive(Default)]
-pub struct Form {
+pub struct CommandForm {
     id: String,
     active_input: ActiveInput,
     program: Input,
@@ -25,7 +25,7 @@ enum ActiveInput {
     Program,
 }
 
-impl Form {
+impl CommandForm {
     fn active_input(&self) -> &Input {
         match self.active_input {
             ActiveInput::Name => &self.name,
@@ -64,8 +64,8 @@ impl Form {
         self.active_input = self.active_input.next();
     }
 
-    pub fn command(&self) -> presenters::command::Presenter {
-        presenters::command::Presenter {
+    pub fn command(&self) -> CommandPresenter {
+        CommandPresenter {
             id: self.id.clone(),
             name: self.name.value().into(),
             program: self.program.value().into(),
@@ -108,9 +108,9 @@ impl ActiveInput {
     }
 }
 
-impl From<presenters::command::Presenter> for Form {
-    fn from(command: presenters::command::Presenter) -> Self {
-        let presenters::command::Presenter {
+impl From<CommandPresenter> for CommandForm {
+    fn from(command: CommandPresenter) -> Self {
+        let CommandPresenter {
             id,
             name,
             program,

@@ -3,7 +3,7 @@ use std::{
     sync::atomic::{AtomicU32, Ordering},
 };
 
-use hermione_coordinator::{commands, workspaces};
+use hermione_coordinator::{commands::CommandDto, workspaces::WorkspaceDto};
 use hermione_notion_serde::de;
 use serde::Deserialize;
 
@@ -68,25 +68,19 @@ pub struct Workspace {
     pub location: String,
 }
 
-impl PartialEq<workspaces::Dto> for Workspace {
-    fn eq(&self, other: &workspaces::Dto) -> bool {
+impl PartialEq<WorkspaceDto> for Workspace {
+    fn eq(&self, other: &WorkspaceDto) -> bool {
         self.name == other.name && self.location == other.location.as_deref().unwrap_or_default()
     }
 }
 
-impl PartialEq<workspaces::commands::Dto> for Command {
-    fn eq(&self, other: &workspaces::commands::Dto) -> bool {
+impl PartialEq<CommandDto> for Command {
+    fn eq(&self, other: &CommandDto) -> bool {
         self.name == other.name && self.program == other.program
     }
 }
 
-impl PartialEq<commands::Dto> for Command {
-    fn eq(&self, other: &commands::Dto) -> bool {
-        self.name == other.name && self.program == other.program
-    }
-}
-
-impl From<Command> for commands::Dto {
+impl From<Command> for CommandDto {
     fn from(command: Command) -> Self {
         let Command {
             name,
@@ -95,25 +89,7 @@ impl From<Command> for commands::Dto {
             workspace_id,
         } = command;
 
-        commands::Dto {
-            id: external_id,
-            name,
-            program,
-            workspace_id,
-        }
-    }
-}
-
-impl From<Command> for workspaces::commands::Dto {
-    fn from(command: Command) -> Self {
-        let Command {
-            name,
-            external_id,
-            program,
-            workspace_id,
-        } = command;
-
-        workspaces::commands::Dto {
+        CommandDto {
             id: external_id,
             last_execute_time: None,
             name,
@@ -123,7 +99,7 @@ impl From<Command> for workspaces::commands::Dto {
     }
 }
 
-impl From<Workspace> for workspaces::Dto {
+impl From<Workspace> for WorkspaceDto {
     fn from(workspace: Workspace) -> Self {
         let Workspace {
             name,
@@ -131,7 +107,7 @@ impl From<Workspace> for workspaces::Dto {
             location,
         } = workspace;
 
-        workspaces::Dto {
+        WorkspaceDto {
             id: external_id,
             last_access_time: None,
             location: Some(location),

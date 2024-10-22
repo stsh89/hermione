@@ -1,4 +1,4 @@
-use crate::presenters;
+use crate::WorkspacePresenter;
 use hermione_tui::Input;
 use ratatui::{
     layout::{Constraint, Direction, Position, Rect},
@@ -10,7 +10,7 @@ const NAME: &str = "Name";
 const LOCATION: &str = "Location";
 
 #[derive(Default)]
-pub struct Form {
+pub struct WorkspaceForm {
     id: String,
     active_input: ActiveInput,
     location: Input,
@@ -24,7 +24,7 @@ enum ActiveInput {
     Location,
 }
 
-impl Form {
+impl WorkspaceForm {
     fn active_input_mut(&mut self) -> &mut Input {
         match self.active_input {
             ActiveInput::Name => &mut self.name,
@@ -63,8 +63,8 @@ impl Form {
         self.active_input = self.active_input.next();
     }
 
-    pub fn workspace(&self) -> presenters::workspace::Presenter {
-        presenters::workspace::Presenter {
+    pub fn workspace(&self) -> WorkspacePresenter {
+        WorkspacePresenter {
             id: self.id.clone(),
             name: self.name.value().into(),
             location: self.location.value().into(),
@@ -106,9 +106,9 @@ impl ActiveInput {
     }
 }
 
-impl From<presenters::workspace::Presenter> for Form {
-    fn from(workspace: presenters::workspace::Presenter) -> Self {
-        let presenters::workspace::Presenter { id, name, location } = workspace;
+impl From<WorkspacePresenter> for WorkspaceForm {
+    fn from(workspace: WorkspacePresenter) -> Self {
+        let WorkspacePresenter { id, name, location } = workspace;
 
         Self {
             id,

@@ -14,16 +14,20 @@ mod smart_input;
 mod widgets;
 
 use hermione_tracing::{NewTracerParameters, Tracer};
-
-pub(crate) use message::*;
-
-use clients::powershell::PowerShell;
-use coordinator::Coordinator;
 use router::Router;
+
+pub(crate) use clients::*;
+pub(crate) use coordinator::*;
+pub(crate) use forms::*;
+pub(crate) use handlers::*;
+pub(crate) use message::*;
+pub(crate) use models::*;
+pub(crate) use parameters::*;
+pub(crate) use presenters::*;
+pub(crate) use routes::*;
 
 const LOGS_FILE_NAME_PREFIX: &str = "hermione-terminal-logs";
 
-type BoxedModel = Box<dyn hermione_tui::Model<Message = Message, Route = routes::Route>>;
 type Error = anyhow::Error;
 type Result<T> = anyhow::Result<T>;
 
@@ -31,7 +35,7 @@ fn main() -> Result<()> {
     let directory = hermione_terminal_directory::path()?;
 
     let coordinator = Coordinator::new(&directory)?;
-    let powershell = PowerShell::new()?;
+    let powershell = PowerShellClient::new()?;
 
     let router = Router {
         coordinator,

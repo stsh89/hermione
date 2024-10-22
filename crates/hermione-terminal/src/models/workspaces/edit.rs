@@ -1,22 +1,22 @@
 use crate::{
-    forms,
     layouts::{self, StatusBar},
-    parameters, presenters, routes, Message, Result,
+    routes, ListWorkspacesParameters, Message, Result, UpdateWorkspaceParameters, WorkspaceForm,
+    WorkspacePresenter, LIST_WORKSPACES_PAGE_SIZE,
 };
-use hermione_tui::EventHandler;
+use hermione_tui::{EventHandler, Model};
 use ratatui::{widgets::Paragraph, Frame};
 
-pub struct Model {
-    form: forms::workspace::Form,
+pub struct EditWorkspaceModel {
+    form: WorkspaceForm,
     status_bar: String,
     redirect: Option<routes::Route>,
 }
 
-pub struct ModelParameters {
-    pub workspace: presenters::workspace::Presenter,
+pub struct EditWorkspaceModelParameters {
+    pub workspace: WorkspacePresenter,
 }
 
-impl hermione_tui::Model for Model {
+impl Model for EditWorkspaceModel {
     type Message = Message;
     type Route = routes::Route;
 
@@ -54,21 +54,19 @@ impl hermione_tui::Model for Model {
     }
 }
 
-impl Model {
+impl EditWorkspaceModel {
     fn back(&mut self) {
-        use parameters::workspaces::list;
-
-        let presenters::workspace::Presenter {
+        let WorkspacePresenter {
             id: _,
             name: search_query,
             location: _,
         } = self.form.workspace();
 
         self.redirect = Some(
-            list::Parameters {
+            ListWorkspacesParameters {
                 search_query,
                 page_number: 0,
-                page_size: list::PAGE_SIZE,
+                page_size: LIST_WORKSPACES_PAGE_SIZE,
             }
             .into(),
         );
@@ -94,8 +92,8 @@ impl Model {
         self.form.move_cursor_right();
     }
 
-    pub fn new(parameters: ModelParameters) -> Result<Self> {
-        let ModelParameters { workspace } = parameters;
+    pub fn new(parameters: EditWorkspaceModelParameters) -> Result<Self> {
+        let EditWorkspaceModelParameters { workspace } = parameters;
 
         let status_bar = StatusBar::default()
             .use_case("Edit workspace")
@@ -110,11 +108,9 @@ impl Model {
     }
 
     fn submit(&mut self) {
-        use parameters::workspaces::update::Parameters;
+        let WorkspacePresenter { id, name, location } = self.form.workspace();
 
-        let presenters::workspace::Presenter { id, name, location } = self.form.workspace();
-
-        self.redirect = Some(Parameters { name, location, id }.into());
+        self.redirect = Some(UpdateWorkspaceParameters { name, location, id }.into());
     }
 
     fn toggle_focus(&mut self) {
