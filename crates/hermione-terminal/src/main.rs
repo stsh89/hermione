@@ -14,7 +14,7 @@ mod smart_input;
 mod widgets;
 
 use hermione_tracing::{NewTracerParameters, Tracer};
-use router::Router;
+use router::TerminalRouter;
 
 pub(crate) use clients::*;
 pub(crate) use coordinator::*;
@@ -37,7 +37,7 @@ fn main() -> Result<()> {
     let coordinator = Coordinator::new(&directory)?;
     let powershell = PowerShellClient::new()?;
 
-    let router = Router {
+    let router = TerminalRouter {
         coordinator,
         powershell,
     };

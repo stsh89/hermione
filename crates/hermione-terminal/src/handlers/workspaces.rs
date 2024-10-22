@@ -84,7 +84,7 @@ impl<'a> WorkspacesHandler<'a> {
         })
     }
 
-    pub fn new(self) -> Result<NewWorkspaceModel> {
+    pub fn new_workspace(self) -> Result<NewWorkspaceModel> {
         NewWorkspaceModel::new()
     }
 

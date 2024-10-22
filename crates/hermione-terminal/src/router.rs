@@ -1,13 +1,12 @@
 use crate::{
-    Route, CommandsHandler, Coordinator, ListWorkspaceCommandsParameters,
-    ListWorkspacesFilter, ListWorkspacesParameters, Message, PowerShellClient, PowerShellHandler,
-    PowerShellRoute, Result, WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute,
+    CommandsHandler, Coordinator, ListWorkspaceCommandsParameters, ListWorkspacesFilter,
+    ListWorkspacesParameters, Message, PowerShellClient, PowerShellHandler, PowerShellRoute,
+    Result, Route, WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute,
     LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
+use hermione_tui::{BoxedModel, Router};
 
-type BoxedModel = Box<dyn hermione_tui::Model<Message = Message, Route = Route>>;
-
-pub struct Router {
+pub struct TerminalRouter {
     pub coordinator: Coordinator,
     pub powershell: PowerShellClient,
 }
@@ -25,11 +24,11 @@ struct PowerShellRouter<'a> {
     powershell: &'a PowerShellClient,
 }
 
-impl hermione_tui::Router for Router {
+impl Router for TerminalRouter {
     type Route = Route;
     type Message = Message;
 
-    fn default_model(&self) -> Result<BoxedModel> {
+    fn default_model(&self) -> Result<BoxedModel<Route, Message>> {
         let workspaces = self.coordinator.workspaces().list(ListWorkspacesFilter {
             page_number: 0,
             page_size: 1,
@@ -41,7 +40,7 @@ impl hermione_tui::Router for Router {
         };
 
         let Some(workspace) = workspaces.into_iter().next() else {
-            let model = handler.new()?;
+            let model = handler.new_workspace()?;
 
             return Ok(Box::new(model));
         };
@@ -61,8 +60,8 @@ impl hermione_tui::Router for Router {
         Ok(Box::new(model))
     }
 
-    fn handle(&self, route: Route) -> Result<Option<BoxedModel>> {
-        let Router {
+    fn handle(&self, route: Route) -> Result<Option<BoxedModel<Route, Message>>> {
+        let TerminalRouter {
             coordinator,
             powershell,
         } = self;
@@ -79,7 +78,7 @@ impl hermione_tui::Router for Router {
 }
 
 impl<'a> PowerShellRouter<'a> {
-    pub fn handle(self, route: PowerShellRoute) -> Result<Option<BoxedModel>> {
+    pub fn handle(self, route: PowerShellRoute) -> Result<Option<BoxedModel<Route, Message>>> {
         let PowerShellRouter {
             coordinator,
             powershell,
@@ -111,7 +110,7 @@ impl<'a> PowerShellRouter<'a> {
 }
 
 impl<'a> WorkspacesRouter<'a> {
-    pub fn handle(self, route: WorkspacesRoute) -> Result<Option<BoxedModel>> {
+    pub fn handle(self, route: WorkspacesRoute) -> Result<Option<BoxedModel<Route, Message>>> {
         let WorkspacesRouter { coordinator } = self;
         let handler = WorkspacesHandler { coordinator };
 
@@ -140,7 +139,7 @@ impl<'a> WorkspacesRouter<'a> {
                 Ok(Some(Box::new(model)))
             }
             WorkspacesRoute::New => {
-                let model = handler.new()?;
+                let model = handler.new_workspace()?;
 
                 Ok(Some(Box::new(model)))
             }
@@ -159,7 +158,10 @@ impl<'a> WorkspacesRouter<'a> {
 }
 
 impl<'a> WorkspaceCommandsRouter<'a> {
-    pub fn handle(self, route: WorkspaceCommandsRoute) -> Result<Option<BoxedModel>> {
+    pub fn handle(
+        self,
+        route: WorkspaceCommandsRoute,
+    ) -> Result<Option<BoxedModel<Route, Message>>> {
         let WorkspaceCommandsRouter { coordinator } = self;
         let handler = CommandsHandler { coordinator };
 
@@ -201,7 +203,7 @@ impl<'a> WorkspaceCommandsRouter<'a> {
                 Ok(Some(Box::new(model)))
             }
             WorkspaceCommandsRoute::New(parameters) => {
-                let model = handler.new(parameters)?;
+                let model = handler.new_command(parameters)?;
 
                 Ok(Some(Box::new(model)))
             }

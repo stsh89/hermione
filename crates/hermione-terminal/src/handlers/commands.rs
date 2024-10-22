@@ -99,7 +99,7 @@ impl<'a> CommandsHandler<'a> {
         })
     }
 
-    pub fn new(
+    pub fn new_command(
         self,
         parameters: NewWorkspaceCommandParameters,
     ) -> Result<NewWorkspaceCommandModel> {
