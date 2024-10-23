@@ -46,15 +46,14 @@ impl<'a> PowerShellHandler<'a> {
         let workspace = self.coordinator.workspaces().get(&workspace_id)?;
 
         ExecuteCommandOperation {
-            executor: self.powershell,
+            runner: self.powershell,
+            tracker: self.coordinator.commands(),
         }
         .execute(ExecuteCommandParameters {
-            command: command.program.as_str(),
+            command: &command,
             no_exit: powershell_no_exit,
             working_directory: workspace.location.as_str(),
         })?;
-
-        self.coordinator.commands().track_execution_time(command)?;
 
         Ok(())
     }

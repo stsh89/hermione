@@ -1,16 +1,20 @@
-use crate::Result;
-use hermione_powershell::{PowerShellProvider, PowerShellParameters};
+use crate::{CommandPresenter, CommandsCoordinator, Result};
+use hermione_powershell::{PowerShellParameters, PowerShellProvider};
 
 pub trait CopyToClipboard {
     fn copy_to_clipboard(&self, text: &str) -> Result<()>;
+}
+
+pub trait RunProgram {
+    fn run(&self, parameters: RunProgramParameters) -> Result<()>;
 }
 
 pub trait OpenWindowsTerminal {
     fn open_windows_terminal(&self, working_directory: &str) -> Result<()>;
 }
 
-pub trait ExecuteCommand {
-    fn execute_command(&self, parameters: ExecuteCommandParameters) -> Result<()>;
+pub trait TrackCommandExecutionTime {
+    fn track(&self, command: &CommandPresenter) -> Result<()>;
 }
 
 pub struct CopyToClipboardOperation<'a, T>
@@ -20,11 +24,13 @@ where
     pub clipboard_provider: &'a T,
 }
 
-pub struct ExecuteCommandOperation<'a, T>
+pub struct ExecuteCommandOperation<'a, R, T>
 where
-    T: ExecuteCommand,
+    R: RunProgram,
+    T: TrackCommandExecutionTime,
 {
-    pub executor: &'a T,
+    pub runner: &'a R,
+    pub tracker: &'a T,
 }
 
 pub struct OpenWindowsTerminalOperation<'a, T>
@@ -35,15 +41,14 @@ where
 }
 
 pub struct ExecuteCommandParameters<'a> {
-    /// Executes the specified commands (and any parameters) as though they
-    /// were typed at the PowerShell command prompt, and then exits, unless the
-    /// NoExit parameter is specified.
-    pub command: &'a str,
-
-    /// Does not exit after running startup commands.
+    pub command: &'a CommandPresenter,
     pub no_exit: bool,
+    pub working_directory: &'a str,
+}
 
-    /// Sets the initial working directory by executing at startup.
+pub struct RunProgramParameters<'a> {
+    pub program: &'a str,
+    pub no_exit: bool,
     pub working_directory: &'a str,
 }
 
@@ -58,14 +63,25 @@ where
     }
 }
 
-impl<'a, T> ExecuteCommandOperation<'a, T>
+impl<'a, R, T> ExecuteCommandOperation<'a, R, T>
 where
-    T: ExecuteCommand,
+    R: RunProgram,
+    T: TrackCommandExecutionTime,
 {
     pub fn execute(&self, parameters: ExecuteCommandParameters) -> Result<()> {
-        self.executor.execute_command(parameters)?;
+        let ExecuteCommandParameters {
+            command,
+            no_exit,
+            working_directory,
+        } = parameters;
 
-        Ok(())
+        self.runner.run(RunProgramParameters {
+            program: &command.program,
+            no_exit,
+            working_directory,
+        })?;
+
+        self.tracker.track(command)
     }
 }
 
@@ -89,16 +105,16 @@ impl CopyToClipboard for PowerShellProvider {
     }
 }
 
-impl ExecuteCommand for PowerShellProvider {
-    fn execute_command(&self, parameters: ExecuteCommandParameters) -> Result<()> {
-        let ExecuteCommandParameters {
-            command,
+impl RunProgram for PowerShellProvider {
+    fn run(&self, parameters: RunProgramParameters) -> Result<()> {
+        let RunProgramParameters {
+            program,
             no_exit,
             working_directory,
         } = parameters;
 
         self.open_windows_terminal(Some(PowerShellParameters {
-            command: Some(command),
+            command: Some(program),
             no_exit,
             working_directory: Some(working_directory),
         }))?;
@@ -114,6 +130,14 @@ impl OpenWindowsTerminal for PowerShellProvider {
             no_exit: false,
             working_directory: Some(working_directory),
         }))?;
+
+        Ok(())
+    }
+}
+
+impl TrackCommandExecutionTime for CommandsCoordinator {
+    fn track(&self, command: &CommandPresenter) -> Result<()> {
+        self.track_execution_time(command)?;
 
         Ok(())
     }
