@@ -1,11 +1,11 @@
 use crate::{
     layouts::{self, StatusBar},
     smart_input::{NewSmartInputParameters, SmartInput},
-    widgets, CommandPresenter, DeleteWorkspaceCommandParameters, EditWorkspaceCommandParameters,
-    Error, ListWorkspaceCommandsParameters, ListWorkspacesParameters, Message,
-    NewWorkspaceCommandParameters, PowerShellCopyToClipboardParameters,
-    PowerShellExecuteCommandParameters, PowerShellOpenWindowsTerminalParameters, PowerShellRoute,
-    Result, Route, WorkspacePresenter,
+    widgets, CommandPresenter, CopyToClipboardParameters, DeleteWorkspaceCommandParameters,
+    EditWorkspaceCommandParameters, Error, ListWorkspaceCommandsParameters,
+    ListWorkspacesParameters, Message, NewWorkspaceCommandParameters,
+    OpenWindowsTerminalParameters, PowerShellExecuteCommandParameters, PowerShellRoute, Result,
+    Route, WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -173,16 +173,15 @@ impl ListWorkspaceCommandsModel {
             .and_then(|index| self.commands.get(index))
     }
 
-    fn copy_to_clipboard_parameters(&self) -> Option<PowerShellCopyToClipboardParameters> {
-        self.command()
-            .map(|command| PowerShellCopyToClipboardParameters {
-                workspace_id: self.workspace.id.clone(),
-                command_id: command.id.clone(),
-            })
+    fn copy_to_clipboard_parameters(&self) -> Option<CopyToClipboardParameters> {
+        self.command().map(|command| CopyToClipboardParameters {
+            workspace_id: self.workspace.id.clone(),
+            command_id: command.id.clone(),
+        })
     }
 
-    fn open_windows_terminal_parameters(&self) -> PowerShellOpenWindowsTerminalParameters {
-        PowerShellOpenWindowsTerminalParameters {
+    fn open_windows_terminal_parameters(&self) -> OpenWindowsTerminalParameters {
+        OpenWindowsTerminalParameters {
             working_directory: self.workspace.location.clone(),
         }
     }

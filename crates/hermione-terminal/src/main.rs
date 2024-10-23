@@ -1,6 +1,6 @@
-mod clients;
 mod colors;
 mod coordinator;
+mod features;
 mod forms;
 mod handlers;
 mod layouts;
@@ -16,9 +16,7 @@ mod widgets;
 use hermione_tracing::{NewTracerParameters, Tracer};
 use router::TerminalRouter;
 
-pub(crate) use clients::*;
 pub(crate) use coordinator::*;
-pub(crate) use forms::*;
 pub(crate) use handlers::*;
 pub(crate) use message::*;
 pub(crate) use models::*;
@@ -35,7 +33,7 @@ fn main() -> Result<()> {
     let directory = hermione_terminal_directory::path()?;
 
     let coordinator = Coordinator::new(&directory)?;
-    let powershell = PowerShellClient::new()?;
+    let powershell = hermione_powershell::PowerShell::new()?;
 
     let router = TerminalRouter {
         coordinator,

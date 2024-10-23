@@ -50,7 +50,7 @@ pub struct NewWorkspaceCommandParameters {
     pub workspace_id: String,
 }
 
-pub struct PowerShellCopyToClipboardParameters {
+pub struct CopyToClipboardParameters {
     pub command_id: String,
     pub workspace_id: String,
 }
@@ -61,7 +61,7 @@ pub struct PowerShellExecuteCommandParameters {
     pub powershell_no_exit: bool,
 }
 
-pub struct PowerShellOpenWindowsTerminalParameters {
+pub struct OpenWindowsTerminalParameters {
     pub working_directory: String,
 }
 

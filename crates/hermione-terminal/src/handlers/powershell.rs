@@ -1,17 +1,21 @@
 use crate::{
-    Coordinator, PowerShellClient, PowerShellCopyToClipboardParameters,
-    PowerShellExecuteCommandParameters, PowerShellOpenWindowsTerminalClientParameters,
-    PowerShellOpenWindowsTerminalParameters, Result,
+    features::{
+        CopyToClipboardOperation, ExecuteCommandOperation, ExecuteCommandParameters,
+        OpenWindowsTerminalOperation,
+    },
+    Coordinator, CopyToClipboardParameters, OpenWindowsTerminalParameters,
+    PowerShellExecuteCommandParameters, Result,
 };
+use hermione_powershell::PowerShell;
 
 pub struct PowerShellHandler<'a> {
     pub coordinator: &'a Coordinator,
-    pub powershell: &'a PowerShellClient,
+    pub powershell: &'a PowerShell,
 }
 
 impl<'a> PowerShellHandler<'a> {
-    pub fn copy_to_clipboard(self, parameters: PowerShellCopyToClipboardParameters) -> Result<()> {
-        let PowerShellCopyToClipboardParameters {
+    pub fn copy_to_clipboard(self, parameters: CopyToClipboardParameters) -> Result<()> {
+        let CopyToClipboardParameters {
             workspace_id,
             command_id,
         } = parameters;
@@ -21,7 +25,10 @@ impl<'a> PowerShellHandler<'a> {
             .commands()
             .get(&workspace_id, &command_id)?;
 
-        self.powershell.copy_to_clipboard(&command.program)
+        CopyToClipboardOperation {
+            clipboard_provider: self.powershell,
+        }
+        .execute(&command.program)
     }
 
     pub fn execute_command(self, parameters: PowerShellExecuteCommandParameters) -> Result<()> {
@@ -38,31 +45,26 @@ impl<'a> PowerShellHandler<'a> {
 
         let workspace = self.coordinator.workspaces().get(&workspace_id)?;
 
-        self.powershell
-            .open_windows_terminal(PowerShellOpenWindowsTerminalClientParameters {
-                working_directory: workspace.location.as_str(),
-                no_exit: powershell_no_exit,
-                command: Some(command.program.as_str()),
-            })?;
+        ExecuteCommandOperation {
+            executor: self.powershell,
+        }
+        .execute(ExecuteCommandParameters {
+            command: command.program.as_str(),
+            no_exit: powershell_no_exit,
+            working_directory: workspace.location.as_str(),
+        })?;
 
         self.coordinator.commands().track_execution_time(command)?;
 
         Ok(())
     }
 
-    pub fn open_windows_terminal(
-        self,
-        parameters: PowerShellOpenWindowsTerminalParameters,
-    ) -> Result<()> {
-        let PowerShellOpenWindowsTerminalParameters { working_directory } = parameters;
+    pub fn open_windows_terminal(self, parameters: OpenWindowsTerminalParameters) -> Result<()> {
+        let OpenWindowsTerminalParameters { working_directory } = parameters;
 
-        self.powershell
-            .open_windows_terminal(PowerShellOpenWindowsTerminalClientParameters {
-                command: None,
-                working_directory: &working_directory,
-                no_exit: true,
-            })?;
-
-        Ok(())
+        OpenWindowsTerminalOperation {
+            windows_terminal_provider: self.powershell,
+        }
+        .execute(&working_directory)
     }
 }

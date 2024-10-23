@@ -1,6 +1,7 @@
 use crate::{
+    forms::WorkspaceForm,
     layouts::{self, StatusBar},
-    routes, CreateWorkspaceParameters, ListWorkspacesParameters, Message, Result, WorkspaceForm,
+    CreateWorkspaceParameters, ListWorkspacesParameters, Message, Result, Route,
     WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
@@ -9,18 +10,18 @@ use ratatui::{widgets::Paragraph, Frame};
 pub struct NewWorkspaceModel {
     status_bar: String,
     form: WorkspaceForm,
-    redirect: Option<routes::Route>,
+    redirect: Option<Route>,
 }
 
 impl Model for NewWorkspaceModel {
     type Message = Message;
-    type Route = routes::Route;
+    type Route = Route;
 
     fn handle_event(&self) -> Result<Option<Self::Message>> {
         EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
     }
 
-    fn redirect(&mut self) -> Option<routes::Route> {
+    fn redirect(&mut self) -> Option<Route> {
         self.redirect.take()
     }
 

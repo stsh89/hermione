@@ -5,48 +5,9 @@ use std::{
 };
 
 const DEFAULT_WINDOWS_TERMINAL_COMMAND: &str = "wt pwsh";
+const POWERSHELL_COMMAND: &str = "pwsh";
 
-pub trait CopyToClipboard {
-    fn copy_to_clipboard(&self, text: &str) -> eyre::Result<()>;
-}
-
-pub trait OpenWindowsTerminal {
-    fn open_windows_terminal(&self) -> eyre::Result<()>;
-}
-
-pub struct CopyToClipboardOperation<'a, T>
-where
-    T: CopyToClipboard,
-{
-    pub powershell: &'a T,
-}
-
-pub struct OpenWindowsTerminalOperation<'a, T>
-where
-    T: OpenWindowsTerminal,
-{
-    pub powershell: &'a T,
-}
-
-impl<'a, T> CopyToClipboardOperation<'a, T>
-where
-    T: CopyToClipboard,
-{
-    pub fn execute(&self, text: &str) -> eyre::Result<()> {
-        self.powershell.copy_to_clipboard(text)
-    }
-}
-
-impl<'a, T> OpenWindowsTerminalOperation<'a, T>
-where
-    T: OpenWindowsTerminal,
-{
-    pub fn execute(&self) -> eyre::Result<()> {
-        self.powershell.open_windows_terminal()
-    }
-}
-
-pub struct Client {
+pub struct PowerShell {
     child: RwLock<Child>,
 }
 
@@ -63,29 +24,23 @@ pub struct PowerShellParameters<'a> {
     pub working_directory: Option<&'a str>,
 }
 
-impl Client {
-    fn clipboard_provider(&self) -> ClipboardProvider {
-        ClipboardProvider { child: &self.child }
+impl PowerShell {
+    pub fn copy_to_clipboard(&self, text: &str) -> io::Result<()> {
+        let command = format!("Set-Clipboard '{}'", text);
+        self.execute(&command)
     }
 
-    pub fn copy_to_clipboard(&self, text: &str) -> anyhow::Result<()> {
-        CopyToClipboardOperation {
-            powershell: &self.clipboard_provider(),
-        }
-        .execute(text)
-        .map_err(|err| anyhow::anyhow!(err))?;
+    fn execute(&self, command: &str) -> io::Result<()> {
+        let mut child = self
+            .child
+            .write()
+            .map_err(|_err| io::Error::other("Failed to obtain PowerShell child processlock"))?;
 
-        Ok(())
+        execute(&mut child, command)
     }
 
-    pub fn new() -> anyhow::Result<Self> {
-        let mut cmd = Command::new("pwsh");
-
-        cmd.stdin(Stdio::piped());
-        cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::piped());
-
-        let child = cmd.spawn()?;
+    pub fn new() -> io::Result<Self> {
+        let child = spawn()?;
 
         Ok(Self {
             child: RwLock::new(child),
@@ -95,77 +50,19 @@ impl Client {
     pub fn open_windows_terminal(
         &self,
         parameters: Option<PowerShellParameters>,
-    ) -> anyhow::Result<()> {
-        OpenWindowsTerminalOperation {
-            powershell: &self.windows_terminal_provider(parameters),
-        }
-        .execute()
-        .map_err(|err| anyhow::anyhow!(err))?;
-
-        Ok(())
-    }
-
-    fn windows_terminal_provider(
-        &self,
-        parameters: Option<PowerShellParameters>,
-    ) -> WindowsTerminalProvider {
-        WindowsTerminalProvider::new(&self.child, parameters)
+    ) -> io::Result<()> {
+        let command = open_windows_terminal_command(parameters);
+        self.execute(&command)
     }
 }
 
-struct ClipboardProvider<'a> {
-    child: &'a RwLock<Child>,
-}
-
-struct WindowsTerminalProvider<'a> {
-    child: &'a RwLock<Child>,
-    command: String,
-}
-
-impl<'a> ClipboardProvider<'a> {
-    fn copy(&self, text: &str) -> eyre::Result<()> {
-        let command = format!("Set-Clipboard '{}'", text);
-
-        execute(self.child, &command)
-    }
-}
-
-impl<'a> WindowsTerminalProvider<'a> {
-    fn new(child: &'a RwLock<Child>, parameters: Option<PowerShellParameters>) -> Self {
-        Self {
-            child,
-            command: open_windows_terminal_command(parameters),
-        }
-    }
-
-    fn open_windows_terminal(&self) -> eyre::Result<()> {
-        execute(self.child, &self.command)
-    }
-}
-
-impl<'a> CopyToClipboard for ClipboardProvider<'a> {
-    fn copy_to_clipboard(&self, text: &str) -> eyre::Result<()> {
-        self.copy(text)
-    }
-}
-
-impl<'a> OpenWindowsTerminal for WindowsTerminalProvider<'a> {
-    fn open_windows_terminal(&self) -> eyre::Result<()> {
-        self.open_windows_terminal()
-    }
-}
-
-fn execute(child: &RwLock<Child>, command: &str) -> eyre::Result<()> {
-    let mut child = child.write().map_err(|err| eyre::eyre!("{}", err))?;
-
-    let stdin = child.stdin.as_mut().ok_or(eyre::eyre!(
-        "Can't obtain handle for writing to the PowerShell's standard input"
+fn execute(child: &mut Child, command: &str) -> io::Result<()> {
+    let stdin = child.stdin.as_mut().ok_or(io::Error::other(
+        "Can't obtain handle for writing to the PowerShell's standard input",
     ))?;
 
     use io::Write;
-    writeln!(stdin, "{}", &command).map_err(eyre::Error::new)?;
-
-    Ok(())
+    writeln!(stdin, "{}", &command)
 }
 
 fn open_windows_terminal_command(parameters: Option<PowerShellParameters>) -> String {
@@ -196,4 +93,14 @@ fn open_windows_terminal_command(parameters: Option<PowerShellParameters>) -> St
     }
 
     cmd.join(" ")
+}
+
+fn spawn() -> io::Result<Child> {
+    let mut cmd = Command::new(POWERSHELL_COMMAND);
+
+    cmd.stdin(Stdio::piped());
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
+
+    cmd.spawn()
 }

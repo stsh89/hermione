@@ -1,6 +1,7 @@
 use crate::{
+    forms::CommandForm,
     layouts::{self, StatusBar},
-    CommandForm, CommandPresenter, ListWorkspaceCommandsParameters, Message, Result, Route,
+    CommandPresenter, ListWorkspaceCommandsParameters, Message, Result, Route,
     UpdateWorkspaceCommandParameters, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
