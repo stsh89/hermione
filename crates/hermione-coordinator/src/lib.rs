@@ -69,17 +69,6 @@ pub struct WorkspaceDto {
 }
 
 impl Coordinator {
-    pub fn new(dir_path: &Path) -> anyhow::Result<Self> {
-        let path = dir_path.join(DATABASE_FILE_NAME);
-        let storage = StorageProvider::new(&path)?;
-        let powershell = PowerShellProvider::new()?;
-
-        Ok(Self {
-            storage,
-            powershell,
-        })
-    }
-
     pub fn copy_program_to_clipboard(
         &self,
         workspace_id: &str,
@@ -97,22 +86,43 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn create_command(&self, data: CommandDto) -> anyhow::Result<CommandDto> {
+    pub fn create_command(&self, dto: CommandDto) -> anyhow::Result<CommandDto> {
+        let CommandDto {
+            id: _,
+            name,
+            program,
+            workspace_id,
+        } = dto;
+
+        let new_command = Command::new(NewCommandParameters {
+            name,
+            program,
+            workspace_id: workspace_id.parse()?,
+        });
+
         let command = CreateCommandOperation {
             creator: &self.storage,
         }
-        .execute(data.into_new_entity()?)?;
+        .execute(new_command)?;
 
-        Ok(CommandDto::from_entity(command))
+        Ok(command.into())
     }
 
-    pub fn create_workspace(&self, data: WorkspaceDto) -> anyhow::Result<WorkspaceDto> {
+    pub fn create_workspace(&self, dto: WorkspaceDto) -> anyhow::Result<WorkspaceDto> {
+        let WorkspaceDto {
+            id: _,
+            location,
+            name,
+        } = dto;
+
+        let new_workspace = Workspace::new(NewWorkspaceParameters { name, location });
+
         let workspace = CreateWorkspaceOperation {
             creator: &self.storage,
         }
-        .execute(data.new_entity())?;
+        .execute(new_workspace)?;
 
-        Ok(WorkspaceDto::from_entity(workspace))
+        Ok(workspace.into())
     }
 
     pub fn delete_command_from_workspace(
@@ -180,7 +190,7 @@ impl Coordinator {
         }
         .execute(id)?;
 
-        Ok(command.map(CommandDto::from_entity))
+        Ok(command.map(Into::into))
     }
 
     pub fn find_workspace(&self, id: &str) -> anyhow::Result<Option<WorkspaceDto>> {
@@ -189,7 +199,7 @@ impl Coordinator {
         }
         .execute(id.parse()?)?;
 
-        Ok(workspace.map(WorkspaceDto::from_entity))
+        Ok(workspace.map(Into::into))
     }
 
     pub fn get_command_from_workspace(
@@ -207,7 +217,7 @@ impl Coordinator {
         }
         .execute(id)?;
 
-        Ok(CommandDto::from_entity(command))
+        Ok(command.into())
     }
 
     pub fn get_workspace(&self, id: &str) -> anyhow::Result<WorkspaceDto> {
@@ -216,25 +226,25 @@ impl Coordinator {
         }
         .execute(id.parse()?)?;
 
-        Ok(WorkspaceDto::from_entity(workspace))
+        Ok(workspace.into())
     }
 
     pub fn import_command(&self, data: CommandDto) -> anyhow::Result<CommandDto> {
         let command = ImportCommandOperation {
             importer: &self.storage,
         }
-        .execute(data.load_entity()?)?;
+        .execute(data.try_into()?)?;
 
-        Ok(CommandDto::from_entity(command))
+        Ok(command.into())
     }
 
     pub fn import_workspace(&self, data: WorkspaceDto) -> anyhow::Result<WorkspaceDto> {
         let workspace = ImportWorkspaceOperation {
             importer: &self.storage,
         }
-        .execute(data.load_entity()?)?;
+        .execute(data.try_into()?)?;
 
-        Ok(WorkspaceDto::from_entity(workspace))
+        Ok(workspace.into())
     }
 
     pub fn list_commands(&self, parameters: ListCommandsInput) -> anyhow::Result<Vec<CommandDto>> {
@@ -251,35 +261,7 @@ impl Coordinator {
             page_size,
         })?;
 
-        Ok(workspaces
-            .into_iter()
-            .map(CommandDto::from_entity)
-            .collect())
-    }
-
-    pub fn list_workspaces(
-        &self,
-        parameters: ListWorkspacesInput<'_>,
-    ) -> anyhow::Result<Vec<WorkspaceDto>> {
-        let ListWorkspacesInput {
-            name_contains,
-            page_number,
-            page_size,
-        } = parameters;
-
-        let workspaces = ListWorkspaceOperation {
-            lister: &self.storage,
-        }
-        .execute(ListWorkspacesParameters {
-            name_contains,
-            page_number,
-            page_size,
-        })?;
-
-        Ok(workspaces
-            .into_iter()
-            .map(WorkspaceDto::from_entity)
-            .collect())
+        Ok(workspaces.into_iter().map(Into::into).collect())
     }
 
     pub fn list_commands_within_workspace(
@@ -303,10 +285,40 @@ impl Coordinator {
             workspace_id: workspace_id.parse()?,
         })?;
 
-        Ok(workspaces
-            .into_iter()
-            .map(CommandDto::from_entity)
-            .collect())
+        Ok(workspaces.into_iter().map(Into::into).collect())
+    }
+
+    pub fn list_workspaces(
+        &self,
+        parameters: ListWorkspacesInput<'_>,
+    ) -> anyhow::Result<Vec<WorkspaceDto>> {
+        let ListWorkspacesInput {
+            name_contains,
+            page_number,
+            page_size,
+        } = parameters;
+
+        let workspaces = ListWorkspaceOperation {
+            lister: &self.storage,
+        }
+        .execute(ListWorkspacesParameters {
+            name_contains,
+            page_number,
+            page_size,
+        })?;
+
+        Ok(workspaces.into_iter().map(Into::into).collect())
+    }
+
+    pub fn new(dir_path: &Path) -> anyhow::Result<Self> {
+        let path = dir_path.join(DATABASE_FILE_NAME);
+        let storage = StorageProvider::new(&path)?;
+        let powershell = PowerShellProvider::new()?;
+
+        Ok(Self {
+            storage,
+            powershell,
+        })
     }
 
     pub fn open_windows_terminal(
@@ -327,54 +339,23 @@ impl Coordinator {
         let command = UpdateCommandOperation {
             updater: &self.storage,
         }
-        .execute(data.load_entity()?)?;
+        .execute(data.try_into()?)?;
 
-        Ok(CommandDto::from_entity(command))
+        Ok(command.into())
     }
 
-    pub fn update_workspace(&self, data: WorkspaceDto) -> anyhow::Result<WorkspaceDto> {
+    pub fn update_workspace(&self, dto: WorkspaceDto) -> anyhow::Result<WorkspaceDto> {
         let workspace = UpdateWorkspaceOperation {
             updater: &self.storage,
         }
-        .execute(data.load_entity()?)?;
+        .execute(dto.try_into()?)?;
 
-        Ok(WorkspaceDto::from_entity(workspace))
+        Ok(workspace.into())
     }
 }
 
-impl WorkspaceDto {
-    fn from_entity(workspace: Workspace) -> Self {
-        Self {
-            id: workspace.id().map(|id| id.to_string()).unwrap_or_default(),
-            location: workspace.location().map(ToString::to_string),
-            name: workspace.name().to_string(),
-        }
-    }
-
-    fn load_entity(self) -> anyhow::Result<Workspace> {
-        let WorkspaceDto { id, location, name } = self;
-
-        Ok(Workspace::load(LoadWorkspaceParameters {
-            id: id.parse()?,
-            name,
-            location,
-            last_access_time: None,
-        }))
-    }
-
-    fn new_entity(self) -> Workspace {
-        let WorkspaceDto {
-            id: _,
-            location,
-            name,
-        } = self;
-
-        Workspace::new(NewWorkspaceParameters { name, location })
-    }
-}
-
-impl CommandDto {
-    fn from_entity(command: Command) -> Self {
+impl From<Command> for CommandDto {
+    fn from(command: Command) -> Self {
         Self {
             id: command.id().map(|id| id.to_string()).unwrap_or_default(),
             name: command.name().to_string(),
@@ -382,14 +363,18 @@ impl CommandDto {
             workspace_id: command.workspace_id().to_string(),
         }
     }
+}
 
-    fn load_entity(self) -> anyhow::Result<Command> {
+impl TryFrom<CommandDto> for Command {
+    type Error = anyhow::Error;
+
+    fn try_from(value: CommandDto) -> anyhow::Result<Self> {
         let CommandDto {
             id,
             name,
             program,
             workspace_id,
-        } = self;
+        } = value;
 
         Ok(Command::load(LoadCommandParameters {
             id: id.parse()?,
@@ -399,19 +384,29 @@ impl CommandDto {
             workspace_id: workspace_id.parse()?,
         }))
     }
+}
 
-    fn into_new_entity(self) -> anyhow::Result<Command> {
-        let CommandDto {
-            id: _,
-            name,
-            program,
-            workspace_id,
-        } = self;
+impl From<Workspace> for WorkspaceDto {
+    fn from(workspace: Workspace) -> Self {
+        Self {
+            id: workspace.id().map(|id| id.to_string()).unwrap_or_default(),
+            location: workspace.location().map(ToString::to_string),
+            name: workspace.name().to_string(),
+        }
+    }
+}
 
-        Ok(Command::new(NewCommandParameters {
+impl TryFrom<WorkspaceDto> for Workspace {
+    type Error = anyhow::Error;
+
+    fn try_from(value: WorkspaceDto) -> anyhow::Result<Self> {
+        let WorkspaceDto { id, location, name } = value;
+
+        Ok(Workspace::load(LoadWorkspaceParameters {
+            id: id.parse()?,
             name,
-            program,
-            workspace_id: workspace_id.parse()?,
+            location,
+            last_access_time: None,
         }))
     }
 }

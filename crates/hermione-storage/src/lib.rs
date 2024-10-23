@@ -24,20 +24,53 @@ pub struct StorageProvider {
 }
 
 impl StorageProvider {
-    pub fn new(file_path: &Path) -> rusqlite::Result<Self> {
-        let connection = Connection::open(file_path)?;
-        let provider = Self { connection };
-
-        provider.prepare_storage()?;
-
-        Ok(provider)
-    }
-
     pub fn connection(&self) -> &Connection {
         &self.connection
     }
 
-    fn prepare_storage(&self) -> rusqlite::Result<()> {
+    pub fn insert_command(&self, record: CommandRecord) -> rusqlite::Result<()> {
+        self.connection
+            .prepare(
+                "INSERT INTO commands (
+                    id,
+                    last_execute_time,
+                    name,
+                    program,
+                    workspace_id
+                ) VALUES (?1, ?2, ?3, ?4, ?5)",
+            )?
+            .execute(params![
+                record.id,
+                record.last_execute_time,
+                record.name,
+                record.program,
+                record.workspace_id
+            ])?;
+
+        Ok(())
+    }
+
+    pub fn insert_workspace(&self, record: WorkspaceRecord) -> rusqlite::Result<()> {
+        self.connection
+            .prepare(
+                "INSERT INTO workspaces (
+                    id,
+                    last_access_time,
+                    location,
+                    name
+                ) VALUES (?1, ?2, ?3, ?4)",
+            )?
+            .execute(params![
+                record.id,
+                record.last_access_time,
+                record.location,
+                record.name
+            ])?;
+
+        Ok(())
+    }
+
+    fn migrate(&self) -> rusqlite::Result<()> {
         self.connection.execute(
             "CREATE TABLE IF NOT EXISTS workspaces (
                 id BLOB PRIMARY KEY,
@@ -69,26 +102,13 @@ impl StorageProvider {
         Ok(())
     }
 
-    pub fn insert_command(&self, record: CommandRecord) -> rusqlite::Result<()> {
-        self.connection
-            .prepare(
-                "INSERT INTO commands (
-                    id,
-                    last_execute_time,
-                    name,
-                    program,
-                    workspace_id
-                ) VALUES (?1, ?2, ?3, ?4, ?5)",
-            )?
-            .execute(params![
-                record.id,
-                record.last_execute_time,
-                record.name,
-                record.program,
-                record.workspace_id
-            ])?;
+    pub fn new(file_path: &Path) -> rusqlite::Result<Self> {
+        let connection = Connection::open(file_path)?;
+        let provider = Self { connection };
 
-        Ok(())
+        provider.migrate()?;
+
+        Ok(provider)
     }
 
     pub fn select_command(&self) -> rusqlite::Result<Statement> {
@@ -104,27 +124,7 @@ impl StorageProvider {
         )
     }
 
-    pub fn insert_workspace(&self, record: WorkspaceRecord) -> rusqlite::Result<()> {
-        self.connection
-            .prepare(
-                "INSERT INTO workspaces (
-                    id,
-                    last_access_time,
-                    location,
-                    name
-                ) VALUES (?1, ?2, ?3, ?4)",
-            )?
-            .execute(params![
-                record.id,
-                record.last_access_time,
-                record.location,
-                record.name
-            ])?;
-
-        Ok(())
-    }
-
-    pub fn select_workspace(&self) -> rusqlite::Result<Statement> {
+    pub fn select_workspace_statement(&self) -> rusqlite::Result<Statement> {
         self.connection.prepare(
             "SELECT
                     id,

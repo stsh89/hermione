@@ -29,6 +29,19 @@ impl CreateCommand for StorageProvider {
     }
 }
 
+impl CreateWorkspace for StorageProvider {
+    fn create(&self, mut workspace: Workspace) -> Result<Workspace, Error> {
+        let id = Uuid::new_v4();
+        workspace.set_id(id)?;
+
+        let record = WorkspaceRecord::try_from(&workspace)?;
+
+        self.insert_workspace(record).map_err(eyre::Error::new)?;
+
+        Ok(workspace)
+    }
+}
+
 impl DeleteCommandFromWorkspace for StorageProvider {
     fn delete(&self, id: CommandWorkspaceScopedId) -> Result<(), Error> {
         let CommandWorkspaceScopedId {
@@ -43,6 +56,32 @@ impl DeleteCommandFromWorkspace for StorageProvider {
 
         statement
             .execute([id.as_bytes(), workspace_id.as_bytes()])
+            .map_err(eyre::Error::new)?;
+
+        Ok(())
+    }
+}
+
+impl DeleteWorkspace for StorageProvider {
+    fn delete(&self, id: Uuid) -> Result<(), Error> {
+        // TODO: apply transaction
+
+        let mut statement = self
+            .connection()
+            .prepare("DELETE FROM workspaces WHERE id = ?1")
+            .map_err(eyre::Error::new)?;
+
+        statement
+            .execute([id.as_bytes()])
+            .map_err(eyre::Error::new)?;
+
+        let mut statement = self
+            .connection()
+            .prepare("DELETE FROM commands WHERE workspace_id = ?1")
+            .map_err(eyre::Error::new)?;
+
+        statement
+            .execute([id.as_bytes()])
             .map_err(eyre::Error::new)?;
 
         Ok(())
@@ -70,6 +109,19 @@ impl FindCommandInWorkspace for StorageProvider {
     }
 }
 
+impl FindWorkspace for StorageProvider {
+    fn find_workspace(&self, id: Uuid) -> Result<Option<Workspace>, Error> {
+        let record: Option<WorkspaceRecord> = self
+            .select_workspace_statement()
+            .map_err(eyre::Error::new)?
+            .query_row([id.as_bytes()], |row| row.try_into())
+            .optional()
+            .map_err(eyre::Error::new)?;
+
+        Ok(record.map(Into::into))
+    }
+}
+
 impl GetCommandFromWorkspace for StorageProvider {
     fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command, Error> {
         let CommandWorkspaceScopedId {
@@ -92,13 +144,13 @@ impl GetCommandFromWorkspace for StorageProvider {
 
 impl GetWorkspace for StorageProvider {
     fn get_workspace(&self, id: Uuid) -> Result<Workspace, Error> {
-        let record = self
-            .select_workspace()
+        let record: WorkspaceRecord = self
+            .select_workspace_statement()
             .map_err(eyre::Error::new)?
-            .query_row([id.as_bytes()], WorkspaceRecord::from_row)
+            .query_row([id.as_bytes()], |row| row.try_into())
             .map_err(eyre::Error::new)?;
 
-        Ok(WorkspaceRecord::load_entity(record))
+        Ok(record.into())
     }
 }
 
@@ -109,6 +161,16 @@ impl ImportCommand for StorageProvider {
         self.insert_command(record).map_err(eyre::Error::new)?;
 
         Ok(command)
+    }
+}
+
+impl ImportWorkspace for StorageProvider {
+    fn import(&self, entity: Workspace) -> Result<Workspace, Error> {
+        let record = WorkspaceRecord::try_from(&entity)?;
+
+        self.insert_workspace(record).map_err(eyre::Error::new)?;
+
+        Ok(entity)
     }
 }
 
@@ -264,68 +326,6 @@ impl UpdateCommand for StorageProvider {
     }
 }
 
-impl CreateWorkspace for StorageProvider {
-    fn create(&self, mut workspace: Workspace) -> Result<Workspace, Error> {
-        let id = Uuid::new_v4();
-        workspace.set_id(id)?;
-
-        let record = WorkspaceRecord::from_entity(&workspace)?;
-
-        self.insert_workspace(record).map_err(eyre::Error::new)?;
-
-        Ok(workspace)
-    }
-}
-
-impl DeleteWorkspace for StorageProvider {
-    fn delete(&self, id: Uuid) -> Result<(), Error> {
-        // TODO: apply transaction
-
-        let mut statement = self
-            .connection()
-            .prepare("DELETE FROM workspaces WHERE id = ?1")
-            .map_err(eyre::Error::new)?;
-
-        statement
-            .execute([id.as_bytes()])
-            .map_err(eyre::Error::new)?;
-
-        let mut statement = self
-            .connection()
-            .prepare("DELETE FROM commands WHERE workspace_id = ?1")
-            .map_err(eyre::Error::new)?;
-
-        statement
-            .execute([id.as_bytes()])
-            .map_err(eyre::Error::new)?;
-
-        Ok(())
-    }
-}
-
-impl FindWorkspace for StorageProvider {
-    fn find_workspace(&self, id: Uuid) -> Result<Option<Workspace>, Error> {
-        let record = self
-            .select_workspace()
-            .map_err(eyre::Error::new)?
-            .query_row([id.as_bytes()], WorkspaceRecord::from_row)
-            .optional()
-            .map_err(eyre::Error::new)?;
-
-        Ok(record.map(WorkspaceRecord::load_entity))
-    }
-}
-
-impl ImportWorkspace for StorageProvider {
-    fn import(&self, entity: Workspace) -> Result<Workspace, Error> {
-        let record = WorkspaceRecord::from_entity(&entity)?;
-
-        self.insert_workspace(record).map_err(eyre::Error::new)?;
-
-        Ok(entity)
-    }
-}
-
 impl ListWorkspaces for StorageProvider {
     fn list(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>, Error> {
         let ListWorkspacesParameters {
@@ -354,16 +354,13 @@ impl ListWorkspaces for StorageProvider {
         let records = statement
             .query_map(
                 params![name_contains, page_size, page_number * page_size],
-                WorkspaceRecord::from_row,
+                |row| row.try_into(),
             )
             .map_err(eyre::Error::new)?
-            .collect::<std::result::Result<Vec<_>, _>>()
+            .collect::<std::result::Result<Vec<WorkspaceRecord>, _>>()
             .map_err(eyre::Error::new)?;
 
-        let entities = records
-            .into_iter()
-            .map(WorkspaceRecord::load_entity)
-            .collect();
+        let entities = records.into_iter().map(Into::into).collect();
 
         Ok(entities)
     }
@@ -371,7 +368,7 @@ impl ListWorkspaces for StorageProvider {
 
 impl TrackWorkspaceAccessTime for StorageProvider {
     fn track_access_time(&self, workspace: Workspace) -> Result<Workspace, Error> {
-        let record = WorkspaceRecord::from_entity(&workspace)?;
+        let record: WorkspaceRecord = workspace.try_into()?;
 
         let last_access_time = Utc::now()
             .timestamp_nanos_opt()
@@ -396,7 +393,7 @@ impl TrackWorkspaceAccessTime for StorageProvider {
 
 impl UpdateWorkspace for StorageProvider {
     fn update(&self, entity: Workspace) -> Result<Workspace, Error> {
-        let record = WorkspaceRecord::from_entity(&entity)?;
+        let record = WorkspaceRecord::try_from(&entity)?;
 
         let mut statement = self
             .connection()
@@ -475,41 +472,44 @@ impl CommandRecord {
     }
 }
 
-impl WorkspaceRecord {
-    pub fn from_entity(workspace: &Workspace) -> eyre::Result<Self> {
-        let id = *workspace
+impl TryFrom<&Workspace> for WorkspaceRecord {
+    type Error = eyre::Error;
+
+    fn try_from(value: &Workspace) -> eyre::Result<Self, Self::Error> {
+        let id = value
             .id()
             .ok_or(eyre::eyre!("Record without id"))?
-            .as_bytes();
+            .into_bytes();
 
-        let last_access_time = workspace
+        let last_access_time = value
             .last_access_time()
             .and_then(|date_time| date_time.timestamp_nanos_opt());
 
         Ok(Self {
             id,
             last_access_time,
-            location: workspace.location().map(ToString::to_string),
-            name: workspace.name().to_string(),
+            location: value.location().map(ToString::to_string),
+            name: value.name().to_string(),
         })
     }
+}
 
-    pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
-        Ok(WorkspaceRecord {
-            id: row.get(0)?,
-            last_access_time: row.get(1)?,
-            location: row.get(2)?,
-            name: row.get(3)?,
-        })
+impl TryFrom<Workspace> for WorkspaceRecord {
+    type Error = eyre::Error;
+
+    fn try_from(value: Workspace) -> eyre::Result<Self, Self::Error> {
+        TryFrom::try_from(&value)
     }
+}
 
-    pub fn load_entity(self) -> Workspace {
+impl From<WorkspaceRecord> for Workspace {
+    fn from(value: WorkspaceRecord) -> Self {
         let WorkspaceRecord {
             id,
             last_access_time,
             location,
             name,
-        } = self;
+        } = value;
 
         let id = Uuid::from_bytes(id);
 
@@ -522,6 +522,19 @@ impl WorkspaceRecord {
             last_access_time,
             location,
             name,
+        })
+    }
+}
+
+impl TryFrom<&rusqlite::Row<'_>> for WorkspaceRecord {
+    type Error = rusqlite::Error;
+
+    fn try_from(row: &rusqlite::Row) -> Result<Self, Self::Error> {
+        Ok(WorkspaceRecord {
+            id: row.get(0)?,
+            last_access_time: row.get(1)?,
+            location: row.get(2)?,
+            name: row.get(3)?,
         })
     }
 }
