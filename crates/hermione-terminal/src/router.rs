@@ -1,14 +1,13 @@
 use crate::{
-    CommandsHandler, Coordinator, ListWorkspaceCommandsParameters, ListWorkspacesFilter,
-    ListWorkspacesParameters, Message, PowerShellHandler, PowerShellRoute, Result, Route,
-    WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    CommandsHandler, ListWorkspaceCommandsParams, ListWorkspacesParams, Message, PowerShellHandler,
+    PowerShellRoute, Result, Route, WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute,
+    LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
-use hermione_powershell::PowerShellProvider;
+use hermione_coordinator::{Coordinator, ListWorkspacesInput};
 use hermione_tui::{BoxedModel, Router};
 
 pub struct TerminalRouter {
     pub coordinator: Coordinator,
-    pub powershell: PowerShellProvider,
 }
 
 struct WorkspacesRouter<'a> {
@@ -21,7 +20,6 @@ struct WorkspaceCommandsRouter<'a> {
 
 struct PowerShellRouter<'a> {
     coordinator: &'a Coordinator,
-    powershell: &'a PowerShellProvider,
 }
 
 impl Router for TerminalRouter {
@@ -29,10 +27,10 @@ impl Router for TerminalRouter {
     type Message = Message;
 
     fn default_model(&self) -> Result<BoxedModel<Route, Message>> {
-        let workspaces = self.coordinator.workspaces().list(ListWorkspacesFilter {
+        let workspaces = self.coordinator.list_workspaces(ListWorkspacesInput {
+            name_contains: "",
             page_number: 0,
             page_size: 1,
-            name_contains: "",
         })?;
 
         let handler = WorkspacesHandler {
@@ -49,7 +47,7 @@ impl Router for TerminalRouter {
             coordinator: &self.coordinator,
         };
 
-        let model = handler.list(ListWorkspaceCommandsParameters {
+        let model = handler.list(ListWorkspaceCommandsParams {
             workspace_id: workspace.id,
             page_number: 0,
             page_size: LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
@@ -61,33 +59,20 @@ impl Router for TerminalRouter {
     }
 
     fn handle(&self, route: Route) -> Result<Option<BoxedModel<Route, Message>>> {
-        let TerminalRouter {
-            coordinator,
-            powershell,
-        } = self;
+        let TerminalRouter { coordinator } = self;
 
         match route {
             Route::Workspaces(route) => WorkspacesRouter { coordinator }.handle(route),
-            Route::Powershell(route) => PowerShellRouter {
-                coordinator,
-                powershell,
-            }
-            .handle(route),
+            Route::Powershell(route) => PowerShellRouter { coordinator }.handle(route),
         }
     }
 }
 
 impl<'a> PowerShellRouter<'a> {
     pub fn handle(self, route: PowerShellRoute) -> Result<Option<BoxedModel<Route, Message>>> {
-        let PowerShellRouter {
-            coordinator,
-            powershell,
-        } = self;
+        let PowerShellRouter { coordinator } = self;
 
-        let handler = PowerShellHandler {
-            coordinator,
-            powershell,
-        };
+        let handler = PowerShellHandler { coordinator };
 
         match route {
             PowerShellRoute::CopyToClipboard(parameters) => {
@@ -145,7 +130,7 @@ impl<'a> WorkspacesRouter<'a> {
             }
             WorkspacesRoute::Update(parameters) => {
                 let workspace = handler.update(parameters)?;
-                let model = handler.list(ListWorkspacesParameters {
+                let model = handler.list(ListWorkspacesParams {
                     search_query: workspace.name,
                     page_number: 0,
                     page_size: LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
@@ -169,7 +154,7 @@ impl<'a> WorkspaceCommandsRouter<'a> {
             WorkspaceCommandsRoute::Create(paramters) => {
                 let command = handler.create(paramters)?;
 
-                let model = handler.list(ListWorkspaceCommandsParameters {
+                let model = handler.list(ListWorkspaceCommandsParams {
                     workspace_id: command.workspace_id,
                     search_query: command.program,
                     page_number: 0,
@@ -182,7 +167,7 @@ impl<'a> WorkspaceCommandsRouter<'a> {
             WorkspaceCommandsRoute::Delete(parameters) => {
                 let workspace = handler.delete(parameters)?;
 
-                let model = handler.list(ListWorkspaceCommandsParameters {
+                let model = handler.list(ListWorkspaceCommandsParams {
                     workspace_id: workspace.id,
                     search_query: "".to_string(),
                     page_number: 0,

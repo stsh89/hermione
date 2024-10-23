@@ -1,11 +1,10 @@
 use crate::{
     layouts::{self, StatusBar},
     smart_input::{NewSmartInputParameters, SmartInput},
-    widgets, CommandPresenter, CopyToClipboardParameters, DeleteWorkspaceCommandParameters,
-    EditWorkspaceCommandParameters, Error, ListWorkspaceCommandsParameters,
-    ListWorkspacesParameters, Message, NewWorkspaceCommandParameters,
-    OpenWindowsTerminalParameters, PowerShellExecuteCommandParameters, PowerShellRoute, Result,
-    Route, WorkspacePresenter,
+    widgets, Command, CopyToClipboardParams, DeleteWorkspaceCommandParams,
+    EditWorkspaceCommandParams, Error, ExecuteCommandParams, ListWorkspaceCommandsParams,
+    ListWorkspacesParams, Message, NewWorkspaceCommandParams, OpenWindowsTerminalParams,
+    PowerShellRoute, Result, Route, Workspace,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -14,8 +13,8 @@ use ratatui::{
 };
 
 pub struct ListWorkspaceCommandsModel {
-    workspace: WorkspacePresenter,
-    commands: Vec<CommandPresenter>,
+    workspace: Workspace,
+    commands: Vec<Command>,
     redirect: Option<Route>,
     commands_state: widgets::list::State,
     powershell_settings: PowerShellSettings,
@@ -27,12 +26,12 @@ pub struct ListWorkspaceCommandsModel {
 }
 
 pub struct ListWorkspaceCommandsModelParameters {
-    pub commands: Vec<CommandPresenter>,
+    pub commands: Vec<Command>,
     pub page_number: u32,
     pub page_size: u32,
     pub powershell_no_exit: bool,
     pub search_query: String,
-    pub workspace: WorkspacePresenter,
+    pub workspace: Workspace,
 }
 
 struct PowerShellSettings {
@@ -109,7 +108,7 @@ impl ListWorkspaceCommandsModel {
 
         if !self.search_query.is_empty() {
             self.set_redirect(
-                ListWorkspaceCommandsParameters {
+                ListWorkspaceCommandsParams {
                     workspace_id: self.workspace.id.clone(),
                     search_query: "".into(),
                     page_number: 0,
@@ -149,13 +148,11 @@ impl ListWorkspaceCommandsModel {
 
         let command = self.commands.remove(index);
 
-        let route = Route::Powershell(PowerShellRoute::ExecuteCommand(
-            PowerShellExecuteCommandParameters {
-                command_id: command.id.clone(),
-                workspace_id: command.workspace_id.clone(),
-                powershell_no_exit: self.powershell_settings.no_exit,
-            },
-        ));
+        let route = Route::Powershell(PowerShellRoute::ExecuteCommand(ExecuteCommandParams {
+            command_id: command.id.clone(),
+            workspace_id: command.workspace_id.clone(),
+            powershell_no_exit: self.powershell_settings.no_exit,
+        }));
 
         self.redirect = Some(route);
 
@@ -167,21 +164,21 @@ impl ListWorkspaceCommandsModel {
         self.is_running = false;
     }
 
-    fn command(&self) -> Option<&CommandPresenter> {
+    fn command(&self) -> Option<&Command> {
         self.commands_state
             .selected()
             .and_then(|index| self.commands.get(index))
     }
 
-    fn copy_to_clipboard_parameters(&self) -> Option<CopyToClipboardParameters> {
-        self.command().map(|command| CopyToClipboardParameters {
+    fn copy_to_clipboard_parameters(&self) -> Option<CopyToClipboardParams> {
+        self.command().map(|command| CopyToClipboardParams {
             workspace_id: self.workspace.id.clone(),
             command_id: command.id.clone(),
         })
     }
 
-    fn open_windows_terminal_parameters(&self) -> OpenWindowsTerminalParameters {
-        OpenWindowsTerminalParameters {
+    fn open_windows_terminal_parameters(&self) -> OpenWindowsTerminalParams {
+        OpenWindowsTerminalParams {
             working_directory: self.workspace.location.clone(),
         }
     }
@@ -263,7 +260,7 @@ impl ListWorkspaceCommandsModel {
             }
 
             self.redirect = Some(
-                ListWorkspaceCommandsParameters {
+                ListWorkspaceCommandsParams {
                     search_query: self.search_query.clone(),
                     workspace_id: self.workspace.id.clone(),
                     page_number: self.page_number + 1,
@@ -283,7 +280,7 @@ impl ListWorkspaceCommandsModel {
         let Some(index) = self.commands_state.selected() else {
             if self.page_number != 0 {
                 self.redirect = Some(
-                    ListWorkspaceCommandsParameters {
+                    ListWorkspaceCommandsParams {
                         search_query: self.search_query.clone(),
                         workspace_id: self.workspace.id.clone(),
                         page_number: self.page_number - 1,
@@ -303,7 +300,7 @@ impl ListWorkspaceCommandsModel {
             }
 
             self.redirect = Some(
-                ListWorkspaceCommandsParameters {
+                ListWorkspaceCommandsParams {
                     search_query: self.search_query.clone(),
                     workspace_id: self.workspace.id.clone(),
                     page_number: self.page_number - 1,
@@ -323,8 +320,8 @@ impl ListWorkspaceCommandsModel {
         self.redirect = Some(route);
     }
 
-    fn new_command_parameters(&self) -> NewWorkspaceCommandParameters {
-        NewWorkspaceCommandParameters {
+    fn new_command_parameters(&self) -> NewWorkspaceCommandParams {
+        NewWorkspaceCommandParams {
             workspace_id: self.workspace.id.clone(),
         }
     }
@@ -346,7 +343,7 @@ impl ListWorkspaceCommandsModel {
             Action::DeleteCommand => {
                 if let Some(command) = self.command() {
                     self.set_redirect(
-                        DeleteWorkspaceCommandParameters {
+                        DeleteWorkspaceCommandParams {
                             workspace_id: self.workspace.id.clone(),
                             command_id: command.id.clone(),
                         }
@@ -358,7 +355,7 @@ impl ListWorkspaceCommandsModel {
             Action::EditCommand => {
                 if let Some(command) = self.command() {
                     self.set_redirect(
-                        EditWorkspaceCommandParameters {
+                        EditWorkspaceCommandParams {
                             workspace_id: self.workspace.id.clone(),
                             command_id: command.id.clone(),
                         }
@@ -369,7 +366,7 @@ impl ListWorkspaceCommandsModel {
             Action::Exit => self.exit(),
             Action::ListWorkspaces => {
                 self.set_redirect(
-                    ListWorkspacesParameters {
+                    ListWorkspacesParams {
                         page_number: 0,
                         page_size: self.page_size,
                         search_query: "".into(),
@@ -399,7 +396,7 @@ impl ListWorkspaceCommandsModel {
         };
 
         self.set_redirect(
-            ListWorkspaceCommandsParameters {
+            ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
                 workspace_id: self.workspace.id.clone(),
                 page_number: 0,
@@ -418,7 +415,7 @@ impl ListWorkspaceCommandsModel {
         };
 
         self.set_redirect(
-            ListWorkspaceCommandsParameters {
+            ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
                 workspace_id: self.workspace.id.clone(),
                 page_number: 0,
@@ -437,7 +434,7 @@ impl ListWorkspaceCommandsModel {
         };
 
         self.set_redirect(
-            ListWorkspaceCommandsParameters {
+            ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
                 workspace_id: self.workspace.id.clone(),
                 page_number: 0,

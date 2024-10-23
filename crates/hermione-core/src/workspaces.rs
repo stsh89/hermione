@@ -16,7 +16,7 @@ pub trait FindWorkspace {
 }
 
 pub trait GetWorkspace {
-    fn get(&self, workspace_id: Uuid) -> Result<Workspace>;
+    fn get_workspace(&self, workspace_id: Uuid) -> Result<Workspace>;
 }
 
 pub trait ImportWorkspace {
@@ -146,7 +146,7 @@ where
     R: GetWorkspace,
 {
     pub fn execute(&self, workspace_id: Uuid) -> Result<Workspace> {
-        self.getter.get(workspace_id)
+        self.getter.get_workspace(workspace_id)
     }
 }
 

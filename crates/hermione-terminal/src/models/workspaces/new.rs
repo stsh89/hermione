@@ -1,8 +1,7 @@
 use crate::{
     forms::WorkspaceForm,
     layouts::{self, StatusBar},
-    CreateWorkspaceParameters, ListWorkspacesParameters, Message, Result, Route,
-    WorkspacePresenter,
+    CreateWorkspaceParams, ListWorkspacesParams, Message, Result, Route, Workspace,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{widgets::Paragraph, Frame};
@@ -53,7 +52,7 @@ impl Model for NewWorkspaceModel {
 
 impl NewWorkspaceModel {
     fn back(&mut self) {
-        self.redirect = Some(ListWorkspacesParameters::default().into());
+        self.redirect = Some(ListWorkspacesParams::default().into());
     }
 
     fn delete_all_chars(&mut self) {
@@ -87,13 +86,13 @@ impl NewWorkspaceModel {
     }
 
     fn submit(&mut self) {
-        let WorkspacePresenter {
+        let Workspace {
             id: _,
             name,
             location,
         } = self.form.workspace();
 
-        self.redirect = Some(CreateWorkspaceParameters { name, location }.into());
+        self.redirect = Some(CreateWorkspaceParams { name, location }.into());
     }
 
     fn toggle_focus(&mut self) {

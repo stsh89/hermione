@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod extensions;
 pub mod workspaces;
 
 pub type Result<T> = std::result::Result<T, Error>;

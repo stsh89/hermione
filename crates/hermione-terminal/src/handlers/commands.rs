@@ -1,12 +1,11 @@
+use hermione_coordinator::ListCommandsWithinWorkspaceInput;
+
 use crate::{
-    CommandPresenter, Coordinator, CreateWorkspaceCommandParameters,
-    DeleteWorkspaceCommandParameters, EditWorkspaceCommandModel,
-    EditWorkspaceCommandModelParameters, EditWorkspaceCommandParameters,
-    ListCommandsWithinWorkspaceFilter, ListWorkspaceCommandsModel,
-    ListWorkspaceCommandsModelParameters, ListWorkspaceCommandsParameters,
-    NewWorkspaceCommandModel, NewWorkspaceCommandModelParameters, NewWorkspaceCommandParameters,
-    Result, UpdateWorkspaceCommandParameters, WorkspacePresenter,
-    LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    Command, Coordinator, CreateWorkspaceCommandParams, DeleteWorkspaceCommandParams,
+    EditWorkspaceCommandModel, EditWorkspaceCommandModelParameters, EditWorkspaceCommandParams,
+    ListWorkspaceCommandsModel, ListWorkspaceCommandsModelParameters, ListWorkspaceCommandsParams,
+    NewWorkspaceCommandModel, NewWorkspaceCommandModelParameters, NewWorkspaceCommandParams,
+    Result, UpdateWorkspaceCommandParams, Workspace, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 
 pub struct CommandsHandler<'a> {
@@ -14,60 +13,60 @@ pub struct CommandsHandler<'a> {
 }
 
 impl<'a> CommandsHandler<'a> {
-    pub fn create(&self, parameters: CreateWorkspaceCommandParameters) -> Result<CommandPresenter> {
-        let CreateWorkspaceCommandParameters {
+    pub fn create(&self, parameters: CreateWorkspaceCommandParams) -> Result<Command> {
+        let CreateWorkspaceCommandParams {
             workspace_id,
             name,
             program,
         } = parameters;
 
-        self.coordinator.commands().create(CommandPresenter {
-            workspace_id: workspace_id.clone(),
+        let dto = Command {
+            workspace_id,
             id: String::new(),
             name,
-            program: program.clone(),
-        })
+            program,
+        }
+        .into();
+
+        let dto = self.coordinator.create_command(dto)?;
+
+        Ok(dto.into())
     }
 
-    pub fn delete(
-        &self,
-        parameters: DeleteWorkspaceCommandParameters,
-    ) -> Result<WorkspacePresenter> {
-        let DeleteWorkspaceCommandParameters {
+    pub fn delete(&self, parameters: DeleteWorkspaceCommandParams) -> Result<Workspace> {
+        let DeleteWorkspaceCommandParams {
             workspace_id,
             command_id,
         } = parameters;
 
         self.coordinator
-            .commands()
-            .delete(&workspace_id, &command_id)?;
-        self.coordinator.workspaces().get(&workspace_id)
+            .delete_command_from_workspace(&workspace_id, &command_id)?;
+        let dto = self.coordinator.get_workspace(&workspace_id)?;
+
+        Ok(dto.into())
     }
 
-    pub fn edit(
-        self,
-        parameters: EditWorkspaceCommandParameters,
-    ) -> Result<EditWorkspaceCommandModel> {
-        let EditWorkspaceCommandParameters {
+    pub fn edit(self, parameters: EditWorkspaceCommandParams) -> Result<EditWorkspaceCommandModel> {
+        let EditWorkspaceCommandParams {
             command_id,
             workspace_id,
         } = parameters;
 
         let command = self
             .coordinator
-            .commands()
-            .get(&workspace_id, &command_id)?;
+            .get_command_from_workspace(&workspace_id, &command_id)?
+            .into();
 
-        let workspace = self.coordinator.workspaces().get(&workspace_id)?;
+        let workspace = self.coordinator.get_workspace(&workspace_id)?.into();
 
         EditWorkspaceCommandModel::new(EditWorkspaceCommandModelParameters { command, workspace })
     }
 
     pub fn list(
         self,
-        parameters: ListWorkspaceCommandsParameters,
+        parameters: ListWorkspaceCommandsParams,
     ) -> Result<ListWorkspaceCommandsModel> {
-        let ListWorkspaceCommandsParameters {
+        let ListWorkspaceCommandsParams {
             page_number,
             page_size,
             powershell_no_exit,
@@ -75,19 +74,19 @@ impl<'a> CommandsHandler<'a> {
             workspace_id,
         } = parameters;
 
-        let workspace = self.coordinator.workspaces().get(&workspace_id)?;
+        let workspace = self.coordinator.get_workspace(&workspace_id)?.into();
 
         let commands = self
             .coordinator
-            .commands()
-            .list(ListCommandsWithinWorkspaceFilter {
+            .list_commands_within_workspace(ListCommandsWithinWorkspaceInput {
                 workspace_id: &workspace_id,
                 program_contains: &search_query,
                 page_number,
                 page_size,
-            })?;
-
-        let workspace = self.coordinator.workspaces().track_access_time(workspace)?;
+            })?
+            .into_iter()
+            .map(Into::into)
+            .collect();
 
         ListWorkspaceCommandsModel::new(ListWorkspaceCommandsModelParameters {
             commands,
@@ -101,44 +100,49 @@ impl<'a> CommandsHandler<'a> {
 
     pub fn new_command(
         self,
-        parameters: NewWorkspaceCommandParameters,
+        parameters: NewWorkspaceCommandParams,
     ) -> Result<NewWorkspaceCommandModel> {
-        let NewWorkspaceCommandParameters { workspace_id } = parameters;
+        let NewWorkspaceCommandParams { workspace_id } = parameters;
 
-        let workspace = self.coordinator.workspaces().get(&workspace_id)?;
+        let workspace = self.coordinator.get_workspace(&workspace_id)?.into();
 
         NewWorkspaceCommandModel::new(NewWorkspaceCommandModelParameters { workspace })
     }
 
     pub fn update(
         self,
-        parameters: UpdateWorkspaceCommandParameters,
+        parameters: UpdateWorkspaceCommandParams,
     ) -> Result<ListWorkspaceCommandsModel> {
-        let UpdateWorkspaceCommandParameters {
+        let UpdateWorkspaceCommandParams {
             command_id,
             workspace_id,
             name,
             program,
         } = parameters;
 
-        let command = CommandPresenter {
+        let command = Command {
             workspace_id,
             id: command_id.clone(),
             name,
             program,
         };
 
-        let command = self.coordinator.commands().update(command)?;
-        let workspace = self.coordinator.workspaces().get(&command.workspace_id)?;
+        let command = self.coordinator.update_command(command.into())?;
+        let workspace = self
+            .coordinator
+            .get_workspace(&command.workspace_id)?
+            .into();
         let commands = self
             .coordinator
-            .commands()
-            .list(ListCommandsWithinWorkspaceFilter {
+            .list_commands_within_workspace(ListCommandsWithinWorkspaceInput {
                 page_number: 0,
                 page_size: LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
                 program_contains: &command.program,
-                workspace_id: &workspace.id,
-            })?;
+                workspace_id: &command.workspace_id,
+            })?
+            .into_iter()
+            .map(Into::into)
+            .collect();
 
         let model = ListWorkspaceCommandsModel::new(ListWorkspaceCommandsModelParameters {
             commands,

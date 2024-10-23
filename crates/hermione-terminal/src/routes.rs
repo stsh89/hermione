@@ -1,10 +1,9 @@
 use crate::{
-    CopyToClipboardParameters, CreateWorkspaceCommandParameters, CreateWorkspaceParameters,
-    DeleteWorkspaceCommandParameters, DeleteWorkspaceParameters, EditWorkspaceCommandParameters,
-    EditWorkspaceParameters, ListWorkspaceCommandsParameters, ListWorkspacesParameters,
-    NewWorkspaceCommandParameters, OpenWindowsTerminalParameters,
-    PowerShellExecuteCommandParameters, UpdateWorkspaceCommandParameters,
-    UpdateWorkspaceParameters,
+    CopyToClipboardParams, CreateWorkspaceCommandParams, CreateWorkspaceParams,
+    DeleteWorkspaceCommandParams, DeleteWorkspaceParams, EditWorkspaceCommandParams,
+    EditWorkspaceParams, ExecuteCommandParams, ListWorkspaceCommandsParams, ListWorkspacesParams,
+    NewWorkspaceCommandParams, OpenWindowsTerminalParams, UpdateWorkspaceCommandParams,
+    UpdateWorkspaceParams,
 };
 
 pub enum Route {
@@ -13,26 +12,26 @@ pub enum Route {
 }
 
 pub enum PowerShellRoute {
-    ExecuteCommand(PowerShellExecuteCommandParameters),
-    CopyToClipboard(CopyToClipboardParameters),
-    OpenWindowsTerminal(OpenWindowsTerminalParameters),
+    ExecuteCommand(ExecuteCommandParams),
+    CopyToClipboard(CopyToClipboardParams),
+    OpenWindowsTerminal(OpenWindowsTerminalParams),
 }
 
 pub enum WorkspacesRoute {
     Commands(WorkspaceCommandsRoute),
-    Create(CreateWorkspaceParameters),
-    Delete(DeleteWorkspaceParameters),
-    Edit(EditWorkspaceParameters),
-    List(ListWorkspacesParameters),
+    Create(CreateWorkspaceParams),
+    Delete(DeleteWorkspaceParams),
+    Edit(EditWorkspaceParams),
+    List(ListWorkspacesParams),
     New,
-    Update(UpdateWorkspaceParameters),
+    Update(UpdateWorkspaceParams),
 }
 
 pub enum WorkspaceCommandsRoute {
-    Create(CreateWorkspaceCommandParameters),
-    Delete(DeleteWorkspaceCommandParameters),
-    Edit(EditWorkspaceCommandParameters),
-    List(ListWorkspaceCommandsParameters),
-    New(NewWorkspaceCommandParameters),
-    Update(UpdateWorkspaceCommandParameters),
+    Create(CreateWorkspaceCommandParams),
+    Delete(DeleteWorkspaceCommandParams),
+    Edit(EditWorkspaceCommandParams),
+    List(ListWorkspaceCommandsParams),
+    New(NewWorkspaceCommandParams),
+    Update(UpdateWorkspaceCommandParams),
 }

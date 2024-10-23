@@ -10,3 +10,5 @@ name = "hermione_powershell"
 anyhow = { workspace = true }
 eyre = { workspace = true }
 thiserror = { workspace = true }
+
+hermione-core = { workspace = true }

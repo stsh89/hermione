@@ -8,10 +8,7 @@ name = "hermione_coordinator"
 
 [dependencies]
 anyhow = { workspace = true }
-chrono = { workspace = true }
-eyre = { workspace = true }
-rusqlite = { workspace = true, features = ["bundled"] }
-thiserror = { workspace = true }
-uuid = { workspace = true, features = ["v4"] }
 
 hermione-core = { workspace = true }
+hermione-powershell = { workspace = true }
+hermione-storage = { workspace = true }

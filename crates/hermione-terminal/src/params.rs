@@ -3,42 +3,42 @@ use crate::{Route, WorkspaceCommandsRoute, WorkspacesRoute};
 pub const LIST_WORKSPACES_PAGE_SIZE: u32 = 100;
 pub const LIST_WORKSPACE_COMMANDS_PAGE_SIZE: u32 = 100;
 
-pub struct CreateWorkspaceParameters {
+pub struct CreateWorkspaceParams {
     pub name: String,
     pub location: String,
 }
 
-pub struct CreateWorkspaceCommandParameters {
+pub struct CreateWorkspaceCommandParams {
     pub name: String,
     pub program: String,
     pub workspace_id: String,
 }
 
-pub struct DeleteWorkspaceParameters {
+pub struct DeleteWorkspaceParams {
     pub id: String,
 }
 
-pub struct DeleteWorkspaceCommandParameters {
+pub struct DeleteWorkspaceCommandParams {
     pub command_id: String,
     pub workspace_id: String,
 }
 
-pub struct EditWorkspaceParameters {
+pub struct EditWorkspaceParams {
     pub id: String,
 }
 
-pub struct EditWorkspaceCommandParameters {
+pub struct EditWorkspaceCommandParams {
     pub command_id: String,
     pub workspace_id: String,
 }
 
-pub struct ListWorkspacesParameters {
+pub struct ListWorkspacesParams {
     pub search_query: String,
     pub page_number: u32,
     pub page_size: u32,
 }
 
-pub struct ListWorkspaceCommandsParameters {
+pub struct ListWorkspaceCommandsParams {
     pub workspace_id: String,
     pub search_query: String,
     pub page_number: u32,
@@ -46,39 +46,39 @@ pub struct ListWorkspaceCommandsParameters {
     pub powershell_no_exit: bool,
 }
 
-pub struct NewWorkspaceCommandParameters {
+pub struct NewWorkspaceCommandParams {
     pub workspace_id: String,
 }
 
-pub struct CopyToClipboardParameters {
+pub struct CopyToClipboardParams {
     pub command_id: String,
     pub workspace_id: String,
 }
 
-pub struct PowerShellExecuteCommandParameters {
+pub struct ExecuteCommandParams {
     pub command_id: String,
     pub workspace_id: String,
     pub powershell_no_exit: bool,
 }
 
-pub struct OpenWindowsTerminalParameters {
+pub struct OpenWindowsTerminalParams {
     pub working_directory: String,
 }
 
-pub struct UpdateWorkspaceParameters {
+pub struct UpdateWorkspaceParams {
     pub id: String,
     pub name: String,
     pub location: String,
 }
 
-pub struct UpdateWorkspaceCommandParameters {
+pub struct UpdateWorkspaceCommandParams {
     pub command_id: String,
     pub name: String,
     pub program: String,
     pub workspace_id: String,
 }
 
-impl Default for ListWorkspacesParameters {
+impl Default for ListWorkspacesParams {
     fn default() -> Self {
         Self {
             search_query: String::new(),
@@ -88,78 +88,78 @@ impl Default for ListWorkspacesParameters {
     }
 }
 
-impl From<CreateWorkspaceParameters> for Route {
-    fn from(value: CreateWorkspaceParameters) -> Self {
+impl From<CreateWorkspaceParams> for Route {
+    fn from(value: CreateWorkspaceParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Create(value))
     }
 }
 
-impl From<CreateWorkspaceCommandParameters> for Route {
-    fn from(value: CreateWorkspaceCommandParameters) -> Self {
+impl From<CreateWorkspaceCommandParams> for Route {
+    fn from(value: CreateWorkspaceCommandParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Commands(WorkspaceCommandsRoute::Create(
             value,
         )))
     }
 }
 
-impl From<DeleteWorkspaceParameters> for Route {
-    fn from(value: DeleteWorkspaceParameters) -> Self {
+impl From<DeleteWorkspaceParams> for Route {
+    fn from(value: DeleteWorkspaceParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Delete(value))
     }
 }
 
-impl From<DeleteWorkspaceCommandParameters> for Route {
-    fn from(parameters: DeleteWorkspaceCommandParameters) -> Self {
+impl From<DeleteWorkspaceCommandParams> for Route {
+    fn from(parameters: DeleteWorkspaceCommandParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Commands(WorkspaceCommandsRoute::Delete(
             parameters,
         )))
     }
 }
 
-impl From<EditWorkspaceParameters> for Route {
-    fn from(value: EditWorkspaceParameters) -> Self {
+impl From<EditWorkspaceParams> for Route {
+    fn from(value: EditWorkspaceParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Edit(value))
     }
 }
 
-impl From<EditWorkspaceCommandParameters> for Route {
-    fn from(parameters: EditWorkspaceCommandParameters) -> Self {
+impl From<EditWorkspaceCommandParams> for Route {
+    fn from(parameters: EditWorkspaceCommandParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Commands(WorkspaceCommandsRoute::Edit(
             parameters,
         )))
     }
 }
 
-impl From<ListWorkspacesParameters> for Route {
-    fn from(value: ListWorkspacesParameters) -> Self {
+impl From<ListWorkspacesParams> for Route {
+    fn from(value: ListWorkspacesParams) -> Self {
         Self::Workspaces(WorkspacesRoute::List(value))
     }
 }
 
-impl From<ListWorkspaceCommandsParameters> for Route {
-    fn from(value: ListWorkspaceCommandsParameters) -> Self {
+impl From<ListWorkspaceCommandsParams> for Route {
+    fn from(value: ListWorkspaceCommandsParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Commands(WorkspaceCommandsRoute::List(
             value,
         )))
     }
 }
 
-impl From<NewWorkspaceCommandParameters> for Route {
-    fn from(parameters: NewWorkspaceCommandParameters) -> Self {
+impl From<NewWorkspaceCommandParams> for Route {
+    fn from(parameters: NewWorkspaceCommandParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Commands(WorkspaceCommandsRoute::New(
             parameters,
         )))
     }
 }
 
-impl From<UpdateWorkspaceParameters> for Route {
-    fn from(value: UpdateWorkspaceParameters) -> Self {
+impl From<UpdateWorkspaceParams> for Route {
+    fn from(value: UpdateWorkspaceParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Update(value))
     }
 }
 
-impl From<UpdateWorkspaceCommandParameters> for Route {
-    fn from(value: UpdateWorkspaceCommandParameters) -> Self {
+impl From<UpdateWorkspaceCommandParams> for Route {
+    fn from(value: UpdateWorkspaceCommandParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Commands(WorkspaceCommandsRoute::Update(
             value,
         )))

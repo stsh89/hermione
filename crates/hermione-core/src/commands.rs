@@ -1,22 +1,32 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::{Error, Result};
+use crate::{
+    workspaces::{
+        GetWorkspace, GetWorkspaceOperation, TrackWorkspaceAccessTime,
+        TrackWorkspaceAccessTimeOperation,
+    },
+    Error, Result,
+};
 
 pub trait CreateCommand {
     fn create(&self, command: Command) -> Result<Command>;
 }
 
+pub trait CopyToClipboard {
+    fn copy_to_clipboard(&self, text: &str) -> Result<()>;
+}
+
 pub trait DeleteCommandFromWorkspace {
-    fn delete(&self, id: CommandWorkspaceScopeId) -> Result<()>;
+    fn delete(&self, id: CommandWorkspaceScopedId) -> Result<()>;
 }
 
 pub trait FindCommandInWorkspace {
-    fn find(&self, id: CommandWorkspaceScopeId) -> Result<Option<Command>>;
+    fn find(&self, id: CommandWorkspaceScopedId) -> Result<Option<Command>>;
 }
 
-pub trait GetCommandInWorkspace {
-    fn get(&self, id: CommandWorkspaceScopeId) -> Result<Command>;
+pub trait GetCommandFromWorkspace {
+    fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command>;
 }
 
 pub trait ImportCommand {
@@ -35,6 +45,10 @@ pub trait TrackCommandExecutionTime {
     fn track_command_execution_time(&self, command: Command) -> Result<Command>;
 }
 
+pub trait RunProgram {
+    fn run(&self, parameters: RunProgramParameters) -> Result<()>;
+}
+
 pub trait UpdateCommand {
     fn update(&self, command: Command) -> Result<Command>;
 }
@@ -43,8 +57,24 @@ pub struct CreateCommandOperation<'a, S> {
     pub creator: &'a S,
 }
 
+pub struct CopyProgramToClipboardOperation<'a, T, G>
+where
+    T: CopyToClipboard,
+{
+    pub getter: &'a G,
+    pub clipboard_provider: &'a T,
+}
+
 pub struct DeleteCommandFromWorkspaceOperation<'a, D> {
     pub deleter: &'a D,
+}
+
+pub struct ExecuteCommandWithinWorkspaceOperation<'a, R, T, C, W, WT> {
+    pub runner: &'a R,
+    pub command_tracker: &'a T,
+    pub workspace_tracker: &'a WT,
+    pub get_command: &'a C,
+    pub get_workspace: &'a W,
 }
 
 pub struct FindCommandInWorkspaceOperation<'a, R> {
@@ -97,6 +127,12 @@ struct CommandProgram {
     value: String,
 }
 
+pub struct ExecuteCommandWithinWorkspaceParameters {
+    pub command_id: Uuid,
+    pub workspace_id: Uuid,
+    pub no_exit: bool,
+}
+
 pub struct LoadCommandParameters {
     pub last_execute_time: Option<DateTime<Utc>>,
     pub id: Uuid,
@@ -111,7 +147,7 @@ pub struct NewCommandParameters {
     pub workspace_id: Uuid,
 }
 
-pub struct CommandWorkspaceScopeId {
+pub struct CommandWorkspaceScopedId {
     pub command_id: Uuid,
     pub workspace_id: Uuid,
 }
@@ -126,6 +162,12 @@ pub struct ListCommandsWithinWorkspaceParameters<'a> {
     pub page_size: u32,
     pub program_contains: &'a str,
     pub workspace_id: Uuid,
+}
+
+pub struct RunProgramParameters<'a> {
+    pub program: &'a str,
+    pub no_exit: bool,
+    pub working_directory: &'a str,
 }
 
 impl<'a, S> CreateCommandOperation<'a, S>
@@ -151,12 +193,74 @@ where
     }
 }
 
+impl<'a, T, G> CopyProgramToClipboardOperation<'a, T, G>
+where
+    T: CopyToClipboard,
+    G: GetCommandFromWorkspace,
+{
+    pub fn execute(&self, scoped_id: CommandWorkspaceScopedId) -> Result<()> {
+        let command = self.getter.get_command_from_workspace(scoped_id)?;
+        self.clipboard_provider
+            .copy_to_clipboard(command.program())?;
+
+        Ok(())
+    }
+}
+
 impl<'a, D> DeleteCommandFromWorkspaceOperation<'a, D>
 where
     D: DeleteCommandFromWorkspace,
 {
-    pub fn execute(&self, id: CommandWorkspaceScopeId) -> Result<()> {
+    pub fn execute(&self, id: CommandWorkspaceScopedId) -> Result<()> {
         self.deleter.delete(id)
+    }
+}
+
+impl<'a, R, T, G, W, WT> ExecuteCommandWithinWorkspaceOperation<'a, R, T, G, W, WT>
+where
+    R: RunProgram,
+    T: TrackCommandExecutionTime,
+    G: GetCommandFromWorkspace,
+    W: GetWorkspace,
+    WT: TrackWorkspaceAccessTime,
+{
+    pub fn execute(&self, parameters: ExecuteCommandWithinWorkspaceParameters) -> Result<Command> {
+        let ExecuteCommandWithinWorkspaceParameters {
+            command_id,
+            workspace_id,
+            no_exit,
+        } = parameters;
+
+        let workspace = GetWorkspaceOperation {
+            getter: self.get_workspace,
+        }
+        .execute(workspace_id)?;
+
+        let command = GetCommandFromWorkspaceOperation {
+            getter: self.get_command,
+        }
+        .execute(CommandWorkspaceScopedId {
+            command_id,
+            workspace_id,
+        })?;
+
+        self.runner.run(RunProgramParameters {
+            program: command.program(),
+            no_exit,
+            working_directory: workspace.location().unwrap_or_default(),
+        })?;
+
+        let command = TrackCommandExecutionTimeOperation {
+            tracker: self.command_tracker,
+        }
+        .execute(command)?;
+
+        TrackWorkspaceAccessTimeOperation {
+            tracker: self.workspace_tracker,
+        }
+        .execute(workspace)?;
+
+        Ok(command)
     }
 }
 
@@ -164,17 +268,17 @@ impl<'a, R> FindCommandInWorkspaceOperation<'a, R>
 where
     R: FindCommandInWorkspace,
 {
-    pub fn execute(&self, id: CommandWorkspaceScopeId) -> Result<Option<Command>> {
+    pub fn execute(&self, id: CommandWorkspaceScopedId) -> Result<Option<Command>> {
         self.finder.find(id)
     }
 }
 
 impl<'a, R> GetCommandFromWorkspaceOperation<'a, R>
 where
-    R: GetCommandInWorkspace,
+    R: GetCommandFromWorkspace,
 {
-    pub fn execute(&self, id: CommandWorkspaceScopeId) -> Result<Command> {
-        self.getter.get(id)
+    pub fn execute(&self, scoped_id: CommandWorkspaceScopedId) -> Result<Command> {
+        self.getter.get_command_from_workspace(scoped_id)
     }
 }
 

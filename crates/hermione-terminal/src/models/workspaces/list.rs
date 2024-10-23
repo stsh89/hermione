@@ -1,9 +1,9 @@
 use crate::{
     layouts::{self, StatusBar},
     smart_input::{NewSmartInputParameters, SmartInput},
-    widgets, DeleteWorkspaceParameters, EditWorkspaceParameters, Error,
-    ListWorkspaceCommandsParameters, ListWorkspacesParameters, Message, Result, Route,
-    WorkspacePresenter, WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    widgets, DeleteWorkspaceParams, EditWorkspaceParams, Error, ListWorkspaceCommandsParams,
+    ListWorkspacesParams, Message, Result, Route, Workspace, WorkspacesRoute,
+    LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -15,7 +15,7 @@ pub struct ListWorkspacesModel {
     is_running: bool,
     redirect: Option<Route>,
     workspaces_state: widgets::list::State,
-    workspaces: Vec<WorkspacePresenter>,
+    workspaces: Vec<Workspace>,
     page_number: u32,
     page_size: u32,
     smart_input: SmartInput,
@@ -23,7 +23,7 @@ pub struct ListWorkspacesModel {
 }
 
 pub struct ListWorkspaceModelParameters {
-    pub workspaces: Vec<WorkspacePresenter>,
+    pub workspaces: Vec<Workspace>,
     pub search_query: String,
     pub page_number: u32,
     pub page_size: u32,
@@ -87,7 +87,7 @@ impl ListWorkspacesModel {
         self.smart_input.reset_input();
 
         if !self.search_query.is_empty() {
-            self.set_redirect(ListWorkspacesParameters::default().into());
+            self.set_redirect(ListWorkspacesParams::default().into());
         }
     }
 
@@ -149,7 +149,7 @@ impl ListWorkspacesModel {
 
     fn set_list_workspaces_redirect(&mut self, search_query: String) {
         self.redirect = Some(
-            ListWorkspacesParameters {
+            ListWorkspacesParams {
                 search_query,
                 page_number: 0,
                 page_size: self.page_size,
@@ -170,7 +170,7 @@ impl ListWorkspacesModel {
             Action::DeleteWorkspace => {
                 if let Some(workspace) = self.workspace() {
                     self.set_redirect(
-                        DeleteWorkspaceParameters {
+                        DeleteWorkspaceParams {
                             id: workspace.id.clone(),
                         }
                         .into(),
@@ -180,7 +180,7 @@ impl ListWorkspacesModel {
             Action::EditWorkspace => {
                 if let Some(workspace) = self.workspace() {
                     self.set_redirect(
-                        EditWorkspaceParameters {
+                        EditWorkspaceParams {
                             id: workspace.id.clone(),
                         }
                         .into(),
@@ -191,7 +191,7 @@ impl ListWorkspacesModel {
             Action::ListCommands => {
                 if let Some(workspace) = self.workspace() {
                     self.set_redirect(
-                        ListWorkspaceCommandsParameters {
+                        ListWorkspaceCommandsParams {
                             workspace_id: workspace.id.clone(),
                             search_query: "".into(),
                             page_number: 0,
@@ -215,7 +215,7 @@ impl ListWorkspacesModel {
 
         if index == self.workspaces.len() - 1 && self.workspaces.len() == self.page_size as usize {
             self.set_redirect(
-                ListWorkspacesParameters {
+                ListWorkspacesParams {
                     search_query: self.search_query.clone(),
                     page_number: self.page_number + 1,
                     page_size: self.page_size,
@@ -233,7 +233,7 @@ impl ListWorkspacesModel {
         let Some(index) = self.workspaces_state.selected() else {
             if self.page_number != 0 {
                 self.set_redirect(
-                    ListWorkspacesParameters {
+                    ListWorkspacesParams {
                         search_query: self.search_query.clone(),
                         page_number: self.page_number - 1,
                         page_size: self.page_size,
@@ -247,7 +247,7 @@ impl ListWorkspacesModel {
 
         if index == 0 && self.page_number != 0 {
             self.set_redirect(
-                ListWorkspacesParameters {
+                ListWorkspacesParams {
                     search_query: self.search_query.clone(),
                     page_number: self.page_number - 1,
                     page_size: self.page_size,
@@ -297,7 +297,7 @@ impl ListWorkspacesModel {
         self.smart_input.move_cursor_right();
     }
 
-    fn workspace(&self) -> Option<&WorkspacePresenter> {
+    fn workspace(&self) -> Option<&Workspace> {
         self.workspaces_state
             .selected()
             .and_then(|i| self.workspaces.get(i))

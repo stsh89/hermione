@@ -12,9 +12,9 @@ ratatui = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tracing = { workspace = true }
+uuid = { workspace = true }
 
 hermione-coordinator = { workspace = true }
-hermione-tracing = { workspace = true }
-hermione-powershell = { workspace = true }
 hermione-terminal-directory = { workspace = true }
+hermione-tracing = { workspace = true }
 hermione-tui = { workspace = true }

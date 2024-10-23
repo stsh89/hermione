@@ -1,8 +1,8 @@
 use crate::{
     forms::CommandForm,
     layouts::{self, StatusBar},
-    CommandPresenter, ListWorkspaceCommandsParameters, Message, Result, Route,
-    UpdateWorkspaceCommandParameters, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    Command, ListWorkspaceCommandsParams, Message, Result, Route, UpdateWorkspaceCommandParams,
+    Workspace, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{widgets::Paragraph, Frame};
@@ -14,8 +14,8 @@ pub struct EditWorkspaceCommandModel {
 }
 
 pub struct EditWorkspaceCommandModelParameters {
-    pub command: CommandPresenter,
-    pub workspace: WorkspacePresenter,
+    pub command: Command,
+    pub workspace: Workspace,
 }
 
 impl Model for EditWorkspaceCommandModel {
@@ -61,7 +61,7 @@ impl EditWorkspaceCommandModel {
         let command = self.form.command();
 
         self.redirect = Some(
-            ListWorkspaceCommandsParameters {
+            ListWorkspaceCommandsParams {
                 workspace_id: command.workspace_id,
                 search_query: command.program,
                 page_number: 0,
@@ -109,7 +109,7 @@ impl EditWorkspaceCommandModel {
     }
 
     fn submit(&mut self) {
-        let CommandPresenter {
+        let Command {
             id,
             name,
             program,
@@ -117,7 +117,7 @@ impl EditWorkspaceCommandModel {
         } = self.form.command();
 
         self.redirect = Some(
-            UpdateWorkspaceCommandParameters {
+            UpdateWorkspaceCommandParams {
                 name,
                 program,
                 workspace_id,

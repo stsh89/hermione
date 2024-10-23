@@ -1,8 +1,8 @@
 use crate::{
     forms::WorkspaceForm,
     layouts::{self, StatusBar},
-    ListWorkspacesParameters, Message, Result, Route, UpdateWorkspaceParameters,
-    WorkspacePresenter, LIST_WORKSPACES_PAGE_SIZE,
+    ListWorkspacesParams, Message, Result, Route, UpdateWorkspaceParams, Workspace,
+    LIST_WORKSPACES_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{widgets::Paragraph, Frame};
@@ -14,7 +14,7 @@ pub struct EditWorkspaceModel {
 }
 
 pub struct EditWorkspaceModelParameters {
-    pub workspace: WorkspacePresenter,
+    pub workspace: Workspace,
 }
 
 impl Model for EditWorkspaceModel {
@@ -57,14 +57,14 @@ impl Model for EditWorkspaceModel {
 
 impl EditWorkspaceModel {
     fn back(&mut self) {
-        let WorkspacePresenter {
+        let Workspace {
             id: _,
             name: search_query,
             location: _,
         } = self.form.workspace();
 
         self.redirect = Some(
-            ListWorkspacesParameters {
+            ListWorkspacesParams {
                 search_query,
                 page_number: 0,
                 page_size: LIST_WORKSPACES_PAGE_SIZE,
@@ -109,9 +109,9 @@ impl EditWorkspaceModel {
     }
 
     fn submit(&mut self) {
-        let WorkspacePresenter { id, name, location } = self.form.workspace();
+        let Workspace { id, name, location } = self.form.workspace();
 
-        self.redirect = Some(UpdateWorkspaceParameters { name, location, id }.into());
+        self.redirect = Some(UpdateWorkspaceParams { name, location, id }.into());
     }
 
     fn toggle_focus(&mut self) {

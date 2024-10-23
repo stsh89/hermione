@@ -1,28 +1,28 @@
-use hermione_coordinator::{commands::CommandDto, workspaces::WorkspaceDto};
+use hermione_coordinator::{CommandDto, WorkspaceDto};
 use ratatui::widgets::ListItem;
 
-pub struct CommandPresenter {
+pub struct Command {
     pub workspace_id: String,
     pub id: String,
     pub name: String,
     pub program: String,
 }
 
-pub struct WorkspacePresenter {
+pub struct Workspace {
     pub id: String,
     pub location: String,
     pub name: String,
 }
 
-impl<'a> From<&CommandPresenter> for ListItem<'a> {
-    fn from(command: &CommandPresenter) -> Self {
+impl<'a> From<&Command> for ListItem<'a> {
+    fn from(command: &Command) -> Self {
         ListItem::new(command.program.clone())
     }
 }
 
-impl From<CommandPresenter> for CommandDto {
-    fn from(value: CommandPresenter) -> Self {
-        let CommandPresenter {
+impl From<Command> for CommandDto {
+    fn from(value: Command) -> Self {
+        let Command {
             workspace_id,
             id,
             name,
@@ -31,7 +31,6 @@ impl From<CommandPresenter> for CommandDto {
 
         CommandDto {
             id,
-            last_execute_time: None,
             name,
             program,
             workspace_id,
@@ -39,17 +38,16 @@ impl From<CommandPresenter> for CommandDto {
     }
 }
 
-impl From<CommandDto> for CommandPresenter {
+impl From<CommandDto> for Command {
     fn from(value: CommandDto) -> Self {
         let CommandDto {
             id,
-            last_execute_time: _,
             name,
             program,
             workspace_id,
         } = value;
 
-        CommandPresenter {
+        Command {
             workspace_id,
             id,
             name,
@@ -58,35 +56,29 @@ impl From<CommandDto> for CommandPresenter {
     }
 }
 
-impl<'a> From<&WorkspacePresenter> for ListItem<'a> {
-    fn from(workspace: &WorkspacePresenter) -> Self {
+impl<'a> From<&Workspace> for ListItem<'a> {
+    fn from(workspace: &Workspace) -> Self {
         ListItem::new(workspace.name.clone())
     }
 }
 
-impl From<WorkspacePresenter> for WorkspaceDto {
-    fn from(value: WorkspacePresenter) -> Self {
-        let WorkspacePresenter { id, location, name } = value;
+impl From<Workspace> for WorkspaceDto {
+    fn from(value: Workspace) -> Self {
+        let Workspace { id, location, name } = value;
 
         WorkspaceDto {
             id,
-            last_access_time: None,
             location: Some(location),
             name,
         }
     }
 }
 
-impl From<WorkspaceDto> for WorkspacePresenter {
+impl From<WorkspaceDto> for Workspace {
     fn from(value: WorkspaceDto) -> Self {
-        let WorkspaceDto {
-            id,
-            last_access_time: _,
-            location,
-            name,
-        } = value;
+        let WorkspaceDto { id, location, name } = value;
 
-        WorkspacePresenter {
+        Workspace {
             id,
             location: location.unwrap_or_default(),
             name,

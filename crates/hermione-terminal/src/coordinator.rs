@@ -4,6 +4,7 @@ use hermione_coordinator::{
     workspaces::{ListWorkspacesInput, WorkspacesClient},
     Connection,
 };
+use hermione_core::commands::{Command, TrackCommandExecutionTime};
 use std::path::Path;
 
 pub struct Coordinator {
@@ -96,7 +97,7 @@ impl CommandsCoordinator {
         Ok(commands.into_iter().map(Into::into).collect())
     }
 
-    pub fn track_execution_time(&self, command: &CommandPresenter) -> Result<CommandPresenter> {
+    pub fn track_execution_time(&self, command: CommandPresenter) -> Result<CommandPresenter> {
         let command = self
             .client
             .track_command_execution_time(&command.workspace_id, &command.id)?;

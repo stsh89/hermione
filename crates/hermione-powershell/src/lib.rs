@@ -1,3 +1,5 @@
+mod impls;
+
 use std::{
     io,
     process::{Child, Command, Stdio},

@@ -1,4 +1,4 @@
-use crate::CommandPresenter;
+use crate::Command;
 use hermione_tui::Input;
 use ratatui::{
     layout::{Constraint, Direction, Position, Rect},
@@ -64,8 +64,8 @@ impl CommandForm {
         self.active_input = self.active_input.next();
     }
 
-    pub fn command(&self) -> CommandPresenter {
-        CommandPresenter {
+    pub fn command(&self) -> Command {
+        Command {
             id: self.id.clone(),
             name: self.name.value().into(),
             program: self.program.value().into(),
@@ -108,9 +108,9 @@ impl ActiveInput {
     }
 }
 
-impl From<CommandPresenter> for CommandForm {
-    fn from(command: CommandPresenter) -> Self {
-        let CommandPresenter {
+impl From<Command> for CommandForm {
+    fn from(command: Command) -> Self {
+        let Command {
             id,
             name,
             program,

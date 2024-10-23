@@ -1,0 +1,15 @@
+[package]
+name = "hermione-storage"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "hermione_storage"
+
+[dependencies]
+chrono = { workspace = true }
+eyre = { workspace = true }
+rusqlite = { workspace = true, features = ["bundled"] }
+uuid = { workspace = true, features = ["v4"] }
+
+hermione-core = { workspace = true }
