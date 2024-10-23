@@ -7,7 +7,7 @@ use std::{
 const DEFAULT_WINDOWS_TERMINAL_COMMAND: &str = "wt pwsh";
 const POWERSHELL_COMMAND: &str = "pwsh";
 
-pub struct PowerShell {
+pub struct PowerShellProvider {
     child: RwLock<Child>,
 }
 
@@ -24,7 +24,7 @@ pub struct PowerShellParameters<'a> {
     pub working_directory: Option<&'a str>,
 }
 
-impl PowerShell {
+impl PowerShellProvider {
     pub fn copy_to_clipboard(&self, text: &str) -> io::Result<()> {
         let command = format!("Set-Clipboard '{}'", text);
         self.execute(&command)

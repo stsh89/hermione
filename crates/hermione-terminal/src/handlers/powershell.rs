@@ -6,11 +6,11 @@ use crate::{
     Coordinator, CopyToClipboardParameters, OpenWindowsTerminalParameters,
     PowerShellExecuteCommandParameters, Result,
 };
-use hermione_powershell::PowerShell;
+use hermione_powershell::PowerShellProvider;
 
 pub struct PowerShellHandler<'a> {
     pub coordinator: &'a Coordinator,
-    pub powershell: &'a PowerShell,
+    pub powershell: &'a PowerShellProvider,
 }
 
 impl<'a> PowerShellHandler<'a> {

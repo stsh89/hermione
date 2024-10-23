@@ -3,12 +3,12 @@ use crate::{
     ListWorkspacesParameters, Message, PowerShellHandler, PowerShellRoute, Result, Route,
     WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
-use hermione_powershell::PowerShell;
+use hermione_powershell::PowerShellProvider;
 use hermione_tui::{BoxedModel, Router};
 
 pub struct TerminalRouter {
     pub coordinator: Coordinator,
-    pub powershell: PowerShell,
+    pub powershell: PowerShellProvider,
 }
 
 struct WorkspacesRouter<'a> {
@@ -21,7 +21,7 @@ struct WorkspaceCommandsRouter<'a> {
 
 struct PowerShellRouter<'a> {
     coordinator: &'a Coordinator,
-    powershell: &'a PowerShell,
+    powershell: &'a PowerShellProvider,
 }
 
 impl Router for TerminalRouter {

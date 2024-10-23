@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     let directory = hermione_terminal_directory::path()?;
 
     let coordinator = Coordinator::new(&directory)?;
-    let powershell = hermione_powershell::PowerShell::new()?;
+    let powershell = hermione_powershell::PowerShellProvider::new()?;
 
     let router = TerminalRouter {
         coordinator,

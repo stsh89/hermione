@@ -1,5 +1,5 @@
 use crate::Result;
-use hermione_powershell::{PowerShell, PowerShellParameters};
+use hermione_powershell::{PowerShellProvider, PowerShellParameters};
 
 pub trait CopyToClipboard {
     fn copy_to_clipboard(&self, text: &str) -> Result<()>;
@@ -81,7 +81,7 @@ where
     }
 }
 
-impl CopyToClipboard for PowerShell {
+impl CopyToClipboard for PowerShellProvider {
     fn copy_to_clipboard(&self, text: &str) -> Result<()> {
         self.copy_to_clipboard(text)?;
 
@@ -89,7 +89,7 @@ impl CopyToClipboard for PowerShell {
     }
 }
 
-impl ExecuteCommand for PowerShell {
+impl ExecuteCommand for PowerShellProvider {
     fn execute_command(&self, parameters: ExecuteCommandParameters) -> Result<()> {
         let ExecuteCommandParameters {
             command,
@@ -107,7 +107,7 @@ impl ExecuteCommand for PowerShell {
     }
 }
 
-impl OpenWindowsTerminal for PowerShell {
+impl OpenWindowsTerminal for PowerShellProvider {
     fn open_windows_terminal(&self, working_directory: &str) -> Result<()> {
         self.open_windows_terminal(Some(PowerShellParameters {
             command: None,
