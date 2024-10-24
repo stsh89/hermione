@@ -8,7 +8,6 @@ members = [
     "crates/hermione-ops",
     "crates/hermione-powershell",
     "crates/hermione-storage",
-    "crates/hermione-terminal-directory",
     "crates/hermione-terminal",
     "crates/hermione-tracing",
     "crates/hermione-tui",
@@ -39,6 +38,5 @@ hermione-notion-sync = { path = "crates/hermione-notion-sync" }
 hermione-ops = { path = "crates/hermione-ops" }
 hermione-powershell = { path = "crates/hermione-powershell" }
 hermione-storage = { path = "crates/hermione-storage" }
-hermione-terminal-directory = { path = "crates/hermione-terminal-directory" }
 hermione-tracing = { path = "crates/hermione-tracing" }
 hermione-tui = { path = "crates/hermione-tui" }

@@ -7,18 +7,17 @@ use hermione_ops::{
     backup::BackupOperation,
     notion::{DeleteCredentialsOperation, GetCredentialsOperation, SaveCredentialsOperation},
 };
-use hermione_storage::{database::DatabaseProvider, file_system::FileSystemProvider};
+use hermione_storage::{
+    database::DatabaseProvider,
+    file_system::{FileSystemProvider, NOTION_SYNC_LOGS_FILE_NAME_PREFIX},
+};
 use hermione_tracing::{NewTracerParameters, Tracer};
 use screen::ScreenProvider;
-use std::path::Path;
-
-const LOGS_FILE_NAME_PREFIX: &str = "hermione-notion-sync-logs";
 
 type Result<T> = anyhow::Result<T>;
 
-struct App<'a> {
-    /// Directory for storing file with credentials
-    file_storage_location: &'a Path,
+struct App {
+    file_system: FileSystemProvider,
 }
 
 enum Command {
@@ -29,30 +28,24 @@ enum Command {
     ShowCredentials,
 }
 
-impl<'a> App<'a> {
+impl App {
     fn delete_credentials(self) -> Result<()> {
         DeleteCredentialsOperation {
-            deleter: &FileSystemProvider::new(self.file_storage_location),
+            deleter: &self.file_system,
         }
         .execute()?;
 
         Ok(())
     }
 
-    fn file_system_provider(&self) -> FileSystemProvider {
-        FileSystemProvider::new(self.file_storage_location)
-    }
-
     async fn import(self) -> Result<()> {
-        let file_system_provider = self.file_system_provider();
-
         let credentials = GetCredentialsOperation {
-            getter: &file_system_provider,
+            getter: &self.file_system,
         }
         .execute()?;
 
         let notion_provider = NotionProvider::new(Some(credentials))?;
-        let database_provider = DatabaseProvider::new(&file_system_provider.database_file_path())?;
+        let database_provider = DatabaseProvider::new(&self.file_system.database_file_path())?;
 
         BackupOperation {
             commands: &notion_provider,
@@ -67,15 +60,13 @@ impl<'a> App<'a> {
     }
 
     async fn export(&self) -> Result<()> {
-        let file_system_provider = self.file_system_provider();
-
         let credentials = GetCredentialsOperation {
-            getter: &file_system_provider,
+            getter: &self.file_system,
         }
         .execute()?;
 
         let notion_provider = NotionProvider::new(Some(credentials))?;
-        let database_provider = DatabaseProvider::new(&file_system_provider.database_file_path())?;
+        let database_provider = DatabaseProvider::new(&self.file_system.database_file_path())?;
 
         BackupOperation {
             commands: &database_provider,
@@ -91,7 +82,7 @@ impl<'a> App<'a> {
 
     async fn save_credentials(self) -> Result<()> {
         SaveCredentialsOperation {
-            saver: &self.file_system_provider(),
+            saver: &self.file_system,
             getter: &ScreenProvider::new(),
             verifier: &NotionProvider::new(None)?,
         }
@@ -103,7 +94,7 @@ impl<'a> App<'a> {
 
     fn show_credentials(self) -> Result<()> {
         let creds = GetCredentialsOperation {
-            getter: &self.file_system_provider(),
+            getter: &self.file_system,
         }
         .execute()?;
 
@@ -118,15 +109,14 @@ impl<'a> App<'a> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let directory = hermione_terminal_directory::path()?;
-    let app = App {
-        file_storage_location: &directory,
-    };
+    let file_system = FileSystemProvider::new().map_err(|err| anyhow::anyhow!(err))?;
 
     let tracer = Tracer::new(NewTracerParameters {
-        directory: &directory,
-        filename_prefix: LOGS_FILE_NAME_PREFIX,
+        directory: file_system.location().into(),
+        filename_prefix: NOTION_SYNC_LOGS_FILE_NAME_PREFIX,
     });
+
+    let app = App { file_system };
 
     let _guard = tracer.init_non_blocking()?;
 
@@ -138,7 +128,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-impl Run for App<'_> {
+impl Run for App {
     type Command = Command;
 
     async fn run(self, command: Self::Command) -> Result<()> {

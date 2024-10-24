@@ -6,8 +6,12 @@ edition = "2021"
 [lib]
 name = "hermione_storage"
 
+[features]
+notion = []
+
 [dependencies]
 chrono = { workspace = true }
+dirs = { workspace = true }
 eyre = { workspace = true }
 rusqlite = { workspace = true, features = ["bundled"] }
 serde = { workspace = true, features = ["derive"] }

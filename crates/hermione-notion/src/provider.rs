@@ -168,11 +168,9 @@ impl NotionProvider {
     }
 
     pub fn new(credentials: Option<Credentials>) -> Result<Self> {
-        let api_key = if let Some(credentials) = credentials.as_ref() {
-            Some(credentials.api_key().into())
-        } else {
-            None
-        };
+        let api_key = credentials
+            .as_ref()
+            .map(|credentials| credentials.api_key().into());
 
         let client = Client::new(NewClientParameters {
             api_key,

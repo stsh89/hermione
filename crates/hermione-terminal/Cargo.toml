@@ -14,6 +14,5 @@ tracing = { workspace = true }
 
 hermione-coordinator = { workspace = true }
 hermione-storage = { workspace = true }
-hermione-terminal-directory = { workspace = true }
 hermione-tracing = { workspace = true }
 hermione-tui = { workspace = true }

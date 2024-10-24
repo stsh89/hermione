@@ -12,7 +12,7 @@ mod smart_input;
 mod widgets;
 
 use hermione_coordinator::Coordinator;
-use hermione_storage::file_system::FileSystemProvider;
+use hermione_storage::file_system::{FileSystemProvider, TERMINAL_APP_LOGS_FILE_NAME_PREFIX};
 use hermione_tracing::{NewTracerParameters, Tracer};
 use router::TerminalRouter;
 
@@ -23,20 +23,17 @@ pub(crate) use params::*;
 pub(crate) use presenters::*;
 pub(crate) use routes::*;
 
-const LOGS_FILE_NAME_PREFIX: &str = "hermione-terminal-logs";
-
 type Error = anyhow::Error;
 type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
-    let directory = hermione_terminal_directory::path()?;
-    let file_system = FileSystemProvider::new(&directory);
+    let file_system = FileSystemProvider::new().map_err(|err| anyhow::anyhow!(err))?;
     let coordinator = Coordinator::new(&file_system.database_file_path())?;
     let router = TerminalRouter { coordinator };
 
     let tracer = Tracer::new(NewTracerParameters {
-        directory: &directory,
-        filename_prefix: LOGS_FILE_NAME_PREFIX,
+        directory: file_system.location().into(),
+        filename_prefix: TERMINAL_APP_LOGS_FILE_NAME_PREFIX,
     });
 
     let _guard = tracer.init_non_blocking()?;

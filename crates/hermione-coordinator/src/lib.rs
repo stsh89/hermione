@@ -3,15 +3,15 @@ use hermione_ops::{
         Command, CommandWorkspaceScopedId, CopyProgramToClipboardOperation, CreateCommandOperation,
         DeleteCommandFromWorkspaceOperation, ExecuteCommandWithinWorkspaceOperation,
         ExecuteCommandWithinWorkspaceParameters, GetCommandFromWorkspaceOperation,
-        ListCommandsOperation, ListCommandsParameters,
-        ListCommandsWithinWorkspaceOperation, ListCommandsWithinWorkspaceParameters,
-        LoadCommandParameters, NewCommandParameters, UpdateCommandOperation,
+        ListCommandsOperation, ListCommandsParameters, ListCommandsWithinWorkspaceOperation,
+        ListCommandsWithinWorkspaceParameters, LoadCommandParameters, NewCommandParameters,
+        UpdateCommandOperation,
     },
     extensions::{OpenWindowsTerminalOperation, OpenWindowsTerminalParameters},
     workspaces::{
         CreateWorkspaceOperation, DeleteWorkspaceOperation, GetWorkspaceOperation,
-        ListWorkspaceOperation, ListWorkspacesParameters,
-        LoadWorkspaceParameters, NewWorkspaceParameters, UpdateWorkspaceOperation, Workspace,
+        ListWorkspaceOperation, ListWorkspacesParameters, LoadWorkspaceParameters,
+        NewWorkspaceParameters, UpdateWorkspaceOperation, Workspace,
     },
 };
 use hermione_powershell::PowerShellProvider;
@@ -263,7 +263,7 @@ impl Coordinator {
     }
 
     pub fn new(file_path: &Path) -> anyhow::Result<Self> {
-        let storage = DatabaseProvider::new(&file_path)?;
+        let storage = DatabaseProvider::new(file_path)?;
         let powershell = PowerShellProvider::new()?;
 
         Ok(Self {

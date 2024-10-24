@@ -964,7 +964,6 @@ dependencies = [
  "hermione-notion-serde",
  "hermione-ops",
  "hermione-storage",
- "hermione-terminal-directory",
  "hermione-tracing",
  "tokio",
  "tracing",
@@ -995,6 +994,7 @@ name = "hermione-storage"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "dirs",
  "eyre",
  "hermione-ops",
  "rusqlite",
@@ -1011,21 +1011,12 @@ dependencies = [
  "eyre",
  "hermione-coordinator",
  "hermione-storage",
- "hermione-terminal-directory",
  "hermione-tracing",
  "hermione-tui",
  "ratatui",
  "serde",
  "serde_json",
  "tracing",
-]
-
-[[package]]
-name = "hermione-terminal-directory"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dirs",
 ]
 
 [[package]]

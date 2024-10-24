@@ -1,14 +1,14 @@
 use std::io;
 
-#[cfg(feature="backup")]
+#[cfg(feature = "backup")]
 pub mod backup;
 
 pub mod commands;
 
-#[cfg(feature="extensions")]
+#[cfg(feature = "extensions")]
 pub mod extensions;
 
-#[cfg(feature="notion")]
+#[cfg(feature = "notion")]
 pub mod notion;
 
 pub mod workspaces;
