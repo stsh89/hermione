@@ -1,87 +1,87 @@
-use hermione_coordinator::{CommandDto, WorkspaceDto};
+use hermione_ops::{
+    commands::{Command, LoadCommandParameters},
+    workspaces::{LoadWorkspaceParameters, Workspace},
+};
 use ratatui::widgets::ListItem;
 
-pub struct Command {
+pub struct CommandPresenter {
     pub workspace_id: String,
     pub id: String,
     pub name: String,
     pub program: String,
 }
 
-pub struct Workspace {
+pub struct WorkspacePresenter {
     pub id: String,
     pub location: String,
     pub name: String,
 }
 
-impl<'a> From<&Command> for ListItem<'a> {
-    fn from(command: &Command) -> Self {
+impl<'a> From<&CommandPresenter> for ListItem<'a> {
+    fn from(command: &CommandPresenter) -> Self {
         ListItem::new(command.program.clone())
     }
 }
 
-impl From<Command> for CommandDto {
-    fn from(value: Command) -> Self {
-        let Command {
-            workspace_id,
-            id,
-            name,
-            program,
-        } = value;
-
-        CommandDto {
-            id,
-            name,
-            program,
-            workspace_id,
-        }
-    }
-}
-
-impl From<CommandDto> for Command {
-    fn from(value: CommandDto) -> Self {
-        let CommandDto {
-            id,
-            name,
-            program,
-            workspace_id,
-        } = value;
-
-        Command {
-            workspace_id,
-            id,
-            name,
-            program,
-        }
-    }
-}
-
-impl<'a> From<&Workspace> for ListItem<'a> {
-    fn from(workspace: &Workspace) -> Self {
+impl<'a> From<&WorkspacePresenter> for ListItem<'a> {
+    fn from(workspace: &WorkspacePresenter) -> Self {
         ListItem::new(workspace.name.clone())
     }
 }
 
-impl From<Workspace> for WorkspaceDto {
-    fn from(value: Workspace) -> Self {
-        let Workspace { id, location, name } = value;
-
-        WorkspaceDto {
-            id,
-            location: Some(location),
-            name,
+impl From<Workspace> for WorkspacePresenter {
+    fn from(workspace: Workspace) -> Self {
+        Self {
+            id: workspace.id().map(|id| id.to_string()).unwrap_or_default(),
+            location: workspace.location().unwrap_or_default().into(),
+            name: workspace.name().to_string(),
         }
     }
 }
 
-impl From<WorkspaceDto> for Workspace {
-    fn from(value: WorkspaceDto) -> Self {
-        let WorkspaceDto { id, location, name } = value;
+impl TryFrom<WorkspacePresenter> for Workspace {
+    type Error = anyhow::Error;
 
-        Workspace {
-            id,
-            location: location.unwrap_or_default(),
+    fn try_from(value: WorkspacePresenter) -> anyhow::Result<Self> {
+        let WorkspacePresenter { id, location, name } = value;
+
+        Ok(Workspace::load(LoadWorkspaceParameters {
+            id: id.parse()?,
             name,
+            location: Some(location),
+            last_access_time: None,
+        }))
+    }
+}
+
+impl From<Command> for CommandPresenter {
+    fn from(command: Command) -> Self {
+        Self {
+            id: command.id().map(|id| id.to_string()).unwrap_or_default(),
+            name: command.name().to_string(),
+            program: command.program().to_string(),
+            workspace_id: command.workspace_id().to_string(),
         }
+    }
+}
+
+impl TryFrom<CommandPresenter> for Command {
+    type Error = anyhow::Error;
+
+    fn try_from(value: CommandPresenter) -> anyhow::Result<Self> {
+        let CommandPresenter {
+            id,
+            name,
+            program,
+            workspace_id,
+        } = value;
+
+        Ok(Command::load(LoadCommandParameters {
+            id: id.parse()?,
+            name,
+            last_execute_time: None,
+            program,
+            workspace_id: workspace_id.parse()?,
+        }))
     }
 }

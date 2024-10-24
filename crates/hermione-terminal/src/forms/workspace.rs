@@ -1,4 +1,4 @@
-use crate::Workspace;
+use crate::WorkspacePresenter;
 use hermione_tui::Input;
 use ratatui::{
     layout::{Constraint, Direction, Position, Rect},
@@ -63,8 +63,8 @@ impl WorkspaceForm {
         self.active_input = self.active_input.next();
     }
 
-    pub fn workspace(&self) -> Workspace {
-        Workspace {
+    pub fn workspace(&self) -> WorkspacePresenter {
+        WorkspacePresenter {
             id: self.id.clone(),
             name: self.name.value().into(),
             location: self.location.value().into(),
@@ -106,9 +106,9 @@ impl ActiveInput {
     }
 }
 
-impl From<Workspace> for WorkspaceForm {
-    fn from(workspace: Workspace) -> Self {
-        let Workspace { id, name, location } = workspace;
+impl From<WorkspacePresenter> for WorkspaceForm {
+    fn from(workspace: WorkspacePresenter) -> Self {
+        let WorkspacePresenter { id, name, location } = workspace;
 
         Self {
             id,

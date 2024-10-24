@@ -1,10 +1,10 @@
 use crate::{
     layouts::{self, StatusBar},
     smart_input::{NewSmartInputParameters, SmartInput},
-    widgets, Command, CopyToClipboardParams, DeleteWorkspaceCommandParams,
+    widgets, CommandPresenter, CopyToClipboardParams, DeleteWorkspaceCommandParams,
     EditWorkspaceCommandParams, Error, ExecuteCommandParams, ListWorkspaceCommandsParams,
     ListWorkspacesParams, Message, NewWorkspaceCommandParams, OpenWindowsTerminalParams,
-    PowerShellRoute, Result, Route, Workspace,
+    PowerShellRoute, Result, Route, WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -13,8 +13,8 @@ use ratatui::{
 };
 
 pub struct ListWorkspaceCommandsModel {
-    workspace: Workspace,
-    commands: Vec<Command>,
+    workspace: WorkspacePresenter,
+    commands: Vec<CommandPresenter>,
     redirect: Option<Route>,
     commands_state: widgets::list::State,
     powershell_settings: PowerShellSettings,
@@ -26,12 +26,12 @@ pub struct ListWorkspaceCommandsModel {
 }
 
 pub struct ListWorkspaceCommandsModelParameters {
-    pub commands: Vec<Command>,
+    pub commands: Vec<CommandPresenter>,
     pub page_number: u32,
     pub page_size: u32,
     pub powershell_no_exit: bool,
     pub search_query: String,
-    pub workspace: Workspace,
+    pub workspace: WorkspacePresenter,
 }
 
 struct PowerShellSettings {
@@ -164,7 +164,7 @@ impl ListWorkspaceCommandsModel {
         self.is_running = false;
     }
 
-    fn command(&self) -> Option<&Command> {
+    fn command(&self) -> Option<&CommandPresenter> {
         self.commands_state
             .selected()
             .and_then(|index| self.commands.get(index))

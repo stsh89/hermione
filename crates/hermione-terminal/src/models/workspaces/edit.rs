@@ -1,7 +1,7 @@
 use crate::{
     forms::WorkspaceForm,
     layouts::{self, StatusBar},
-    ListWorkspacesParams, Message, Result, Route, UpdateWorkspaceParams, Workspace,
+    ListWorkspacesParams, Message, Result, Route, UpdateWorkspaceParams, WorkspacePresenter,
     LIST_WORKSPACES_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
@@ -14,7 +14,7 @@ pub struct EditWorkspaceModel {
 }
 
 pub struct EditWorkspaceModelParameters {
-    pub workspace: Workspace,
+    pub workspace: WorkspacePresenter,
 }
 
 impl Model for EditWorkspaceModel {
@@ -57,7 +57,7 @@ impl Model for EditWorkspaceModel {
 
 impl EditWorkspaceModel {
     fn back(&mut self) {
-        let Workspace {
+        let WorkspacePresenter {
             id: _,
             name: search_query,
             location: _,
@@ -109,7 +109,7 @@ impl EditWorkspaceModel {
     }
 
     fn submit(&mut self) {
-        let Workspace { id, name, location } = self.form.workspace();
+        let WorkspacePresenter { id, name, location } = self.form.workspace();
 
         self.redirect = Some(UpdateWorkspaceParams { name, location, id }.into());
     }

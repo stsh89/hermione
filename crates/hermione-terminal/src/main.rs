@@ -1,4 +1,5 @@
 mod colors;
+mod coordinator;
 mod forms;
 mod handlers;
 mod layouts;
@@ -11,7 +12,7 @@ mod routes;
 mod smart_input;
 mod widgets;
 
-use hermione_coordinator::Coordinator;
+use coordinator::Coordinator;
 use hermione_storage::file_system::{FileSystemProvider, TERMINAL_APP_LOGS_FILE_NAME_PREFIX};
 use hermione_tracing::{NewTracerParameters, Tracer};
 use router::TerminalRouter;

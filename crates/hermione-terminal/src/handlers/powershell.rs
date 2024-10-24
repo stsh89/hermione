@@ -1,7 +1,6 @@
-use hermione_coordinator::{ExecuteCommandWithinWorkspaceInput, OpenWindowsTerminalInput};
-
 use crate::{
-    Coordinator, CopyToClipboardParams, ExecuteCommandParams, OpenWindowsTerminalParams, Result,
+    coordinator::{Coordinator, ExecuteCommandWithinWorkspaceInput, OpenWindowsTerminalInput},
+    CopyToClipboardParams, ExecuteCommandParams, OpenWindowsTerminalParams, Result,
 };
 
 pub struct PowerShellHandler<'a> {

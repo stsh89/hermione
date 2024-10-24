@@ -2,7 +2,7 @@ use crate::{
     layouts::{self, StatusBar},
     smart_input::{NewSmartInputParameters, SmartInput},
     widgets, DeleteWorkspaceParams, EditWorkspaceParams, Error, ListWorkspaceCommandsParams,
-    ListWorkspacesParams, Message, Result, Route, Workspace, WorkspacesRoute,
+    ListWorkspacesParams, Message, Result, Route, WorkspacePresenter, WorkspacesRoute,
     LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
@@ -15,7 +15,7 @@ pub struct ListWorkspacesModel {
     is_running: bool,
     redirect: Option<Route>,
     workspaces_state: widgets::list::State,
-    workspaces: Vec<Workspace>,
+    workspaces: Vec<WorkspacePresenter>,
     page_number: u32,
     page_size: u32,
     smart_input: SmartInput,
@@ -23,7 +23,7 @@ pub struct ListWorkspacesModel {
 }
 
 pub struct ListWorkspaceModelParameters {
-    pub workspaces: Vec<Workspace>,
+    pub workspaces: Vec<WorkspacePresenter>,
     pub search_query: String,
     pub page_number: u32,
     pub page_size: u32,
@@ -297,7 +297,7 @@ impl ListWorkspacesModel {
         self.smart_input.move_cursor_right();
     }
 
-    fn workspace(&self) -> Option<&Workspace> {
+    fn workspace(&self) -> Option<&WorkspacePresenter> {
         self.workspaces_state
             .selected()
             .and_then(|i| self.workspaces.get(i))

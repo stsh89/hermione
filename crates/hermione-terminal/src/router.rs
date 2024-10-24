@@ -1,9 +1,9 @@
 use crate::{
+    coordinator::{Coordinator, ListWorkspacesInput},
     CommandsHandler, ListWorkspaceCommandsParams, ListWorkspacesParams, Message, PowerShellHandler,
     PowerShellRoute, Result, Route, WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute,
     LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
-use hermione_coordinator::{Coordinator, ListWorkspacesInput};
 use hermione_tui::{BoxedModel, Router};
 
 pub struct TerminalRouter {

@@ -1,7 +1,7 @@
 use crate::{
     forms::WorkspaceForm,
     layouts::{self, StatusBar},
-    CreateWorkspaceParams, ListWorkspacesParams, Message, Result, Route, Workspace,
+    CreateWorkspaceParams, ListWorkspacesParams, Message, Result, Route, WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{widgets::Paragraph, Frame};
@@ -86,7 +86,7 @@ impl NewWorkspaceModel {
     }
 
     fn submit(&mut self) {
-        let Workspace {
+        let WorkspacePresenter {
             id: _,
             name,
             location,

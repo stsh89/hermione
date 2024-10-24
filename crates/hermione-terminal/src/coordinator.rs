@@ -2,9 +2,8 @@ use hermione_ops::{
     commands::{
         Command, CommandWorkspaceScopedId, CreateCommandOperation,
         DeleteCommandFromWorkspaceOperation, GetCommandFromWorkspaceOperation,
-        ListCommandsOperation, ListCommandsParameters, ListCommandsWithinWorkspaceOperation,
-        ListCommandsWithinWorkspaceParameters, LoadCommandParameters, NewCommandParameters,
-        UpdateCommandOperation,
+        ListCommandsWithinWorkspaceOperation, ListCommandsWithinWorkspaceParameters,
+        NewCommandParameters, UpdateCommandOperation,
     },
     extensions::{
         CopyCommandToClipboardOperation, ExecuteCommandOperation,
@@ -13,35 +12,25 @@ use hermione_ops::{
     },
     workspaces::{
         CreateWorkspaceOperation, DeleteWorkspaceOperation, GetWorkspaceOperation,
-        ListWorkspaceOperation, ListWorkspacesParameters, LoadWorkspaceParameters,
-        NewWorkspaceParameters, UpdateWorkspaceOperation, Workspace,
+        ListWorkspaceOperation, ListWorkspacesParameters, NewWorkspaceParameters,
+        UpdateWorkspaceOperation, Workspace,
     },
 };
 use hermione_powershell::PowerShellProvider;
 use hermione_storage::database::DatabaseProvider;
 use std::path::Path;
 
+use crate::{CommandPresenter, WorkspacePresenter};
+
 pub struct Coordinator {
     storage: DatabaseProvider,
     powershell: PowerShellProvider,
-}
-
-pub struct CommandDto {
-    pub id: String,
-    pub name: String,
-    pub program: String,
-    pub workspace_id: String,
 }
 
 pub struct ExecuteCommandWithinWorkspaceInput<'a> {
     pub command_id: &'a str,
     pub workspace_id: &'a str,
     pub no_exit: bool,
-}
-
-pub struct ListCommandsInput {
-    pub page_number: u32,
-    pub page_size: u32,
 }
 
 pub struct ListWorkspacesInput<'a> {
@@ -59,13 +48,6 @@ pub struct ListCommandsWithinWorkspaceInput<'a> {
 
 pub struct OpenWindowsTerminalInput<'a> {
     pub working_directory: &'a str,
-}
-
-#[derive(PartialEq)]
-pub struct WorkspaceDto {
-    pub id: String,
-    pub location: Option<String>,
-    pub name: String,
 }
 
 impl Coordinator {
@@ -86,8 +68,8 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn create_command(&self, dto: CommandDto) -> anyhow::Result<CommandDto> {
-        let CommandDto {
+    pub fn create_command(&self, dto: CommandPresenter) -> anyhow::Result<CommandPresenter> {
+        let CommandPresenter {
             id: _,
             name,
             program,
@@ -108,14 +90,17 @@ impl Coordinator {
         Ok(command.into())
     }
 
-    pub fn create_workspace(&self, dto: WorkspaceDto) -> anyhow::Result<WorkspaceDto> {
-        let WorkspaceDto {
+    pub fn create_workspace(&self, dto: WorkspacePresenter) -> anyhow::Result<WorkspacePresenter> {
+        let WorkspacePresenter {
             id: _,
             location,
             name,
         } = dto;
 
-        let new_workspace = Workspace::new(NewWorkspaceParameters { name, location });
+        let new_workspace = Workspace::new(NewWorkspaceParameters {
+            name,
+            location: Some(location),
+        });
 
         let workspace = CreateWorkspaceOperation {
             creator: &self.storage,
@@ -179,7 +164,7 @@ impl Coordinator {
         &self,
         workspace_id: &str,
         id: &str,
-    ) -> anyhow::Result<CommandDto> {
+    ) -> anyhow::Result<CommandPresenter> {
         let id = CommandWorkspaceScopedId {
             workspace_id: workspace_id.parse()?,
             command_id: id.parse()?,
@@ -193,7 +178,7 @@ impl Coordinator {
         Ok(command.into())
     }
 
-    pub fn get_workspace(&self, id: &str) -> anyhow::Result<WorkspaceDto> {
+    pub fn get_workspace(&self, id: &str) -> anyhow::Result<WorkspacePresenter> {
         let workspace = GetWorkspaceOperation {
             getter: &self.storage,
         }
@@ -202,27 +187,10 @@ impl Coordinator {
         Ok(workspace.into())
     }
 
-    pub fn list_commands(&self, parameters: ListCommandsInput) -> anyhow::Result<Vec<CommandDto>> {
-        let ListCommandsInput {
-            page_number,
-            page_size,
-        } = parameters;
-
-        let workspaces = ListCommandsOperation {
-            lister: &self.storage,
-        }
-        .execute(ListCommandsParameters {
-            page_number,
-            page_size,
-        })?;
-
-        Ok(workspaces.into_iter().map(Into::into).collect())
-    }
-
     pub fn list_commands_within_workspace(
         &self,
         parameters: ListCommandsWithinWorkspaceInput,
-    ) -> anyhow::Result<Vec<CommandDto>> {
+    ) -> anyhow::Result<Vec<CommandPresenter>> {
         let ListCommandsWithinWorkspaceInput {
             page_number,
             page_size,
@@ -246,7 +214,7 @@ impl Coordinator {
     pub fn list_workspaces(
         &self,
         parameters: ListWorkspacesInput<'_>,
-    ) -> anyhow::Result<Vec<WorkspaceDto>> {
+    ) -> anyhow::Result<Vec<WorkspacePresenter>> {
         let ListWorkspacesInput {
             name_contains,
             page_number,
@@ -289,7 +257,7 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn update_command(&self, data: CommandDto) -> anyhow::Result<CommandDto> {
+    pub fn update_command(&self, data: CommandPresenter) -> anyhow::Result<CommandPresenter> {
         let command = UpdateCommandOperation {
             updater: &self.storage,
         }
@@ -298,69 +266,12 @@ impl Coordinator {
         Ok(command.into())
     }
 
-    pub fn update_workspace(&self, dto: WorkspaceDto) -> anyhow::Result<WorkspaceDto> {
+    pub fn update_workspace(&self, dto: WorkspacePresenter) -> anyhow::Result<WorkspacePresenter> {
         let workspace = UpdateWorkspaceOperation {
             updater: &self.storage,
         }
         .execute(dto.try_into()?)?;
 
         Ok(workspace.into())
-    }
-}
-
-impl From<Command> for CommandDto {
-    fn from(command: Command) -> Self {
-        Self {
-            id: command.id().map(|id| id.to_string()).unwrap_or_default(),
-            name: command.name().to_string(),
-            program: command.program().to_string(),
-            workspace_id: command.workspace_id().to_string(),
-        }
-    }
-}
-
-impl TryFrom<CommandDto> for Command {
-    type Error = anyhow::Error;
-
-    fn try_from(value: CommandDto) -> anyhow::Result<Self> {
-        let CommandDto {
-            id,
-            name,
-            program,
-            workspace_id,
-        } = value;
-
-        Ok(Command::load(LoadCommandParameters {
-            id: id.parse()?,
-            name,
-            last_execute_time: None,
-            program,
-            workspace_id: workspace_id.parse()?,
-        }))
-    }
-}
-
-impl From<Workspace> for WorkspaceDto {
-    fn from(workspace: Workspace) -> Self {
-        Self {
-            id: workspace.id().map(|id| id.to_string()).unwrap_or_default(),
-            location: workspace.location().map(ToString::to_string),
-            name: workspace.name().to_string(),
-        }
-    }
-}
-
-impl TryFrom<WorkspaceDto> for Workspace {
-    type Error = anyhow::Error;
-
-    fn try_from(value: WorkspaceDto) -> anyhow::Result<Self> {
-        let WorkspaceDto { id, location, name } = value;
-
-        Ok(Workspace::load(LoadWorkspaceParameters {
-            id: id.parse()?,
-            name,
-            location,
-            last_access_time: None,
-        }))
     }
 }
