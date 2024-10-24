@@ -1,8 +1,10 @@
 mod cli;
+mod client;
+mod de;
+mod provider;
 mod screen;
 
 use cli::{Cli, CliSubcommand, Run};
-use hermione_notion::NotionProvider;
 use hermione_ops::{
     backup::BackupOperation,
     notion::{DeleteCredentialsOperation, GetCredentialsOperation, SaveCredentialsOperation},
@@ -12,6 +14,7 @@ use hermione_storage::{
     file_system::{FileSystemProvider, NOTION_SYNC_LOGS_FILE_NAME_PREFIX},
 };
 use hermione_tracing::{NewTracerParameters, Tracer};
+use provider::NotionProvider;
 use screen::ScreenProvider;
 
 type Result<T> = anyhow::Result<T>;
@@ -26,6 +29,7 @@ enum Command {
     Import,
     SaveCredentials,
     ShowCredentials,
+    VerifyCredentials,
 }
 
 impl App {
@@ -105,6 +109,10 @@ impl App {
 
         Ok(())
     }
+
+    async fn verify_credentials(self) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[tokio::main]
@@ -138,6 +146,7 @@ impl Run for App {
             Command::SaveCredentials => self.save_credentials().await?,
             Command::ShowCredentials => self.show_credentials()?,
             Command::Export => self.export().await?,
+            Command::VerifyCredentials => self.verify_credentials().await?,
         }
 
         Ok(())
@@ -152,6 +161,7 @@ impl From<Cli> for Command {
             CliSubcommand::Import => Self::Import,
             CliSubcommand::SaveCredentials => Self::SaveCredentials,
             CliSubcommand::ShowCredentials => Self::ShowCredentials,
+            CliSubcommand::VerifyCredentials => Self::VerifyCredentials,
         }
     }
 }

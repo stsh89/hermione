@@ -1,5 +1,7 @@
 pub mod rich_text;
 pub mod title;
+
+#[allow(dead_code)]
 pub mod unique_id;
 
 #[cfg(test)]

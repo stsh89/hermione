@@ -21,6 +21,7 @@ pub enum CliSubcommand {
     SaveCredentials,
     ShowCredentials,
     Export,
+    VerifyCredentials,
 }
 
 impl Cli {

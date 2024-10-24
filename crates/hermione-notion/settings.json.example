@@ -1,6 +1,0 @@
-{
-    "api_key": "your-notion-api-key",
-    "timeout_secs": 10,
-    "base_url": null,
-    "uri": "databases/897e5a76ae524b489fdfe71f5945d1af/query"
-}

@@ -1,4 +1,3 @@
-use crate::{Error, Result};
 use reqwest::{header, RequestBuilder, StatusCode};
 use std::time::Duration;
 
@@ -7,17 +6,17 @@ pub struct RequestSender {
 }
 
 impl RequestSender {
-    fn cloned_request_builder(&self) -> Result<RequestBuilder> {
-        let error = Error::internal("Failed to clone request builder");
-
-        self.request_builder.try_clone().ok_or(error)
+    fn cloned_request_builder(&self) -> eyre::Result<RequestBuilder> {
+        self.request_builder
+            .try_clone()
+            .ok_or(eyre::Error::msg("Failed to clone request builder"))
     }
 
     pub fn new(request_builder: RequestBuilder) -> Self {
         Self { request_builder }
     }
 
-    pub async fn send(self) -> Result<reqwest::Response> {
+    pub async fn send(self) -> eyre::Result<reqwest::Response> {
         let request_builder = self.cloned_request_builder()?;
         let response = request_builder.send().await?;
 
@@ -33,16 +32,12 @@ impl RequestSender {
     }
 }
 
-fn retry_after(headers: &header::HeaderMap) -> Result<Duration> {
+fn retry_after(headers: &header::HeaderMap) -> eyre::Result<Duration> {
     let Some(value) = headers.get(header::RETRY_AFTER) else {
-        return Err(Error::internal("Missing Retry-After header"));
+        return Err(eyre::Error::msg("Missing Retry-After header"));
     };
 
-    let seconds = value
-        .to_str()
-        .map_err(Error::unexpected)?
-        .parse::<u64>()
-        .map_err(Error::unexpected)?;
+    let seconds = value.to_str()?.parse::<u64>()?;
 
     Ok(Duration::from_secs(seconds))
 }

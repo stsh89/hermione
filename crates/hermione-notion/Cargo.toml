@@ -3,23 +3,20 @@ name = "hermione-notion"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-name = "hermione_notion"
-
 [dependencies]
-eyre = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-thiserror = { workspace = true }
-tokio = { workspace = true, features = ["rt"]  }
-tracing = { workspace = true}
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing = { workspace = true }
 uuid = { workspace = true }
+eyre = { workspace = true }
 
-hermione-notion-serde = { workspace = true }
-hermione-ops = { workspace = true }
+hermione-ops = { workspace = true, features = ["notion", "backup"] }
+hermione-storage = { workspace = true, features = ["notion"] }
+hermione-tracing = { workspace = true }
 
 [dev-dependencies]
-anyhow = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 httpmock = "0.7.0"

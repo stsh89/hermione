@@ -2,8 +2,6 @@
 resolver = "2"
 members = [
     "crates/hermione-coordinator",
-    "crates/hermione-notion-serde",
-    "crates/hermione-notion-sync",
     "crates/hermione-notion",
     "crates/hermione-ops",
     "crates/hermione-powershell",
@@ -33,8 +31,6 @@ uuid = "1.10.0"
 
 hermione-coordinator = { path = "crates/hermione-coordinator" }
 hermione-notion = { path = "crates/hermione-notion" }
-hermione-notion-serde = { path = "crates/hermione-notion-serde" }
-hermione-notion-sync = { path = "crates/hermione-notion-sync" }
 hermione-ops = { path = "crates/hermione-ops" }
 hermione-powershell = { path = "crates/hermione-powershell" }
 hermione-storage = { path = "crates/hermione-storage" }

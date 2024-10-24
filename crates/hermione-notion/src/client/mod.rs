@@ -1,9 +1,9 @@
 mod headers;
 mod request_sender;
 
-use crate::{json::Json, Error, Result};
+use eyre::Result;
 use request_sender::RequestSender;
-use reqwest::{Response, StatusCode, Url};
+use reqwest::{Response, Url};
 use serde::{de::DeserializeOwned, Deserialize};
 use std::time::Duration;
 
@@ -26,7 +26,7 @@ pub struct NewClientParameters {
 
 pub struct SendParameters<'a> {
     pub api_key_override: Option<&'a str>,
-    pub body: Option<Json>,
+    pub body: Option<serde_json::Value>,
     pub method: Method,
     pub uri: &'a str,
 }
@@ -38,7 +38,7 @@ pub struct Method(reqwest::Method);
 pub struct QueryDatabaseParameters<'a> {
     pub page_size: u8,
     pub start_cursor: Option<&'a str>,
-    pub filter: Option<Json>,
+    pub filter: Option<serde_json::Value>,
     pub api_key_override: Option<&'a str>,
 }
 
@@ -59,7 +59,11 @@ pub struct DatabasePage<T> {
 }
 
 impl Client {
-    pub async fn create_database_entry(&self, database_id: &str, properties: Json) -> Result<Json> {
+    pub async fn create_database_entry(
+        &self,
+        database_id: &str,
+        properties: serde_json::Value,
+    ) -> Result<Response> {
         let body = serde_json::json!({
             "parent": { "database_id": database_id },
             "properties": properties,
@@ -72,7 +76,7 @@ impl Client {
             method: Method(reqwest::Method::POST),
         };
 
-        self.send(parameters).await
+        self.execute(parameters).await
     }
 
     async fn execute(&self, parameters: SendParameters<'_>) -> Result<Response> {
@@ -85,9 +89,7 @@ impl Client {
 
         let api_key = api_key_override
             .or(self.api_key.as_deref())
-            .ok_or_else(|| {
-                eyre::Error::new(Error::invalid_argument("Notion API key is not set"))
-            })?;
+            .ok_or_else(|| eyre::Error::msg("Notion API key is not set"))?;
 
         let url = self.url(uri)?;
 
@@ -174,26 +176,11 @@ impl Client {
         })
     }
 
-    pub async fn send(&self, parameters: SendParameters<'_>) -> Result<Json> {
-        let response = self.execute(parameters).await?;
-        let status = response.status();
-
-        if let StatusCode::OK = status {
-            let json = response.json().await?;
-
-            return Ok(json);
-        }
-
-        let response_body: Json = response.json().await?;
-        let message = response_body["message"].as_str().unwrap_or_default().into();
-
-        Err(Error::ApiError {
-            status: status.as_u16(),
-            message,
-        })
-    }
-
-    pub async fn update_database_entry(&self, entry_id: &str, properties: Json) -> Result<Json> {
+    pub async fn update_database_entry(
+        &self,
+        entry_id: &str,
+        properties: serde_json::Value,
+    ) -> Result<Response> {
         let uri = format!("pages/{entry_id}");
 
         let body = serde_json::json!({
@@ -207,13 +194,11 @@ impl Client {
             method: Method(reqwest::Method::PATCH),
         };
 
-        self.send(parameters).await
+        self.execute(parameters).await
     }
 
     fn url(&self, uri: &str) -> Result<Url> {
-        self.base_url
-            .join(uri)
-            .map_err(|err| Error::Unexpected(eyre::Error::new(err)))
+        self.base_url.join(uri).map_err(|err| eyre::Error::new(err))
     }
 }
 
@@ -257,5 +242,61 @@ fn base_url(base_url_override: Option<String>) -> Result<Url> {
         Url::parse(NOTION_BASE_URL)
     };
 
-    url.map_err(|err| Error::Unexpected(eyre::Error::new(err)))
+    url.map_err(|err| eyre::Error::new(err))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::de;
+    use eyre::Result;
+    use httpmock::{Method::POST, MockServer};
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    struct Product {
+        #[serde(
+            rename(deserialize = "Name"),
+            deserialize_with = "de::title::deserializer"
+        )]
+        name: String,
+
+        #[serde(
+            rename(deserialize = "Description"),
+            deserialize_with = "de::rich_text::deserializer"
+        )]
+        description: String,
+    }
+
+    #[tokio::test]
+    async fn it_queries_database() -> Result<()> {
+        let mock_server = MockServer::start_async().await;
+        let base_url = mock_server.base_url();
+
+        let mock = mock_server.mock(|when, then| {
+            when.path("/databases/1111/query").method(POST);
+            then.body_from_file("tests/fixtures/database_query.json")
+                .status(200);
+        });
+
+        let client = Client::new(NewClientParameters {
+            base_url_override: Some(base_url.clone()),
+            api_key: Some("".to_string()),
+            ..Default::default()
+        })?;
+
+        let parameters = QueryDatabaseParameters::default();
+        let response = client.query_database::<Product>("1111", parameters).await?;
+
+        assert_eq!(response.database_pages.len(), 1);
+
+        let page = response.database_pages.into_iter().next().unwrap();
+
+        assert_eq!(page.properties.name, "Tuscan kale");
+        assert_eq!(page.properties.description, "A dark green leafy vegetable");
+
+        mock.assert_async().await;
+
+        Ok(())
+    }
 }

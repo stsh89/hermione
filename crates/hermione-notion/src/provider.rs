@@ -1,7 +1,7 @@
-use crate::{
+use crate::client::{
     Client, DatabasePage, NewClientParameters, QueryDatabaseParameters, QueryDatabaseResponse,
 };
-use hermione_notion_serde::de;
+use crate::de;
 use hermione_ops::{
     commands::{
         Command, FindCommand, ImportCommand, ListAllCommandsInBatches, LoadCommandParameters,
@@ -105,20 +105,6 @@ impl NotionProvider {
             id.to_string().as_str(),
         )
         .await
-
-        // let credentials = self.credentials()?;
-
-        // let query_database_response = self
-        //     .list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
-        //         database_id: credentials.commands_page_id().into(),
-        //         external_ids: Some(vec![id.to_string()]),
-        //         page_size: Some(1),
-        //         api_key: credentials.api_key().into(),
-        //         start_cursor: None,
-        //     })
-        //     .await?;
-
-        // Ok(query_database_response.database_pages.into_iter().next())
     }
 
     async fn find_page_by_external_id<T>(
@@ -153,18 +139,6 @@ impl NotionProvider {
             id.to_string().as_str(),
         )
         .await
-
-        // self
-        //     .list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
-        //         database_id: credentials.commands_page_id().into(),
-        //         external_ids: Some(vec![id.to_string()]),
-        //         page_size: Some(1),
-        //         api_key: credentials.api_key().into(),
-        //         start_cursor: None,
-        //     })
-        //     .await?;
-
-        // Ok(page.into_iter().next())
     }
 
     pub fn new(credentials: Option<Credentials>) -> Result<Self> {
@@ -175,8 +149,7 @@ impl NotionProvider {
         let client = Client::new(NewClientParameters {
             api_key,
             ..Default::default()
-        })
-        .map_err(eyre::Error::new)?;
+        })?;
 
         Ok(Self {
             client,
@@ -225,8 +198,7 @@ impl NotionProvider {
                     start_cursor: start_cursor.as_deref(),
                 },
             )
-            .await
-            .map_err(eyre::Error::new)?;
+            .await?;
 
         Ok(response)
     }
@@ -293,7 +265,7 @@ impl ImportCommand for NotionProvider {
                 }),
             )
             .await
-        }).map_err(eyre::Error::new)?;
+        })?;
 
         Ok(command)
     }
@@ -308,20 +280,18 @@ impl ImportWorkspace for NotionProvider {
 
         let workspaces_page_id = self.credentials()?.workspaces_page_id();
 
-        Runtime::new()?
-            .block_on(async {
-                self.client
-                    .create_database_entry(
-                        workspaces_page_id,
-                        serde_json::json!({
-                            "Name": {"title": [{"text": {"content": workspace.name()}}]},
-                            "External ID": {"rich_text": [{"text": {"content": id}}]},
-                            "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
-                        }),
-                    )
-                    .await
-            })
-            .map_err(eyre::Error::new)?;
+        Runtime::new()?.block_on(async {
+            self.client
+                .create_database_entry(
+                    workspaces_page_id,
+                    serde_json::json!({
+                        "Name": {"title": [{"text": {"content": workspace.name()}}]},
+                        "External ID": {"rich_text": [{"text": {"content": id}}]},
+                        "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
+                    }),
+                )
+                .await
+        })?;
 
         Ok(workspace)
     }
@@ -439,19 +409,17 @@ impl UpdateCommand for NotionProvider {
             return Err(Error::NotFound(format!("Command with ID: {}", id)));
         };
 
-        Runtime::new()?
-            .block_on(async {
-                self.client
-                    .update_database_entry(
-                        &page.page_id,
-                        serde_json::json!({
-                            "Name": {"title": [{"text": {"content": command.name()}}]},
-                            "Program": {"rich_text": [{"text": {"content": command.program()}}]}
-                        }),
-                    )
-                    .await
-            })
-            .map_err(eyre::Error::new)?;
+        Runtime::new()?.block_on(async {
+            self.client
+                .update_database_entry(
+                    &page.page_id,
+                    serde_json::json!({
+                        "Name": {"title": [{"text": {"content": command.name()}}]},
+                        "Program": {"rich_text": [{"text": {"content": command.program()}}]}
+                    }),
+                )
+                .await
+        })?;
 
         Ok(command)
     }
@@ -467,19 +435,17 @@ impl UpdateWorkspace for NotionProvider {
             return Err(Error::NotFound(format!("Command with ID: {}", id)));
         };
 
-        Runtime::new()?
-            .block_on(async {
-                self.client
-                    .update_database_entry(
-                        &page.page_id,
-                        serde_json::json!({
-                            "Name": {"title": [{"text": {"content": workspace.name()}}]},
-                            "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
-                        }),
-                    )
-                    .await
-            })
-            .map_err(eyre::Error::new)?;
+        Runtime::new()?.block_on(async {
+            self.client
+                .update_database_entry(
+                    &page.page_id,
+                    serde_json::json!({
+                        "Name": {"title": [{"text": {"content": workspace.name()}}]},
+                        "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
+                    }),
+                )
+                .await
+        })?;
 
         Ok(workspace)
     }
