@@ -7,7 +7,10 @@ mod screen;
 use cli::{Cli, CliSubcommand, Run};
 use hermione_ops::{
     backup::BackupOperation,
-    notion::{DeleteCredentialsOperation, GetCredentialsOperation, SaveCredentialsOperation},
+    notion::{
+        DeleteCredentialsOperation, GetCredentialsOperation, SaveCredentialsOperation,
+        VerifyCredentialsOperation,
+    },
 };
 use hermione_storage::{database::DatabaseProvider, file_system::FileSystemProvider};
 use hermione_tracing::{NewTracerParameters, Tracer};
@@ -41,7 +44,7 @@ impl App {
 
     async fn import(self) -> Result<()> {
         let credentials = GetCredentialsOperation {
-            getter: &self.file_system,
+            get_credentials_provider: &self.file_system,
         }
         .execute()?;
 
@@ -62,7 +65,7 @@ impl App {
 
     async fn export(&self) -> Result<()> {
         let credentials = GetCredentialsOperation {
-            getter: &self.file_system,
+            get_credentials_provider: &self.file_system,
         }
         .execute()?;
 
@@ -95,7 +98,7 @@ impl App {
 
     fn show_credentials(self) -> Result<()> {
         let creds = GetCredentialsOperation {
-            getter: &self.file_system,
+            get_credentials_provider: &self.file_system,
         }
         .execute()?;
 
@@ -108,6 +111,13 @@ impl App {
     }
 
     async fn verify_credentials(self) -> Result<()> {
+        VerifyCredentialsOperation {
+            get_credentials_provider: &self.file_system,
+            verify_credentials_provider: &NotionProvider::new(None)?,
+        }
+        .execute()
+        .await?;
+
         Ok(())
     }
 }

@@ -22,13 +22,18 @@ pub struct DeleteCredentialsOperation<'a, T> {
 }
 
 pub struct GetCredentialsOperation<'a, T> {
-    pub getter: &'a T,
+    pub get_credentials_provider: &'a T,
 }
 
 pub struct SaveCredentialsOperation<'a, S, G, V> {
     pub saver: &'a S,
     pub getter: &'a G,
     pub verifier: &'a V,
+}
+
+pub struct VerifyCredentialsOperation<'a, G, V> {
+    pub get_credentials_provider: &'a G,
+    pub verify_credentials_provider: &'a V,
 }
 
 pub struct Credentials {
@@ -57,20 +62,39 @@ where
     T: GetCredentials,
 {
     pub fn execute(&self) -> Result<Credentials> {
-        self.getter.get()
+        self.get_credentials_provider.get()
     }
 }
 
 impl<'a, S, G, V> SaveCredentialsOperation<'a, S, G, V>
 where
+    G: GetCredentials,
     S: SaveCredentials,
+    V: VerifyCredentials,
+{
+    pub async fn execute(&self) -> Result<()> {
+        let credentials = GetCredentialsOperation {
+            get_credentials_provider: self.getter,
+        }
+        .execute()?;
+
+        self.verifier.verify(&credentials).await?;
+        self.saver.save(credentials)
+    }
+}
+
+impl<'a, G, V> VerifyCredentialsOperation<'a, G, V>
+where
     G: GetCredentials,
     V: VerifyCredentials,
 {
     pub async fn execute(&self) -> Result<()> {
-        let credentials = self.getter.get()?;
-        self.verifier.verify(&credentials).await?;
-        self.saver.save(credentials)
+        let credentials = GetCredentialsOperation {
+            get_credentials_provider: self.get_credentials_provider,
+        }
+        .execute()?;
+
+        self.verify_credentials_provider.verify(&credentials).await
     }
 }
 
