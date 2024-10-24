@@ -9,10 +9,7 @@ use hermione_ops::{
     backup::BackupOperation,
     notion::{DeleteCredentialsOperation, GetCredentialsOperation, SaveCredentialsOperation},
 };
-use hermione_storage::{
-    database::DatabaseProvider,
-    file_system::{FileSystemProvider, NOTION_SYNC_LOGS_FILE_NAME_PREFIX},
-};
+use hermione_storage::{database::DatabaseProvider, file_system::FileSystemProvider};
 use hermione_tracing::{NewTracerParameters, Tracer};
 use provider::NotionProvider;
 use screen::ScreenProvider;
@@ -121,7 +118,7 @@ async fn main() -> Result<()> {
 
     let tracer = Tracer::new(NewTracerParameters {
         directory: file_system.location().into(),
-        filename_prefix: NOTION_SYNC_LOGS_FILE_NAME_PREFIX,
+        filename_prefix: "hermione-notion-logs",
     });
 
     let app = App { file_system };

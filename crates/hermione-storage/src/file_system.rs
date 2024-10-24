@@ -5,13 +5,6 @@ use std::{
 };
 
 pub const TERMINAL_APP_LOGS_FILE_NAME_PREFIX: &str = "hermione-terminal-logs";
-pub const NOTION_SYNC_LOGS_FILE_NAME_PREFIX: &str = "hermione-notion-sync-logs";
-
-#[cfg(feature = "notion")]
-const NOTION_CREDENTIALS_FILE_NAME: &str = "notion-sync.json";
-
-const DATABASE_FILE_NAME: &str = "hermione.db3";
-const TERMINAL_APP_FOLDER_NAME: &str = ".hermione";
 
 pub struct FileSystemProvider {
     /// Terminal app folder path
@@ -27,11 +20,11 @@ impl FileSystemProvider {
 
     #[cfg(feature = "notion")]
     pub fn notion_credentials_file_path(&self) -> PathBuf {
-        self.location.join(NOTION_CREDENTIALS_FILE_NAME)
+        self.location.join("notion.json")
     }
 
     pub fn database_file_path(&self) -> PathBuf {
-        self.location.join(DATABASE_FILE_NAME)
+        self.location.join("hermione.db3")
     }
 
     pub fn location(&self) -> &Path {
@@ -48,7 +41,7 @@ pub fn path() -> Result<PathBuf> {
         development_path()?
     };
 
-    app_path.push(TERMINAL_APP_FOLDER_NAME);
+    app_path.push(".hermione");
 
     if !app_path.try_exists()? {
         std::fs::create_dir(&app_path)?;
