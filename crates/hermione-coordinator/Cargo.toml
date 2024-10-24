@@ -11,4 +11,4 @@ anyhow = { workspace = true }
 
 hermione-ops = { workspace = true, features = ["extensions"] }
 hermione-powershell = { workspace = true }
-hermione-storage = { workspace = true }
+hermione-storage = { workspace = true, features = ["extensions"] }

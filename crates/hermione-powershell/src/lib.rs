@@ -1,6 +1,8 @@
 use hermione_ops::{
-    commands::{CopyToClipboard, RunProgram, RunProgramParameters},
-    extensions::{OpenWindowsTerminal, OpenWindowsTerminalParameters},
+    extensions::{
+        CopyCommandToClipboard, OpenWindowsTerminal, OpenWindowsTerminalParameters, RunProgram,
+        RunProgramParameters,
+    },
     Result,
 };
 use std::{
@@ -110,8 +112,8 @@ fn spawn() -> io::Result<Child> {
     cmd.spawn()
 }
 
-impl CopyToClipboard for PowerShellProvider {
-    fn copy_to_clipboard(&self, text: &str) -> Result<()> {
+impl CopyCommandToClipboard for PowerShellProvider {
+    fn copy_command_to_clipboard(&self, text: &str) -> Result<()> {
         self.copy_to_clipboard(text).map_err(eyre::Error::new)?;
 
         Ok(())

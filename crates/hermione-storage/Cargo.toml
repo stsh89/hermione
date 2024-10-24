@@ -8,6 +8,7 @@ name = "hermione_storage"
 
 [features]
 notion = []
+extensions = []
 
 [dependencies]
 chrono = { workspace = true }

@@ -1,15 +1,15 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
 use hermione_ops::{
     commands::{
         Command, CommandWorkspaceScopedId, CreateCommand, DeleteCommandFromWorkspace, FindCommand,
         GetCommandFromWorkspace, ImportCommand, ListAllCommandsInBatches, ListCommands,
         ListCommandsParameters, ListCommandsWithinWorkspace, ListCommandsWithinWorkspaceParameters,
-        LoadCommandParameters, TrackCommandExecutionTime, UpdateCommand,
+        LoadCommandParameters, UpdateCommand,
     },
     workspaces::{
         CreateWorkspace, DeleteWorkspace, FindWorkspace, GetWorkspace, ImportWorkspace,
         ListAllWorkspacesInBatches, ListWorkspaces, ListWorkspacesParameters,
-        LoadWorkspaceParameters, TrackWorkspaceAccessTime, UpdateWorkspace, Workspace,
+        LoadWorkspaceParameters, UpdateWorkspace, Workspace,
     },
     Error,
 };
@@ -19,19 +19,19 @@ use uuid::{Bytes, Uuid};
 
 const DEFAULT_PAGE_SIZE: u32 = 100;
 
-struct CommandRecord {
-    id: Bytes,
-    last_execute_time: Option<i64>,
-    name: String,
-    program: String,
-    workspace_id: Bytes,
+pub(crate) struct CommandRecord {
+    pub(crate) id: Bytes,
+    pub(crate) last_execute_time: Option<i64>,
+    pub(crate) name: String,
+    pub(crate) program: String,
+    pub(crate) workspace_id: Bytes,
 }
 
-struct WorkspaceRecord {
-    id: Bytes,
-    last_access_time: Option<i64>,
-    location: Option<String>,
-    name: String,
+pub(crate) struct WorkspaceRecord {
+    pub(crate) id: Bytes,
+    pub(crate) last_access_time: Option<i64>,
+    pub(crate) location: Option<String>,
+    pub(crate) name: String,
 }
 
 pub struct DatabaseProvider {
@@ -39,7 +39,7 @@ pub struct DatabaseProvider {
 }
 
 impl DatabaseProvider {
-    fn connection(&self) -> &Connection {
+    pub(crate) fn connection(&self) -> &Connection {
         &self.connection
     }
 
@@ -628,34 +628,6 @@ impl ListAllWorkspacesInBatches for DatabaseProvider {
     }
 }
 
-impl TrackCommandExecutionTime for DatabaseProvider {
-    fn track_command_execution_time(&self, command: Command) -> Result<Command, Error> {
-        let record = CommandRecord::from_entity(&command)?;
-
-        let last_execute_time = Utc::now()
-            .timestamp_nanos_opt()
-            .ok_or(eyre::eyre!("Failed to get timestamp"))?;
-
-        let mut statement = self
-            .connection()
-            .prepare(
-                "UPDATE commands
-                SET last_execute_time = ?1
-                WHERE id = ?2 AND workspace_id = ?3",
-            )
-            .map_err(eyre::Error::new)?;
-
-        statement
-            .execute(params![last_execute_time, record.id, record.workspace_id])
-            .map_err(eyre::Error::new)?;
-
-        self.get_command_from_workspace(CommandWorkspaceScopedId {
-            command_id: Uuid::from_bytes(record.id),
-            workspace_id: Uuid::from_bytes(record.workspace_id),
-        })
-    }
-}
-
 impl UpdateCommand for DatabaseProvider {
     fn update_command(&self, command: Command) -> Result<Command, Error> {
         let record = CommandRecord::from_entity(&command)?;
@@ -684,31 +656,6 @@ impl UpdateCommand for DatabaseProvider {
             command_id: Uuid::from_bytes(record.id),
             workspace_id: Uuid::from_bytes(record.workspace_id),
         })
-    }
-}
-
-impl TrackWorkspaceAccessTime for DatabaseProvider {
-    fn track_access_time(&self, workspace: Workspace) -> Result<Workspace, Error> {
-        let record: WorkspaceRecord = workspace.try_into()?;
-
-        let last_access_time = Utc::now()
-            .timestamp_nanos_opt()
-            .ok_or(eyre::eyre!("Failed to get timestamp"))?;
-
-        let mut statement = self
-            .connection()
-            .prepare(
-                "UPDATE workspaces
-                SET last_access_time = ?1
-                WHERE id = ?2",
-            )
-            .map_err(eyre::Error::new)?;
-
-        statement
-            .execute(params![last_access_time, record.id])
-            .map_err(eyre::Error::new)?;
-
-        self.get_workspace(Uuid::from_bytes(record.id))
     }
 }
 

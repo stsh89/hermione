@@ -36,10 +36,6 @@ pub trait ListAllWorkspacesInBatches {
     ) -> impl Future<Output = Result<()>>;
 }
 
-pub trait TrackWorkspaceAccessTime {
-    fn track_access_time(&self, workspace: Workspace) -> Result<Workspace>;
-}
-
 pub trait UpdateWorkspace {
     fn update_workspace(&self, workspace: Workspace) -> Result<Workspace>;
 }
@@ -66,10 +62,6 @@ pub struct ImportWorkspaceOperation<'a, S> {
 
 pub struct ListWorkspaceOperation<'a, L> {
     pub lister: &'a L,
-}
-
-pub struct TrackWorkspaceAccessTimeOperation<'a, T> {
-    pub tracker: &'a T,
 }
 
 pub struct UpdateWorkspaceOperation<'a, U> {
@@ -174,30 +166,6 @@ where
 {
     pub fn execute(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>> {
         self.lister.list_workspaces(parameters)
-    }
-}
-
-impl<'a, T> TrackWorkspaceAccessTimeOperation<'a, T>
-where
-    T: TrackWorkspaceAccessTime,
-{
-    pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
-        let time = workspace.last_access_time().cloned();
-
-        let workspace = self.tracker.track_access_time(workspace)?;
-        let error_message = "Failed to track workspace access time".to_string();
-
-        if let Some(new_time) = workspace.last_access_time() {
-            if let Some(time) = time {
-                if time >= *new_time {
-                    return Err(Error::Internal(error_message));
-                }
-            }
-        } else {
-            return Err(Error::Internal(error_message));
-        }
-
-        Ok(workspace)
     }
 }
 

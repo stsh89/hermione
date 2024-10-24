@@ -1,13 +1,16 @@
 use hermione_ops::{
     commands::{
-        Command, CommandWorkspaceScopedId, CopyProgramToClipboardOperation, CreateCommandOperation,
-        DeleteCommandFromWorkspaceOperation, ExecuteCommandWithinWorkspaceOperation,
-        ExecuteCommandWithinWorkspaceParameters, GetCommandFromWorkspaceOperation,
+        Command, CommandWorkspaceScopedId, CreateCommandOperation,
+        DeleteCommandFromWorkspaceOperation, GetCommandFromWorkspaceOperation,
         ListCommandsOperation, ListCommandsParameters, ListCommandsWithinWorkspaceOperation,
         ListCommandsWithinWorkspaceParameters, LoadCommandParameters, NewCommandParameters,
         UpdateCommandOperation,
     },
-    extensions::{OpenWindowsTerminalOperation, OpenWindowsTerminalParameters},
+    extensions::{
+        CopyCommandToClipboardOperation, ExecuteCommandOperation,
+        ExecuteCommandWithinWorkspaceParameters, OpenWindowsTerminalOperation,
+        OpenWindowsTerminalParameters,
+    },
     workspaces::{
         CreateWorkspaceOperation, DeleteWorkspaceOperation, GetWorkspaceOperation,
         ListWorkspaceOperation, ListWorkspacesParameters, LoadWorkspaceParameters,
@@ -71,7 +74,7 @@ impl Coordinator {
         workspace_id: &str,
         command_id: &str,
     ) -> anyhow::Result<()> {
-        CopyProgramToClipboardOperation {
+        CopyCommandToClipboardOperation {
             clipboard_provider: &self.powershell,
             getter: &self.storage,
         }
@@ -156,7 +159,7 @@ impl Coordinator {
             no_exit,
         } = input;
 
-        ExecuteCommandWithinWorkspaceOperation {
+        ExecuteCommandOperation {
             get_command: &self.storage,
             runner: &self.powershell,
             command_tracker: &self.storage,
