@@ -1,29 +1,25 @@
-use hermione_core::{
+use hermione_ops::{
     commands::{
         Command, CommandWorkspaceScopedId, CopyProgramToClipboardOperation, CreateCommandOperation,
         DeleteCommandFromWorkspaceOperation, ExecuteCommandWithinWorkspaceOperation,
-        ExecuteCommandWithinWorkspaceParameters, FindCommandInWorkspaceOperation,
-        GetCommandFromWorkspaceOperation, ImportCommandOperation, ListCommandsOperation,
-        ListCommandsParameters, ListCommandsWithinWorkspaceOperation,
-        ListCommandsWithinWorkspaceParameters, LoadCommandParameters, NewCommandParameters,
-        UpdateCommandOperation,
+        ExecuteCommandWithinWorkspaceParameters, GetCommandFromWorkspaceOperation,
+        ListCommandsOperation, ListCommandsParameters,
+        ListCommandsWithinWorkspaceOperation, ListCommandsWithinWorkspaceParameters,
+        LoadCommandParameters, NewCommandParameters, UpdateCommandOperation,
     },
     extensions::{OpenWindowsTerminalOperation, OpenWindowsTerminalParameters},
     workspaces::{
-        CreateWorkspaceOperation, DeleteWorkspaceOperation, FindWorkspaceOperation,
-        GetWorkspaceOperation, ImportWorkspaceOperation, ListWorkspaceOperation,
-        ListWorkspacesParameters, LoadWorkspaceParameters, NewWorkspaceParameters,
-        UpdateWorkspaceOperation, Workspace,
+        CreateWorkspaceOperation, DeleteWorkspaceOperation, GetWorkspaceOperation,
+        ListWorkspaceOperation, ListWorkspacesParameters,
+        LoadWorkspaceParameters, NewWorkspaceParameters, UpdateWorkspaceOperation, Workspace,
     },
 };
 use hermione_powershell::PowerShellProvider;
-use hermione_storage::StorageProvider;
+use hermione_storage::database::DatabaseProvider;
 use std::path::Path;
 
-const DATABASE_FILE_NAME: &str = "hermione.db3";
-
 pub struct Coordinator {
-    storage: StorageProvider,
+    storage: DatabaseProvider,
     powershell: PowerShellProvider,
 }
 
@@ -62,6 +58,7 @@ pub struct OpenWindowsTerminalInput<'a> {
     pub working_directory: &'a str,
 }
 
+#[derive(PartialEq)]
 pub struct WorkspaceDto {
     pub id: String,
     pub location: Option<String>,
@@ -175,33 +172,6 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn find_command_in_workspace(
-        &self,
-        workspace_id: &str,
-        id: &str,
-    ) -> anyhow::Result<Option<CommandDto>> {
-        let id = CommandWorkspaceScopedId {
-            workspace_id: workspace_id.parse()?,
-            command_id: id.parse()?,
-        };
-
-        let command = FindCommandInWorkspaceOperation {
-            finder: &self.storage,
-        }
-        .execute(id)?;
-
-        Ok(command.map(Into::into))
-    }
-
-    pub fn find_workspace(&self, id: &str) -> anyhow::Result<Option<WorkspaceDto>> {
-        let workspace = FindWorkspaceOperation {
-            finder: &self.storage,
-        }
-        .execute(id.parse()?)?;
-
-        Ok(workspace.map(Into::into))
-    }
-
     pub fn get_command_from_workspace(
         &self,
         workspace_id: &str,
@@ -225,24 +195,6 @@ impl Coordinator {
             getter: &self.storage,
         }
         .execute(id.parse()?)?;
-
-        Ok(workspace.into())
-    }
-
-    pub fn import_command(&self, data: CommandDto) -> anyhow::Result<CommandDto> {
-        let command = ImportCommandOperation {
-            importer: &self.storage,
-        }
-        .execute(data.try_into()?)?;
-
-        Ok(command.into())
-    }
-
-    pub fn import_workspace(&self, data: WorkspaceDto) -> anyhow::Result<WorkspaceDto> {
-        let workspace = ImportWorkspaceOperation {
-            importer: &self.storage,
-        }
-        .execute(data.try_into()?)?;
 
         Ok(workspace.into())
     }
@@ -310,9 +262,8 @@ impl Coordinator {
         Ok(workspaces.into_iter().map(Into::into).collect())
     }
 
-    pub fn new(dir_path: &Path) -> anyhow::Result<Self> {
-        let path = dir_path.join(DATABASE_FILE_NAME);
-        let storage = StorageProvider::new(&path)?;
+    pub fn new(file_path: &Path) -> anyhow::Result<Self> {
+        let storage = DatabaseProvider::new(&file_path)?;
         let powershell = PowerShellProvider::new()?;
 
         Ok(Self {

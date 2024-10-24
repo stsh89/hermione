@@ -1,10 +1,10 @@
 [package]
-name = "hermione-core"
+name = "hermione-ops"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "hermione_core"
+name = "hermione_ops"
 
 [dependencies]
 chrono = {workspace = true}

@@ -39,6 +39,7 @@ pub struct QueryDatabaseParameters<'a> {
     pub page_size: u8,
     pub start_cursor: Option<&'a str>,
     pub filter: Option<Json>,
+    pub api_key_override: Option<&'a str>,
 }
 
 #[derive(Deserialize)]
@@ -116,6 +117,7 @@ impl Client {
             page_size,
             start_cursor,
             filter,
+            api_key_override,
         } = parameters;
 
         let uri = format!("databases/{database_id}/query");
@@ -134,7 +136,7 @@ impl Client {
 
         let parameters = SendParameters {
             body: Some(body),
-            api_key_override: None,
+            api_key_override,
             uri: &uri,
             method: Method::post(),
         };
@@ -243,6 +245,7 @@ impl<'a> Default for QueryDatabaseParameters<'a> {
             page_size: DATABASE_QUERY_PAGE_SIZE,
             start_cursor: None,
             filter: None,
+            api_key_override: None,
         }
     }
 }

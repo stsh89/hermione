@@ -1,32 +1,49 @@
-use crate::Result;
+use hermione_ops::{
+    notion::{Credentials, CredentialsParameters, GetCredentials},
+    Result,
+};
 
-pub struct Input<'a> {
-    /// A prompt that is displayed to the user during the data entry process.
-    prompt: &'a str,
+pub struct ScreenProvider {
+    stdin: std::io::Stdin,
 }
 
-impl<'a> Input<'a> {
-    pub fn new(name: &'a str) -> Self {
-        Self { prompt: name }
+impl ScreenProvider {
+    pub fn new() -> Self {
+        Self {
+            stdin: std::io::stdin(),
+        }
     }
 
-    /// Read user input from stdin.
-    pub fn read(&self) -> Result<String> {
-        use std::io::Write;
+    pub fn ask(&self, prompt: &str) -> Result<String> {
+        // Clear screen and reset cursor
+        print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 
         let mut buf = String::new();
-        print!("{}: ", self.prompt);
+
+        use std::io::Write;
+        print!("{prompt}");
         std::io::stdout().flush()?;
-        std::io::stdin().read_line(&mut buf)?;
+
+        self.stdin.read_line(&mut buf)?;
 
         Ok(buf.trim().to_string())
     }
+
+    pub fn print(&self, prompt: &str, text: &str) {
+        println!("{prompt}{text}");
+    }
 }
 
-pub fn clear_and_reset_cursor() {
-    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-}
+impl GetCredentials for ScreenProvider {
+    fn get(&self) -> Result<Credentials> {
+        let api_key = self.ask("Enter your Notion API key: ")?;
+        let commands_page_id = self.ask("Enter your Notion commands page ID: ")?;
+        let workspaces_page_id = self.ask("Enter your Notion workspaces page ID: ")?;
 
-pub fn print(text: &str) {
-    println!("{text}");
+        Ok(Credentials::new(CredentialsParameters {
+            api_key,
+            commands_page_id,
+            workspaces_page_id,
+        }))
+    }
 }

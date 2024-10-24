@@ -12,6 +12,7 @@ mod smart_input;
 mod widgets;
 
 use hermione_coordinator::Coordinator;
+use hermione_storage::file_system::FileSystemProvider;
 use hermione_tracing::{NewTracerParameters, Tracer};
 use router::TerminalRouter;
 
@@ -29,7 +30,8 @@ type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
     let directory = hermione_terminal_directory::path()?;
-    let coordinator = Coordinator::new(&directory)?;
+    let file_system = FileSystemProvider::new(&directory);
+    let coordinator = Coordinator::new(&file_system.database_file_path())?;
     let router = TerminalRouter { coordinator };
 
     let tracer = Tracer::new(NewTracerParameters {

@@ -1,7 +1,10 @@
 mod client;
+mod provider;
+
 pub mod json;
 
 pub use client::*;
+pub use provider::*;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

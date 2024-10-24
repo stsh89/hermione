@@ -1,3 +1,5 @@
+use std::future::Future;
+
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -20,11 +22,18 @@ pub trait GetWorkspace {
 }
 
 pub trait ImportWorkspace {
-    fn import(&self, workspace: Workspace) -> Result<Workspace>;
+    fn import_workspace(&self, workspace: Workspace) -> Result<Workspace>;
 }
 
 pub trait ListWorkspaces {
-    fn list(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>>;
+    fn list_workspaces(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>>;
+}
+
+pub trait ListAllWorkspacesInBatches {
+    fn list_all_workspaces_in_batches(
+        &self,
+        batch_fn: impl Fn(Vec<Workspace>) -> Result<()>,
+    ) -> impl Future<Output = Result<()>>;
 }
 
 pub trait TrackWorkspaceAccessTime {
@@ -32,7 +41,7 @@ pub trait TrackWorkspaceAccessTime {
 }
 
 pub trait UpdateWorkspace {
-    fn update(&self, workspace: Workspace) -> Result<Workspace>;
+    fn update_workspace(&self, workspace: Workspace) -> Result<Workspace>;
 }
 
 pub struct CreateWorkspaceOperation<'a, S> {
@@ -155,7 +164,7 @@ where
     S: ImportWorkspace,
 {
     pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
-        self.importer.import(workspace)
+        self.importer.import_workspace(workspace)
     }
 }
 
@@ -164,7 +173,7 @@ where
     L: ListWorkspaces,
 {
     pub fn execute(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>> {
-        self.lister.list(parameters)
+        self.lister.list_workspaces(parameters)
     }
 }
 
@@ -197,7 +206,7 @@ where
     U: UpdateWorkspace,
 {
     pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
-        self.updater.update(workspace)
+        self.updater.update_workspace(workspace)
     }
 }
 
@@ -261,5 +270,18 @@ impl Workspace {
         self.id = Some(id);
 
         Ok(())
+    }
+
+    pub fn try_id(&self) -> Result<Uuid> {
+        self.id
+            .ok_or(Error::DataLoss("Missing workspace ID".into()))
+    }
+}
+
+impl PartialEq for Workspace {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.name.value == other.name.value
+            && self.location.as_ref().map(|l| &l.value) == other.location.as_ref().map(|l| &l.value)
     }
 }

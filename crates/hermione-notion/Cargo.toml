@@ -12,11 +12,14 @@ reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
+tokio = { workspace = true, features = ["rt"]  }
+tracing = { workspace = true}
+uuid = { workspace = true }
+
+hermione-notion-serde = { workspace = true }
+hermione-ops = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 httpmock = "0.7.0"
-hermione-notion-serde = { workspace = true }

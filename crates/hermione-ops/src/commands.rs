@@ -1,3 +1,5 @@
+use std::future::Future;
+
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -21,8 +23,8 @@ pub trait DeleteCommandFromWorkspace {
     fn delete(&self, id: CommandWorkspaceScopedId) -> Result<()>;
 }
 
-pub trait FindCommandInWorkspace {
-    fn find(&self, id: CommandWorkspaceScopedId) -> Result<Option<Command>>;
+pub trait FindCommand {
+    fn find_command(&self, id: Uuid) -> Result<Option<Command>>;
 }
 
 pub trait GetCommandFromWorkspace {
@@ -30,15 +32,25 @@ pub trait GetCommandFromWorkspace {
 }
 
 pub trait ImportCommand {
-    fn import(&self, command: Command) -> Result<Command>;
+    fn import_command(&self, command: Command) -> Result<Command>;
 }
 
 pub trait ListCommands {
-    fn list(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>>;
+    fn list_commands(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>>;
 }
 
 pub trait ListCommandsWithinWorkspace {
-    fn list(&self, parameters: ListCommandsWithinWorkspaceParameters) -> Result<Vec<Command>>;
+    fn list_commands_within_workspace(
+        &self,
+        parameters: ListCommandsWithinWorkspaceParameters,
+    ) -> Result<Vec<Command>>;
+}
+
+pub trait ListAllCommandsInBatches {
+    fn list_all_commands_in_batches(
+        &self,
+        batch_fn: impl Fn(Vec<Command>) -> Result<()>,
+    ) -> impl Future<Output = Result<()>>;
 }
 
 pub trait TrackCommandExecutionTime {
@@ -50,7 +62,7 @@ pub trait RunProgram {
 }
 
 pub trait UpdateCommand {
-    fn update(&self, command: Command) -> Result<Command>;
+    fn update_command(&self, command: Command) -> Result<Command>;
 }
 
 pub struct CreateCommandOperation<'a, S> {
@@ -77,7 +89,7 @@ pub struct ExecuteCommandWithinWorkspaceOperation<'a, R, T, C, W, WT> {
     pub get_workspace: &'a W,
 }
 
-pub struct FindCommandInWorkspaceOperation<'a, R> {
+pub struct FindCommandOperation<'a, R> {
     pub finder: &'a R,
 }
 
@@ -264,12 +276,12 @@ where
     }
 }
 
-impl<'a, R> FindCommandInWorkspaceOperation<'a, R>
+impl<'a, R> FindCommandOperation<'a, R>
 where
-    R: FindCommandInWorkspace,
+    R: FindCommand,
 {
-    pub fn execute(&self, id: CommandWorkspaceScopedId) -> Result<Option<Command>> {
-        self.finder.find(id)
+    pub fn execute(&self, id: Uuid) -> Result<Option<Command>> {
+        self.finder.find_command(id)
     }
 }
 
@@ -287,7 +299,7 @@ where
     S: ImportCommand,
 {
     pub fn execute(&self, command: Command) -> Result<Command> {
-        self.importer.import(command)
+        self.importer.import_command(command)
     }
 }
 
@@ -296,7 +308,7 @@ where
     L: ListCommands,
 {
     pub fn execute(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>> {
-        self.lister.list(parameters)
+        self.lister.list_commands(parameters)
     }
 }
 
@@ -308,7 +320,7 @@ where
         &self,
         parameters: ListCommandsWithinWorkspaceParameters,
     ) -> Result<Vec<Command>> {
-        self.lister.list(parameters)
+        self.lister.list_commands_within_workspace(parameters)
     }
 }
 
@@ -341,7 +353,7 @@ where
     U: UpdateCommand,
 {
     pub fn execute(&self, command: Command) -> Result<Command> {
-        self.updater.update(command)
+        self.updater.update_command(command)
     }
 }
 
@@ -404,6 +416,10 @@ impl Command {
         self.name = CommandName { value: name };
     }
 
+    pub fn try_id(&self) -> Result<Uuid> {
+        self.id.ok_or(Error::DataLoss("Missing command ID".into()))
+    }
+
     pub fn set_id(&mut self, id: Uuid) -> Result<()> {
         if self.id.is_some() {
             return Err(Error::Internal("Command id is already set".to_string()));
@@ -416,5 +432,14 @@ impl Command {
 
     pub fn workspace_id(&self) -> Uuid {
         self.workspace_id
+    }
+}
+
+impl PartialEq for Command {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.name.value == other.name.value
+            && self.program.value == other.program.value
+            && self.workspace_id == other.workspace_id
     }
 }

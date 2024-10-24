@@ -451,7 +451,6 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
- "serde",
  "wasm-bindgen",
  "windows-targets 0.52.6",
 ]
@@ -924,22 +923,9 @@ name = "hermione-coordinator"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "chrono",
- "eyre",
- "hermione-core",
- "rusqlite",
- "thiserror",
- "uuid",
-]
-
-[[package]]
-name = "hermione-core"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "eyre",
- "thiserror",
- "uuid",
+ "hermione-ops",
+ "hermione-powershell",
+ "hermione-storage",
 ]
 
 [[package]]
@@ -949,6 +935,7 @@ dependencies = [
  "anyhow",
  "eyre",
  "hermione-notion-serde",
+ "hermione-ops",
  "httpmock",
  "reqwest",
  "serde",
@@ -956,6 +943,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -972,15 +960,24 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "hermione-coordinator",
  "hermione-notion",
  "hermione-notion-serde",
+ "hermione-ops",
+ "hermione-storage",
  "hermione-terminal-directory",
  "hermione-tracing",
- "serde",
- "serde_json",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "hermione-ops"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "eyre",
+ "thiserror",
+ "uuid",
 ]
 
 [[package]]
@@ -989,7 +986,21 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "eyre",
+ "hermione-ops",
  "thiserror",
+]
+
+[[package]]
+name = "hermione-storage"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "eyre",
+ "hermione-ops",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -997,10 +1008,9 @@ name = "hermione-terminal"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "chrono",
  "eyre",
  "hermione-coordinator",
- "hermione-powershell",
+ "hermione-storage",
  "hermione-terminal-directory",
  "hermione-tracing",
  "hermione-tui",

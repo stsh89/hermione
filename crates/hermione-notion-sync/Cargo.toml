@@ -6,13 +6,12 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
-serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing = { workspace = true }
 
-hermione-coordinator = { workspace = true }
 hermione-notion = { workspace = true }
 hermione-notion-serde = { workspace = true }
+hermione-ops = { workspace = true }
+hermione-storage = { workspace = true }
 hermione-terminal-directory = { workspace = true }
 hermione-tracing = { workspace = true }
