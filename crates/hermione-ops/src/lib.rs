@@ -1,9 +1,16 @@
 use std::io;
 
+#[cfg(feature="backup")]
 pub mod backup;
+
 pub mod commands;
+
+#[cfg(feature="extensions")]
 pub mod extensions;
+
+#[cfg(feature="notion")]
 pub mod notion;
+
 pub mod workspaces;
 
 pub type Result<T> = std::result::Result<T, Error>;

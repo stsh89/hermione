@@ -11,7 +11,7 @@ tracing = { workspace = true }
 
 hermione-notion = { workspace = true }
 hermione-notion-serde = { workspace = true }
-hermione-ops = { workspace = true }
+hermione-ops = { workspace = true, features = ["notion", "backup"] }
 hermione-storage = { workspace = true }
 hermione-terminal-directory = { workspace = true }
 hermione-tracing = { workspace = true }

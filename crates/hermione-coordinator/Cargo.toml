@@ -9,6 +9,6 @@ name = "hermione_coordinator"
 [dependencies]
 anyhow = { workspace = true }
 
-hermione-ops = { workspace = true }
+hermione-ops = { workspace = true, features = ["extensions"] }
 hermione-powershell = { workspace = true }
 hermione-storage = { workspace = true }

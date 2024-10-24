@@ -6,6 +6,11 @@ edition = "2021"
 [lib]
 name = "hermione_ops"
 
+[features]
+backup = []
+notion = []
+extensions = []
+
 [dependencies]
 chrono = {workspace = true}
 eyre = {workspace = true}

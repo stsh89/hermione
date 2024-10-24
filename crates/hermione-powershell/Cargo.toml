@@ -11,4 +11,4 @@ anyhow = { workspace = true }
 eyre = { workspace = true }
 thiserror = { workspace = true }
 
-hermione-ops = { workspace = true }
+hermione-ops = { workspace = true, features = ["extensions"] }
