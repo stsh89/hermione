@@ -1,12 +1,10 @@
-use std::future::Future;
-
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::{Error, Result};
 
 pub trait CreateCommand {
-    fn create(&self, command: Command) -> Result<Command>;
+    fn create_command(&self, command: Command) -> Result<Command>;
 }
 
 pub trait DeleteCommandFromWorkspace {
@@ -21,22 +19,11 @@ pub trait GetCommandFromWorkspace {
     fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command>;
 }
 
-pub trait ListCommands {
-    fn list_commands(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>>;
-}
-
 pub trait ListCommandsWithinWorkspace {
     fn list_commands_within_workspace(
         &self,
         parameters: ListCommandsWithinWorkspaceParameters,
     ) -> Result<Vec<Command>>;
-}
-
-pub trait ListAllCommandsInBatches {
-    fn list_all_commands_in_batches(
-        &self,
-        batch_fn: impl Fn(Vec<Command>) -> Result<()>,
-    ) -> impl Future<Output = Result<()>>;
 }
 
 pub trait UpdateCommand {
@@ -59,13 +46,6 @@ pub struct GetCommandFromWorkspaceOperation<'a, R> {
     pub getter: &'a R,
 }
 
-pub struct ListCommandsOperation<'a, L>
-where
-    L: ListCommands,
-{
-    pub lister: &'a L,
-}
-
 pub struct ListCommandsWithinWorkspaceOperation<'a, L>
 where
     L: ListCommandsWithinWorkspace,
@@ -77,6 +57,7 @@ pub struct UpdateCommandOperation<'a, U> {
     pub updater: &'a U,
 }
 
+#[derive(Debug)]
 pub struct Command {
     last_execute_time: Option<DateTime<Utc>>,
     id: Option<Uuid>,
@@ -85,10 +66,12 @@ pub struct Command {
     workspace_id: Uuid,
 }
 
+#[derive(Debug)]
 struct CommandName {
     value: String,
 }
 
+#[derive(Debug)]
 struct CommandProgram {
     value: String,
 }
@@ -115,6 +98,7 @@ pub struct CommandWorkspaceScopedId {
 pub struct ListCommandsParameters {
     pub page_number: u32,
     pub page_size: u32,
+    pub ids: Vec<Uuid>,
 }
 
 pub struct ListCommandsWithinWorkspaceParameters<'a> {
@@ -135,7 +119,7 @@ where
             ));
         }
 
-        let command = self.creator.create(command)?;
+        let command = self.creator.create_command(command)?;
 
         if command.id().is_none() {
             return Err(Error::Internal(
@@ -171,15 +155,6 @@ where
 {
     pub fn execute(&self, scoped_id: CommandWorkspaceScopedId) -> Result<Command> {
         self.getter.get_command_from_workspace(scoped_id)
-    }
-}
-
-impl<'a, L> ListCommandsOperation<'a, L>
-where
-    L: ListCommands,
-{
-    pub fn execute(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>> {
-        self.lister.list_commands(parameters)
     }
 }
 

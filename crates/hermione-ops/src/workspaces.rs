@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{Error, Result};
 
 pub trait CreateWorkspace {
-    fn create(&self, workspace: Workspace) -> Result<Workspace>;
+    fn create_workspace(&self, workspace: Workspace) -> Result<Workspace>;
 }
 
 pub trait DeleteWorkspace {
@@ -104,7 +104,7 @@ where
             ));
         }
 
-        let workspace = self.creator.create(workspace)?;
+        let workspace = self.creator.create_workspace(workspace)?;
 
         if workspace.id().is_none() {
             return Err(Error::Internal(

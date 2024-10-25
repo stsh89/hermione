@@ -1,8 +1,18 @@
+use std::future::Future;
+use uuid::Uuid;
+
 use crate::{
-    commands::{Command, FindCommand, ListAllCommandsInBatches, UpdateCommand},
+    commands::{Command, FindCommand, ListCommandsParameters, UpdateCommand},
     workspaces::{FindWorkspace, ListAllWorkspacesInBatches, UpdateWorkspace, Workspace},
     Error, Result,
 };
+
+pub trait CommandsIterator {
+    fn iterate_over_commands<M, MR>(&self, map_fn: M) -> impl Future<Output = Result<()>>
+    where
+        M: Fn(Vec<Command>) -> MR,
+        MR: Future<Output = Result<()>>;
+}
 
 pub trait ImportCommand {
     fn import_command(&self, command: Command) -> Result<Command>;
@@ -10,6 +20,22 @@ pub trait ImportCommand {
 
 pub trait ImportWorkspace {
     fn import_workspace(&self, workspace: Workspace) -> Result<Workspace>;
+}
+
+pub trait ListCommands {
+    fn list_commands(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>>;
+}
+
+pub trait ListAllCommandsInBatches {
+    fn list_all_commands_in_batches(
+        &self,
+        batch_fn: impl Fn(Vec<Command>) -> Result<()>,
+    ) -> impl Future<Output = Result<()>>;
+}
+
+pub struct BackupCommandOperation<'a, CP, RCP> {
+    pub commands_provider: &'a CP,
+    pub remote_commands_provider: &'a RCP,
 }
 
 pub struct BackupOperation<'a, C, RC, RW, W> {
@@ -25,6 +51,49 @@ pub struct ImportCommandOperation<'a, S> {
 
 pub struct ImportWorkspaceOperation<'a, S> {
     pub importer: &'a S,
+}
+
+impl<'a, CP, RCP> BackupCommandOperation<'a, CP, RCP>
+where
+    CP: CommandsIterator,
+    RCP: ImportCommand + ListCommands + UpdateCommand,
+{
+    async fn execute(&self) -> Result<()> {
+        self.commands_provider
+            .iterate_over_commands(|commands| async {
+                let remote_commands = self.list_remote_commands(&commands)?;
+
+                for command in commands {
+                    let remote_command = remote_commands.iter().find(|c| c.id() == command.id());
+
+                    let Some(remote_command) = remote_command else {
+                        self.remote_commands_provider.import_command(command)?;
+                        continue;
+                    };
+
+                    if &command != remote_command {
+                        self.remote_commands_provider.update_command(command)?;
+                    }
+                }
+
+                Ok(())
+            })
+            .await?;
+
+        Ok(())
+    }
+
+    fn list_remote_commands(&self, commands: &[Command]) -> Result<Vec<Command>> {
+        self.remote_commands_provider
+            .list_commands(ListCommandsParameters {
+                page_number: 0,
+                page_size: commands.len() as u32,
+                ids: commands
+                    .iter()
+                    .map(|c| c.try_id())
+                    .collect::<Result<Vec<Uuid>>>()?,
+            })
+    }
 }
 
 impl<'a, C, RC, RW, W> BackupOperation<'a, C, RC, RW, W>
@@ -113,5 +182,21 @@ where
 {
     pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
         self.importer.import_workspace(workspace)
+    }
+}
+
+pub struct ListCommandsOperation<'a, L>
+where
+    L: ListCommands,
+{
+    pub lister: &'a L,
+}
+
+impl<'a, L> ListCommandsOperation<'a, L>
+where
+    L: ListCommands,
+{
+    pub fn execute(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>> {
+        self.lister.list_commands(parameters)
     }
 }

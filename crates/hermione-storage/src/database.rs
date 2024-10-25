@@ -2,16 +2,15 @@ use chrono::DateTime;
 use hermione_ops::{
     commands::{
         Command, CommandWorkspaceScopedId, CreateCommand, DeleteCommandFromWorkspace, FindCommand,
-        GetCommandFromWorkspace, ListAllCommandsInBatches, ListCommands, ListCommandsParameters,
-        ListCommandsWithinWorkspace, ListCommandsWithinWorkspaceParameters, LoadCommandParameters,
-        UpdateCommand,
+        GetCommandFromWorkspace, ListCommandsWithinWorkspace,
+        ListCommandsWithinWorkspaceParameters, LoadCommandParameters, UpdateCommand,
     },
     workspaces::{
         CreateWorkspace, DeleteWorkspace, FindWorkspace, GetWorkspace, ListAllWorkspacesInBatches,
         ListWorkspaces, ListWorkspacesParameters, LoadWorkspaceParameters, UpdateWorkspace,
         Workspace,
     },
-    Error,
+    Result,
 };
 use rusqlite::{params, Connection, OptionalExtension, Statement};
 use std::path::Path;
@@ -85,6 +84,10 @@ impl DatabaseProvider {
         Ok(())
     }
 
+    fn load_rarray(&self) -> rusqlite::Result<()> {
+        rusqlite::vtab::array::load_module(self.connection())
+    }
+
     fn migrate(&self) -> rusqlite::Result<()> {
         self.connection.execute(
             "CREATE TABLE IF NOT EXISTS workspaces (
@@ -122,6 +125,7 @@ impl DatabaseProvider {
         let provider = Self { connection };
 
         provider.migrate()?;
+        provider.load_rarray()?;
 
         Ok(provider)
     }
@@ -280,7 +284,7 @@ impl From<WorkspaceRecord> for Workspace {
 impl TryFrom<&rusqlite::Row<'_>> for WorkspaceRecord {
     type Error = rusqlite::Error;
 
-    fn try_from(row: &rusqlite::Row) -> Result<Self, Self::Error> {
+    fn try_from(row: &rusqlite::Row) -> rusqlite::Result<Self> {
         Ok(WorkspaceRecord {
             id: row.get(0)?,
             last_access_time: row.get(1)?,
@@ -291,7 +295,7 @@ impl TryFrom<&rusqlite::Row<'_>> for WorkspaceRecord {
 }
 
 impl CreateCommand for DatabaseProvider {
-    fn create(&self, mut command: Command) -> Result<Command, Error> {
+    fn create_command(&self, mut command: Command) -> Result<Command> {
         let id = Uuid::new_v4();
         command.set_id(id)?;
 
@@ -303,7 +307,7 @@ impl CreateCommand for DatabaseProvider {
 }
 
 impl CreateWorkspace for DatabaseProvider {
-    fn create(&self, mut workspace: Workspace) -> Result<Workspace, Error> {
+    fn create_workspace(&self, mut workspace: Workspace) -> Result<Workspace> {
         let id = Uuid::new_v4();
         workspace.set_id(id)?;
 
@@ -316,7 +320,7 @@ impl CreateWorkspace for DatabaseProvider {
 }
 
 impl DeleteCommandFromWorkspace for DatabaseProvider {
-    fn delete(&self, id: CommandWorkspaceScopedId) -> Result<(), Error> {
+    fn delete(&self, id: CommandWorkspaceScopedId) -> Result<()> {
         let CommandWorkspaceScopedId {
             workspace_id,
             command_id: id,
@@ -336,7 +340,7 @@ impl DeleteCommandFromWorkspace for DatabaseProvider {
 }
 
 impl DeleteWorkspace for DatabaseProvider {
-    fn delete(&self, id: Uuid) -> Result<(), Error> {
+    fn delete(&self, id: Uuid) -> Result<()> {
         // TODO: apply transaction
 
         let mut statement = self
@@ -362,7 +366,7 @@ impl DeleteWorkspace for DatabaseProvider {
 }
 
 impl FindCommand for DatabaseProvider {
-    fn find_command(&self, id: Uuid) -> Result<Option<Command>, Error> {
+    fn find_command(&self, id: Uuid) -> Result<Option<Command>> {
         let record = self
             .select_command_statement()
             .map_err(eyre::Error::new)?
@@ -375,7 +379,7 @@ impl FindCommand for DatabaseProvider {
 }
 
 impl FindWorkspace for DatabaseProvider {
-    fn find_workspace(&self, id: Uuid) -> Result<Option<Workspace>, Error> {
+    fn find_workspace(&self, id: Uuid) -> Result<Option<Workspace>> {
         let record: Option<WorkspaceRecord> = self
             .select_workspace_statement()
             .map_err(eyre::Error::new)?
@@ -388,7 +392,7 @@ impl FindWorkspace for DatabaseProvider {
 }
 
 impl GetCommandFromWorkspace for DatabaseProvider {
-    fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command, Error> {
+    fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command> {
         let CommandWorkspaceScopedId {
             workspace_id,
             command_id: id,
@@ -408,7 +412,7 @@ impl GetCommandFromWorkspace for DatabaseProvider {
 }
 
 impl GetWorkspace for DatabaseProvider {
-    fn get_workspace(&self, id: Uuid) -> Result<Workspace, Error> {
+    fn get_workspace(&self, id: Uuid) -> Result<Workspace> {
         let record: WorkspaceRecord = self
             .select_workspace_statement()
             .map_err(eyre::Error::new)?
@@ -419,77 +423,11 @@ impl GetWorkspace for DatabaseProvider {
     }
 }
 
-impl ListAllCommandsInBatches for DatabaseProvider {
-    async fn list_all_commands_in_batches(
-        &self,
-        batch_fn: impl Fn(Vec<Command>) -> hermione_ops::Result<()>,
-    ) -> Result<(), Error> {
-        let mut page_number = 0;
-
-        loop {
-            let commands = self.list_commands(ListCommandsParameters {
-                page_number,
-                page_size: DEFAULT_PAGE_SIZE,
-            })?;
-
-            if commands.is_empty() {
-                break;
-            }
-
-            batch_fn(commands)?;
-
-            page_number += 1;
-        }
-
-        Ok(())
-    }
-}
-
-impl ListCommands for DatabaseProvider {
-    fn list_commands(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>, Error> {
-        let ListCommandsParameters {
-            page_number,
-            page_size,
-        } = parameters;
-
-        let mut statement = self
-            .connection()
-            .prepare(
-                "SELECT
-                    id,
-                    last_execute_time,
-                    name,
-                    program,
-                    workspace_id
-                FROM commands
-                ORDER BY program ASC
-                LIMIT ?1 OFFSET ?2",
-            )
-            .map_err(eyre::Error::new)?;
-
-        let records = statement
-            .query_map(
-                params![page_size, page_number * page_size],
-                CommandRecord::from_row,
-            )
-            .map_err(eyre::Error::new)?
-            .collect::<std::result::Result<Vec<_>, _>>()
-            .map_err(eyre::Error::new)?;
-
-        let entities = records
-            .into_iter()
-            .map(CommandRecord::load_entity)
-            .collect();
-
-        Ok(entities)
-    }
-}
-
 impl ListCommandsWithinWorkspace for DatabaseProvider {
     fn list_commands_within_workspace(
         &self,
         parameters: ListCommandsWithinWorkspaceParameters,
-    ) -> Result<Vec<Command>, Error> {
+    ) -> Result<Vec<Command>> {
         let ListCommandsWithinWorkspaceParameters {
             page_number,
             page_size,
@@ -539,10 +477,7 @@ impl ListCommandsWithinWorkspace for DatabaseProvider {
 }
 
 impl ListWorkspaces for DatabaseProvider {
-    fn list_workspaces(
-        &self,
-        parameters: ListWorkspacesParameters,
-    ) -> Result<Vec<Workspace>, Error> {
+    fn list_workspaces(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>> {
         let ListWorkspacesParameters {
             name_contains,
             page_size,
@@ -585,7 +520,7 @@ impl ListAllWorkspacesInBatches for DatabaseProvider {
     async fn list_all_workspaces_in_batches(
         &self,
         batch_fn: impl Fn(Vec<Workspace>) -> hermione_ops::Result<()>,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let mut page_number = 0;
 
         loop {
@@ -609,7 +544,7 @@ impl ListAllWorkspacesInBatches for DatabaseProvider {
 }
 
 impl UpdateCommand for DatabaseProvider {
-    fn update_command(&self, command: Command) -> Result<Command, Error> {
+    fn update_command(&self, command: Command) -> Result<Command> {
         let record = CommandRecord::from_entity(&command)?;
 
         let mut statement = self
@@ -640,7 +575,7 @@ impl UpdateCommand for DatabaseProvider {
 }
 
 impl UpdateWorkspace for DatabaseProvider {
-    fn update_workspace(&self, entity: Workspace) -> Result<Workspace, Error> {
+    fn update_workspace(&self, entity: Workspace) -> Result<Workspace> {
         let record = WorkspaceRecord::try_from(&entity)?;
 
         let mut statement = self
