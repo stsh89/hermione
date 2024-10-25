@@ -21,3 +21,6 @@ serde_json = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 
 hermione-ops = { workspace = true, features = ["notion"] }
+
+[dev-dependencies]
+tokio = { workspace = true }

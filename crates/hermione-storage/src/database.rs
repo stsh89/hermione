@@ -1,18 +1,17 @@
 use chrono::DateTime;
 use hermione_ops::{
     commands::{
-        Command, CommandWorkspaceScopedId, CreateCommand, DeleteCommandFromWorkspace, FindCommand,
+        Command, CommandWorkspaceScopedId, CreateCommand, DeleteCommandFromWorkspace,
         GetCommandFromWorkspace, ListCommandsWithinWorkspace,
         ListCommandsWithinWorkspaceParameters, LoadCommandParameters, UpdateCommand,
     },
     workspaces::{
-        CreateWorkspace, DeleteWorkspace, FindWorkspace, GetWorkspace, ListAllWorkspacesInBatches,
-        ListWorkspaces, ListWorkspacesParameters, LoadWorkspaceParameters, UpdateWorkspace,
-        Workspace,
+        CreateWorkspace, DeleteWorkspace, GetWorkspace, ListAllWorkspacesInBatches, ListWorkspaces,
+        ListWorkspacesParameters, LoadWorkspaceParameters, UpdateWorkspace, Workspace,
     },
     Result,
 };
-use rusqlite::{params, Connection, OptionalExtension, Statement};
+use rusqlite::{params, Connection, Statement};
 use std::path::Path;
 use uuid::{Bytes, Uuid};
 
@@ -128,32 +127,6 @@ impl DatabaseProvider {
         provider.load_rarray()?;
 
         Ok(provider)
-    }
-
-    fn select_command_within_workspace_statement(&self) -> rusqlite::Result<Statement> {
-        self.connection.prepare(
-            "SELECT
-                id,
-                last_execute_time,
-                name,
-                program,
-                workspace_id
-            FROM commands
-            WHERE id = ?1 AND workspace_id = ?2",
-        )
-    }
-
-    fn select_command_statement(&self) -> rusqlite::Result<Statement> {
-        self.connection.prepare(
-            "SELECT
-                id,
-                last_execute_time,
-                name,
-                program,
-                workspace_id
-            FROM commands
-            WHERE id = ?1",
-        )
     }
 
     fn select_workspace_statement(&self) -> rusqlite::Result<Statement> {
@@ -365,32 +338,6 @@ impl DeleteWorkspace for DatabaseProvider {
     }
 }
 
-impl FindCommand for DatabaseProvider {
-    fn find_command(&self, id: Uuid) -> Result<Option<Command>> {
-        let record = self
-            .select_command_statement()
-            .map_err(eyre::Error::new)?
-            .query_row([id.as_bytes()], CommandRecord::from_row)
-            .optional()
-            .map_err(eyre::Error::new)?;
-
-        Ok(record.map(CommandRecord::load_entity))
-    }
-}
-
-impl FindWorkspace for DatabaseProvider {
-    fn find_workspace(&self, id: Uuid) -> Result<Option<Workspace>> {
-        let record: Option<WorkspaceRecord> = self
-            .select_workspace_statement()
-            .map_err(eyre::Error::new)?
-            .query_row([id.as_bytes()], |row| row.try_into())
-            .optional()
-            .map_err(eyre::Error::new)?;
-
-        Ok(record.map(Into::into))
-    }
-}
-
 impl GetCommandFromWorkspace for DatabaseProvider {
     fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command> {
         let CommandWorkspaceScopedId {
@@ -398,9 +345,21 @@ impl GetCommandFromWorkspace for DatabaseProvider {
             command_id: id,
         } = id;
 
-        let record = self
-            .select_command_within_workspace_statement()
-            .map_err(eyre::Error::new)?
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT
+                id,
+                last_execute_time,
+                name,
+                program,
+                workspace_id
+            FROM commands
+            WHERE id = ?1 AND workspace_id = ?2",
+            )
+            .map_err(eyre::Error::new)?;
+
+        let record = statement
             .query_row(
                 [id.as_bytes(), workspace_id.as_bytes()],
                 CommandRecord::from_row,

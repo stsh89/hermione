@@ -13,10 +13,6 @@ pub trait DeleteWorkspace {
     fn delete(&self, workspace_id: Uuid) -> Result<()>;
 }
 
-pub trait FindWorkspace {
-    fn find_workspace(&self, workspace_id: Uuid) -> Result<Option<Workspace>>;
-}
-
 pub trait GetWorkspace {
     fn get_workspace(&self, workspace_id: Uuid) -> Result<Workspace>;
 }
@@ -42,10 +38,6 @@ pub struct CreateWorkspaceOperation<'a, S> {
 
 pub struct DeleteWorkspaceOperation<'a, D> {
     pub deleter: &'a D,
-}
-
-pub struct FindWorkspaceOperation<'a, R> {
-    pub finder: &'a R,
 }
 
 pub struct GetWorkspaceOperation<'a, R> {
@@ -122,15 +114,6 @@ where
 {
     pub fn execute(&self, workspace_id: Uuid) -> Result<()> {
         self.deleter.delete(workspace_id)
-    }
-}
-
-impl<'a, R> FindWorkspaceOperation<'a, R>
-where
-    R: FindWorkspace,
-{
-    pub fn execute(&self, workspace_id: Uuid) -> Result<Option<Workspace>> {
-        self.finder.find_workspace(workspace_id)
     }
 }
 

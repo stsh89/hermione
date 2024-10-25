@@ -11,10 +11,6 @@ pub trait DeleteCommandFromWorkspace {
     fn delete(&self, id: CommandWorkspaceScopedId) -> Result<()>;
 }
 
-pub trait FindCommand {
-    fn find_command(&self, id: Uuid) -> Result<Option<Command>>;
-}
-
 pub trait GetCommandFromWorkspace {
     fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command>;
 }
@@ -36,10 +32,6 @@ pub struct CreateCommandOperation<'a, S> {
 
 pub struct DeleteCommandFromWorkspaceOperation<'a, D> {
     pub deleter: &'a D,
-}
-
-pub struct FindCommandOperation<'a, R> {
-    pub finder: &'a R,
 }
 
 pub struct GetCommandFromWorkspaceOperation<'a, R> {
@@ -95,12 +87,6 @@ pub struct CommandWorkspaceScopedId {
     pub workspace_id: Uuid,
 }
 
-pub struct ListCommandsParameters {
-    pub page_number: u32,
-    pub page_size: u32,
-    pub ids: Vec<Uuid>,
-}
-
 pub struct ListCommandsWithinWorkspaceParameters<'a> {
     pub page_number: u32,
     pub page_size: u32,
@@ -137,15 +123,6 @@ where
 {
     pub fn execute(&self, id: CommandWorkspaceScopedId) -> Result<()> {
         self.deleter.delete(id)
-    }
-}
-
-impl<'a, R> FindCommandOperation<'a, R>
-where
-    R: FindCommand,
-{
-    pub fn execute(&self, id: Uuid) -> Result<Option<Command>> {
-        self.finder.find_command(id)
     }
 }
 

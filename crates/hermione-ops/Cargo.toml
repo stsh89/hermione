@@ -8,7 +8,7 @@ name = "hermione_ops"
 
 [features]
 backup = []
-notion = []
+notion = ["backup"]
 extensions = []
 
 [dependencies]

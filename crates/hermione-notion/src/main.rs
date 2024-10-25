@@ -5,16 +5,17 @@ mod provider;
 mod screen;
 
 use cli::{Cli, CliSubcommand, Run};
-use hermione_ops::{
-    backup::BackupOperation,
-    notion::{
-        DeleteCredentialsOperation, GetCredentialsOperation, SaveCredentialsOperation,
-        VerifyCredentialsOperation,
-    },
+use hermione_ops::notion::{
+    DeleteCredentialsOperation, ExportOperation, GetCredentialsOperation, ImportOperation,
+    SaveCredentialsOperation, VerifyCredentialsOperation,
 };
-use hermione_storage::{database::DatabaseProvider, file_system::FileSystemProvider};
+use hermione_storage::{
+    backup::{CommandsDatabaseProvider, WorkspacesDatabaseProvider},
+    database::DatabaseProvider,
+    file_system::FileSystemProvider,
+};
 use hermione_tracing::{NewTracerParameters, Tracer};
-use provider::NotionProvider;
+use provider::{NotionCommandsProvider, NotionProvider, NotionWorkspacesProvider};
 use screen::ScreenProvider;
 
 type Result<T> = anyhow::Result<T>;
@@ -51,11 +52,16 @@ impl App {
         let notion_provider = NotionProvider::new(Some(credentials))?;
         let database_provider = DatabaseProvider::new(&self.file_system.database_file_path())?;
 
-        BackupOperation {
-            commands: &notion_provider,
-            remote_commands: &database_provider,
-            remote_workspaces: &database_provider,
-            workspaces: &notion_provider,
+        let local_commands_provider = &CommandsDatabaseProvider::new(&database_provider);
+        let local_workspaces_provider = &WorkspacesDatabaseProvider::new(&database_provider);
+        let notion_commands_provider = &NotionCommandsProvider::new(&notion_provider);
+        let notion_workspaces_provider = &NotionWorkspacesProvider::new(&notion_provider);
+
+        ImportOperation {
+            local_commands_provider,
+            notion_commands_provider,
+            local_workspaces_provider,
+            notion_workspaces_provider,
         }
         .execute()
         .await?;
@@ -72,11 +78,16 @@ impl App {
         let notion_provider = NotionProvider::new(Some(credentials))?;
         let database_provider = DatabaseProvider::new(&self.file_system.database_file_path())?;
 
-        BackupOperation {
-            commands: &database_provider,
-            remote_commands: &notion_provider,
-            remote_workspaces: &notion_provider,
-            workspaces: &database_provider,
+        let local_commands_provider = &CommandsDatabaseProvider::new(&database_provider);
+        let local_workspaces_provider = &WorkspacesDatabaseProvider::new(&database_provider);
+        let notion_commands_provider = &NotionCommandsProvider::new(&notion_provider);
+        let notion_workspaces_provider = &NotionWorkspacesProvider::new(&notion_provider);
+
+        ExportOperation {
+            local_commands_provider,
+            notion_commands_provider,
+            local_workspaces_provider,
+            notion_workspaces_provider,
         }
         .execute()
         .await?;

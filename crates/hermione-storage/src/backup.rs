@@ -1,94 +1,56 @@
-use std::rc::Rc;
-
 use crate::database::{CommandRecord, DatabaseProvider, WorkspaceRecord};
 use hermione_ops::{
-    backup::{ImportCommand, ImportWorkspace, ListAllCommandsInBatches, ListCommands},
-    commands::{Command, ListCommandsParameters},
-    workspaces::Workspace,
+    backup::{Import, Iterate, ListByIds, Update},
+    commands::{Command, UpdateCommand},
+    workspaces::{UpdateWorkspace, Workspace},
     Result,
 };
 use rusqlite::{params, types::Value};
+use std::{future::Future, rc::Rc};
+use uuid::Uuid;
 
 const DEFAULT_PAGE_SIZE: u32 = 100;
 
-impl ImportCommand for DatabaseProvider {
-    fn import_command(&self, command: Command) -> Result<Command> {
-        let record = CommandRecord::from_entity(&command)?;
-
-        self.insert_command(record).map_err(eyre::Error::new)?;
-
-        Ok(command)
-    }
+pub struct CommandsDatabaseProvider<'a> {
+    inner: &'a DatabaseProvider,
 }
 
-impl ImportWorkspace for DatabaseProvider {
-    fn import_workspace(&self, entity: Workspace) -> Result<Workspace> {
-        let record = WorkspaceRecord::try_from(&entity)?;
-
-        self.insert_workspace(record).map_err(eyre::Error::new)?;
-
-        Ok(entity)
-    }
+pub struct WorkspacesDatabaseProvider<'a> {
+    inner: &'a DatabaseProvider,
 }
 
-impl ListAllCommandsInBatches for DatabaseProvider {
-    async fn list_all_commands_in_batches(
-        &self,
-        batch_fn: impl Fn(Vec<Command>) -> hermione_ops::Result<()>,
-    ) -> Result<()> {
-        let mut page_number = 0;
+impl<'a> CommandsDatabaseProvider<'a> {
+    fn connection(&self) -> &rusqlite::Connection {
+        self.inner.connection()
+    }
 
-        loop {
-            let commands = self.list_commands(ListCommandsParameters {
-                page_number,
-                page_size: DEFAULT_PAGE_SIZE,
-                ids: vec![],
-            })?;
-
-            if commands.is_empty() {
-                break;
-            }
-
-            batch_fn(commands)?;
-
-            page_number += 1;
-        }
+    fn insert(&self, record: CommandRecord) -> Result<()> {
+        self.inner
+            .insert_command(record)
+            .map_err(eyre::Error::new)?;
 
         Ok(())
     }
-}
 
-impl ListCommands for DatabaseProvider {
-    fn list_commands(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>> {
-        let ListCommandsParameters {
-            ids,
-            page_number,
-            page_size,
-        } = parameters;
-
-        let ids: Vec<Vec<u8>> = ids.into_iter().map(|id| id.into_bytes().to_vec()).collect();
-        let ids = Rc::new(ids.into_iter().map(Value::from).collect::<Vec<Value>>());
-        let empty_ids = if ids.is_empty() { 1 } else { 0 };
-
+    fn list_by_page(&self, page_number: u32) -> Result<Vec<Command>> {
         let mut statement = self
             .connection()
             .prepare(
                 "SELECT
-                    id,
-                    last_execute_time,
-                    name,
-                    program,
-                    workspace_id
-                FROM commands
-                WHERE (id IN rarray(?1) OR 1 == ?2)
-                ORDER BY program ASC
-                LIMIT ?3 OFFSET ?4",
+                id,
+                last_execute_time,
+                name,
+                program,
+                workspace_id
+            FROM commands
+            ORDER BY program ASC
+            LIMIT ?1 OFFSET ?2",
             )
             .map_err(eyre::Error::new)?;
 
         let records = statement
             .query_map(
-                params![ids, empty_ids, page_size, page_number * page_size],
+                params![DEFAULT_PAGE_SIZE, page_number * DEFAULT_PAGE_SIZE],
                 CommandRecord::from_row,
             )
             .map_err(eyre::Error::new)?
@@ -101,6 +63,225 @@ impl ListCommands for DatabaseProvider {
             .collect();
 
         Ok(entities)
+    }
+
+    pub fn new(inner: &'a DatabaseProvider) -> Self {
+        Self { inner }
+    }
+}
+
+impl<'a> WorkspacesDatabaseProvider<'a> {
+    fn connection(&self) -> &rusqlite::Connection {
+        self.inner.connection()
+    }
+
+    fn insert_workspace(&self, record: WorkspaceRecord) -> Result<()> {
+        self.inner
+            .insert_workspace(record)
+            .map_err(eyre::Error::new)?;
+
+        Ok(())
+    }
+
+    pub fn new(inner: &'a DatabaseProvider) -> Self {
+        Self { inner }
+    }
+
+    fn list_by_page(&self, page_number: u32) -> Result<Vec<Workspace>> {
+        let mut statement = self
+            .connection()
+            .prepare(
+                "SELECT
+                        id,
+                        last_access_time,
+                        location,
+                        name
+                    FROM workspaces
+                    ORDER BY name ASC
+                    LIMIT ?1 OFFSET ?2",
+            )
+            .map_err(eyre::Error::new)?;
+
+        let records = statement
+            .query_map(
+                params![DEFAULT_PAGE_SIZE, page_number * DEFAULT_PAGE_SIZE],
+                |row| row.try_into(),
+            )
+            .map_err(eyre::Error::new)?
+            .collect::<std::result::Result<Vec<WorkspaceRecord>, _>>()
+            .map_err(eyre::Error::new)?;
+
+        let entities = records.into_iter().map(Into::into).collect();
+
+        Ok(entities)
+    }
+}
+
+impl<'a> Import for CommandsDatabaseProvider<'a> {
+    type Entity = Command;
+
+    async fn import(&self, command: Command) -> Result<Command> {
+        let record = CommandRecord::from_entity(&command)?;
+        self.insert(record)?;
+
+        Ok(command)
+    }
+}
+
+impl<'a> Import for WorkspacesDatabaseProvider<'a> {
+    type Entity = Workspace;
+
+    async fn import(&self, entity: Workspace) -> Result<Workspace> {
+        let record = WorkspaceRecord::try_from(&entity)?;
+        self.insert_workspace(record)?;
+
+        Ok(entity)
+    }
+}
+
+impl<'a> Iterate for CommandsDatabaseProvider<'a> {
+    type Entity = Command;
+
+    async fn iterate<M, MR>(&self, map_fn: M) -> Result<()>
+    where
+        M: Fn(Vec<Self::Entity>) -> MR,
+        MR: Future<Output = Result<()>>,
+    {
+        let mut page_number = 0;
+
+        loop {
+            let commands = self.list_by_page(page_number)?;
+
+            if commands.is_empty() {
+                break;
+            }
+
+            map_fn(commands).await?;
+
+            page_number += 1;
+        }
+
+        Ok(())
+    }
+}
+
+impl<'a> Iterate for WorkspacesDatabaseProvider<'a> {
+    type Entity = Workspace;
+
+    async fn iterate<M, MR>(&self, map_fn: M) -> Result<()>
+    where
+        M: Fn(Vec<Self::Entity>) -> MR,
+        MR: Future<Output = Result<()>>,
+    {
+        let mut page_number = 0;
+
+        loop {
+            let workspaces = self.list_by_page(page_number)?;
+
+            if workspaces.is_empty() {
+                break;
+            }
+
+            map_fn(workspaces).await?;
+
+            page_number += 1;
+        }
+
+        Ok(())
+    }
+}
+
+impl<'a> ListByIds for CommandsDatabaseProvider<'a> {
+    type Entity = Command;
+
+    async fn list_by_ids(&self, ids: Vec<Uuid>) -> Result<Vec<Self::Entity>> {
+        let ids: Vec<Vec<u8>> = ids.into_iter().map(|id| id.into_bytes().to_vec()).collect();
+        let ids = Rc::new(ids.into_iter().map(Value::from).collect::<Vec<Value>>());
+
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut statement = self
+            .connection()
+            .prepare(
+                "SELECT
+                    id,
+                    last_execute_time,
+                    name,
+                    program,
+                    workspace_id
+                FROM commands
+                WHERE id IN rarray(?1)
+                ORDER BY program ASC",
+            )
+            .map_err(eyre::Error::new)?;
+
+        let records = statement
+            .query_map(params![ids], CommandRecord::from_row)
+            .map_err(eyre::Error::new)?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(eyre::Error::new)?;
+
+        let entities = records
+            .into_iter()
+            .map(CommandRecord::load_entity)
+            .collect();
+
+        Ok(entities)
+    }
+}
+
+impl<'a> ListByIds for WorkspacesDatabaseProvider<'a> {
+    type Entity = Workspace;
+
+    async fn list_by_ids(&self, ids: Vec<Uuid>) -> Result<Vec<Self::Entity>> {
+        let ids: Vec<Vec<u8>> = ids.into_iter().map(|id| id.into_bytes().to_vec()).collect();
+        let ids = Rc::new(ids.into_iter().map(Value::from).collect::<Vec<Value>>());
+
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut statement = self
+            .connection()
+            .prepare(
+                "SELECT
+                    id,
+                    last_access_time,
+                    location,
+                    name
+                FROM workspaces
+                WHERE id IN rarray(?1)
+                ORDER BY name ASC",
+            )
+            .map_err(eyre::Error::new)?;
+
+        let records = statement
+            .query_map(params![ids], |row| row.try_into())
+            .map_err(eyre::Error::new)?
+            .collect::<std::result::Result<Vec<WorkspaceRecord>, _>>()
+            .map_err(eyre::Error::new)?;
+
+        let entities = records.into_iter().map(Into::into).collect();
+
+        Ok(entities)
+    }
+}
+
+impl<'a> Update for CommandsDatabaseProvider<'a> {
+    type Entity = Command;
+
+    async fn update(&self, entity: Self::Entity) -> Result<Self::Entity> {
+        self.inner.update_command(entity)
+    }
+}
+
+impl<'a> Update for WorkspacesDatabaseProvider<'a> {
+    type Entity = Workspace;
+
+    async fn update(&self, entity: Self::Entity) -> Result<Self::Entity> {
+        self.inner.update_workspace(entity)
     }
 }
 
@@ -128,9 +309,10 @@ mod tests {
         Ok(provider)
     }
 
-    #[test]
-    fn test_list_commands() -> Result<()> {
+    #[tokio::test]
+    async fn test_list_commands() -> Result<()> {
         let db = prepare_test_db()?;
+        let cdb = CommandsDatabaseProvider::new(&db);
 
         let workspace = db.create_workspace(Workspace::new(NewWorkspaceParameters {
             name: "Test workspace".into(),
@@ -149,11 +331,7 @@ mod tests {
             workspace_id: workspace.try_id()?,
         }))?;
 
-        let commands = db.list_commands(ListCommandsParameters {
-            page_number: 0,
-            page_size: 10,
-            ids: vec![command2.try_id()?],
-        })?;
+        let commands = cdb.list_by_ids(vec![command2.try_id()?]).await?;
 
         assert_eq!(commands.len(), 1);
 
@@ -161,21 +339,15 @@ mod tests {
 
         assert_eq!(command, command2);
 
-        let commands = db.list_commands(ListCommandsParameters {
-            page_number: 0,
-            page_size: 10,
-            ids: vec![command2.try_id()?, command1.try_id()?],
-        })?;
+        let commands = cdb
+            .list_by_ids(vec![command2.try_id()?, command1.try_id()?])
+            .await?;
 
         assert_eq!(commands.len(), 2);
 
-        let commands = db.list_commands(ListCommandsParameters {
-            page_number: 0,
-            page_size: 10,
-            ids: vec![],
-        })?;
+        let commands = cdb.list_by_ids(vec![]).await?;
 
-        assert_eq!(commands.len(), 2);
+        assert!(commands.is_empty());
 
         Ok(())
     }
