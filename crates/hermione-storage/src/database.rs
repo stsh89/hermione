@@ -2,14 +2,14 @@ use chrono::DateTime;
 use hermione_ops::{
     commands::{
         Command, CommandWorkspaceScopedId, CreateCommand, DeleteCommandFromWorkspace, FindCommand,
-        GetCommandFromWorkspace, ImportCommand, ListAllCommandsInBatches, ListCommands,
-        ListCommandsParameters, ListCommandsWithinWorkspace, ListCommandsWithinWorkspaceParameters,
-        LoadCommandParameters, UpdateCommand,
+        GetCommandFromWorkspace, ListAllCommandsInBatches, ListCommands, ListCommandsParameters,
+        ListCommandsWithinWorkspace, ListCommandsWithinWorkspaceParameters, LoadCommandParameters,
+        UpdateCommand,
     },
     workspaces::{
-        CreateWorkspace, DeleteWorkspace, FindWorkspace, GetWorkspace, ImportWorkspace,
-        ListAllWorkspacesInBatches, ListWorkspaces, ListWorkspacesParameters,
-        LoadWorkspaceParameters, UpdateWorkspace, Workspace,
+        CreateWorkspace, DeleteWorkspace, FindWorkspace, GetWorkspace, ListAllWorkspacesInBatches,
+        ListWorkspaces, ListWorkspacesParameters, LoadWorkspaceParameters, UpdateWorkspace,
+        Workspace,
     },
     Error,
 };
@@ -43,7 +43,7 @@ impl DatabaseProvider {
         &self.connection
     }
 
-    fn insert_command(&self, record: CommandRecord) -> rusqlite::Result<()> {
+    pub(crate) fn insert_command(&self, record: CommandRecord) -> rusqlite::Result<()> {
         self.connection
             .prepare(
                 "INSERT INTO commands (
@@ -65,7 +65,7 @@ impl DatabaseProvider {
         Ok(())
     }
 
-    fn insert_workspace(&self, record: WorkspaceRecord) -> rusqlite::Result<()> {
+    pub(crate) fn insert_workspace(&self, record: WorkspaceRecord) -> rusqlite::Result<()> {
         self.connection
             .prepare(
                 "INSERT INTO workspaces (
@@ -416,26 +416,6 @@ impl GetWorkspace for DatabaseProvider {
             .map_err(eyre::Error::new)?;
 
         Ok(record.into())
-    }
-}
-
-impl ImportCommand for DatabaseProvider {
-    fn import_command(&self, command: Command) -> Result<Command, Error> {
-        let record = CommandRecord::from_entity(&command)?;
-
-        self.insert_command(record).map_err(eyre::Error::new)?;
-
-        Ok(command)
-    }
-}
-
-impl ImportWorkspace for DatabaseProvider {
-    fn import_workspace(&self, entity: Workspace) -> Result<Workspace, Error> {
-        let record = WorkspaceRecord::try_from(&entity)?;
-
-        self.insert_workspace(record).map_err(eyre::Error::new)?;
-
-        Ok(entity)
     }
 }
 

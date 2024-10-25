@@ -21,10 +21,6 @@ pub trait GetCommandFromWorkspace {
     fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command>;
 }
 
-pub trait ImportCommand {
-    fn import_command(&self, command: Command) -> Result<Command>;
-}
-
 pub trait ListCommands {
     fn list_commands(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>>;
 }
@@ -61,10 +57,6 @@ pub struct FindCommandOperation<'a, R> {
 
 pub struct GetCommandFromWorkspaceOperation<'a, R> {
     pub getter: &'a R,
-}
-
-pub struct ImportCommandOperation<'a, S> {
-    pub importer: &'a S,
 }
 
 pub struct ListCommandsOperation<'a, L>
@@ -179,15 +171,6 @@ where
 {
     pub fn execute(&self, scoped_id: CommandWorkspaceScopedId) -> Result<Command> {
         self.getter.get_command_from_workspace(scoped_id)
-    }
-}
-
-impl<'a, S> ImportCommandOperation<'a, S>
-where
-    S: ImportCommand,
-{
-    pub fn execute(&self, command: Command) -> Result<Command> {
-        self.importer.import_command(command)
     }
 }
 

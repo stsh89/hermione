@@ -21,10 +21,6 @@ pub trait GetWorkspace {
     fn get_workspace(&self, workspace_id: Uuid) -> Result<Workspace>;
 }
 
-pub trait ImportWorkspace {
-    fn import_workspace(&self, workspace: Workspace) -> Result<Workspace>;
-}
-
 pub trait ListWorkspaces {
     fn list_workspaces(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>>;
 }
@@ -54,10 +50,6 @@ pub struct FindWorkspaceOperation<'a, R> {
 
 pub struct GetWorkspaceOperation<'a, R> {
     pub getter: &'a R,
-}
-
-pub struct ImportWorkspaceOperation<'a, S> {
-    pub importer: &'a S,
 }
 
 pub struct ListWorkspaceOperation<'a, L> {
@@ -148,15 +140,6 @@ where
 {
     pub fn execute(&self, workspace_id: Uuid) -> Result<Workspace> {
         self.getter.get_workspace(workspace_id)
-    }
-}
-
-impl<'a, S> ImportWorkspaceOperation<'a, S>
-where
-    S: ImportWorkspace,
-{
-    pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
-        self.importer.import_workspace(workspace)
     }
 }
 

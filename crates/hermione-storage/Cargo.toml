@@ -7,8 +7,9 @@ edition = "2021"
 name = "hermione_storage"
 
 [features]
-notion = []
+backup = []
 extensions = []
+notion = []
 
 [dependencies]
 chrono = { workspace = true }

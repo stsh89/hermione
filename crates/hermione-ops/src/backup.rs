@@ -1,16 +1,30 @@
 use crate::{
-    commands::{Command, FindCommand, ImportCommand, ListAllCommandsInBatches, UpdateCommand},
-    workspaces::{
-        FindWorkspace, ImportWorkspace, ListAllWorkspacesInBatches, UpdateWorkspace, Workspace,
-    },
+    commands::{Command, FindCommand, ListAllCommandsInBatches, UpdateCommand},
+    workspaces::{FindWorkspace, ListAllWorkspacesInBatches, UpdateWorkspace, Workspace},
     Error, Result,
 };
+
+pub trait ImportCommand {
+    fn import_command(&self, command: Command) -> Result<Command>;
+}
+
+pub trait ImportWorkspace {
+    fn import_workspace(&self, workspace: Workspace) -> Result<Workspace>;
+}
 
 pub struct BackupOperation<'a, C, RC, RW, W> {
     pub commands: &'a C,
     pub remote_commands: &'a RC,
     pub remote_workspaces: &'a RW,
     pub workspaces: &'a W,
+}
+
+pub struct ImportCommandOperation<'a, S> {
+    pub importer: &'a S,
+}
+
+pub struct ImportWorkspaceOperation<'a, S> {
+    pub importer: &'a S,
 }
 
 impl<'a, C, RC, RW, W> BackupOperation<'a, C, RC, RW, W>
@@ -81,5 +95,23 @@ where
         }
 
         Ok(())
+    }
+}
+
+impl<'a, S> ImportCommandOperation<'a, S>
+where
+    S: ImportCommand,
+{
+    pub fn execute(&self, command: Command) -> Result<Command> {
+        self.importer.import_command(command)
+    }
+}
+
+impl<'a, S> ImportWorkspaceOperation<'a, S>
+where
+    S: ImportWorkspace,
+{
+    pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
+        self.importer.import_workspace(workspace)
     }
 }
