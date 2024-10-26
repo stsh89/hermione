@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
-
 use crate::{Error, Result};
 
 pub trait CreateCommand {
