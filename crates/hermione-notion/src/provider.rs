@@ -1,5 +1,3 @@
-use std::future::Future;
-
 use crate::client::{
     Client, DatabasePage, NewClientParameters, QueryDatabaseParameters, QueryDatabaseResponse,
 };
@@ -14,6 +12,7 @@ use hermione_ops::{
     Error, Result,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::future::Future;
 use uuid::Uuid;
 
 const DEFAULT_PAGE_SIZE: u8 = 100;
@@ -338,7 +337,7 @@ impl<'a> Iterate for NotionWorkspacesProvider<'a> {
                 .list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
                     database_id: credentials.workspaces_page_id().into(),
                     external_ids: None,
-                    page_size: Some(1),
+                    page_size: Some(DEFAULT_PAGE_SIZE),
                     api_key: credentials.api_key().into(),
                     start_cursor,
                 })
@@ -385,7 +384,7 @@ impl<'a> Iterate for NotionCommandsProvider<'a> {
                 .list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
                     database_id: credentials.commands_page_id().into(),
                     external_ids: None,
-                    page_size: Some(1),
+                    page_size: Some(DEFAULT_PAGE_SIZE),
                     api_key: credentials.api_key().into(),
                     start_cursor,
                 })
