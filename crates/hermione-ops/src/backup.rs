@@ -6,6 +6,12 @@ pub trait Ided {
     fn id(&self) -> Uuid;
 }
 
+pub trait Import {
+    type Entity;
+
+    fn import(&self, entity: Self::Entity) -> impl Future<Output = Result<Self::Entity>>;
+}
+
 pub trait Iterate {
     type Entity;
 
@@ -13,12 +19,6 @@ pub trait Iterate {
     where
         M: Fn(Vec<Self::Entity>) -> MR,
         MR: Future<Output = Result<()>>;
-}
-
-pub trait Import {
-    type Entity;
-
-    fn import(&self, entity: Self::Entity) -> impl Future<Output = Result<Self::Entity>>;
 }
 
 pub trait ListByIds {
