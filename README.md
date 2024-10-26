@@ -13,5 +13,5 @@ cargo install --git https://github.com/stsh89/hermione.git hermione-terminal
 ### Install Notion synchronization plugin
 
 ```pwsh
-cargo install --git https://github.com/stsh89/hermione.git hermione-notion-sync
+cargo install --git https://github.com/stsh89/hermione.git hermione-notion
 ```
