@@ -1,5 +1,3 @@
-use uuid::Uuid;
-
 use crate::{
     commands::{
         Command, CommandWorkspaceScopedId, GetCommandFromWorkspace,
@@ -8,6 +6,7 @@ use crate::{
     workspaces::{GetWorkspace, GetWorkspaceOperation, Workspace},
     Error, Result,
 };
+use uuid::Uuid;
 
 pub trait CopyCommandToClipboard {
     fn copy_command_to_clipboard(&self, text: &str) -> Result<()>;

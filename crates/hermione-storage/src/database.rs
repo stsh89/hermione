@@ -6,16 +6,14 @@ use hermione_ops::{
         ListCommandsWithinWorkspaceParameters, LoadCommandParameters, UpdateCommand,
     },
     workspaces::{
-        CreateWorkspace, DeleteWorkspace, GetWorkspace, ListAllWorkspacesInBatches, ListWorkspaces,
-        ListWorkspacesParameters, LoadWorkspaceParameters, UpdateWorkspace, Workspace,
+        CreateWorkspace, DeleteWorkspace, GetWorkspace, ListWorkspaces, ListWorkspacesParameters,
+        LoadWorkspaceParameters, UpdateWorkspace, Workspace,
     },
     Result,
 };
 use rusqlite::{params, Connection, Statement};
 use std::path::Path;
 use uuid::{Bytes, Uuid};
-
-const DEFAULT_PAGE_SIZE: u32 = 100;
 
 pub(crate) struct CommandRecord {
     pub(crate) id: Bytes,
@@ -472,33 +470,6 @@ impl ListWorkspaces for DatabaseProvider {
         let entities = records.into_iter().map(Into::into).collect();
 
         Ok(entities)
-    }
-}
-
-impl ListAllWorkspacesInBatches for DatabaseProvider {
-    async fn list_all_workspaces_in_batches(
-        &self,
-        batch_fn: impl Fn(Vec<Workspace>) -> hermione_ops::Result<()>,
-    ) -> Result<()> {
-        let mut page_number = 0;
-
-        loop {
-            let commands = self.list_workspaces(ListWorkspacesParameters {
-                page_number,
-                page_size: DEFAULT_PAGE_SIZE,
-                name_contains: "",
-            })?;
-
-            if commands.is_empty() {
-                break;
-            }
-
-            batch_fn(commands)?;
-
-            page_number += 1;
-        }
-
-        Ok(())
     }
 }
 

@@ -1,9 +1,6 @@
-use std::future::Future;
-
+use crate::{Error, Result};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
-
-use crate::{Error, Result};
 
 pub trait CreateWorkspace {
     fn create_workspace(&self, workspace: Workspace) -> Result<Workspace>;
@@ -19,13 +16,6 @@ pub trait GetWorkspace {
 
 pub trait ListWorkspaces {
     fn list_workspaces(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>>;
-}
-
-pub trait ListAllWorkspacesInBatches {
-    fn list_all_workspaces_in_batches(
-        &self,
-        batch_fn: impl Fn(Vec<Workspace>) -> Result<()>,
-    ) -> impl Future<Output = Result<()>>;
 }
 
 pub trait UpdateWorkspace {
