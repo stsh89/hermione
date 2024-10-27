@@ -119,8 +119,8 @@ impl SqliteProvider {
         Ok(())
     }
 
-    pub fn new(file_path: &Path) -> rusqlite::Result<Self> {
-        let connection = Connection::open(file_path)?;
+    pub fn new(folder_path: &Path) -> rusqlite::Result<Self> {
+        let connection = Connection::open(folder_path.join("hermione.db3"))?;
         let provider = Self { connection };
 
         provider.migrate()?;

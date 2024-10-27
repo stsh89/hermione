@@ -14,10 +14,7 @@ mod smart_input;
 mod widgets;
 
 use coordinator::Coordinator;
-use hermione_storage::{
-    file_system::{FileSystemProvider, TERMINAL_APP_LOGS_FILE_NAME_PREFIX},
-    sqlite::SqliteProvider,
-};
+use hermione_storage::sqlite::SqliteProvider;
 use hermione_tracing::{NewTracerParameters, Tracer};
 use providers::{clipboard::ClipboardProvider, system::SystemProvider};
 use router::TerminalRouter;
@@ -33,11 +30,11 @@ type Error = anyhow::Error;
 type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
+    let app_path = hermione_storage::app_path()?;
     let powershell_client = hermione_powershell::PowerShellClient::new()?;
-    let file_system = FileSystemProvider::new().map_err(|err| anyhow::anyhow!(err))?;
 
     let coordinator = Coordinator {
-        storage_provider: SqliteProvider::new(&file_system.database_file_path())?,
+        storage_provider: SqliteProvider::new(&app_path)?,
         clipboard_provider: ClipboardProvider {
             client: &powershell_client,
         },
@@ -49,8 +46,8 @@ fn main() -> Result<()> {
     let router = TerminalRouter { coordinator };
 
     let tracer = Tracer::new(NewTracerParameters {
-        directory: file_system.location().into(),
-        filename_prefix: TERMINAL_APP_LOGS_FILE_NAME_PREFIX,
+        directory: &app_path,
+        filename_prefix: "hermione-terminal-logs",
     });
 
     let _guard = tracer.init_non_blocking()?;

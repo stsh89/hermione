@@ -1,10 +1,12 @@
 mod cli;
 mod client;
+mod clients;
 mod de;
-mod provider;
+mod providers;
 mod screen;
 
 use cli::{Cli, CliSubcommand, Run};
+use clients::credentials::NotionCredentialsClient;
 use hermione_ops::notion::{
     DeleteCredentialsOperation, ExportOperation, GetCredentialsOperation, ImportOperation,
     SaveCredentialsOperation, VerifyCredentialsOperation,
@@ -14,20 +16,23 @@ use hermione_storage::{
         SqliteCommandsIteratorProvider, SqliteCommandsProvider, SqliteWorkspacesIteratorProvider,
         SqliteWorkspacesProvider,
     },
-    file_system::FileSystemProvider,
     sqlite::SqliteProvider,
 };
 use hermione_tracing::{NewTracerParameters, Tracer};
-use provider::{
-    NotionCommandsIteratorProvider, NotionCommandsProvider, NotionProvider,
-    NotionWorkspacesIteratorProvider, NotionWorkspacesProvider,
+use providers::{
+    credentials::NotionCredentialsProvider,
+    pages::{
+        NotionCommandsIteratorProvider, NotionCommandsProvider, NotionProvider,
+        NotionWorkspacesIteratorProvider, NotionWorkspacesProvider,
+    },
 };
 use screen::ScreenProvider;
 
 type Result<T> = anyhow::Result<T>;
 
 struct App {
-    file_system: FileSystemProvider,
+    credentials_provider: NotionCredentialsProvider,
+    storage_provider: SqliteProvider,
 }
 
 enum Command {
@@ -42,7 +47,7 @@ enum Command {
 impl App {
     fn delete_credentials(self) -> Result<()> {
         DeleteCredentialsOperation {
-            deleter: &self.file_system,
+            deleter: &self.credentials_provider,
         }
         .execute()?;
 
@@ -51,15 +56,14 @@ impl App {
 
     async fn import(self) -> Result<()> {
         let credentials = GetCredentialsOperation {
-            get_credentials_provider: &self.file_system,
+            get_credentials_provider: &self.credentials_provider,
         }
         .execute()?;
 
         let notion_provider = NotionProvider::new(Some(credentials))?;
-        let database_provider = SqliteProvider::new(&self.file_system.database_file_path())?;
 
-        let local_commands_provider = &SqliteCommandsProvider::new(&database_provider);
-        let local_workspaces_provider = &SqliteWorkspacesProvider::new(&database_provider);
+        let local_commands_provider = &SqliteCommandsProvider::new(&self.storage_provider);
+        let local_workspaces_provider = &SqliteWorkspacesProvider::new(&self.storage_provider);
         let notion_commands_provider = &NotionCommandsIteratorProvider::new(&notion_provider);
         let notion_workspaces_provider = &NotionWorkspacesIteratorProvider::new(&notion_provider);
 
@@ -77,15 +81,15 @@ impl App {
 
     async fn export(&self) -> Result<()> {
         let credentials = GetCredentialsOperation {
-            get_credentials_provider: &self.file_system,
+            get_credentials_provider: &self.credentials_provider,
         }
         .execute()?;
 
         let notion_provider = NotionProvider::new(Some(credentials))?;
-        let database_provider = SqliteProvider::new(&self.file_system.database_file_path())?;
 
-        let local_commands_provider = &SqliteCommandsIteratorProvider::new(&database_provider);
-        let local_workspaces_provider = &SqliteWorkspacesIteratorProvider::new(&database_provider);
+        let local_commands_provider = &SqliteCommandsIteratorProvider::new(&self.storage_provider);
+        let local_workspaces_provider =
+            &SqliteWorkspacesIteratorProvider::new(&self.storage_provider);
         let notion_commands_provider = &NotionCommandsProvider::new(&notion_provider);
         let notion_workspaces_provider = &NotionWorkspacesProvider::new(&notion_provider);
 
@@ -103,7 +107,7 @@ impl App {
 
     async fn save_credentials(self) -> Result<()> {
         SaveCredentialsOperation {
-            saver: &self.file_system,
+            saver: &self.credentials_provider,
             getter: &ScreenProvider::new(),
             verifier: &NotionProvider::new(None)?,
         }
@@ -115,7 +119,7 @@ impl App {
 
     fn show_credentials(self) -> Result<()> {
         let creds = GetCredentialsOperation {
-            get_credentials_provider: &self.file_system,
+            get_credentials_provider: &self.credentials_provider,
         }
         .execute()?;
 
@@ -129,7 +133,7 @@ impl App {
 
     async fn verify_credentials(self) -> Result<()> {
         VerifyCredentialsOperation {
-            get_credentials_provider: &self.file_system,
+            get_credentials_provider: &self.credentials_provider,
             verify_credentials_provider: &NotionProvider::new(None)?,
         }
         .execute()
@@ -141,14 +145,23 @@ impl App {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let file_system = FileSystemProvider::new().map_err(|err| anyhow::anyhow!(err))?;
+    let app_path = hermione_storage::app_path()?;
+
+    let credentials_provider = NotionCredentialsProvider {
+        client: NotionCredentialsClient::new(app_path.join("notion.json")),
+    };
+
+    let storage_provider = SqliteProvider::new(&app_path)?;
 
     let tracer = Tracer::new(NewTracerParameters {
-        directory: file_system.location().into(),
+        directory: &app_path,
         filename_prefix: "hermione-notion-logs",
     });
 
-    let app = App { file_system };
+    let app = App {
+        credentials_provider,
+        storage_provider,
+    };
 
     let _guard = tracer.init_non_blocking()?;
 

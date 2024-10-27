@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 use tracing_appender::{
     non_blocking::WorkerGuard,
     rolling::{RollingFileAppender, Rotation},
@@ -10,12 +10,12 @@ const DEFAULT_ROTATION_POLICY: Rotation = Rotation::DAILY;
 type Result<T> = anyhow::Result<T>;
 
 pub struct Tracer<'a> {
-    directory: PathBuf,
+    directory: &'a Path,
     filename_prefix: &'a str,
 }
 
 pub struct NewTracerParameters<'a> {
-    pub directory: PathBuf,
+    pub directory: &'a Path,
     pub filename_prefix: &'a str,
 }
 
@@ -25,7 +25,7 @@ impl<'a> Tracer<'a> {
             .max_log_files(MAX_LOG_FILES)
             .filename_prefix(self.filename_prefix)
             .rotation(DEFAULT_ROTATION_POLICY)
-            .build(&self.directory)?;
+            .build(self.directory)?;
 
         let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 

@@ -15,7 +15,7 @@ uuid = { workspace = true }
 eyre = { workspace = true }
 
 hermione-ops = { workspace = true, features = ["notion", "backup"] }
-hermione-storage = { workspace = true, features = ["notion", "backup"] }
+hermione-storage = { workspace = true, features = ["backup"] }
 hermione-tracing = { workspace = true }
 
 [dev-dependencies]

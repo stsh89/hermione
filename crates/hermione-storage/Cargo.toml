@@ -9,7 +9,6 @@ name = "hermione_storage"
 [features]
 backup = []
 extensions = []
-notion = []
 
 [dependencies]
 chrono = { workspace = true }
