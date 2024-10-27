@@ -1,10 +1,3 @@
-use hermione_ops::{
-    extensions::{
-        CopyCommandToClipboard, OpenWindowsTerminal, OpenWindowsTerminalParameters, RunProgram,
-        RunProgramParameters,
-    },
-    Result,
-};
 use std::{
     io,
     process::{Child, Command, Stdio},
@@ -14,7 +7,7 @@ use std::{
 const DEFAULT_WINDOWS_TERMINAL_COMMAND: &str = "wt pwsh";
 const POWERSHELL_COMMAND: &str = "pwsh";
 
-pub struct PowerShellProvider {
+pub struct PowerShellClient {
     child: RwLock<Child>,
 }
 
@@ -31,7 +24,7 @@ pub struct PowerShellParameters<'a> {
     pub working_directory: Option<&'a str>,
 }
 
-impl PowerShellProvider {
+impl PowerShellClient {
     pub fn copy_to_clipboard(&self, text: &str) -> io::Result<()> {
         let command = format!("Set-Clipboard '{}'", text);
         self.execute(&command)
@@ -110,46 +103,4 @@ fn spawn() -> io::Result<Child> {
     cmd.stderr(Stdio::piped());
 
     cmd.spawn()
-}
-
-impl CopyCommandToClipboard for PowerShellProvider {
-    fn copy_command_to_clipboard(&self, text: &str) -> Result<()> {
-        self.copy_to_clipboard(text).map_err(eyre::Error::new)?;
-
-        Ok(())
-    }
-}
-
-impl RunProgram for PowerShellProvider {
-    fn run(&self, parameters: RunProgramParameters) -> Result<()> {
-        let RunProgramParameters {
-            program,
-            no_exit,
-            working_directory,
-        } = parameters;
-
-        self.open_windows_terminal(Some(PowerShellParameters {
-            command: Some(program),
-            no_exit,
-            working_directory: Some(working_directory),
-        }))
-        .map_err(eyre::Error::new)?;
-
-        Ok(())
-    }
-}
-
-impl OpenWindowsTerminal for PowerShellProvider {
-    fn open_windows_terminal(&self, parameters: OpenWindowsTerminalParameters) -> Result<()> {
-        let OpenWindowsTerminalParameters { working_directory } = parameters;
-
-        self.open_windows_terminal(Some(PowerShellParameters {
-            command: None,
-            no_exit: false,
-            working_directory: Some(working_directory),
-        }))
-        .map_err(eyre::Error::new)?;
-
-        Ok(())
-    }
 }

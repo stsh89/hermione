@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub struct WorkspacesHandler<'a> {
-    pub coordinator: &'a Coordinator,
+    pub coordinator: &'a Coordinator<'a>,
 }
 
 impl<'a> WorkspacesHandler<'a> {

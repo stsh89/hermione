@@ -5,10 +5,3 @@ edition = "2021"
 
 [lib]
 name = "hermione_powershell"
-
-[dependencies]
-anyhow = { workspace = true }
-eyre = { workspace = true }
-thiserror = { workspace = true }
-
-hermione-ops = { workspace = true, features = ["extensions"] }

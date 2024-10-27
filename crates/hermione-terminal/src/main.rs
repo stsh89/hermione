@@ -7,14 +7,19 @@ mod message;
 mod models;
 mod params;
 mod presenters;
+mod providers;
 mod router;
 mod routes;
 mod smart_input;
 mod widgets;
 
 use coordinator::Coordinator;
-use hermione_storage::file_system::{FileSystemProvider, TERMINAL_APP_LOGS_FILE_NAME_PREFIX};
+use hermione_storage::{
+    file_system::{FileSystemProvider, TERMINAL_APP_LOGS_FILE_NAME_PREFIX},
+    sqlite::SqliteProvider,
+};
 use hermione_tracing::{NewTracerParameters, Tracer};
+use providers::{clipboard::ClipboardProvider, system::SystemProvider};
 use router::TerminalRouter;
 
 pub(crate) use handlers::*;
@@ -28,8 +33,19 @@ type Error = anyhow::Error;
 type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
+    let powershell_client = hermione_powershell::PowerShellClient::new()?;
     let file_system = FileSystemProvider::new().map_err(|err| anyhow::anyhow!(err))?;
-    let coordinator = Coordinator::new(&file_system.database_file_path())?;
+
+    let coordinator = Coordinator {
+        storage_provider: SqliteProvider::new(&file_system.database_file_path())?,
+        clipboard_provider: ClipboardProvider {
+            client: &powershell_client,
+        },
+        system_provider: SystemProvider {
+            client: &powershell_client,
+        },
+    };
+
     let router = TerminalRouter { coordinator };
 
     let tracer = Tracer::new(NewTracerParameters {

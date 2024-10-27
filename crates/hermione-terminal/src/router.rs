@@ -6,23 +6,23 @@ use crate::{
 };
 use hermione_tui::{BoxedModel, Router};
 
-pub struct TerminalRouter {
-    pub coordinator: Coordinator,
+pub struct TerminalRouter<'a> {
+    pub coordinator: Coordinator<'a>,
 }
 
 struct WorkspacesRouter<'a> {
-    coordinator: &'a Coordinator,
+    coordinator: &'a Coordinator<'a>,
 }
 
 struct WorkspaceCommandsRouter<'a> {
-    coordinator: &'a Coordinator,
+    coordinator: &'a Coordinator<'a>,
 }
 
 struct PowerShellRouter<'a> {
-    coordinator: &'a Coordinator,
+    coordinator: &'a Coordinator<'a>,
 }
 
-impl Router for TerminalRouter {
+impl Router for TerminalRouter<'_> {
     type Route = Route;
     type Message = Message;
 

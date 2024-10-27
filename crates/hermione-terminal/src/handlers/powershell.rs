@@ -4,7 +4,7 @@ use crate::{
 };
 
 pub struct PowerShellHandler<'a> {
-    pub coordinator: &'a Coordinator,
+    pub coordinator: &'a Coordinator<'a>,
 }
 
 impl<'a> PowerShellHandler<'a> {

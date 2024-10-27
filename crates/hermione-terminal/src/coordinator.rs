@@ -1,3 +1,7 @@
+use crate::{
+    providers::{clipboard::ClipboardProvider, system::SystemProvider},
+    CommandPresenter, Result, WorkspacePresenter,
+};
 use hermione_ops::{
     commands::{
         Command, CommandWorkspaceScopedId, CreateCommandOperation,
@@ -16,15 +20,12 @@ use hermione_ops::{
         UpdateWorkspaceOperation, Workspace,
     },
 };
-use hermione_powershell::PowerShellProvider;
 use hermione_storage::sqlite::SqliteProvider;
-use std::path::Path;
 
-use crate::{CommandPresenter, WorkspacePresenter};
-
-pub struct Coordinator {
-    storage: SqliteProvider,
-    powershell: PowerShellProvider,
+pub struct Coordinator<'a> {
+    pub storage_provider: SqliteProvider,
+    pub clipboard_provider: ClipboardProvider<'a>,
+    pub system_provider: SystemProvider<'a>,
 }
 
 pub struct ExecuteCommandWithinWorkspaceInput<'a> {
@@ -50,15 +51,11 @@ pub struct OpenWindowsTerminalInput<'a> {
     pub working_directory: &'a str,
 }
 
-impl Coordinator {
-    pub fn copy_program_to_clipboard(
-        &self,
-        workspace_id: &str,
-        command_id: &str,
-    ) -> anyhow::Result<()> {
+impl<'a> Coordinator<'a> {
+    pub fn copy_program_to_clipboard(&self, workspace_id: &str, command_id: &str) -> Result<()> {
         CopyCommandToClipboardOperation {
-            clipboard_provider: &self.powershell,
-            getter: &self.storage,
+            clipboard_provider: &self.clipboard_provider,
+            getter: &self.storage_provider,
         }
         .execute(CommandWorkspaceScopedId {
             workspace_id: workspace_id.parse()?,
@@ -68,7 +65,7 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn create_command(&self, dto: CommandPresenter) -> anyhow::Result<CommandPresenter> {
+    pub fn create_command(&self, dto: CommandPresenter) -> Result<CommandPresenter> {
         let CommandPresenter {
             id: _,
             name,
@@ -83,14 +80,14 @@ impl Coordinator {
         });
 
         let command = CreateCommandOperation {
-            creator: &self.storage,
+            creator: &self.storage_provider,
         }
         .execute(new_command)?;
 
         Ok(command.into())
     }
 
-    pub fn create_workspace(&self, dto: WorkspacePresenter) -> anyhow::Result<WorkspacePresenter> {
+    pub fn create_workspace(&self, dto: WorkspacePresenter) -> Result<WorkspacePresenter> {
         let WorkspacePresenter {
             id: _,
             location,
@@ -103,41 +100,37 @@ impl Coordinator {
         });
 
         let workspace = CreateWorkspaceOperation {
-            creator: &self.storage,
+            creator: &self.storage_provider,
         }
         .execute(new_workspace)?;
 
         Ok(workspace.into())
     }
 
-    pub fn delete_command_from_workspace(
-        &self,
-        workspace_id: &str,
-        id: &str,
-    ) -> anyhow::Result<()> {
+    pub fn delete_command_from_workspace(&self, workspace_id: &str, id: &str) -> Result<()> {
         let id = CommandWorkspaceScopedId {
             workspace_id: workspace_id.parse()?,
             command_id: id.parse()?,
         };
 
         DeleteCommandFromWorkspaceOperation {
-            deleter: &self.storage,
+            deleter: &self.storage_provider,
         }
         .execute(id)?;
 
         Ok(())
     }
 
-    pub fn delete_workspace(&self, id: &str) -> anyhow::Result<()> {
+    pub fn delete_workspace(&self, id: &str) -> Result<()> {
         DeleteWorkspaceOperation {
-            deleter: &self.storage,
+            deleter: &self.storage_provider,
         }
         .execute(id.parse()?)?;
 
         Ok(())
     }
 
-    pub fn execute_command(&self, input: ExecuteCommandWithinWorkspaceInput) -> anyhow::Result<()> {
+    pub fn execute_command(&self, input: ExecuteCommandWithinWorkspaceInput) -> Result<()> {
         let ExecuteCommandWithinWorkspaceInput {
             command_id,
             workspace_id,
@@ -145,11 +138,11 @@ impl Coordinator {
         } = input;
 
         ExecuteCommandOperation {
-            get_command: &self.storage,
-            runner: &self.powershell,
-            command_tracker: &self.storage,
-            get_workspace: &self.storage,
-            workspace_tracker: &self.storage,
+            get_command: &self.storage_provider,
+            runner: &self.system_provider,
+            command_tracker: &self.storage_provider,
+            get_workspace: &self.storage_provider,
+            workspace_tracker: &self.storage_provider,
         }
         .execute(ExecuteCommandWithinWorkspaceParameters {
             command_id: command_id.parse()?,
@@ -164,23 +157,23 @@ impl Coordinator {
         &self,
         workspace_id: &str,
         id: &str,
-    ) -> anyhow::Result<CommandPresenter> {
+    ) -> Result<CommandPresenter> {
         let id = CommandWorkspaceScopedId {
             workspace_id: workspace_id.parse()?,
             command_id: id.parse()?,
         };
 
         let command = GetCommandFromWorkspaceOperation {
-            getter: &self.storage,
+            getter: &self.storage_provider,
         }
         .execute(id)?;
 
         Ok(command.into())
     }
 
-    pub fn get_workspace(&self, id: &str) -> anyhow::Result<WorkspacePresenter> {
+    pub fn get_workspace(&self, id: &str) -> Result<WorkspacePresenter> {
         let workspace = GetWorkspaceOperation {
-            getter: &self.storage,
+            getter: &self.storage_provider,
         }
         .execute(id.parse()?)?;
 
@@ -190,7 +183,7 @@ impl Coordinator {
     pub fn list_commands_within_workspace(
         &self,
         parameters: ListCommandsWithinWorkspaceInput,
-    ) -> anyhow::Result<Vec<CommandPresenter>> {
+    ) -> Result<Vec<CommandPresenter>> {
         let ListCommandsWithinWorkspaceInput {
             page_number,
             page_size,
@@ -199,7 +192,7 @@ impl Coordinator {
         } = parameters;
 
         let workspaces = ListCommandsWithinWorkspaceOperation {
-            lister: &self.storage,
+            lister: &self.storage_provider,
         }
         .execute(ListCommandsWithinWorkspaceParameters {
             page_number,
@@ -214,7 +207,7 @@ impl Coordinator {
     pub fn list_workspaces(
         &self,
         parameters: ListWorkspacesInput<'_>,
-    ) -> anyhow::Result<Vec<WorkspacePresenter>> {
+    ) -> Result<Vec<WorkspacePresenter>> {
         let ListWorkspacesInput {
             name_contains,
             page_number,
@@ -222,7 +215,7 @@ impl Coordinator {
         } = parameters;
 
         let workspaces = ListWorkspaceOperation {
-            lister: &self.storage,
+            lister: &self.storage_provider,
         }
         .execute(ListWorkspacesParameters {
             name_contains,
@@ -233,42 +226,29 @@ impl Coordinator {
         Ok(workspaces.into_iter().map(Into::into).collect())
     }
 
-    pub fn new(file_path: &Path) -> anyhow::Result<Self> {
-        let storage = SqliteProvider::new(file_path)?;
-        let powershell = PowerShellProvider::new()?;
-
-        Ok(Self {
-            storage,
-            powershell,
-        })
-    }
-
-    pub fn open_windows_terminal(
-        &self,
-        parameters: OpenWindowsTerminalInput,
-    ) -> anyhow::Result<()> {
+    pub fn open_windows_terminal(&self, parameters: OpenWindowsTerminalInput) -> Result<()> {
         let OpenWindowsTerminalInput { working_directory } = parameters;
 
         OpenWindowsTerminalOperation {
-            windows_terminal_provider: &self.powershell,
+            windows_terminal_provider: &self.system_provider,
         }
         .execute(OpenWindowsTerminalParameters { working_directory })?;
 
         Ok(())
     }
 
-    pub fn update_command(&self, data: CommandPresenter) -> anyhow::Result<CommandPresenter> {
+    pub fn update_command(&self, data: CommandPresenter) -> Result<CommandPresenter> {
         let command = UpdateCommandOperation {
-            updater: &self.storage,
+            updater: &self.storage_provider,
         }
         .execute(data.try_into()?)?;
 
         Ok(command.into())
     }
 
-    pub fn update_workspace(&self, dto: WorkspacePresenter) -> anyhow::Result<WorkspacePresenter> {
+    pub fn update_workspace(&self, dto: WorkspacePresenter) -> Result<WorkspacePresenter> {
         let workspace = UpdateWorkspaceOperation {
-            updater: &self.storage,
+            updater: &self.storage_provider,
         }
         .execute(dto.try_into()?)?;
 

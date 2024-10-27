@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub struct CommandsHandler<'a> {
-    pub coordinator: &'a Coordinator,
+    pub coordinator: &'a Coordinator<'a>,
 }
 
 impl<'a> CommandsHandler<'a> {
