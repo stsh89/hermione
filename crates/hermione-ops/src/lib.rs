@@ -26,11 +26,14 @@ pub enum Error {
     #[error("{0}")]
     Internal(String),
 
-    #[error("{0}")]
-    IO(#[source] io::Error),
+    #[error(transparent)]
+    IO(io::Error),
 
     #[error("Not found {0}")]
     NotFound(String),
+
+    #[error(transparent)]
+    Storage(eyre::Error),
 
     #[error(transparent)]
     Unknown(#[from] eyre::Report),

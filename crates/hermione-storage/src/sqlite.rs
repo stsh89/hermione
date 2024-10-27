@@ -15,6 +15,8 @@ use rusqlite::{params, Connection, Statement};
 use std::path::Path;
 use uuid::{Bytes, Uuid};
 
+pub(crate) struct Error(rusqlite::Error);
+
 pub(crate) struct CommandRecord {
     pub(crate) id: Bytes,
     pub(crate) last_execute_time: Option<i64>,
@@ -30,11 +32,11 @@ pub(crate) struct WorkspaceRecord {
     pub(crate) name: String,
 }
 
-pub struct DatabaseProvider {
+pub struct SqliteProvider {
     connection: Connection,
 }
 
-impl DatabaseProvider {
+impl SqliteProvider {
     pub(crate) fn connection(&self) -> &Connection {
         &self.connection
     }
@@ -141,11 +143,8 @@ impl DatabaseProvider {
 }
 
 impl CommandRecord {
-    pub fn from_entity(command: &Command) -> eyre::Result<Self> {
-        let id = *command
-            .id()
-            .ok_or(eyre::eyre!("Command entity without id"))?
-            .as_bytes();
+    pub fn from_entity(command: &Command) -> Result<Self> {
+        let id = *command.try_id()?.as_bytes();
 
         let last_execute_time = command
             .last_execute_time()
@@ -199,13 +198,10 @@ impl CommandRecord {
 }
 
 impl TryFrom<&Workspace> for WorkspaceRecord {
-    type Error = eyre::Error;
+    type Error = hermione_ops::Error;
 
-    fn try_from(value: &Workspace) -> eyre::Result<Self, Self::Error> {
-        let id = value
-            .id()
-            .ok_or(eyre::eyre!("Record without id"))?
-            .into_bytes();
+    fn try_from(value: &Workspace) -> Result<Self> {
+        let id = value.try_id()?.into_bytes();
 
         let last_access_time = value
             .last_access_time()
@@ -221,10 +217,22 @@ impl TryFrom<&Workspace> for WorkspaceRecord {
 }
 
 impl TryFrom<Workspace> for WorkspaceRecord {
-    type Error = eyre::Error;
+    type Error = hermione_ops::Error;
 
-    fn try_from(value: Workspace) -> eyre::Result<Self, Self::Error> {
+    fn try_from(value: Workspace) -> Result<Self> {
         TryFrom::try_from(&value)
+    }
+}
+
+impl From<rusqlite::Error> for Error {
+    fn from(value: rusqlite::Error) -> Self {
+        Error(value)
+    }
+}
+
+impl From<Error> for hermione_ops::Error {
+    fn from(value: Error) -> Self {
+        hermione_ops::Error::Storage(eyre::Error::from(value.0))
     }
 }
 
@@ -265,32 +273,32 @@ impl TryFrom<&rusqlite::Row<'_>> for WorkspaceRecord {
     }
 }
 
-impl CreateCommand for DatabaseProvider {
+impl CreateCommand for SqliteProvider {
     fn create_command(&self, mut command: Command) -> Result<Command> {
         let id = Uuid::new_v4();
         command.set_id(id)?;
 
         let record = CommandRecord::from_entity(&command)?;
-        self.insert_command(record).map_err(eyre::Error::new)?;
+        self.insert_command(record).map_err(Into::<Error>::into)?;
 
         Ok(command)
     }
 }
 
-impl CreateWorkspace for DatabaseProvider {
+impl CreateWorkspace for SqliteProvider {
     fn create_workspace(&self, mut workspace: Workspace) -> Result<Workspace> {
         let id = Uuid::new_v4();
         workspace.set_id(id)?;
 
         let record = WorkspaceRecord::try_from(&workspace)?;
 
-        self.insert_workspace(record).map_err(eyre::Error::new)?;
+        self.insert_workspace(record).map_err(Into::<Error>::into)?;
 
         Ok(workspace)
     }
 }
 
-impl DeleteCommandFromWorkspace for DatabaseProvider {
+impl DeleteCommandFromWorkspace for SqliteProvider {
     fn delete(&self, id: CommandWorkspaceScopedId) -> Result<()> {
         let CommandWorkspaceScopedId {
             workspace_id,
@@ -300,43 +308,43 @@ impl DeleteCommandFromWorkspace for DatabaseProvider {
         let mut statement = self
             .connection()
             .prepare("DELETE FROM commands WHERE id = ?1 AND workspace_id = ?2")
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         statement
             .execute([id.as_bytes(), workspace_id.as_bytes()])
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         Ok(())
     }
 }
 
-impl DeleteWorkspace for DatabaseProvider {
+impl DeleteWorkspace for SqliteProvider {
     fn delete(&self, id: Uuid) -> Result<()> {
         // TODO: apply transaction
 
         let mut statement = self
             .connection()
             .prepare("DELETE FROM workspaces WHERE id = ?1")
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         statement
             .execute([id.as_bytes()])
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         let mut statement = self
             .connection()
             .prepare("DELETE FROM commands WHERE workspace_id = ?1")
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         statement
             .execute([id.as_bytes()])
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         Ok(())
     }
 }
 
-impl GetCommandFromWorkspace for DatabaseProvider {
+impl GetCommandFromWorkspace for SqliteProvider {
     fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command> {
         let CommandWorkspaceScopedId {
             workspace_id,
@@ -355,32 +363,32 @@ impl GetCommandFromWorkspace for DatabaseProvider {
             FROM commands
             WHERE id = ?1 AND workspace_id = ?2",
             )
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         let record = statement
             .query_row(
                 [id.as_bytes(), workspace_id.as_bytes()],
                 CommandRecord::from_row,
             )
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         Ok(CommandRecord::load_entity(record))
     }
 }
 
-impl GetWorkspace for DatabaseProvider {
+impl GetWorkspace for SqliteProvider {
     fn get_workspace(&self, id: Uuid) -> Result<Workspace> {
         let record: WorkspaceRecord = self
             .select_workspace_statement()
-            .map_err(eyre::Error::new)?
+            .map_err(Into::<Error>::into)?
             .query_row([id.as_bytes()], |row| row.try_into())
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         Ok(record.into())
     }
 }
 
-impl ListCommandsWithinWorkspace for DatabaseProvider {
+impl ListCommandsWithinWorkspace for SqliteProvider {
     fn list_commands_within_workspace(
         &self,
         parameters: ListCommandsWithinWorkspaceParameters,
@@ -408,7 +416,7 @@ impl ListCommandsWithinWorkspace for DatabaseProvider {
                 ORDER BY last_execute_time DESC, program ASC
                 LIMIT ?3 OFFSET ?4",
             )
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         let records = statement
             .query_map(
@@ -420,9 +428,9 @@ impl ListCommandsWithinWorkspace for DatabaseProvider {
                 ],
                 CommandRecord::from_row,
             )
-            .map_err(eyre::Error::new)?
+            .map_err(Into::<Error>::into)?
             .collect::<std::result::Result<Vec<_>, _>>()
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         let entities = records
             .into_iter()
@@ -433,7 +441,7 @@ impl ListCommandsWithinWorkspace for DatabaseProvider {
     }
 }
 
-impl ListWorkspaces for DatabaseProvider {
+impl ListWorkspaces for SqliteProvider {
     fn list_workspaces(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>> {
         let ListWorkspacesParameters {
             name_contains,
@@ -456,16 +464,16 @@ impl ListWorkspaces for DatabaseProvider {
                 ORDER BY last_access_time DESC, name ASC
                 LIMIT ?2 OFFSET ?3",
             )
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         let records = statement
             .query_map(
                 params![name_contains, page_size, page_number * page_size],
                 |row| row.try_into(),
             )
-            .map_err(eyre::Error::new)?
+            .map_err(Into::<Error>::into)?
             .collect::<std::result::Result<Vec<WorkspaceRecord>, _>>()
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         let entities = records.into_iter().map(Into::into).collect();
 
@@ -473,7 +481,7 @@ impl ListWorkspaces for DatabaseProvider {
     }
 }
 
-impl UpdateCommand for DatabaseProvider {
+impl UpdateCommand for SqliteProvider {
     fn update_command(&self, command: Command) -> Result<Command> {
         let record = CommandRecord::from_entity(&command)?;
 
@@ -486,7 +494,7 @@ impl UpdateCommand for DatabaseProvider {
                     program = ?2
                 WHERE id = ?3 AND workspace_id = ?4",
             )
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         statement
             .execute(params![
@@ -495,7 +503,7 @@ impl UpdateCommand for DatabaseProvider {
                 record.id,
                 record.workspace_id
             ])
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         self.get_command_from_workspace(CommandWorkspaceScopedId {
             command_id: Uuid::from_bytes(record.id),
@@ -504,7 +512,7 @@ impl UpdateCommand for DatabaseProvider {
     }
 }
 
-impl UpdateWorkspace for DatabaseProvider {
+impl UpdateWorkspace for SqliteProvider {
     fn update_workspace(&self, entity: Workspace) -> Result<Workspace> {
         let record = WorkspaceRecord::try_from(&entity)?;
 
@@ -517,11 +525,11 @@ impl UpdateWorkspace for DatabaseProvider {
                     name = ?2
                 WHERE id = ?3",
             )
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         statement
             .execute(params![record.location, record.name, record.id])
-            .map_err(eyre::Error::new)?;
+            .map_err(Into::<Error>::into)?;
 
         self.get_workspace(Uuid::from_bytes(record.id))
     }

@@ -17,13 +17,13 @@ use hermione_ops::{
     },
 };
 use hermione_powershell::PowerShellProvider;
-use hermione_storage::database::DatabaseProvider;
+use hermione_storage::sqlite::SqliteProvider;
 use std::path::Path;
 
 use crate::{CommandPresenter, WorkspacePresenter};
 
 pub struct Coordinator {
-    storage: DatabaseProvider,
+    storage: SqliteProvider,
     powershell: PowerShellProvider,
 }
 
@@ -234,7 +234,7 @@ impl Coordinator {
     }
 
     pub fn new(file_path: &Path) -> anyhow::Result<Self> {
-        let storage = DatabaseProvider::new(file_path)?;
+        let storage = SqliteProvider::new(file_path)?;
         let powershell = PowerShellProvider::new()?;
 
         Ok(Self {

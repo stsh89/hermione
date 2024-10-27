@@ -1,6 +1,6 @@
+use crate::{Error, Result};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
-use crate::{Error, Result};
 
 pub trait CreateCommand {
     fn create_command(&self, command: Command) -> Result<Command>;

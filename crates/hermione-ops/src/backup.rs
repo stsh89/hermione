@@ -15,10 +15,7 @@ pub trait Import {
 pub trait Iterate {
     type Entity;
 
-    fn iterate<M, MR>(&self, map_fn: M) -> impl Future<Output = Result<()>>
-    where
-        M: Fn(Vec<Self::Entity>) -> MR,
-        MR: Future<Output = Result<()>>;
+    fn iterate(&self) -> impl Future<Output = Result<Option<Vec<Self::Entity>>>>;
 }
 
 pub trait ListByIds {
@@ -50,26 +47,22 @@ where
     T: PartialEq + Ided,
 {
     pub async fn execute(&self) -> Result<()> {
-        self.local_provider
-            .iterate(|locals| async {
-                let remotes = self.list_remotes(&locals).await?;
+        while let Some(locals) = self.local_provider.iterate().await? {
+            let remotes = self.list_remotes(&locals).await?;
 
-                for local in locals {
-                    let remote = remotes.iter().find(|r| r.id() == local.id());
+            for local in locals {
+                let remote = remotes.iter().find(|r| r.id() == local.id());
 
-                    let Some(remote) = remote else {
-                        self.remote_provider.import(local).await?;
-                        continue;
-                    };
+                let Some(remote) = remote else {
+                    self.remote_provider.import(local).await?;
+                    continue;
+                };
 
-                    if &local != remote {
-                        self.remote_provider.update(local).await?;
-                    }
+                if &local != remote {
+                    self.remote_provider.update(local).await?;
                 }
-
-                Ok(())
-            })
-            .await?;
+            }
+        }
 
         Ok(())
     }

@@ -10,12 +10,18 @@ use hermione_ops::notion::{
     SaveCredentialsOperation, VerifyCredentialsOperation,
 };
 use hermione_storage::{
-    backup::{CommandsDatabaseProvider, WorkspacesDatabaseProvider},
-    database::DatabaseProvider,
+    backup::{
+        SqliteCommandsIteratorProvider, SqliteCommandsProvider, SqliteWorkspacesIteratorProvider,
+        SqliteWorkspacesProvider,
+    },
     file_system::FileSystemProvider,
+    sqlite::SqliteProvider,
 };
 use hermione_tracing::{NewTracerParameters, Tracer};
-use provider::{NotionCommandsProvider, NotionProvider, NotionWorkspacesProvider};
+use provider::{
+    NotionCommandsIteratorProvider, NotionCommandsProvider, NotionProvider,
+    NotionWorkspacesIteratorProvider, NotionWorkspacesProvider,
+};
 use screen::ScreenProvider;
 
 type Result<T> = anyhow::Result<T>;
@@ -50,12 +56,12 @@ impl App {
         .execute()?;
 
         let notion_provider = NotionProvider::new(Some(credentials))?;
-        let database_provider = DatabaseProvider::new(&self.file_system.database_file_path())?;
+        let database_provider = SqliteProvider::new(&self.file_system.database_file_path())?;
 
-        let local_commands_provider = &CommandsDatabaseProvider::new(&database_provider);
-        let local_workspaces_provider = &WorkspacesDatabaseProvider::new(&database_provider);
-        let notion_commands_provider = &NotionCommandsProvider::new(&notion_provider);
-        let notion_workspaces_provider = &NotionWorkspacesProvider::new(&notion_provider);
+        let local_commands_provider = &SqliteCommandsProvider::new(&database_provider);
+        let local_workspaces_provider = &SqliteWorkspacesProvider::new(&database_provider);
+        let notion_commands_provider = &NotionCommandsIteratorProvider::new(&notion_provider);
+        let notion_workspaces_provider = &NotionWorkspacesIteratorProvider::new(&notion_provider);
 
         ImportOperation {
             local_commands_provider,
@@ -76,10 +82,10 @@ impl App {
         .execute()?;
 
         let notion_provider = NotionProvider::new(Some(credentials))?;
-        let database_provider = DatabaseProvider::new(&self.file_system.database_file_path())?;
+        let database_provider = SqliteProvider::new(&self.file_system.database_file_path())?;
 
-        let local_commands_provider = &CommandsDatabaseProvider::new(&database_provider);
-        let local_workspaces_provider = &WorkspacesDatabaseProvider::new(&database_provider);
+        let local_commands_provider = &SqliteCommandsIteratorProvider::new(&database_provider);
+        let local_workspaces_provider = &SqliteWorkspacesIteratorProvider::new(&database_provider);
         let notion_commands_provider = &NotionCommandsProvider::new(&notion_provider);
         let notion_workspaces_provider = &NotionWorkspacesProvider::new(&notion_provider);
 

@@ -12,7 +12,7 @@ use hermione_ops::{
     Error, Result,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::future::Future;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 const DEFAULT_PAGE_SIZE: u8 = 100;
@@ -26,8 +26,18 @@ pub struct NotionCommandsProvider<'a> {
     inner: &'a NotionProvider,
 }
 
+pub struct NotionCommandsIteratorProvider<'a> {
+    inner: &'a NotionProvider,
+    state: RwLock<IteratorState>,
+}
+
 pub struct NotionWorkspacesProvider<'a> {
     inner: &'a NotionProvider,
+}
+
+pub struct NotionWorkspacesIteratorProvider<'a> {
+    inner: &'a NotionProvider,
+    state: RwLock<IteratorState>,
 }
 
 #[derive(Serialize)]
@@ -41,12 +51,12 @@ struct RichTextEqualsFilter {
     equals: String,
 }
 
-pub struct ListDatabasePagesParameters {
-    pub database_id: String,
-    pub external_ids: Option<Vec<String>>,
+pub struct ListDatabasePagesParameters<'a> {
+    pub database_id: &'a str,
+    pub external_ids: Option<&'a [Uuid]>,
     pub page_size: Option<u8>,
-    pub api_key: String,
-    pub start_cursor: Option<String>,
+    pub api_key: &'a str,
+    pub start_cursor: Option<&'a str>,
 }
 
 #[derive(Deserialize)]
@@ -97,6 +107,11 @@ pub struct WorkspaceProperties {
     pub location: String,
 }
 
+struct IteratorState {
+    next_cursor: Option<String>,
+    is_done: bool,
+}
+
 impl NotionProvider {
     fn credentials(&self) -> Result<&Credentials> {
         self.credentials.as_ref().ok_or(Error::FailedPrecondition(
@@ -105,27 +120,24 @@ impl NotionProvider {
     }
 
     async fn find_command_page(&self, id: Uuid) -> Result<Option<DatabasePage<CommandProperties>>> {
-        self.find_page_by_external_id(
-            self.credentials()?.commands_page_id(),
-            id.to_string().as_str(),
-        )
-        .await
+        self.find_page_by_external_id(self.credentials()?.commands_page_id(), id)
+            .await
     }
 
     async fn find_page_by_external_id<T>(
         &self,
         database_id: &str,
-        exteranal_id: &str,
+        exteranal_id: Uuid,
     ) -> Result<Option<DatabasePage<T>>>
     where
         T: DeserializeOwned,
     {
-        let api_key = self.credentials()?.api_key().into();
+        let api_key = self.credentials()?.api_key();
 
         let query_database_response = self
             .list_database_pages(ListDatabasePagesParameters {
-                database_id: database_id.into(),
-                external_ids: Some(vec![exteranal_id.into()]),
+                database_id,
+                external_ids: Some(&[exteranal_id]),
                 page_size: Some(1),
                 api_key,
                 start_cursor: None,
@@ -139,11 +151,8 @@ impl NotionProvider {
         &self,
         id: Uuid,
     ) -> Result<Option<DatabasePage<WorkspaceProperties>>> {
-        self.find_page_by_external_id(
-            self.credentials()?.workspaces_page_id(),
-            id.to_string().as_str(),
-        )
-        .await
+        self.find_page_by_external_id(self.credentials()?.workspaces_page_id(), id)
+            .await
     }
 
     pub fn new(credentials: Option<Credentials>) -> Result<Self> {
@@ -164,7 +173,7 @@ impl NotionProvider {
 
     async fn list_database_pages<T>(
         &self,
-        parameters: ListDatabasePagesParameters,
+        parameters: ListDatabasePagesParameters<'_>,
     ) -> Result<QueryDatabaseResponse<T>>
     where
         T: DeserializeOwned,
@@ -180,10 +189,12 @@ impl NotionProvider {
 
         if let Some(external_ids) = external_ids {
             let filters: Vec<RichTextFilter> = external_ids
-                .into_iter()
+                .iter()
                 .map(|id| RichTextFilter {
                     property: "External ID".to_string(),
-                    rich_text: RichTextEqualsFilter { equals: id },
+                    rich_text: RichTextEqualsFilter {
+                        equals: id.to_string(),
+                    },
                 })
                 .collect();
 
@@ -195,12 +206,12 @@ impl NotionProvider {
         let response = self
             .client
             .query_database(
-                &database_id,
+                database_id,
                 QueryDatabaseParameters {
                     page_size: page_size.unwrap_or(DEFAULT_PAGE_SIZE),
                     filter,
-                    api_key_override: Some(&api_key),
-                    start_cursor: start_cursor.as_deref(),
+                    api_key_override: Some(api_key),
+                    start_cursor,
                 },
             )
             .await?;
@@ -215,9 +226,33 @@ impl<'a> NotionCommandsProvider<'a> {
     }
 }
 
+impl<'a> NotionCommandsIteratorProvider<'a> {
+    pub fn new(provider: &'a NotionProvider) -> Self {
+        Self {
+            inner: provider,
+            state: RwLock::new(IteratorState {
+                next_cursor: None,
+                is_done: false,
+            }),
+        }
+    }
+}
+
 impl<'a> NotionWorkspacesProvider<'a> {
     pub fn new(provider: &'a NotionProvider) -> Self {
         Self { inner: provider }
+    }
+}
+
+impl<'a> NotionWorkspacesIteratorProvider<'a> {
+    pub fn new(provider: &'a NotionProvider) -> Self {
+        Self {
+            inner: provider,
+            state: RwLock::new(IteratorState {
+                next_cursor: None,
+                is_done: false,
+            }),
+        }
     }
 }
 
@@ -315,97 +350,93 @@ impl<'a> Import for NotionWorkspacesProvider<'a> {
     }
 }
 
-impl<'a> Iterate for NotionWorkspacesProvider<'a> {
-    type Entity = Workspace;
+impl<'a> Iterate for NotionCommandsIteratorProvider<'a> {
+    type Entity = Command;
 
-    async fn iterate<M, MR>(&self, map_fn: M) -> Result<()>
-    where
-        M: Fn(Vec<Self::Entity>) -> MR,
-        MR: Future<Output = Result<()>>,
-    {
+    async fn iterate(&self) -> Result<Option<Vec<Command>>> {
         let Some(credentials) = self.inner.credentials.as_ref() else {
             return Err(Error::FailedPrecondition(
                 "Missing Notion credentials".into(),
             ));
         };
 
-        let mut start_cursor: Option<String> = None;
+        let mut state = self.state.write().await;
 
-        loop {
-            let query_database_response = self
-                .inner
-                .list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
-                    database_id: credentials.workspaces_page_id().into(),
-                    external_ids: None,
-                    page_size: Some(DEFAULT_PAGE_SIZE),
-                    api_key: credentials.api_key().into(),
-                    start_cursor,
-                })
-                .await?;
-
-            start_cursor = query_database_response.next_cursor;
-
-            let workspaces = query_database_response
-                .database_pages
-                .into_iter()
-                .map(|page| page.properties.try_into())
-                .collect::<Result<Vec<Workspace>>>()?;
-
-            map_fn(workspaces).await?;
-
-            if start_cursor.is_none() {
-                break;
-            }
+        if state.is_done {
+            return Ok(None);
         }
 
-        Ok(())
+        let query_database_response = self
+            .inner
+            .list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
+                database_id: credentials.commands_page_id(),
+                external_ids: None,
+                page_size: Some(DEFAULT_PAGE_SIZE),
+                api_key: credentials.api_key(),
+                start_cursor: state.next_cursor.as_deref(),
+            })
+            .await?;
+
+        let commands = query_database_response
+            .database_pages
+            .into_iter()
+            .map(|page| page.properties.try_into())
+            .collect::<Result<Vec<Command>>>()?;
+
+        if commands.is_empty() {
+            state.is_done = true;
+
+            return Ok(None);
+        }
+
+        state.next_cursor = query_database_response.next_cursor;
+
+        Ok(Some(commands))
     }
 }
 
-impl<'a> Iterate for NotionCommandsProvider<'a> {
-    type Entity = Command;
+impl<'a> Iterate for NotionWorkspacesIteratorProvider<'a> {
+    type Entity = Workspace;
 
-    async fn iterate<M, MR>(&self, map_fn: M) -> Result<()>
-    where
-        M: Fn(Vec<Self::Entity>) -> MR,
-        MR: Future<Output = Result<()>>,
-    {
+    async fn iterate(&self) -> Result<Option<Vec<Workspace>>> {
         let Some(credentials) = self.inner.credentials.as_ref() else {
             return Err(Error::FailedPrecondition(
                 "Missing Notion credentials".into(),
             ));
         };
 
-        let mut start_cursor: Option<String> = None;
+        let mut state = self.state.write().await;
 
-        loop {
-            let query_database_response = self
-                .inner
-                .list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
-                    database_id: credentials.commands_page_id().into(),
-                    external_ids: None,
-                    page_size: Some(DEFAULT_PAGE_SIZE),
-                    api_key: credentials.api_key().into(),
-                    start_cursor,
-                })
-                .await?;
-
-            start_cursor = query_database_response.next_cursor;
-
-            let commands = query_database_response
-                .database_pages
-                .into_iter()
-                .map(|page| page.properties.try_into())
-                .collect::<Result<Vec<Command>>>()?;
-
-            map_fn(commands).await?;
-
-            if start_cursor.is_none() {
-                break;
-            }
+        if state.is_done {
+            return Ok(None);
         }
 
-        Ok(())
+        let query_database_response = self
+            .inner
+            .list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
+                database_id: credentials.workspaces_page_id(),
+                external_ids: None,
+                page_size: Some(DEFAULT_PAGE_SIZE),
+                api_key: credentials.api_key(),
+                start_cursor: state.next_cursor.as_deref(),
+            })
+            .await?;
+
+        let workspaces = query_database_response
+            .database_pages
+            .into_iter()
+            .map(|page| page.properties.try_into())
+            .collect::<Result<Vec<Workspace>>>()?;
+
+        if workspaces.is_empty() {
+            state.is_done = true;
+
+            return Ok(None);
+        }
+
+        state.next_cursor = query_database_response.next_cursor;
+
+        Ok(Some(workspaces))
     }
 }
 
@@ -422,10 +453,10 @@ impl<'a> ListByIds for NotionCommandsProvider<'a> {
         let pages = self
             .inner
             .list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
-                database_id: credentials.commands_page_id().into(),
-                external_ids: Some(ids.iter().map(|id| id.to_string()).collect()),
+                database_id: credentials.commands_page_id(),
+                external_ids: Some(&ids),
                 page_size: Some(ids.len().try_into().map_err(eyre::Error::new)?),
-                api_key: credentials.api_key().into(),
+                api_key: credentials.api_key(),
                 start_cursor: None,
             })
             .await?
@@ -451,10 +482,10 @@ impl<'a> ListByIds for NotionWorkspacesProvider<'a> {
         let pages = self
             .inner
             .list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
-                database_id: credentials.workspaces_page_id().into(),
-                external_ids: Some(ids.iter().map(|id| id.to_string()).collect()),
+                database_id: credentials.workspaces_page_id(),
+                external_ids: Some(&ids),
                 page_size: Some(ids.len().try_into().map_err(eyre::Error::new)?),
-                api_key: credentials.api_key().into(),
+                api_key: credentials.api_key(),
                 start_cursor: None,
             })
             .await?
@@ -524,19 +555,19 @@ impl<'a> Update for NotionWorkspacesProvider<'a> {
 impl VerifyCredentials for NotionProvider {
     async fn verify(&self, credentials: &Credentials) -> Result<()> {
         self.list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
-            database_id: credentials.commands_page_id().into(),
+            database_id: credentials.commands_page_id(),
             external_ids: None,
             page_size: Some(1),
-            api_key: credentials.api_key().into(),
+            api_key: credentials.api_key(),
             start_cursor: None,
         })
         .await?;
 
         self.list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
-            database_id: credentials.workspaces_page_id().into(),
+            database_id: credentials.workspaces_page_id(),
             external_ids: None,
             page_size: Some(1),
-            api_key: credentials.api_key().into(),
+            api_key: credentials.api_key(),
             start_cursor: None,
         })
         .await?;
