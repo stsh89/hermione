@@ -1,4 +1,4 @@
-use crate::clients::credentials::{CredentialsJson, NotionCredentialsClient};
+use crate::clients::file_system::{CredentialsFileData, FileSystemClient};
 use hermione_ops::{
     notion::{
         Credentials, CredentialsParameters, DeleteCredentials, GetCredentials, SaveCredentials,
@@ -7,12 +7,12 @@ use hermione_ops::{
 };
 
 pub struct NotionCredentialsProvider {
-    pub client: NotionCredentialsClient,
+    pub client: FileSystemClient,
 }
 
-impl From<CredentialsJson> for Credentials {
-    fn from(credentials: CredentialsJson) -> Self {
-        let CredentialsJson {
+impl From<CredentialsFileData> for Credentials {
+    fn from(credentials: CredentialsFileData) -> Self {
+        let CredentialsFileData {
             api_key,
             commands_page_id,
             workspaces_page_id,
@@ -26,9 +26,9 @@ impl From<CredentialsJson> for Credentials {
     }
 }
 
-impl From<Credentials> for CredentialsJson {
+impl From<Credentials> for CredentialsFileData {
     fn from(value: Credentials) -> Self {
-        CredentialsJson {
+        CredentialsFileData {
             api_key: value.api_key().into(),
             commands_page_id: value.commands_page_id().into(),
             workspaces_page_id: value.workspaces_page_id().into(),
@@ -45,7 +45,7 @@ impl DeleteCredentials for NotionCredentialsProvider {
 }
 
 impl GetCredentials for NotionCredentialsProvider {
-    fn get(&self) -> Result<Credentials> {
+    fn get_credentials(&self) -> Result<Credentials> {
         let credentials = self.client.read_credentials()?;
 
         Ok(credentials.into())

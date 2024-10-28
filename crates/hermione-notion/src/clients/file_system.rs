@@ -5,18 +5,18 @@ use std::{
     path::PathBuf,
 };
 
-pub struct NotionCredentialsClient {
+pub struct FileSystemClient {
     credentials_file_path: PathBuf,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct CredentialsJson {
+pub struct CredentialsFileData {
     pub api_key: String,
     pub commands_page_id: String,
     pub workspaces_page_id: String,
 }
 
-impl NotionCredentialsClient {
+impl FileSystemClient {
     fn credentials_file_path_try_exists(&self) -> Result<()> {
         let file_path = &self.credentials_file_path;
 
@@ -39,7 +39,7 @@ impl NotionCredentialsClient {
         }
     }
 
-    pub fn read_credentials(&self) -> Result<CredentialsJson> {
+    pub fn read_credentials(&self) -> Result<CredentialsFileData> {
         self.credentials_file_path_try_exists()?;
 
         let file = File::open(&self.credentials_file_path)?;
@@ -48,7 +48,7 @@ impl NotionCredentialsClient {
             .map_err(|_err| Error::other("Failed to parse Notion's credentials file"))
     }
 
-    pub fn write_credentials(&self, credentials: CredentialsJson) -> Result<()> {
+    pub fn write_credentials(&self, credentials: CredentialsFileData) -> Result<()> {
         let file = File::create(&self.credentials_file_path)?;
 
         serde_json::to_writer(file, &credentials)

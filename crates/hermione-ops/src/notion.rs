@@ -11,7 +11,7 @@ pub trait DeleteCredentials {
 }
 
 pub trait GetCredentials {
-    fn get(&self) -> Result<Credentials>;
+    fn get_credentials(&self) -> Result<Credentials>;
 }
 
 pub trait SaveCredentials {
@@ -107,7 +107,7 @@ where
     T: GetCredentials,
 {
     pub fn execute(&self) -> Result<Credentials> {
-        self.get_credentials_provider.get()
+        self.get_credentials_provider.get_credentials()
     }
 }
 

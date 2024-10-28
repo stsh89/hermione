@@ -3,10 +3,9 @@ mod client;
 mod clients;
 mod de;
 mod providers;
-mod screen;
 
 use cli::{Cli, CliSubcommand, Run};
-use clients::credentials::NotionCredentialsClient;
+use clients::file_system::FileSystemClient;
 use hermione_ops::notion::{
     DeleteCredentialsOperation, ExportOperation, GetCredentialsOperation, ImportOperation,
     SaveCredentialsOperation, VerifyCredentialsOperation,
@@ -25,8 +24,8 @@ use providers::{
         NotionCommandsIteratorProvider, NotionCommandsProvider, NotionProvider,
         NotionWorkspacesIteratorProvider, NotionWorkspacesProvider,
     },
+    screen::ScreenProvider,
 };
-use screen::ScreenProvider;
 
 type Result<T> = anyhow::Result<T>;
 
@@ -118,15 +117,12 @@ impl App {
     }
 
     fn show_credentials(self) -> Result<()> {
-        let creds = GetCredentialsOperation {
+        let credentials = GetCredentialsOperation {
             get_credentials_provider: &self.credentials_provider,
         }
         .execute()?;
 
-        let screen = ScreenProvider::new();
-        screen.print("Notion API key: ", creds.api_key());
-        screen.print("Notion commands page ID: ", creds.commands_page_id());
-        screen.print("Notion workspaces page ID: ", creds.workspaces_page_id());
+        ScreenProvider::new().show_credentials(credentials)?;
 
         Ok(())
     }
@@ -148,7 +144,7 @@ async fn main() -> Result<()> {
     let app_path = hermione_storage::app_path()?;
 
     let credentials_provider = NotionCredentialsProvider {
-        client: NotionCredentialsClient::new(app_path.join("notion.json")),
+        client: FileSystemClient::new(app_path.join("notion.json")),
     };
 
     let storage_provider = SqliteProvider::new(&app_path)?;
