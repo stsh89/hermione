@@ -15,7 +15,7 @@ use hermione_storage::{
         SqliteCommandsIteratorProvider, SqliteCommandsProvider, SqliteWorkspacesIteratorProvider,
         SqliteWorkspacesProvider,
     },
-    sqlite::SqliteProvider,
+    sqlite::SqliteClient,
 };
 use hermione_tracing::{NewTracerParameters, Tracer};
 use providers::{
@@ -31,7 +31,7 @@ type Result<T> = anyhow::Result<T>;
 
 struct App {
     credentials_provider: NotionCredentialsProvider,
-    storage_provider: SqliteProvider,
+    storage_provider: SqliteClient,
 }
 
 enum Command {
@@ -147,7 +147,7 @@ async fn main() -> Result<()> {
         client: FileSystemClient::new(app_path.join("notion.json")),
     };
 
-    let storage_provider = SqliteProvider::new(&app_path)?;
+    let storage_provider = SqliteClient::new(&app_path)?;
 
     let tracer = Tracer::new(NewTracerParameters {
         directory: &app_path,

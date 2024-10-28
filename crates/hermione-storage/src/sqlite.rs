@@ -15,33 +15,33 @@ use rusqlite::{params, Connection, Statement};
 use std::path::Path;
 use uuid::{Bytes, Uuid};
 
-pub(crate) struct Error(rusqlite::Error);
+pub struct Error(rusqlite::Error);
 
-pub(crate) struct CommandRecord {
-    pub(crate) id: Bytes,
-    pub(crate) last_execute_time: Option<i64>,
-    pub(crate) name: String,
-    pub(crate) program: String,
-    pub(crate) workspace_id: Bytes,
+pub struct CommandRecord {
+    pub id: Bytes,
+    pub last_execute_time: Option<i64>,
+    pub name: String,
+    pub program: String,
+    pub workspace_id: Bytes,
 }
 
-pub(crate) struct WorkspaceRecord {
-    pub(crate) id: Bytes,
-    pub(crate) last_access_time: Option<i64>,
-    pub(crate) location: Option<String>,
-    pub(crate) name: String,
+pub struct WorkspaceRecord {
+    pub id: Bytes,
+    pub last_access_time: Option<i64>,
+    pub location: Option<String>,
+    pub name: String,
 }
 
-pub struct SqliteProvider {
+pub struct SqliteClient {
     connection: Connection,
 }
 
-impl SqliteProvider {
-    pub(crate) fn connection(&self) -> &Connection {
+impl SqliteClient {
+    pub fn connection(&self) -> &Connection {
         &self.connection
     }
 
-    pub(crate) fn insert_command(&self, record: CommandRecord) -> rusqlite::Result<()> {
+    pub fn insert_command(&self, record: CommandRecord) -> rusqlite::Result<()> {
         self.connection
             .prepare(
                 "INSERT INTO commands (
@@ -63,7 +63,7 @@ impl SqliteProvider {
         Ok(())
     }
 
-    pub(crate) fn insert_workspace(&self, record: WorkspaceRecord) -> rusqlite::Result<()> {
+    pub fn insert_workspace(&self, record: WorkspaceRecord) -> rusqlite::Result<()> {
         self.connection
             .prepare(
                 "INSERT INTO workspaces (
@@ -273,7 +273,7 @@ impl TryFrom<&rusqlite::Row<'_>> for WorkspaceRecord {
     }
 }
 
-impl CreateCommand for SqliteProvider {
+impl CreateCommand for SqliteClient {
     fn create_command(&self, mut command: Command) -> Result<Command> {
         let id = Uuid::new_v4();
         command.set_id(id)?;
@@ -285,7 +285,7 @@ impl CreateCommand for SqliteProvider {
     }
 }
 
-impl CreateWorkspace for SqliteProvider {
+impl CreateWorkspace for SqliteClient {
     fn create_workspace(&self, mut workspace: Workspace) -> Result<Workspace> {
         let id = Uuid::new_v4();
         workspace.set_id(id)?;
@@ -298,7 +298,7 @@ impl CreateWorkspace for SqliteProvider {
     }
 }
 
-impl DeleteCommandFromWorkspace for SqliteProvider {
+impl DeleteCommandFromWorkspace for SqliteClient {
     fn delete(&self, id: CommandWorkspaceScopedId) -> Result<()> {
         let CommandWorkspaceScopedId {
             workspace_id,
@@ -318,7 +318,7 @@ impl DeleteCommandFromWorkspace for SqliteProvider {
     }
 }
 
-impl DeleteWorkspace for SqliteProvider {
+impl DeleteWorkspace for SqliteClient {
     fn delete(&self, id: Uuid) -> Result<()> {
         // TODO: apply transaction
 
@@ -344,7 +344,7 @@ impl DeleteWorkspace for SqliteProvider {
     }
 }
 
-impl GetCommandFromWorkspace for SqliteProvider {
+impl GetCommandFromWorkspace for SqliteClient {
     fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command> {
         let CommandWorkspaceScopedId {
             workspace_id,
@@ -376,7 +376,7 @@ impl GetCommandFromWorkspace for SqliteProvider {
     }
 }
 
-impl GetWorkspace for SqliteProvider {
+impl GetWorkspace for SqliteClient {
     fn get_workspace(&self, id: Uuid) -> Result<Workspace> {
         let record: WorkspaceRecord = self
             .select_workspace_statement()
@@ -388,7 +388,7 @@ impl GetWorkspace for SqliteProvider {
     }
 }
 
-impl ListCommandsWithinWorkspace for SqliteProvider {
+impl ListCommandsWithinWorkspace for SqliteClient {
     fn list_commands_within_workspace(
         &self,
         parameters: ListCommandsWithinWorkspaceParameters,
@@ -441,7 +441,7 @@ impl ListCommandsWithinWorkspace for SqliteProvider {
     }
 }
 
-impl ListWorkspaces for SqliteProvider {
+impl ListWorkspaces for SqliteClient {
     fn list_workspaces(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>> {
         let ListWorkspacesParameters {
             name_contains,
@@ -481,7 +481,7 @@ impl ListWorkspaces for SqliteProvider {
     }
 }
 
-impl UpdateCommand for SqliteProvider {
+impl UpdateCommand for SqliteClient {
     fn update_command(&self, command: Command) -> Result<Command> {
         let record = CommandRecord::from_entity(&command)?;
 
@@ -512,7 +512,7 @@ impl UpdateCommand for SqliteProvider {
     }
 }
 
-impl UpdateWorkspace for SqliteProvider {
+impl UpdateWorkspace for SqliteClient {
     fn update_workspace(&self, entity: Workspace) -> Result<Workspace> {
         let record = WorkspaceRecord::try_from(&entity)?;
 

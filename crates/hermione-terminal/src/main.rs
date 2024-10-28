@@ -14,7 +14,7 @@ mod smart_input;
 mod widgets;
 
 use coordinator::Coordinator;
-use hermione_storage::sqlite::SqliteProvider;
+use hermione_storage::sqlite::SqliteClient;
 use hermione_tracing::{NewTracerParameters, Tracer};
 use providers::{clipboard::ClipboardProvider, system::SystemProvider};
 use router::TerminalRouter;
@@ -34,7 +34,7 @@ fn main() -> Result<()> {
     let powershell_client = hermione_powershell::PowerShellClient::new()?;
 
     let coordinator = Coordinator {
-        storage_provider: SqliteProvider::new(&app_path)?,
+        storage_provider: SqliteClient::new(&app_path)?,
         clipboard_provider: ClipboardProvider {
             client: &powershell_client,
         },

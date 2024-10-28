@@ -1,4 +1,4 @@
-use crate::sqlite::{CommandRecord, SqliteProvider, WorkspaceRecord};
+use crate::sqlite::{CommandRecord, SqliteClient, WorkspaceRecord};
 use chrono::Utc;
 use hermione_ops::{
     commands::{Command, CommandWorkspaceScopedId, GetCommandFromWorkspace},
@@ -9,7 +9,7 @@ use hermione_ops::{
 use rusqlite::params;
 use uuid::Uuid;
 
-impl TrackCommandExecutionTime for SqliteProvider {
+impl TrackCommandExecutionTime for SqliteClient {
     fn track_command_execution_time(&self, command: Command) -> Result<Command, Error> {
         let record = CommandRecord::from_entity(&command)?;
 
@@ -37,7 +37,7 @@ impl TrackCommandExecutionTime for SqliteProvider {
     }
 }
 
-impl TrackWorkspaceAccessTime for SqliteProvider {
+impl TrackWorkspaceAccessTime for SqliteClient {
     fn track_access_time(&self, workspace: Workspace) -> Result<Workspace, Error> {
         let record: WorkspaceRecord = workspace.try_into()?;
 

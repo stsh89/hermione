@@ -20,10 +20,10 @@ use hermione_ops::{
         UpdateWorkspaceOperation, Workspace,
     },
 };
-use hermione_storage::sqlite::SqliteProvider;
+use hermione_storage::sqlite::SqliteClient;
 
 pub struct Coordinator<'a> {
-    pub storage_provider: SqliteProvider,
+    pub storage_provider: SqliteClient,
     pub clipboard_provider: ClipboardProvider<'a>,
     pub system_provider: SystemProvider<'a>,
 }

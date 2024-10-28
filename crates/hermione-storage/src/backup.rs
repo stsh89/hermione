@@ -1,4 +1,4 @@
-use crate::sqlite::{CommandRecord, Error, SqliteProvider, WorkspaceRecord};
+use crate::sqlite::{CommandRecord, Error, SqliteClient, WorkspaceRecord};
 use hermione_ops::{
     backup::{Import, Iterate, ListByIds, Update},
     commands::{Command, UpdateCommand},
@@ -16,20 +16,20 @@ use uuid::Uuid;
 const DEFAULT_PAGE_SIZE: u32 = 100;
 
 pub struct SqliteCommandsProvider<'a> {
-    inner: &'a SqliteProvider,
+    inner: &'a SqliteClient,
 }
 
 pub struct SqliteCommandsIteratorProvider<'a> {
-    inner: &'a SqliteProvider,
+    inner: &'a SqliteClient,
     page_number: RwLock<u32>,
 }
 
 pub struct SqliteWorkspacesProvider<'a> {
-    inner: &'a SqliteProvider,
+    inner: &'a SqliteClient,
 }
 
 pub struct SqliteWorkspacesIteratorProvider<'a> {
-    inner: &'a SqliteProvider,
+    inner: &'a SqliteClient,
     page_number: RwLock<u32>,
 }
 
@@ -87,7 +87,7 @@ impl<'a> SqliteCommandsProvider<'a> {
         Ok(entities)
     }
 
-    pub fn new(inner: &'a SqliteProvider) -> Self {
+    pub fn new(inner: &'a SqliteClient) -> Self {
         Self { inner }
     }
 }
@@ -144,7 +144,7 @@ impl<'a> SqliteCommandsIteratorProvider<'a> {
         Ok(Some(commands))
     }
 
-    pub fn new(inner: &'a SqliteProvider) -> Self {
+    pub fn new(inner: &'a SqliteClient) -> Self {
         Self {
             inner,
             page_number: RwLock::new(0),
@@ -197,7 +197,7 @@ impl<'a> SqliteWorkspacesProvider<'a> {
         Ok(entities)
     }
 
-    pub fn new(inner: &'a SqliteProvider) -> Self {
+    pub fn new(inner: &'a SqliteClient) -> Self {
         Self { inner }
     }
 }
@@ -250,7 +250,7 @@ impl<'a> SqliteWorkspacesIteratorProvider<'a> {
         Ok(Some(workspaces))
     }
 
-    pub fn new(inner: &'a SqliteProvider) -> Self {
+    pub fn new(inner: &'a SqliteClient) -> Self {
         Self {
             inner,
             page_number: RwLock::new(0),
@@ -349,7 +349,7 @@ mod tests {
 
     const TEST_DB_FILE_PATH: &str = "tests/assets/hermione_test.db3";
 
-    fn prepare_test_db() -> Result<SqliteProvider> {
+    fn prepare_test_db() -> Result<SqliteClient> {
         let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").map_err(eyre::Error::new)?;
         let path = Path::new(&manifest_dir).join(TEST_DB_FILE_PATH);
 
@@ -357,7 +357,7 @@ mod tests {
             std::fs::remove_file(&path)?;
         }
 
-        let provider = SqliteProvider::new(&path).map_err(eyre::Error::new)?;
+        let provider = SqliteClient::new(&path).map_err(eyre::Error::new)?;
 
         Ok(provider)
     }
