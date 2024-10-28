@@ -1,3 +1,5 @@
+pub mod de;
+
 mod headers;
 mod request_sender;
 
@@ -12,13 +14,13 @@ const NOTION_BASE_URL: &str = "https://api.notion.com/v1/";
 const PAGES_URI: &str = "pages";
 const REQUEST_TIMEOUT_IN_SECS: u64 = 5;
 
-pub struct Client {
+pub struct NotionApiClient {
     api_key: Option<String>,
     base_url: Url,
     inner: reqwest::Client,
 }
 
-pub struct NewClientParameters {
+pub struct NewNotionApiClientParameters {
     pub api_key: Option<String>,
     pub base_url_override: Option<String>,
     pub timeout: Duration,
@@ -58,7 +60,7 @@ pub struct DatabasePage<T> {
     pub properties: T,
 }
 
-impl Client {
+impl NotionApiClient {
     pub async fn create_database_entry(
         &self,
         database_id: &str,
@@ -153,8 +155,8 @@ impl Client {
         Ok(database_query_result)
     }
 
-    pub fn new(parameters: NewClientParameters) -> Result<Self> {
-        let NewClientParameters {
+    pub fn new(parameters: NewNotionApiClientParameters) -> Result<Self> {
+        let NewNotionApiClientParameters {
             timeout,
             api_key,
             base_url_override,
@@ -208,7 +210,7 @@ impl Method {
     }
 }
 
-impl Default for NewClientParameters {
+impl Default for NewNotionApiClientParameters {
     fn default() -> Self {
         Self {
             timeout: Duration::from_secs(REQUEST_TIMEOUT_IN_SECS),
@@ -248,7 +250,6 @@ fn base_url(base_url_override: Option<String>) -> Result<Url> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::de;
     use eyre::Result;
     use httpmock::{Method::POST, MockServer};
     use serde::Deserialize;
@@ -279,7 +280,7 @@ mod tests {
                 .status(200);
         });
 
-        let client = Client::new(NewClientParameters {
+        let client = NotionApiClient::new(NewNotionApiClientParameters {
             base_url_override: Some(base_url.clone()),
             api_key: Some("".to_string()),
             ..Default::default()

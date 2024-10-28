@@ -1,11 +1,8 @@
+mod api_client;
 mod cli;
-mod client;
-mod clients;
-mod de;
 mod providers;
 
 use cli::{Cli, CliSubcommand, Run};
-use clients::file_system::FileSystemClient;
 use hermione_ops::notion::{
     DeleteCredentialsOperation, ExportOperation, GetCredentialsOperation, ImportOperation,
     SaveCredentialsOperation, VerifyCredentialsOperation,
@@ -115,7 +112,7 @@ impl<'a> App<'a> {
         }
         .execute()?;
 
-        ScreenProvider::new().show_credentials(credentials)?;
+        ScreenProvider::new().show_credentials(credentials.into())?;
 
         Ok(())
     }
@@ -136,10 +133,7 @@ impl<'a> App<'a> {
 async fn main() -> Result<()> {
     let app_path = hermione_storage::app_path()?;
 
-    let credentials_provider = NotionCredentialsProvider {
-        client: FileSystemClient::new(app_path.join("notion.json")),
-    };
-
+    let credentials_provider = NotionCredentialsProvider::new(app_path.join("notion.json"));
     let connection = StorageProvider::connect(&app_path)?;
     let storage_provider = StorageProvider::new(&connection)?;
 

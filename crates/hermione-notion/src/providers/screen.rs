@@ -1,37 +1,58 @@
-use crate::clients::standard_data_stream::{CredentialsStream, StandardDataStreamClient};
+use std::io;
+
 use hermione_ops::{
     notion::{Credentials, CredentialsParameters, GetCredentials},
     Result,
 };
+use serde::Serialize;
 
-pub struct ScreenProvider {
-    client: StandardDataStreamClient,
+pub struct ScreenProvider;
+
+#[derive(Serialize)]
+pub struct CredentialsStream {
+    pub api_key: String,
+    pub commands_page_id: String,
+    pub workspaces_page_id: String,
 }
 
 impl ScreenProvider {
-    fn enter_credentials(&self) -> Result<Credentials> {
-        let credentials = self.client.read_credentials()?;
+    pub fn ask(&self, prompt: &str) -> io::Result<String> {
+        clear_screen_and_reset_cursor();
 
-        Ok(credentials.into())
+        let mut buf = String::new();
+
+        use std::io::Write;
+        print!("{prompt}");
+        std::io::stdout().flush()?;
+
+        std::io::stdin().read_line(&mut buf)?;
+
+        Ok(buf.trim().to_string())
+    }
+
+    fn enter_credentials(&self) -> io::Result<CredentialsStream> {
+        Ok(CredentialsStream {
+            api_key: self.ask("Enter your Notion API key: ")?,
+            commands_page_id: self.ask("Enter your Notion commands page ID: ")?,
+            workspaces_page_id: self.ask("Enter your Notion workspaces page ID: ")?,
+        })
     }
 
     pub fn new() -> Self {
-        Self {
-            client: StandardDataStreamClient::new(),
-        }
+        Self
     }
 
-    pub fn show_credentials(&self, credentials: Credentials) -> Result<()> {
-        self.client.write_credentials(credentials.into())?;
+    pub fn show_credentials(&self, credentials: CredentialsStream) -> serde_json::Result<()> {
+        let json_string = serde_json::to_string_pretty(&credentials)?;
+
+        println!("{json_string}");
 
         Ok(())
     }
 }
 
-impl GetCredentials for ScreenProvider {
-    fn get_credentials(&self) -> Result<Credentials> {
-        self.enter_credentials()
-    }
+fn clear_screen_and_reset_cursor() {
+    print!("{esc}[2J{esc}[1;1H", esc = 27 as char)
 }
 
 impl From<Credentials> for CredentialsStream {
@@ -57,5 +78,13 @@ impl From<CredentialsStream> for Credentials {
             commands_page_id,
             workspaces_page_id,
         })
+    }
+}
+
+impl GetCredentials for ScreenProvider {
+    fn get_credentials(&self) -> Result<Credentials> {
+        let credentials = self.enter_credentials()?;
+
+        Ok(credentials.into())
     }
 }

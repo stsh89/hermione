@@ -1,7 +1,7 @@
-use crate::client::{
-    Client, DatabasePage, NewClientParameters, QueryDatabaseParameters, QueryDatabaseResponse,
+use crate::api_client::{
+    de, DatabasePage, NewNotionApiClientParameters, NotionApiClient, QueryDatabaseParameters,
+    QueryDatabaseResponse,
 };
-use crate::de;
 use hermione_ops::backup::{Import, Iterate, ListByIds, Update};
 use hermione_ops::commands::LoadCommandParameters;
 use hermione_ops::workspaces::LoadWorkspaceParameters;
@@ -18,7 +18,7 @@ use uuid::Uuid;
 const DEFAULT_PAGE_SIZE: u8 = 100;
 
 pub struct NotionProvider {
-    client: Client,
+    client: NotionApiClient,
     credentials: Option<Credentials>,
 }
 
@@ -160,7 +160,7 @@ impl NotionProvider {
             .as_ref()
             .map(|credentials| credentials.api_key().into());
 
-        let client = Client::new(NewClientParameters {
+        let client = NotionApiClient::new(NewNotionApiClientParameters {
             api_key,
             ..Default::default()
         })?;
