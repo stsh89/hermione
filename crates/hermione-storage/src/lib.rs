@@ -1,8 +1,5 @@
 #[cfg(feature = "extensions")]
-use chrono::Utc;
-
-#[cfg(feature = "extensions")]
-use hermione_ops::extensions::{TrackCommandExecutionTime, TrackWorkspaceAccessTime};
+mod extensions;
 
 use chrono::DateTime;
 use hermione_ops::{
@@ -448,44 +445,6 @@ impl<'a> StorageProvider<'a> {
         provider.load_rarray()?;
 
         Ok(provider)
-    }
-
-    #[cfg(feature = "extensions")]
-    fn track_command_execution_time(
-        &self,
-        workspace_id: Uuid,
-        command_id: Uuid,
-    ) -> StorageProviderResult<()> {
-        let last_execute_time = Utc::now().timestamp_nanos_opt();
-
-        let mut statement = self.connection.prepare(
-            "UPDATE commands
-                SET last_execute_time = ?1
-                WHERE id = ?2 AND workspace_id = ?3",
-        )?;
-
-        statement.execute(params![
-            last_execute_time,
-            command_id.as_bytes(),
-            workspace_id.as_bytes()
-        ])?;
-
-        Ok(())
-    }
-
-    #[cfg(feature = "extensions")]
-    fn track_workspace_access_time(&self, workspace_id: Uuid) -> StorageProviderResult<()> {
-        let last_access_time = Utc::now().timestamp_nanos_opt();
-
-        let mut statement = self.connection.prepare(
-            "UPDATE workspaces
-                SET last_access_time = ?1
-                WHERE id = ?2",
-        )?;
-
-        statement.execute(params![last_access_time, workspace_id.as_bytes()])?;
-
-        Ok(())
     }
 
     fn update_command(&self, command: CommandRecord) -> StorageProviderResult<()> {
@@ -935,34 +894,6 @@ impl ListWorkspaces for StorageProvider<'_> {
         let entities = records.into_iter().map(Into::into).collect();
 
         Ok(entities)
-    }
-}
-
-#[cfg(feature = "extensions")]
-impl TrackCommandExecutionTime for StorageProvider<'_> {
-    fn track_command_execution_time(&self, command: Command) -> Result<Command> {
-        let command_id = command.try_id()?;
-
-        self.track_command_execution_time(command_id, command.workspace_id())?;
-
-        GetCommandFromWorkspace::get_command_from_workspace(
-            self,
-            CommandWorkspaceScopedId {
-                command_id,
-                workspace_id: command.workspace_id(),
-            },
-        )
-    }
-}
-
-#[cfg(feature = "extensions")]
-impl TrackWorkspaceAccessTime for StorageProvider<'_> {
-    fn track_workspace_access_time(&self, workspace: Workspace) -> Result<Workspace> {
-        let workspace_id = workspace.try_id()?;
-
-        self.track_workspace_access_time(workspace_id)?;
-
-        GetWorkspace::get_workspace(self, workspace_id)
     }
 }
 
