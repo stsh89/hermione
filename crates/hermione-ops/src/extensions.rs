@@ -25,7 +25,7 @@ pub trait TrackCommandExecutionTime {
 }
 
 pub trait TrackWorkspaceAccessTime {
-    fn track_access_time(&self, workspace: Workspace) -> Result<Workspace>;
+    fn track_workspace_access_time(&self, workspace: Workspace) -> Result<Workspace>;
 }
 
 pub struct ExecuteCommandWithinWorkspaceParameters {
@@ -178,7 +178,7 @@ where
     pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
         let time = workspace.last_access_time().cloned();
 
-        let workspace = self.tracker.track_access_time(workspace)?;
+        let workspace = self.tracker.track_workspace_access_time(workspace)?;
         let error_message = "Failed to track workspace access time".to_string();
 
         if let Some(new_time) = workspace.last_access_time() {

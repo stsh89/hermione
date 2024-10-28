@@ -10,13 +10,7 @@ use hermione_ops::notion::{
     DeleteCredentialsOperation, ExportOperation, GetCredentialsOperation, ImportOperation,
     SaveCredentialsOperation, VerifyCredentialsOperation,
 };
-use hermione_storage::{
-    backup::{
-        SqliteCommandsIteratorProvider, SqliteCommandsProvider, SqliteWorkspacesIteratorProvider,
-        SqliteWorkspacesProvider,
-    },
-    sqlite::SqliteClient,
-};
+use hermione_storage::StorageProvider;
 use hermione_tracing::{NewTracerParameters, Tracer};
 use providers::{
     credentials::NotionCredentialsProvider,
@@ -29,9 +23,9 @@ use providers::{
 
 type Result<T> = anyhow::Result<T>;
 
-struct App {
+struct App<'a> {
     credentials_provider: NotionCredentialsProvider,
-    storage_provider: SqliteClient,
+    storage_provider: StorageProvider<'a>,
 }
 
 enum Command {
@@ -43,7 +37,7 @@ enum Command {
     VerifyCredentials,
 }
 
-impl App {
+impl<'a> App<'a> {
     fn delete_credentials(self) -> Result<()> {
         DeleteCredentialsOperation {
             deleter: &self.credentials_provider,
@@ -61,8 +55,8 @@ impl App {
 
         let notion_provider = NotionProvider::new(Some(credentials))?;
 
-        let local_commands_provider = &SqliteCommandsProvider::new(&self.storage_provider);
-        let local_workspaces_provider = &SqliteWorkspacesProvider::new(&self.storage_provider);
+        let local_commands_provider = &self.storage_provider.commands_backup_provider();
+        let local_workspaces_provider = &self.storage_provider.workspaces_backup_provider();
         let notion_commands_provider = &NotionCommandsIteratorProvider::new(&notion_provider);
         let notion_workspaces_provider = &NotionWorkspacesIteratorProvider::new(&notion_provider);
 
@@ -86,9 +80,8 @@ impl App {
 
         let notion_provider = NotionProvider::new(Some(credentials))?;
 
-        let local_commands_provider = &SqliteCommandsIteratorProvider::new(&self.storage_provider);
-        let local_workspaces_provider =
-            &SqliteWorkspacesIteratorProvider::new(&self.storage_provider);
+        let local_commands_provider = &self.storage_provider.commands_backup_provider();
+        let local_workspaces_provider = &self.storage_provider.workspaces_backup_provider();
         let notion_commands_provider = &NotionCommandsProvider::new(&notion_provider);
         let notion_workspaces_provider = &NotionWorkspacesProvider::new(&notion_provider);
 
@@ -147,7 +140,8 @@ async fn main() -> Result<()> {
         client: FileSystemClient::new(app_path.join("notion.json")),
     };
 
-    let storage_provider = SqliteClient::new(&app_path)?;
+    let connection = StorageProvider::connect(&app_path)?;
+    let storage_provider = StorageProvider::new(&connection)?;
 
     let tracer = Tracer::new(NewTracerParameters {
         directory: &app_path,
@@ -169,7 +163,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-impl Run for App {
+impl Run for App<'_> {
     type Command = Command;
 
     async fn run(self, command: Self::Command) -> Result<()> {
