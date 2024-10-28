@@ -3,19 +3,17 @@ mod cli;
 mod providers;
 
 use cli::{Cli, CliSubcommand, Run};
-use hermione_ops::notion::{
-    DeleteCredentialsOperation, ExportOperation, GetCredentialsOperation, ImportOperation,
-    SaveCredentialsOperation, VerifyCredentialsOperation,
+use hermione_ops::{
+    backup::BackupOperation,
+    notion::{
+        DeleteCredentialsOperation, GetCredentialsOperation, SaveCredentialsOperation,
+        VerifyCredentialsOperation,
+    },
 };
 use hermione_storage::StorageProvider;
 use hermione_tracing::{NewTracerParameters, Tracer};
 use providers::{
-    credentials::NotionCredentialsProvider,
-    pages::{
-        NotionCommandsIteratorProvider, NotionCommandsProvider, NotionProvider,
-        NotionWorkspacesIteratorProvider, NotionWorkspacesProvider,
-    },
-    screen::ScreenProvider,
+    credentials::NotionCredentialsProvider, pages::NotionProvider, screen::ScreenProvider,
 };
 
 type Result<T> = anyhow::Result<T>;
@@ -52,16 +50,15 @@ impl<'a> App<'a> {
 
         let notion_provider = NotionProvider::new(Some(credentials))?;
 
-        let local_commands_provider = &self.storage_provider.commands_backup_provider();
-        let local_workspaces_provider = &self.storage_provider.workspaces_backup_provider();
-        let notion_commands_provider = &NotionCommandsIteratorProvider::new(&notion_provider);
-        let notion_workspaces_provider = &NotionWorkspacesIteratorProvider::new(&notion_provider);
-
-        ImportOperation {
-            local_commands_provider,
-            notion_commands_provider,
-            local_workspaces_provider,
-            notion_workspaces_provider,
+        BackupOperation {
+            iterate_commands_provider: &notion_provider.commands_iterator(),
+            iterate_workspaces_provider: &notion_provider.workspaces_iterator(),
+            import_command_provider: &self.storage_provider,
+            import_workspace_provider: &self.storage_provider,
+            list_commands_provider: &self.storage_provider,
+            list_workspaces_provider: &self.storage_provider,
+            update_command_provider: &self.storage_provider,
+            update_workspace_provider: &self.storage_provider,
         }
         .execute()
         .await?;
@@ -77,16 +74,15 @@ impl<'a> App<'a> {
 
         let notion_provider = NotionProvider::new(Some(credentials))?;
 
-        let local_commands_provider = &self.storage_provider.commands_backup_provider();
-        let local_workspaces_provider = &self.storage_provider.workspaces_backup_provider();
-        let notion_commands_provider = &NotionCommandsProvider::new(&notion_provider);
-        let notion_workspaces_provider = &NotionWorkspacesProvider::new(&notion_provider);
-
-        ExportOperation {
-            local_commands_provider,
-            notion_commands_provider,
-            local_workspaces_provider,
-            notion_workspaces_provider,
+        BackupOperation {
+            iterate_commands_provider: &self.storage_provider.commands_iterator(),
+            iterate_workspaces_provider: &self.storage_provider.workspaces_iterator(),
+            import_command_provider: &notion_provider,
+            import_workspace_provider: &notion_provider,
+            list_commands_provider: &notion_provider,
+            list_workspaces_provider: &notion_provider,
+            update_command_provider: &notion_provider,
+            update_workspace_provider: &notion_provider,
         }
         .execute()
         .await?;

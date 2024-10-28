@@ -944,6 +944,7 @@ dependencies = [
  "chrono",
  "eyre",
  "thiserror",
+ "tracing",
  "uuid",
 ]
 

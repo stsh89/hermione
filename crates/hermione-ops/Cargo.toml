@@ -16,3 +16,4 @@ chrono = {workspace = true}
 eyre = {workspace = true}
 thiserror = {workspace = true}
 uuid = { workspace = true }
+tracing = {workspace = true}

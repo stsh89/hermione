@@ -2,7 +2,10 @@ use crate::api_client::{
     de, DatabasePage, NewNotionApiClientParameters, NotionApiClient, QueryDatabaseParameters,
     QueryDatabaseResponse,
 };
-use hermione_ops::backup::{Import, Iterate, ListByIds, Update};
+use hermione_ops::backup::{
+    BckImportCommand, BckImportWorkspace, BckIterateCommands, BckIterateWorkspaces,
+    BckListCommands, BckListWorkspaces, BckUpdateCommand, BckUpdateWorkspace,
+};
 use hermione_ops::commands::LoadCommandParameters;
 use hermione_ops::workspaces::LoadWorkspaceParameters;
 use hermione_ops::{
@@ -13,6 +16,7 @@ use hermione_ops::{
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio::sync::RwLock;
+use tracing::instrument;
 use uuid::Uuid;
 
 const DEFAULT_PAGE_SIZE: u8 = 100;
@@ -22,21 +26,15 @@ pub struct NotionProvider {
     credentials: Option<Credentials>,
 }
 
-pub struct NotionCommandsProvider<'a> {
-    inner: &'a NotionProvider,
-}
-
-pub struct NotionCommandsIteratorProvider<'a> {
-    inner: &'a NotionProvider,
+pub struct NotionCommandsIterator<'a> {
+    client: &'a NotionApiClient,
+    credentials: Option<&'a Credentials>,
     state: RwLock<IteratorState>,
 }
 
-pub struct NotionWorkspacesProvider<'a> {
-    inner: &'a NotionProvider,
-}
-
-pub struct NotionWorkspacesIteratorProvider<'a> {
-    inner: &'a NotionProvider,
+pub struct NotionWorkspacesIterator<'a> {
+    client: &'a NotionApiClient,
+    credentials: Option<&'a Credentials>,
     state: RwLock<IteratorState>,
 }
 
@@ -113,6 +111,17 @@ struct IteratorState {
 }
 
 impl NotionProvider {
+    pub fn commands_iterator(&self) -> NotionCommandsIterator {
+        NotionCommandsIterator {
+            client: &self.client,
+            credentials: self.credentials.as_ref(),
+            state: RwLock::new(IteratorState {
+                next_cursor: None,
+                is_done: false,
+            }),
+        }
+    }
+
     fn credentials(&self) -> Result<&Credentials> {
         self.credentials.as_ref().ok_or(Error::FailedPrecondition(
             "Missing Notion credentials".into(),
@@ -218,36 +227,11 @@ impl NotionProvider {
 
         Ok(response)
     }
-}
 
-impl<'a> NotionCommandsProvider<'a> {
-    pub fn new(provider: &'a NotionProvider) -> Self {
-        Self { inner: provider }
-    }
-}
-
-impl<'a> NotionCommandsIteratorProvider<'a> {
-    pub fn new(provider: &'a NotionProvider) -> Self {
-        Self {
-            inner: provider,
-            state: RwLock::new(IteratorState {
-                next_cursor: None,
-                is_done: false,
-            }),
-        }
-    }
-}
-
-impl<'a> NotionWorkspacesProvider<'a> {
-    pub fn new(provider: &'a NotionProvider) -> Self {
-        Self { inner: provider }
-    }
-}
-
-impl<'a> NotionWorkspacesIteratorProvider<'a> {
-    pub fn new(provider: &'a NotionProvider) -> Self {
-        Self {
-            inner: provider,
+    pub fn workspaces_iterator(&self) -> NotionWorkspacesIterator {
+        NotionWorkspacesIterator {
+            client: &self.client,
+            credentials: self.credentials.as_ref(),
             state: RwLock::new(IteratorState {
                 next_cursor: None,
                 is_done: false,
@@ -296,18 +280,16 @@ impl TryFrom<WorkspaceProperties> for Workspace {
     }
 }
 
-impl Import for NotionCommandsProvider<'_> {
-    type Entity = Command;
-
-    async fn import(&self, command: Command) -> Result<Command> {
+impl BckImportCommand for NotionProvider {
+    async fn bck_import_command(&self, command: Command) -> Result<Command> {
         let id = command
             .id()
             .ok_or(Error::DataLoss("Missing command id".into()))?
             .to_string();
 
-        let commands_page_id = self.inner.credentials()?.commands_page_id();
+        let commands_page_id = self.credentials()?.commands_page_id();
 
-        self.inner.client
+        self.client
             .create_database_entry(
                 commands_page_id,
                 serde_json::json!({
@@ -323,19 +305,16 @@ impl Import for NotionCommandsProvider<'_> {
     }
 }
 
-impl<'a> Import for NotionWorkspacesProvider<'a> {
-    type Entity = Workspace;
-
-    async fn import(&self, workspace: Workspace) -> Result<Workspace> {
+impl BckImportWorkspace for NotionProvider {
+    async fn bck_import_workspace(&self, workspace: Workspace) -> Result<Workspace> {
         let id = workspace
             .id()
             .ok_or(Error::DataLoss("Missing workspace id".into()))?
             .to_string();
 
-        let workspaces_page_id = self.inner.credentials()?.workspaces_page_id();
+        let workspaces_page_id = self.credentials()?.workspaces_page_id();
 
-        self.inner
-            .client
+        self.client
             .create_database_entry(
                 workspaces_page_id,
                 serde_json::json!({
@@ -350,11 +329,12 @@ impl<'a> Import for NotionWorkspacesProvider<'a> {
     }
 }
 
-impl<'a> Iterate for NotionCommandsIteratorProvider<'a> {
-    type Entity = Command;
+impl<'a> BckIterateCommands for NotionCommandsIterator<'a> {
+    #[instrument(skip(self))]
+    async fn bck_iterate_commands(&self) -> Result<Option<Vec<Command>>> {
+        tracing::info!("Iterating commands");
 
-    async fn iterate(&self) -> Result<Option<Vec<Command>>> {
-        let Some(credentials) = self.inner.credentials.as_ref() else {
+        let Some(credentials) = self.credentials else {
             return Err(Error::FailedPrecondition(
                 "Missing Notion credentials".into(),
             ));
@@ -367,14 +347,16 @@ impl<'a> Iterate for NotionCommandsIteratorProvider<'a> {
         }
 
         let query_database_response = self
-            .inner
-            .list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
-                database_id: credentials.commands_page_id(),
-                external_ids: None,
-                page_size: Some(DEFAULT_PAGE_SIZE),
-                api_key: credentials.api_key(),
-                start_cursor: state.next_cursor.as_deref(),
-            })
+            .client
+            .query_database::<CommandProperties>(
+                credentials.commands_page_id(),
+                QueryDatabaseParameters {
+                    page_size: DEFAULT_PAGE_SIZE,
+                    filter: None,
+                    api_key_override: Some(credentials.api_key()),
+                    start_cursor: state.next_cursor.as_deref(),
+                },
+            )
             .await?;
 
         let commands = query_database_response
@@ -383,23 +365,26 @@ impl<'a> Iterate for NotionCommandsIteratorProvider<'a> {
             .map(|page| page.properties.try_into())
             .collect::<Result<Vec<Command>>>()?;
 
-        if commands.is_empty() {
-            state.is_done = true;
-
-            return Ok(None);
-        }
-
         state.next_cursor = query_database_response.next_cursor;
 
-        Ok(Some(commands))
+        if state.next_cursor.is_none() {
+            state.is_done = true;
+        }
+
+        if commands.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(commands))
+        }
     }
 }
 
-impl<'a> Iterate for NotionWorkspacesIteratorProvider<'a> {
-    type Entity = Workspace;
+impl<'a> BckIterateWorkspaces for NotionWorkspacesIterator<'a> {
+    #[instrument(skip(self))]
+    async fn bck_iterate_workspaces(&self) -> Result<Option<Vec<Workspace>>> {
+        tracing::info!("Iterating workspaces");
 
-    async fn iterate(&self) -> Result<Option<Vec<Workspace>>> {
-        let Some(credentials) = self.inner.credentials.as_ref() else {
+        let Some(credentials) = self.credentials else {
             return Err(Error::FailedPrecondition(
                 "Missing Notion credentials".into(),
             ));
@@ -412,14 +397,16 @@ impl<'a> Iterate for NotionWorkspacesIteratorProvider<'a> {
         }
 
         let query_database_response = self
-            .inner
-            .list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
-                database_id: credentials.workspaces_page_id(),
-                external_ids: None,
-                page_size: Some(DEFAULT_PAGE_SIZE),
-                api_key: credentials.api_key(),
-                start_cursor: state.next_cursor.as_deref(),
-            })
+            .client
+            .query_database::<WorkspaceProperties>(
+                credentials.workspaces_page_id(),
+                QueryDatabaseParameters {
+                    page_size: DEFAULT_PAGE_SIZE,
+                    filter: None,
+                    api_key_override: Some(credentials.api_key()),
+                    start_cursor: state.next_cursor.as_deref(),
+                },
+            )
             .await?;
 
         let workspaces = query_database_response
@@ -428,30 +415,29 @@ impl<'a> Iterate for NotionWorkspacesIteratorProvider<'a> {
             .map(|page| page.properties.try_into())
             .collect::<Result<Vec<Workspace>>>()?;
 
-        if workspaces.is_empty() {
-            state.is_done = true;
-
-            return Ok(None);
-        }
-
         state.next_cursor = query_database_response.next_cursor;
 
-        Ok(Some(workspaces))
+        if state.next_cursor.is_none() {
+            state.is_done = true;
+        }
+
+        if workspaces.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(workspaces))
+        }
     }
 }
 
-impl<'a> ListByIds for NotionCommandsProvider<'a> {
-    type Entity = Command;
-
-    async fn list_by_ids(&self, ids: Vec<Uuid>) -> Result<Vec<Command>> {
-        let Some(credentials) = self.inner.credentials.as_ref() else {
+impl BckListCommands for NotionProvider {
+    async fn bck_list_commands(&self, ids: Vec<Uuid>) -> Result<Vec<Command>> {
+        let Some(credentials) = self.credentials.as_ref() else {
             return Err(Error::FailedPrecondition(
                 "Missing Notion credentials".into(),
             ));
         };
 
         let pages = self
-            .inner
             .list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
                 database_id: credentials.commands_page_id(),
                 external_ids: Some(&ids),
@@ -469,18 +455,15 @@ impl<'a> ListByIds for NotionCommandsProvider<'a> {
     }
 }
 
-impl<'a> ListByIds for NotionWorkspacesProvider<'a> {
-    type Entity = Workspace;
-
-    async fn list_by_ids(&self, ids: Vec<Uuid>) -> Result<Vec<Workspace>> {
-        let Some(credentials) = self.inner.credentials.as_ref() else {
+impl BckListWorkspaces for NotionProvider {
+    async fn bck_list_workspaces(&self, ids: Vec<Uuid>) -> Result<Vec<Workspace>> {
+        let Some(credentials) = self.credentials.as_ref() else {
             return Err(Error::FailedPrecondition(
                 "Missing Notion credentials".into(),
             ));
         };
 
         let pages = self
-            .inner
             .list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
                 database_id: credentials.workspaces_page_id(),
                 external_ids: Some(&ids),
@@ -498,20 +481,17 @@ impl<'a> ListByIds for NotionWorkspacesProvider<'a> {
     }
 }
 
-impl<'a> Update for NotionCommandsProvider<'a> {
-    type Entity = Command;
-
-    async fn update(&self, command: Command) -> Result<Command> {
+impl BckUpdateCommand for NotionProvider {
+    async fn bck_update_command(&self, command: Command) -> Result<Command> {
         let id = command.try_id()?;
 
-        let page = self.inner.find_command_page(id).await?;
+        let page = self.find_command_page(id).await?;
 
         let Some(page) = page else {
             return Err(Error::NotFound(format!("Command with ID: {}", id)));
         };
 
-        self.inner
-            .client
+        self.client
             .update_database_entry(
                 &page.page_id,
                 serde_json::json!({
@@ -525,20 +505,17 @@ impl<'a> Update for NotionCommandsProvider<'a> {
     }
 }
 
-impl<'a> Update for NotionWorkspacesProvider<'a> {
-    type Entity = Workspace;
-
-    async fn update(&self, workspace: Workspace) -> Result<Workspace> {
+impl BckUpdateWorkspace for NotionProvider {
+    async fn bck_update_workspace(&self, workspace: Workspace) -> Result<Workspace> {
         let id = workspace.try_id()?;
 
-        let page = self.inner.find_workspace_page(id).await?;
+        let page = self.find_workspace_page(id).await?;
 
         let Some(page) = page else {
             return Err(Error::NotFound(format!("Command with ID: {}", id)));
         };
 
-        self.inner
-            .client
+        self.client
             .update_database_entry(
                 &page.page_id,
                 serde_json::json!({

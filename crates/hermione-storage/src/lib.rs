@@ -1,9 +1,11 @@
+#[cfg(feature = "backup")]
+pub mod backup;
+
 #[cfg(feature = "extensions")]
 mod extensions;
 
 use chrono::DateTime;
 use hermione_ops::{
-    backup::{Import, Iterate, ListByIds, Update},
     commands::{
         Command, CommandWorkspaceScopedId, CreateCommand, DeleteCommandFromWorkspace,
         GetCommandFromWorkspace, ListCommandsWithinWorkspace,
@@ -15,20 +17,13 @@ use hermione_ops::{
     },
     Error, Result,
 };
-use rusqlite::{params, types::Value, Connection};
+use rusqlite::{params, Connection};
 use std::{
-    fs,
-    future::{self, Future},
-    io,
+    fs, io,
     path::{Path, PathBuf},
-    process,
-    rc::Rc,
-    str,
-    sync::RwLock,
+    process, str,
 };
 use uuid::{Bytes, Uuid};
-
-const DEFAULT_PAGE_SIZE: u32 = 100;
 
 pub type StorageProviderResult<T> = std::result::Result<T, StorageProviderError>;
 
@@ -38,13 +33,6 @@ struct CommandRecord {
     name: String,
     program: String,
     workspace_id: Bytes,
-}
-
-#[cfg(feature = "backup")]
-pub struct BackupProvider<'a, T> {
-    connection: &'a Connection,
-    phantom: std::marker::PhantomData<T>,
-    page_number: RwLock<u32>,
 }
 
 struct ListCommandsWithinWorkspaceInput<'a> {
@@ -75,39 +63,11 @@ struct WorkspaceRecord {
     name: String,
 }
 
-#[cfg(feature = "backup")]
-impl<'a, T> BackupProvider<'a, T> {
-    fn storage_provider(&self) -> StorageProvider<'a> {
-        StorageProvider {
-            connection: self.connection,
-        }
-    }
-}
-
 impl<'a> StorageProvider<'a> {
     pub fn connect(folder_path: &Path) -> StorageProviderResult<Connection> {
         let connection = Connection::open(folder_path.join("hermione.db3"))?;
 
         Ok(connection)
-    }
-
-    #[cfg(feature = "backup")]
-    pub fn commands_backup_provider(&self) -> BackupProvider<'a, Command> {
-        self.backup_provider()
-    }
-
-    #[cfg(feature = "backup")]
-    pub fn workspaces_backup_provider(&self) -> BackupProvider<'a, Workspace> {
-        self.backup_provider()
-    }
-
-    #[cfg(feature = "backup")]
-    fn backup_provider<T>(&self) -> BackupProvider<'a, T> {
-        BackupProvider {
-            connection: self.connection,
-            phantom: std::marker::PhantomData,
-            page_number: RwLock::new(0),
-        }
     }
 
     fn delete_command_from_workspace(
@@ -147,13 +107,13 @@ impl<'a> StorageProvider<'a> {
     ) -> StorageProviderResult<CommandRecord> {
         let mut statement = self.connection.prepare(
             "SELECT
-                    id,
-                    last_execute_time,
-                    name,
-                    program,
-                    workspace_id
-                FROM commands
-                WHERE id = ?1 AND workspace_id = ?2",
+                id,
+                last_execute_time,
+                name,
+                program,
+                workspace_id
+            FROM commands
+            WHERE id = ?1 AND workspace_id = ?2",
         )?;
 
         let record = statement
@@ -223,110 +183,6 @@ impl<'a> StorageProvider<'a> {
         Ok(())
     }
 
-    fn list_commands_by_page(&self, page_number: u32) -> StorageProviderResult<Vec<CommandRecord>> {
-        let mut statement = self.connection.prepare(
-            "SELECT
-                    id,
-                    last_execute_time,
-                    name,
-                    program,
-                    workspace_id
-                FROM commands
-                ORDER BY program ASC
-                LIMIT ?1 OFFSET ?2",
-        )?;
-
-        let records = statement
-            .query_map(
-                params![DEFAULT_PAGE_SIZE, page_number * DEFAULT_PAGE_SIZE],
-                |row| row.try_into(),
-            )?
-            .collect::<std::result::Result<Vec<CommandRecord>, _>>()?;
-
-        Ok(records)
-    }
-
-    fn list_commands_by_ids(&self, ids: Vec<Uuid>) -> StorageProviderResult<Vec<CommandRecord>> {
-        let ids: Vec<Vec<u8>> = ids.into_iter().map(|id| id.into_bytes().to_vec()).collect();
-        let ids = Rc::new(ids.into_iter().map(Value::from).collect::<Vec<Value>>());
-
-        if ids.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let mut statement = self.connection.prepare(
-            "SELECT
-                    id,
-                    last_execute_time,
-                    name,
-                    program,
-                    workspace_id
-                FROM commands
-                WHERE id IN rarray(?1)
-                ORDER BY program ASC",
-        )?;
-
-        let rows = statement.query_map(params![ids], |row| row.try_into())?;
-
-        let records = rows.collect::<std::result::Result<Vec<CommandRecord>, _>>()?;
-
-        Ok(records)
-    }
-
-    fn list_workspaces_by_ids(
-        &self,
-        ids: Vec<Uuid>,
-    ) -> StorageProviderResult<Vec<WorkspaceRecord>> {
-        let ids: Vec<Vec<u8>> = ids.into_iter().map(|id| id.into_bytes().to_vec()).collect();
-        let ids = Rc::new(ids.into_iter().map(Value::from).collect::<Vec<Value>>());
-
-        if ids.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let mut statement = self.connection.prepare(
-            "SELECT
-                    id,
-                    last_access_time,
-                    location,
-                    name
-                FROM workspaces
-                WHERE id IN rarray(?1)
-                ORDER BY name ASC",
-        )?;
-
-        let rows = statement.query_map(params![ids], |row| row.try_into())?;
-
-        let records = rows.collect::<std::result::Result<Vec<WorkspaceRecord>, _>>()?;
-
-        Ok(records)
-    }
-
-    fn list_workspaces_by_page(
-        &self,
-        page_number: u32,
-    ) -> StorageProviderResult<Vec<WorkspaceRecord>> {
-        let mut statement = self.connection.prepare(
-            "SELECT
-                id,
-                last_access_time,
-                location,
-                name
-            FROM workspaces
-            ORDER BY name ASC
-            LIMIT ?1 OFFSET ?2",
-        )?;
-
-        let records = statement
-            .query_map(
-                params![DEFAULT_PAGE_SIZE, page_number * DEFAULT_PAGE_SIZE],
-                |row| row.try_into(),
-            )?
-            .collect::<std::result::Result<Vec<WorkspaceRecord>, _>>()?;
-
-        Ok(records)
-    }
-
     fn list_commands_within_workspace(
         &self,
         input: ListCommandsWithinWorkspaceInput,
@@ -342,15 +198,15 @@ impl<'a> StorageProvider<'a> {
 
         let mut statement = self.connection.prepare(
             "SELECT
-                    id,
-                    last_execute_time,
-                    name,
-                    program,
-                    workspace_id
-                FROM commands
-                WHERE LOWER(program) LIKE ?1 AND workspace_id = ?2
-                ORDER BY last_execute_time DESC, program ASC
-                LIMIT ?3 OFFSET ?4",
+                id,
+                last_execute_time,
+                name,
+                program,
+                workspace_id
+            FROM commands
+            WHERE LOWER(program) LIKE ?1 AND workspace_id = ?2
+            ORDER BY last_execute_time DESC, program ASC
+            LIMIT ?3 OFFSET ?4",
         )?;
 
         let records = statement
@@ -458,10 +314,10 @@ impl<'a> StorageProvider<'a> {
 
         let mut statement = self.connection.prepare(
             "UPDATE commands
-                SET
-                    name = ?1,
-                    program = ?2
-                WHERE id = ?3 AND workspace_id = ?4",
+            SET
+                name = ?1,
+                program = ?2
+            WHERE id = ?3 AND workspace_id = ?4",
         )?;
 
         statement.execute(params![name, program, id, workspace_id])?;
@@ -479,10 +335,10 @@ impl<'a> StorageProvider<'a> {
 
         let mut statement = self.connection.prepare(
             "UPDATE workspaces
-                SET
-                    location = ?1,
-                    name = ?2
-                WHERE id = ?3",
+            SET
+                location = ?1,
+                name = ?2
+            WHERE id = ?3",
         )?;
 
         statement.execute(params![location, name, id])?;
@@ -721,107 +577,6 @@ impl GetWorkspace for StorageProvider<'_> {
     }
 }
 
-#[cfg(feature = "backup")]
-impl<'a> Import for BackupProvider<'a, Command> {
-    type Entity = Command;
-
-    fn import(&self, command: Command) -> impl Future<Output = Result<Command>> {
-        let record = match CommandRecord::try_from(&command) {
-            Ok(record) => record,
-            Err(error) => return future::ready(Err(error)),
-        };
-
-        if let Err(err) = self.storage_provider().insert_command(record) {
-            return future::ready(Err(err.into()));
-        }
-
-        future::ready(Ok(command))
-    }
-}
-
-#[cfg(feature = "backup")]
-impl<'a> Import for BackupProvider<'a, Workspace> {
-    type Entity = Workspace;
-
-    fn import(&self, workspace: Workspace) -> impl Future<Output = Result<Workspace>> {
-        let record = match WorkspaceRecord::try_from(&workspace) {
-            Ok(record) => record,
-            Err(error) => return future::ready(Err(error)),
-        };
-
-        if let Err(err) = self.storage_provider().insert_workspace(record) {
-            return future::ready(Err(err.into()));
-        }
-
-        future::ready(Ok(workspace))
-    }
-}
-
-#[cfg(feature = "backup")]
-impl<'a> Iterate for BackupProvider<'a, Workspace> {
-    type Entity = Workspace;
-
-    fn iterate(&self) -> impl Future<Output = Result<Option<Vec<Self::Entity>>>> {
-        let mut page_number = match self
-            .page_number
-            .write()
-            .map_err(|_err| eyre::Error::msg("Failed to read page number from lock"))
-        {
-            Ok(page_number) => page_number,
-            Err(err) => return future::ready(Err(err.into())),
-        };
-
-        let records = match self
-            .storage_provider()
-            .list_workspaces_by_page(*page_number)
-        {
-            Ok(records) => records,
-            Err(err) => return future::ready(Err(err.into())),
-        };
-
-        if records.is_empty() {
-            return future::ready(Ok(None));
-        }
-
-        *page_number += 1;
-
-        let workspaces = records.into_iter().map(Into::into).collect();
-
-        future::ready(Ok(Some(workspaces)))
-    }
-}
-
-#[cfg(feature = "backup")]
-impl<'a> Iterate for BackupProvider<'a, Command> {
-    type Entity = Command;
-
-    fn iterate(&self) -> impl Future<Output = Result<Option<Vec<Self::Entity>>>> {
-        let mut page_number = match self
-            .page_number
-            .write()
-            .map_err(|_err| eyre::Error::msg("Failed to read page number from lock"))
-        {
-            Ok(page_number) => page_number,
-            Err(err) => return future::ready(Err(err.into())),
-        };
-
-        let records = match self.storage_provider().list_commands_by_page(*page_number) {
-            Ok(records) => records,
-            Err(err) => return future::ready(Err(err.into())),
-        };
-
-        if records.is_empty() {
-            return future::ready(Ok(None));
-        }
-
-        *page_number += 1;
-
-        let commands = records.into_iter().map(Into::into).collect();
-
-        future::ready(Ok(Some(commands)))
-    }
-}
-
 impl ListCommandsWithinWorkspace for StorageProvider<'_> {
     fn list_commands_within_workspace(
         &self,
@@ -844,36 +599,6 @@ impl ListCommandsWithinWorkspace for StorageProvider<'_> {
         let entities = records.into_iter().map(Into::into).collect();
 
         Ok(entities)
-    }
-}
-
-#[cfg(feature = "backup")]
-impl<'a> ListByIds for BackupProvider<'a, Command> {
-    type Entity = Command;
-
-    fn list_by_ids(&self, ids: Vec<Uuid>) -> impl Future<Output = Result<Vec<Self::Entity>>> {
-        let result = self.storage_provider().list_commands_by_ids(ids);
-
-        let result = result
-            .map(|records| records.into_iter().map(Into::into).collect())
-            .map_err(Into::into);
-
-        future::ready(result)
-    }
-}
-
-#[cfg(feature = "backup")]
-impl<'a> ListByIds for BackupProvider<'a, Workspace> {
-    type Entity = Workspace;
-
-    fn list_by_ids(&self, ids: Vec<Uuid>) -> impl Future<Output = Result<Vec<Self::Entity>>> {
-        let result = self.storage_provider().list_workspaces_by_ids(ids);
-
-        let result = result
-            .map(|records| records.into_iter().map(Into::into).collect())
-            .map_err(Into::into);
-
-        future::ready(result)
     }
 }
 
@@ -904,26 +629,6 @@ impl UpdateCommand for StorageProvider<'_> {
         self.update_command(record)?;
 
         Ok(entity)
-    }
-}
-
-impl<'a> Update for BackupProvider<'a, Command> {
-    type Entity = Command;
-
-    fn update(&self, entity: Self::Entity) -> impl Future<Output = Result<Self::Entity>> {
-        let result = UpdateCommand::update_command(&self.storage_provider(), entity);
-
-        future::ready(result)
-    }
-}
-
-impl<'a> Update for BackupProvider<'a, Workspace> {
-    type Entity = Workspace;
-
-    fn update(&self, entity: Self::Entity) -> impl Future<Output = Result<Self::Entity>> {
-        let result = UpdateWorkspace::update_workspace(&self.storage_provider(), entity);
-
-        future::ready(result)
     }
 }
 
