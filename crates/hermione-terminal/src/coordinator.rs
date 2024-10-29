@@ -7,7 +7,7 @@ use hermione_ops::{
         Command, CommandWorkspaceScopedId, CreateCommandOperation,
         DeleteCommandFromWorkspaceOperation, GetCommandFromWorkspaceOperation,
         ListCommandsWithinWorkspaceOperation, ListCommandsWithinWorkspaceParameters,
-        NewCommandParameters, UpdateCommandOperation,
+        NewCommandParameters, UpdateCommandOperation, UpdateCommandParameters,
     },
     extensions::{
         CopyCommandToClipboardOperation, ExecuteCommandOperation,
@@ -238,10 +238,23 @@ impl<'a> Coordinator<'a> {
     }
 
     pub fn update_command(&self, data: CommandPresenter) -> Result<CommandPresenter> {
+        let CommandPresenter {
+            workspace_id,
+            id,
+            name,
+            program,
+        } = data;
+
         let command = UpdateCommandOperation {
-            updater: &self.storage_provider,
+            get_command_provider: &self.storage_provider,
+            update_command_provider: &self.storage_provider,
         }
-        .execute(data.try_into()?)?;
+        .execute(UpdateCommandParameters {
+            id: id.parse()?,
+            name,
+            program,
+            workspace_id: workspace_id.parse()?,
+        })?;
 
         Ok(command.into())
     }

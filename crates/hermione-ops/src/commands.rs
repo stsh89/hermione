@@ -44,8 +44,9 @@ where
     pub lister: &'a L,
 }
 
-pub struct UpdateCommandOperation<'a, U> {
-    pub updater: &'a U,
+pub struct UpdateCommandOperation<'a, GCP, UCP> {
+    pub get_command_provider: &'a GCP,
+    pub update_command_provider: &'a UCP,
 }
 
 #[derive(Debug)]
@@ -90,6 +91,13 @@ pub struct ListCommandsWithinWorkspaceParameters<'a> {
     pub page_number: u32,
     pub page_size: u32,
     pub program_contains: &'a str,
+    pub workspace_id: Uuid,
+}
+
+pub struct UpdateCommandParameters {
+    pub id: Uuid,
+    pub name: String,
+    pub program: String,
     pub workspace_id: Uuid,
 }
 
@@ -146,12 +154,31 @@ where
     }
 }
 
-impl<'a, U> UpdateCommandOperation<'a, U>
+impl<'a, GCP, UCP> UpdateCommandOperation<'a, GCP, UCP>
 where
-    U: UpdateCommand,
+    GCP: GetCommandFromWorkspace,
+    UCP: UpdateCommand,
 {
-    pub fn execute(&self, command: Command) -> Result<Command> {
-        self.updater.update_command(command)
+    pub fn execute(&self, parameters: UpdateCommandParameters) -> Result<Command> {
+        let UpdateCommandParameters {
+            id,
+            name,
+            program,
+            workspace_id,
+        } = parameters;
+
+        let mut command = GetCommandFromWorkspaceOperation {
+            getter: self.get_command_provider,
+        }
+        .execute(CommandWorkspaceScopedId {
+            command_id: id,
+            workspace_id,
+        })?;
+
+        command.rename(name);
+        command.change_program(program);
+
+        self.update_command_provider.update_command(command)
     }
 }
 
