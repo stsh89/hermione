@@ -38,8 +38,9 @@ pub struct ListWorkspaceOperation<'a, L> {
     pub lister: &'a L,
 }
 
-pub struct UpdateWorkspaceOperation<'a, U> {
-    pub updater: &'a U,
+pub struct UpdateWorkspaceOperation<'a, GWP, UWP> {
+    pub get_workspace_provider: &'a GWP,
+    pub update_workspace_provider: &'a UWP,
 }
 
 pub struct Workspace {
@@ -73,6 +74,12 @@ pub struct ListWorkspacesParameters<'a> {
     pub name_contains: &'a str,
     pub page_number: u32,
     pub page_size: u32,
+}
+
+pub struct UpdateWorkspaceParameters {
+    pub id: Uuid,
+    pub location: String,
+    pub name: String,
 }
 
 impl<'a, S> CreateWorkspaceOperation<'a, S>
@@ -125,18 +132,33 @@ where
     }
 }
 
-impl<'a, U> UpdateWorkspaceOperation<'a, U>
+impl<'a, GWP, UWP> UpdateWorkspaceOperation<'a, GWP, UWP>
 where
-    U: UpdateWorkspace,
+    GWP: GetWorkspace,
+    UWP: UpdateWorkspace,
 {
-    pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
-        self.updater.update_workspace(workspace)
+    pub fn execute(&self, parameters: UpdateWorkspaceParameters) -> Result<Workspace> {
+        let UpdateWorkspaceParameters { id, location, name } = parameters;
+
+        let mut workspace = GetWorkspaceOperation {
+            getter: self.get_workspace_provider,
+        }
+        .execute(id)?;
+
+        workspace.rename(name);
+        workspace.change_location(location);
+
+        self.update_workspace_provider.update_workspace(workspace)
     }
 }
 
 impl Workspace {
     pub fn change_location(&mut self, location: String) {
-        self.location = Some(WorkspaceLocation { value: location });
+        if location.is_empty() {
+            self.unset_location();
+        } else {
+            self.set_location(location);
+        }
     }
 
     pub fn last_access_time(&self) -> Option<&DateTime<Utc>> {
@@ -196,9 +218,17 @@ impl Workspace {
         Ok(())
     }
 
+    fn set_location(&mut self, location: String) {
+        self.location = Some(WorkspaceLocation { value: location });
+    }
+
     pub fn try_id(&self) -> Result<Uuid> {
         self.id
             .ok_or(Error::DataLoss("Missing workspace ID".into()))
+    }
+
+    fn unset_location(&mut self) {
+        self.location = None;
     }
 }
 

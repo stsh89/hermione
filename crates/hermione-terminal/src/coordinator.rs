@@ -17,7 +17,7 @@ use hermione_ops::{
     workspaces::{
         CreateWorkspaceOperation, DeleteWorkspaceOperation, GetWorkspaceOperation,
         ListWorkspaceOperation, ListWorkspacesParameters, NewWorkspaceParameters,
-        UpdateWorkspaceOperation, Workspace,
+        UpdateWorkspaceOperation, UpdateWorkspaceParameters, Workspace,
     },
 };
 use hermione_storage::StorageProvider;
@@ -246,11 +246,18 @@ impl<'a> Coordinator<'a> {
         Ok(command.into())
     }
 
-    pub fn update_workspace(&self, dto: WorkspacePresenter) -> Result<WorkspacePresenter> {
+    pub fn update_workspace(&self, presenter: WorkspacePresenter) -> Result<WorkspacePresenter> {
+        let WorkspacePresenter { id, location, name } = presenter;
+
         let workspace = UpdateWorkspaceOperation {
-            updater: &self.storage_provider,
+            get_workspace_provider: &self.storage_provider,
+            update_workspace_provider: &self.storage_provider,
         }
-        .execute(dto.try_into()?)?;
+        .execute(UpdateWorkspaceParameters {
+            id: id.parse()?,
+            location,
+            name,
+        })?;
 
         Ok(workspace.into())
     }
