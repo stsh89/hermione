@@ -5,25 +5,24 @@ use tracing_appender::{
 };
 
 const MAX_LOG_FILES: usize = 3;
-const DEFAULT_ROTATION_POLICY: Rotation = Rotation::DAILY;
+const DEFAULT_ROTATION_POLICY: Rotation = Rotation::HOURLY;
+const FILE_NAME_PREFIX: &str = "hermione-logs";
 
 type Result<T> = anyhow::Result<T>;
 
 pub struct Tracer<'a> {
     directory: &'a Path,
-    filename_prefix: &'a str,
 }
 
 pub struct NewTracerParameters<'a> {
     pub directory: &'a Path,
-    pub filename_prefix: &'a str,
 }
 
 impl<'a> Tracer<'a> {
     pub fn init_non_blocking(&self) -> Result<WorkerGuard> {
         let file_appender = RollingFileAppender::builder()
             .max_log_files(MAX_LOG_FILES)
-            .filename_prefix(self.filename_prefix)
+            .filename_prefix(FILE_NAME_PREFIX)
             .rotation(DEFAULT_ROTATION_POLICY)
             .build(self.directory)?;
 
@@ -38,14 +37,8 @@ impl<'a> Tracer<'a> {
     }
 
     pub fn new(parameters: NewTracerParameters<'a>) -> Self {
-        let NewTracerParameters {
-            directory,
-            filename_prefix,
-        } = parameters;
+        let NewTracerParameters { directory } = parameters;
 
-        Self {
-            directory,
-            filename_prefix,
-        }
+        Self { directory }
     }
 }

@@ -135,7 +135,6 @@ async fn main() -> Result<()> {
 
     let tracer = Tracer::new(NewTracerParameters {
         directory: &app_path,
-        filename_prefix: "hermione-notion-logs",
     });
 
     let app = App {
