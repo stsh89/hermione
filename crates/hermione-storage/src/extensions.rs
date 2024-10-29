@@ -51,7 +51,7 @@ impl TrackCommandExecutionTime for StorageProvider<'_> {
     fn track_command_execution_time(&self, command: Command) -> Result<Command> {
         let command_id = command.try_id()?;
 
-        self.track_command_execution_time(command_id, command.workspace_id())?;
+        self.track_command_execution_time(command.workspace_id(), command_id)?;
 
         GetCommandFromWorkspace::get_command_from_workspace(
             self,
