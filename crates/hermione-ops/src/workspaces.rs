@@ -91,6 +91,8 @@ where
     S: CreateWorkspace,
 {
     pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
+        tracing::info!(operation = "Create workspace");
+
         if !workspace.id().is_nil() {
             return Err(Error::FailedPrecondition(
                 "Workspace id is already set".to_string(),
@@ -114,6 +116,8 @@ where
     D: DeleteWorkspace,
 {
     pub fn execute(&self, workspace_id: WorkspaceId) -> Result<()> {
+        tracing::info!(operation = "Delete workspace");
+
         self.deleter.delete(workspace_id)
     }
 }
@@ -123,6 +127,8 @@ where
     R: GetWorkspace,
 {
     pub fn execute(&self, id: &WorkspaceId) -> Result<Workspace> {
+        tracing::info!(operation = "Get workspace");
+
         self.getter.get_workspace(id)
     }
 }
@@ -132,6 +138,8 @@ where
     L: ListWorkspaces,
 {
     pub fn execute(&self, parameters: ListWorkspacesParameters) -> Result<Vec<Workspace>> {
+        tracing::info!(operation = "List workspaces");
+
         self.lister.list_workspaces(parameters)
     }
 }
@@ -142,6 +150,8 @@ where
     UWP: UpdateWorkspace,
 {
     pub fn execute(&self, parameters: UpdateWorkspaceParameters) -> Result<Workspace> {
+        tracing::info!(operation = "Update workspace");
+
         let UpdateWorkspaceParameters { id, location, name } = parameters;
 
         let mut workspace = GetWorkspaceOperation {

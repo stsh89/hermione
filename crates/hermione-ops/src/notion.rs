@@ -53,6 +53,8 @@ where
     T: DeleteCredentials,
 {
     pub fn execute(&self) -> Result<()> {
+        tracing::info!(operation = "Delete Notion credentials");
+
         self.deleter.delete()
     }
 }
@@ -62,6 +64,8 @@ where
     T: GetCredentials,
 {
     pub fn execute(&self) -> Result<Credentials> {
+        tracing::info!(operation = "Get Notion credentials");
+
         self.get_credentials_provider.get_credentials()
     }
 }
@@ -73,6 +77,8 @@ where
     V: VerifyCredentials,
 {
     pub async fn execute(&self) -> Result<()> {
+        tracing::info!(operation = "Save Notion credentials");
+
         let credentials = GetCredentialsOperation {
             get_credentials_provider: self.getter,
         }
@@ -89,6 +95,8 @@ where
     V: VerifyCredentials,
 {
     pub async fn execute(&self) -> Result<()> {
+        tracing::info!(operation = "Verify Notion credentials");
+
         let credentials = GetCredentialsOperation {
             get_credentials_provider: self.get_credentials_provider,
         }

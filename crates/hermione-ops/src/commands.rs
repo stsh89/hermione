@@ -109,6 +109,8 @@ where
     S: CreateCommand,
 {
     pub fn execute(&self, command: Command) -> Result<Command> {
+        tracing::info!(operation = "Create command");
+
         if !command.id().is_nil() {
             return Err(Error::FailedPrecondition(
                 "Command id is already set".to_string(),
@@ -132,6 +134,8 @@ where
     D: DeleteCommandFromWorkspace,
 {
     pub fn execute(&self, workspace_id: &WorkspaceId, id: &CommandId) -> Result<()> {
+        tracing::info!(operation = "Delete command from workspace");
+
         self.deleter.delete(workspace_id, id)
     }
 }
@@ -141,6 +145,8 @@ where
     R: GetCommandFromWorkspace,
 {
     pub fn execute(&self, workspace_id: &WorkspaceId, id: &CommandId) -> Result<Command> {
+        tracing::info!(operation = "Get command from workspace");
+
         self.getter.get_command_from_workspace(workspace_id, id)
     }
 }
@@ -153,6 +159,8 @@ where
         &self,
         parameters: ListCommandsWithinWorkspaceParameters,
     ) -> Result<Vec<Command>> {
+        tracing::info!(operation = "List commands within workspace");
+
         self.lister.list_commands_within_workspace(parameters)
     }
 }
@@ -163,6 +171,8 @@ where
     UCP: UpdateCommand,
 {
     pub fn execute(&self, parameters: UpdateCommandParameters) -> Result<Command> {
+        tracing::info!(operation = "Update command");
+
         let UpdateCommandParameters {
             id,
             name,

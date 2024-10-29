@@ -16,7 +16,6 @@ use hermione_ops::{
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio::sync::RwLock;
-use tracing::instrument;
 
 const DEFAULT_PAGE_SIZE: u8 = 100;
 
@@ -322,10 +321,7 @@ impl BckImportWorkspace for NotionProvider {
 }
 
 impl<'a> BckIterateCommands for NotionCommandsIterator<'a> {
-    #[instrument(skip(self))]
     async fn bck_iterate_commands(&self) -> Result<Option<Vec<Command>>> {
-        tracing::info!("Iterating commands");
-
         let Some(credentials) = self.credentials else {
             return Err(Error::FailedPrecondition(
                 "Missing Notion credentials".into(),
@@ -372,10 +368,7 @@ impl<'a> BckIterateCommands for NotionCommandsIterator<'a> {
 }
 
 impl<'a> BckIterateWorkspaces for NotionWorkspacesIterator<'a> {
-    #[instrument(skip(self))]
     async fn bck_iterate_workspaces(&self) -> Result<Option<Vec<Workspace>>> {
-        tracing::info!("Iterating workspaces");
-
         let Some(credentials) = self.credentials else {
             return Err(Error::FailedPrecondition(
                 "Missing Notion credentials".into(),

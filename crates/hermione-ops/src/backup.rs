@@ -4,7 +4,6 @@ use crate::{
     Result,
 };
 use std::future::Future;
-use tracing::instrument;
 
 pub trait BckImportCommand {
     fn bck_import_command(&self, command: Command) -> impl Future<Output = Result<Command>>;
@@ -65,9 +64,8 @@ where
     LCP: BckListCommands,
     UCP: BckUpdateCommand,
 {
-    #[instrument(skip(self))]
     pub async fn execute(&self) -> Result<()> {
-        tracing::info!("Backup commands started");
+        tracing::info!(operation = "Backup commands");
 
         while let Some(commands) = self
             .iterate_commands_provider
@@ -112,9 +110,8 @@ where
     LWP: BckListWorkspaces,
     UWP: BckUpdateWorkspace,
 {
-    #[instrument(skip(self))]
     pub async fn execute(&self) -> Result<()> {
-        tracing::info!("Backup workspaces started");
+        tracing::info!(operation = "Backup workspaces");
 
         while let Some(workspaces) = self
             .iterate_workspaces_provider
@@ -177,8 +174,9 @@ where
     UCP: BckUpdateCommand,
     UWP: BckUpdateWorkspace,
 {
-    #[instrument(skip(self))]
     pub async fn execute(&self) -> Result<()> {
+        tracing::info!(operation = "Backup");
+
         BackupWorkspacesOperation {
             iterate_workspaces_provider: self.iterate_workspaces_provider,
             import_workspace_provider: self.import_workspace_provider,

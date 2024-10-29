@@ -74,6 +74,8 @@ where
     G: GetCommandFromWorkspace,
 {
     pub fn execute(&self, workspace_id: &WorkspaceId, id: &CommandId) -> Result<()> {
+        tracing::info!(operation = "Copy command to clipboard");
+
         let command = self.getter.get_command_from_workspace(workspace_id, id)?;
 
         self.clipboard_provider
@@ -92,6 +94,8 @@ where
     WT: TrackWorkspaceAccessTime,
 {
     pub fn execute(&self, parameters: ExecuteCommandWithinWorkspaceParameters) -> Result<Command> {
+        tracing::info!(operation = "Execute command");
+
         let ExecuteCommandWithinWorkspaceParameters {
             id,
             workspace_id,
@@ -133,6 +137,8 @@ where
     T: OpenWindowsTerminal,
 {
     pub fn execute(&self, parameters: OpenWindowsTerminalParameters) -> Result<()> {
+        tracing::info!(operation = "Open Windows Terminal");
+
         self.windows_terminal_provider
             .open_windows_terminal(parameters)?;
 
@@ -145,6 +151,8 @@ where
     T: TrackCommandExecutionTime,
 {
     pub fn execute(&self, command: Command) -> Result<Command> {
+        tracing::info!(operation = "Track command execution time");
+
         let time = command.last_execute_time().cloned();
 
         let command = self.tracker.track_command_execution_time(command)?;
@@ -169,6 +177,8 @@ where
     T: TrackWorkspaceAccessTime,
 {
     pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
+        tracing::info!(operation = "Track workspace access time");
+
         let time = workspace.last_access_time().cloned();
 
         let workspace = self.tracker.track_workspace_access_time(workspace)?;
