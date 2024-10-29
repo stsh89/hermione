@@ -96,7 +96,7 @@ impl EditWorkspaceCommandModel {
         let EditWorkspaceCommandModelParameters { command, workspace } = parameters;
 
         let status_bar = StatusBar::default()
-            .use_case("Edit command")
+            .operation("Edit command")
             .workspace(&workspace.name)
             .command(&command.name)
             .try_into()?;

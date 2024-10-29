@@ -5,7 +5,7 @@ pub mod wide;
 
 #[derive(Default, Serialize)]
 pub struct StatusBar<'a> {
-    use_case: &'a str,
+    operation: &'a str,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     workspace: Option<&'a str>,
@@ -27,8 +27,11 @@ pub struct StatusBar<'a> {
 }
 
 impl<'a> StatusBar<'a> {
-    pub fn use_case(self, use_case: &'a str) -> Self {
-        Self { use_case, ..self }
+    pub fn operation(self, name: &'a str) -> Self {
+        Self {
+            operation: name,
+            ..self
+        }
     }
 
     pub fn workspace(self, workspace: &'a str) -> Self {

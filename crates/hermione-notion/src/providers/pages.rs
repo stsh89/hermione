@@ -480,7 +480,7 @@ impl BckUpdateCommand for NotionProvider {
         let Some(page) = page else {
             return Err(Error::NotFound(format!(
                 "Command with ID: {}",
-                command.id().to_string()
+                **command.id()
             )));
         };
 
@@ -505,7 +505,7 @@ impl BckUpdateWorkspace for NotionProvider {
         let Some(page) = page else {
             return Err(Error::NotFound(format!(
                 "Command with ID: {}",
-                workspace.id().to_string()
+                **workspace.id()
             )));
         };
 

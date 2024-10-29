@@ -75,7 +75,7 @@ impl NewWorkspaceCommandModel {
         let NewWorkspaceCommandModelParameters { workspace } = parameters;
 
         let status_bar = StatusBar::default()
-            .use_case("New command")
+            .operation("New command")
             .workspace(&workspace.name)
             .try_into()?;
 

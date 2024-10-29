@@ -76,7 +76,7 @@ impl NewWorkspaceModel {
     }
 
     pub fn new() -> Result<Self> {
-        let status_bar = StatusBar::default().use_case("New workspace").try_into()?;
+        let status_bar = StatusBar::default().operation("New workspace").try_into()?;
 
         Ok(Self {
             status_bar,

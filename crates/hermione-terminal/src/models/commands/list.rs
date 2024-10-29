@@ -122,7 +122,7 @@ impl ListWorkspaceCommandsModel {
 
     fn status_bar(&self) -> String {
         let mut status_bar = StatusBar::default()
-            .use_case("List commands")
+            .operation("List commands")
             .workspace(&self.workspace.name)
             .page(self.page_number);
 

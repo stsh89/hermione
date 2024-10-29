@@ -97,7 +97,7 @@ impl EditWorkspaceModel {
         let EditWorkspaceModelParameters { workspace } = parameters;
 
         let status_bar = StatusBar::default()
-            .use_case("Edit workspace")
+            .operation("Edit workspace")
             .workspace(&workspace.name)
             .try_into()?;
 

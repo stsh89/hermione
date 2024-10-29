@@ -93,7 +93,7 @@ impl ListWorkspacesModel {
 
     fn status_bar(&self) -> String {
         let mut status_bar = StatusBar::default()
-            .use_case("List workspaces")
+            .operation("List workspaces")
             .page(self.page_number);
 
         if let Some(workspace) = self.workspace() {
