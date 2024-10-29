@@ -1,5 +1,6 @@
 use crate::{Error, Result};
 use chrono::{DateTime, Utc};
+use std::{ops::Deref, str::FromStr};
 use uuid::Uuid;
 
 pub trait CreateWorkspace {
@@ -7,11 +8,11 @@ pub trait CreateWorkspace {
 }
 
 pub trait DeleteWorkspace {
-    fn delete(&self, workspace_id: Uuid) -> Result<()>;
+    fn delete(&self, id: WorkspaceId) -> Result<()>;
 }
 
 pub trait GetWorkspace {
-    fn get_workspace(&self, workspace_id: Uuid) -> Result<Workspace>;
+    fn get_workspace(&self, id: &WorkspaceId) -> Result<Workspace>;
 }
 
 pub trait ListWorkspaces {
@@ -44,7 +45,7 @@ pub struct UpdateWorkspaceOperation<'a, GWP, UWP> {
 }
 
 pub struct Workspace {
-    id: Option<Uuid>,
+    id: WorkspaceId,
     last_load_time: Option<DateTime<Utc>>,
     location: Option<WorkspaceLocation>,
     name: WorkspaceName,
@@ -76,18 +77,21 @@ pub struct ListWorkspacesParameters<'a> {
     pub page_size: u32,
 }
 
-pub struct UpdateWorkspaceParameters {
-    pub id: Uuid,
+pub struct UpdateWorkspaceParameters<'a> {
+    pub id: &'a WorkspaceId,
     pub location: String,
     pub name: String,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct WorkspaceId(Uuid);
 
 impl<'a, S> CreateWorkspaceOperation<'a, S>
 where
     S: CreateWorkspace,
 {
     pub fn execute(&self, workspace: Workspace) -> Result<Workspace> {
-        if workspace.id().is_some() {
+        if !workspace.id().is_nil() {
             return Err(Error::FailedPrecondition(
                 "Workspace id is already set".to_string(),
             ));
@@ -95,9 +99,9 @@ where
 
         let workspace = self.creator.create_workspace(workspace)?;
 
-        if workspace.id().is_none() {
+        if workspace.id().is_nil() {
             return Err(Error::Internal(
-                "Failed to create workspace: workspace id is not set".to_string(),
+                "Failed to create workspace: id is not set".to_string(),
             ));
         };
 
@@ -109,7 +113,7 @@ impl<'a, D> DeleteWorkspaceOperation<'a, D>
 where
     D: DeleteWorkspace,
 {
-    pub fn execute(&self, workspace_id: Uuid) -> Result<()> {
+    pub fn execute(&self, workspace_id: WorkspaceId) -> Result<()> {
         self.deleter.delete(workspace_id)
     }
 }
@@ -118,8 +122,8 @@ impl<'a, R> GetWorkspaceOperation<'a, R>
 where
     R: GetWorkspace,
 {
-    pub fn execute(&self, workspace_id: Uuid) -> Result<Workspace> {
-        self.getter.get_workspace(workspace_id)
+    pub fn execute(&self, id: &WorkspaceId) -> Result<Workspace> {
+        self.getter.get_workspace(id)
     }
 }
 
@@ -174,7 +178,7 @@ impl Workspace {
         } = parameters;
 
         Self {
-            id: Some(id),
+            id: WorkspaceId(id),
             last_load_time,
             location: location.map(|l| WorkspaceLocation { value: l }),
             name: WorkspaceName { value: name },
@@ -185,8 +189,8 @@ impl Workspace {
         self.location.as_ref().map(|l| l.value.as_str())
     }
 
-    pub fn id(&self) -> Option<Uuid> {
-        self.id
+    pub fn id(&self) -> &WorkspaceId {
+        &self.id
     }
 
     pub fn name(&self) -> &str {
@@ -197,7 +201,7 @@ impl Workspace {
         let NewWorkspaceParameters { name, location } = parameters;
 
         Self {
-            id: None,
+            id: WorkspaceId(Uuid::nil()),
             last_load_time: None,
             location: location.map(|l| WorkspaceLocation { value: l }),
             name: WorkspaceName { value: name },
@@ -209,22 +213,17 @@ impl Workspace {
     }
 
     pub fn set_id(&mut self, id: Uuid) -> Result<()> {
-        if self.id.is_some() {
+        if !self.id.is_nil() {
             return Err(Error::Internal("Workspace id is already set".to_string()));
         }
 
-        self.id = Some(id);
+        self.id = WorkspaceId(id);
 
         Ok(())
     }
 
     fn set_location(&mut self, location: String) {
         self.location = Some(WorkspaceLocation { value: location });
-    }
-
-    pub fn try_id(&self) -> Result<Uuid> {
-        self.id
-            .ok_or(Error::DataLoss("Missing workspace ID".into()))
     }
 
     fn unset_location(&mut self) {
@@ -234,8 +233,32 @@ impl Workspace {
 
 impl PartialEq for Workspace {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        *self.id == *other.id
             && self.name.value == other.name.value
             && self.location.as_ref().map(|l| &l.value) == other.location.as_ref().map(|l| &l.value)
+    }
+}
+
+impl Deref for WorkspaceId {
+    type Target = Uuid;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl FromStr for WorkspaceId {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let value: Uuid = s.parse().map_err(eyre::Error::new)?;
+
+        Ok(Self(value))
+    }
+}
+
+impl From<Uuid> for WorkspaceId {
+    fn from(value: Uuid) -> Self {
+        Self(value)
     }
 }

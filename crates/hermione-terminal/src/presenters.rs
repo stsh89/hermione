@@ -32,7 +32,7 @@ impl<'a> From<&WorkspacePresenter> for ListItem<'a> {
 impl From<Workspace> for WorkspacePresenter {
     fn from(workspace: Workspace) -> Self {
         Self {
-            id: workspace.id().map(|id| id.to_string()).unwrap_or_default(),
+            id: workspace.id().to_string(),
             location: workspace.location().unwrap_or_default().into(),
             name: workspace.name().to_string(),
         }
@@ -57,7 +57,7 @@ impl TryFrom<WorkspacePresenter> for Workspace {
 impl From<Command> for CommandPresenter {
     fn from(command: Command) -> Self {
         Self {
-            id: command.id().map(|id| id.to_string()).unwrap_or_default(),
+            id: command.id().to_string(),
             name: command.name().to_string(),
             program: command.program().to_string(),
             workspace_id: command.workspace_id().to_string(),

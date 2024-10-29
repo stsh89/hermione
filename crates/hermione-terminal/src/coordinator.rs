@@ -4,10 +4,10 @@ use crate::{
 };
 use hermione_ops::{
     commands::{
-        Command, CommandWorkspaceScopedId, CreateCommandOperation,
-        DeleteCommandFromWorkspaceOperation, GetCommandFromWorkspaceOperation,
-        ListCommandsWithinWorkspaceOperation, ListCommandsWithinWorkspaceParameters,
-        NewCommandParameters, UpdateCommandOperation, UpdateCommandParameters,
+        Command, CreateCommandOperation, DeleteCommandFromWorkspaceOperation,
+        GetCommandFromWorkspaceOperation, ListCommandsWithinWorkspaceOperation,
+        ListCommandsWithinWorkspaceParameters, NewCommandParameters, UpdateCommandOperation,
+        UpdateCommandParameters,
     },
     extensions::{
         CopyCommandToClipboardOperation, ExecuteCommandOperation,
@@ -29,7 +29,7 @@ pub struct Coordinator<'a> {
 }
 
 pub struct ExecuteCommandWithinWorkspaceInput<'a> {
-    pub command_id: &'a str,
+    pub id: &'a str,
     pub workspace_id: &'a str,
     pub no_exit: bool,
 }
@@ -52,15 +52,12 @@ pub struct OpenWindowsTerminalInput<'a> {
 }
 
 impl<'a> Coordinator<'a> {
-    pub fn copy_program_to_clipboard(&self, workspace_id: &str, command_id: &str) -> Result<()> {
+    pub fn copy_program_to_clipboard(&self, workspace_id: &str, id: &str) -> Result<()> {
         CopyCommandToClipboardOperation {
             clipboard_provider: &self.clipboard_provider,
             getter: &self.storage_provider,
         }
-        .execute(CommandWorkspaceScopedId {
-            workspace_id: workspace_id.parse()?,
-            command_id: command_id.parse()?,
-        })?;
+        .execute(&workspace_id.parse()?, &id.parse()?)?;
 
         Ok(())
     }
@@ -108,15 +105,10 @@ impl<'a> Coordinator<'a> {
     }
 
     pub fn delete_command_from_workspace(&self, workspace_id: &str, id: &str) -> Result<()> {
-        let id = CommandWorkspaceScopedId {
-            workspace_id: workspace_id.parse()?,
-            command_id: id.parse()?,
-        };
-
         DeleteCommandFromWorkspaceOperation {
             deleter: &self.storage_provider,
         }
-        .execute(id)?;
+        .execute(&workspace_id.parse()?, &id.parse()?)?;
 
         Ok(())
     }
@@ -132,7 +124,7 @@ impl<'a> Coordinator<'a> {
 
     pub fn execute_command(&self, input: ExecuteCommandWithinWorkspaceInput) -> Result<()> {
         let ExecuteCommandWithinWorkspaceInput {
-            command_id,
+            id,
             workspace_id,
             no_exit,
         } = input;
@@ -145,8 +137,8 @@ impl<'a> Coordinator<'a> {
             workspace_tracker: &self.storage_provider,
         }
         .execute(ExecuteCommandWithinWorkspaceParameters {
-            command_id: command_id.parse()?,
-            workspace_id: workspace_id.parse()?,
+            id: &id.parse()?,
+            workspace_id: &workspace_id.parse()?,
             no_exit,
         })?;
 
@@ -158,15 +150,10 @@ impl<'a> Coordinator<'a> {
         workspace_id: &str,
         id: &str,
     ) -> Result<CommandPresenter> {
-        let id = CommandWorkspaceScopedId {
-            workspace_id: workspace_id.parse()?,
-            command_id: id.parse()?,
-        };
-
         let command = GetCommandFromWorkspaceOperation {
             getter: &self.storage_provider,
         }
-        .execute(id)?;
+        .execute(&workspace_id.parse()?, &id.parse()?)?;
 
         Ok(command.into())
     }
@@ -175,7 +162,7 @@ impl<'a> Coordinator<'a> {
         let workspace = GetWorkspaceOperation {
             getter: &self.storage_provider,
         }
-        .execute(id.parse()?)?;
+        .execute(&id.parse()?)?;
 
         Ok(workspace.into())
     }
@@ -250,10 +237,10 @@ impl<'a> Coordinator<'a> {
             update_command_provider: &self.storage_provider,
         }
         .execute(UpdateCommandParameters {
-            id: id.parse()?,
+            id: &id.parse()?,
             name,
             program,
-            workspace_id: workspace_id.parse()?,
+            workspace_id: &workspace_id.parse()?,
         })?;
 
         Ok(command.into())
@@ -267,7 +254,7 @@ impl<'a> Coordinator<'a> {
             update_workspace_provider: &self.storage_provider,
         }
         .execute(UpdateWorkspaceParameters {
-            id: id.parse()?,
+            id: &id.parse()?,
             location,
             name,
         })?;

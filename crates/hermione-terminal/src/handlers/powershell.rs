@@ -29,7 +29,7 @@ impl<'a> PowerShellHandler<'a> {
 
         self.coordinator
             .execute_command(ExecuteCommandWithinWorkspaceInput {
-                command_id: &command_id,
+                id: &command_id,
                 workspace_id: &workspace_id,
                 no_exit,
             })?;

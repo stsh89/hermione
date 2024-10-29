@@ -1,7 +1,10 @@
-use crate::{commands::Command, workspaces::Workspace, Result};
+use crate::{
+    commands::{Command, CommandId},
+    workspaces::{Workspace, WorkspaceId},
+    Result,
+};
 use std::future::Future;
 use tracing::instrument;
-use uuid::Uuid;
 
 pub trait BckImportCommand {
     fn bck_import_command(&self, command: Command) -> impl Future<Output = Result<Command>>;
@@ -21,11 +24,15 @@ pub trait BckIterateWorkspaces {
 }
 
 pub trait BckListCommands {
-    fn bck_list_commands(&self, ids: Vec<Uuid>) -> impl Future<Output = Result<Vec<Command>>>;
+    fn bck_list_commands(&self, ids: Vec<&CommandId>)
+        -> impl Future<Output = Result<Vec<Command>>>;
 }
 
 pub trait BckListWorkspaces {
-    fn bck_list_workspaces(&self, ids: Vec<Uuid>) -> impl Future<Output = Result<Vec<Workspace>>>;
+    fn bck_list_workspaces(
+        &self,
+        ids: Vec<&WorkspaceId>,
+    ) -> impl Future<Output = Result<Vec<Workspace>>>;
 }
 
 pub trait BckUpdateCommand {
@@ -93,7 +100,7 @@ where
 
     async fn list_backuped_commands(&self, commands: &[Command]) -> Result<Vec<Command>> {
         self.list_commands_provider
-            .bck_list_commands(commands.iter().filter_map(|c| c.id()).collect())
+            .bck_list_commands(commands.iter().map(|c| c.id()).collect())
             .await
     }
 }
@@ -142,7 +149,7 @@ where
 
     async fn list_backuped_workspaces(&self, workspaces: &[Workspace]) -> Result<Vec<Workspace>> {
         self.list_workspaces_provider
-            .bck_list_workspaces(workspaces.iter().filter_map(|c| c.id()).collect())
+            .bck_list_workspaces(workspaces.iter().map(|c| c.id()).collect())
             .await
     }
 }

@@ -4,8 +4,8 @@ use hermione_ops::{
         BckImportCommand, BckImportWorkspace, BckIterateCommands, BckIterateWorkspaces,
         BckListCommands, BckListWorkspaces, BckUpdateCommand, BckUpdateWorkspace,
     },
-    commands::{Command, UpdateCommand},
-    workspaces::{UpdateWorkspace, Workspace},
+    commands::{Command, CommandId, UpdateCommand},
+    workspaces::{UpdateWorkspace, Workspace, WorkspaceId},
     Result,
 };
 use rusqlite::{params, types::Value, Connection};
@@ -14,7 +14,6 @@ use std::{
     rc::Rc,
     sync::RwLock,
 };
-use uuid::Uuid;
 
 const DEFAULT_PAGE_SIZE: u32 = 100;
 
@@ -26,7 +25,10 @@ impl<'a> StorageProvider<'a> {
         }
     }
 
-    fn list_commands_by_ids(&self, ids: Vec<Uuid>) -> StorageProviderResult<Vec<CommandRecord>> {
+    fn list_commands_by_ids(
+        &self,
+        ids: Vec<&CommandId>,
+    ) -> StorageProviderResult<Vec<CommandRecord>> {
         let ids: Vec<Vec<u8>> = ids.into_iter().map(|id| id.into_bytes().to_vec()).collect();
         let ids = Rc::new(ids.into_iter().map(Value::from).collect::<Vec<Value>>());
 
@@ -55,7 +57,7 @@ impl<'a> StorageProvider<'a> {
 
     fn list_workspaces_by_ids(
         &self,
-        ids: Vec<Uuid>,
+        ids: Vec<&WorkspaceId>,
     ) -> StorageProviderResult<Vec<WorkspaceRecord>> {
         let ids: Vec<Vec<u8>> = ids.into_iter().map(|id| id.into_bytes().to_vec()).collect();
         let ids = Rc::new(ids.into_iter().map(Value::from).collect::<Vec<Value>>());
@@ -154,10 +156,7 @@ impl<'a> WorkspacesIterator<'a> {
 
 impl<'a> BckImportCommand for StorageProvider<'a> {
     fn bck_import_command(&self, command: Command) -> impl Future<Output = Result<Command>> {
-        let record = match CommandRecord::try_from(&command) {
-            Ok(record) => record,
-            Err(error) => return future::ready(Err(error)),
-        };
+        let record = CommandRecord::from(&command);
 
         if let Err(err) = self.insert_command(record) {
             return future::ready(Err(err.into()));
@@ -242,7 +241,10 @@ impl<'a> BckIterateWorkspaces for WorkspacesIterator<'a> {
 }
 
 impl<'a> BckListCommands for StorageProvider<'a> {
-    fn bck_list_commands(&self, ids: Vec<Uuid>) -> impl Future<Output = Result<Vec<Command>>> {
+    fn bck_list_commands(
+        &self,
+        ids: Vec<&CommandId>,
+    ) -> impl Future<Output = Result<Vec<Command>>> {
         let result = self.list_commands_by_ids(ids);
 
         let result = result
@@ -253,7 +255,10 @@ impl<'a> BckListCommands for StorageProvider<'a> {
     }
 }
 impl<'a> BckListWorkspaces for StorageProvider<'a> {
-    fn bck_list_workspaces(&self, ids: Vec<Uuid>) -> impl Future<Output = Result<Vec<Workspace>>> {
+    fn bck_list_workspaces(
+        &self,
+        ids: Vec<&WorkspaceId>,
+    ) -> impl Future<Output = Result<Vec<Workspace>>> {
         let result = self.list_workspaces_by_ids(ids);
 
         let result = result

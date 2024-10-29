@@ -1,5 +1,6 @@
-use crate::{Error, Result};
+use crate::{workspaces::WorkspaceId, Error, Result};
 use chrono::{DateTime, Utc};
+use std::{ops::Deref, str::FromStr};
 use uuid::Uuid;
 
 pub trait CreateCommand {
@@ -7,11 +8,15 @@ pub trait CreateCommand {
 }
 
 pub trait DeleteCommandFromWorkspace {
-    fn delete(&self, id: CommandWorkspaceScopedId) -> Result<()>;
+    fn delete(&self, workspace_id: &WorkspaceId, id: &CommandId) -> Result<()>;
 }
 
 pub trait GetCommandFromWorkspace {
-    fn get_command_from_workspace(&self, id: CommandWorkspaceScopedId) -> Result<Command>;
+    fn get_command_from_workspace(
+        &self,
+        workspace_id: &WorkspaceId,
+        id: &CommandId,
+    ) -> Result<Command>;
 }
 
 pub trait ListCommandsWithinWorkspace {
@@ -52,10 +57,10 @@ pub struct UpdateCommandOperation<'a, GCP, UCP> {
 #[derive(Debug)]
 pub struct Command {
     last_execute_time: Option<DateTime<Utc>>,
-    id: Option<Uuid>,
+    id: CommandId,
     name: CommandName,
     program: CommandProgram,
-    workspace_id: Uuid,
+    workspace_id: WorkspaceId,
 }
 
 #[derive(Debug)]
@@ -82,11 +87,6 @@ pub struct NewCommandParameters {
     pub workspace_id: Uuid,
 }
 
-pub struct CommandWorkspaceScopedId {
-    pub command_id: Uuid,
-    pub workspace_id: Uuid,
-}
-
 pub struct ListCommandsWithinWorkspaceParameters<'a> {
     pub page_number: u32,
     pub page_size: u32,
@@ -94,19 +94,22 @@ pub struct ListCommandsWithinWorkspaceParameters<'a> {
     pub workspace_id: Uuid,
 }
 
-pub struct UpdateCommandParameters {
-    pub id: Uuid,
+pub struct UpdateCommandParameters<'a> {
+    pub id: &'a CommandId,
     pub name: String,
     pub program: String,
-    pub workspace_id: Uuid,
+    pub workspace_id: &'a WorkspaceId,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct CommandId(Uuid);
 
 impl<'a, S> CreateCommandOperation<'a, S>
 where
     S: CreateCommand,
 {
     pub fn execute(&self, command: Command) -> Result<Command> {
-        if command.id().is_some() {
+        if !command.id().is_nil() {
             return Err(Error::FailedPrecondition(
                 "Command id is already set".to_string(),
             ));
@@ -114,9 +117,9 @@ where
 
         let command = self.creator.create_command(command)?;
 
-        if command.id().is_none() {
+        if command.id().is_nil() {
             return Err(Error::Internal(
-                "Failed to create command: command id is not set".to_string(),
+                "Failed to create command: id is not set".to_string(),
             ));
         };
 
@@ -128,8 +131,8 @@ impl<'a, D> DeleteCommandFromWorkspaceOperation<'a, D>
 where
     D: DeleteCommandFromWorkspace,
 {
-    pub fn execute(&self, id: CommandWorkspaceScopedId) -> Result<()> {
-        self.deleter.delete(id)
+    pub fn execute(&self, workspace_id: &WorkspaceId, id: &CommandId) -> Result<()> {
+        self.deleter.delete(workspace_id, id)
     }
 }
 
@@ -137,8 +140,8 @@ impl<'a, R> GetCommandFromWorkspaceOperation<'a, R>
 where
     R: GetCommandFromWorkspace,
 {
-    pub fn execute(&self, scoped_id: CommandWorkspaceScopedId) -> Result<Command> {
-        self.getter.get_command_from_workspace(scoped_id)
+    pub fn execute(&self, workspace_id: &WorkspaceId, id: &CommandId) -> Result<Command> {
+        self.getter.get_command_from_workspace(workspace_id, id)
     }
 }
 
@@ -170,10 +173,7 @@ where
         let mut command = GetCommandFromWorkspaceOperation {
             getter: self.get_command_provider,
         }
-        .execute(CommandWorkspaceScopedId {
-            command_id: id,
-            workspace_id,
-        })?;
+        .execute(workspace_id, id)?;
 
         command.rename(name);
         command.change_program(program);
@@ -202,15 +202,15 @@ impl Command {
 
         Self {
             last_execute_time,
-            id: Some(id),
+            id: CommandId(id),
             name: CommandName { value: name },
             program: CommandProgram { value: program },
-            workspace_id,
+            workspace_id: workspace_id.into(),
         }
     }
 
-    pub fn id(&self) -> Option<Uuid> {
-        self.id
+    pub fn id(&self) -> &CommandId {
+        &self.id
     }
 
     pub fn name(&self) -> &str {
@@ -226,10 +226,10 @@ impl Command {
 
         Self {
             last_execute_time: None,
-            id: None,
+            id: CommandId(Uuid::nil()),
             name: CommandName { value: name },
             program: CommandProgram { value: program },
-            workspace_id,
+            workspace_id: workspace_id.into(),
         }
     }
 
@@ -241,22 +241,18 @@ impl Command {
         self.name = CommandName { value: name };
     }
 
-    pub fn try_id(&self) -> Result<Uuid> {
-        self.id.ok_or(Error::DataLoss("Missing command ID".into()))
-    }
-
     pub fn set_id(&mut self, id: Uuid) -> Result<()> {
-        if self.id.is_some() {
+        if !self.id.is_nil() {
             return Err(Error::Internal("Command id is already set".to_string()));
         }
 
-        self.id = Some(id);
+        self.id = CommandId(id);
 
         Ok(())
     }
 
-    pub fn workspace_id(&self) -> Uuid {
-        self.workspace_id
+    pub fn workspace_id(&self) -> &WorkspaceId {
+        &self.workspace_id
     }
 }
 
@@ -266,5 +262,29 @@ impl PartialEq for Command {
             && self.name.value == other.name.value
             && self.program.value == other.program.value
             && self.workspace_id == other.workspace_id
+    }
+}
+
+impl Deref for CommandId {
+    type Target = Uuid;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl FromStr for CommandId {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let value: Uuid = s.parse().map_err(eyre::Error::new)?;
+
+        Ok(Self(value))
+    }
+}
+
+impl From<Uuid> for CommandId {
+    fn from(value: Uuid) -> Self {
+        Self(value)
     }
 }

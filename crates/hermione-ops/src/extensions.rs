@@ -1,12 +1,8 @@
 use crate::{
-    commands::{
-        Command, CommandWorkspaceScopedId, GetCommandFromWorkspace,
-        GetCommandFromWorkspaceOperation,
-    },
-    workspaces::{GetWorkspace, GetWorkspaceOperation, Workspace},
+    commands::{Command, CommandId, GetCommandFromWorkspace, GetCommandFromWorkspaceOperation},
+    workspaces::{GetWorkspace, GetWorkspaceOperation, Workspace, WorkspaceId},
     Error, Result,
 };
-use uuid::Uuid;
 
 pub trait CopyCommandToClipboard {
     fn copy_command_to_clipboard(&self, text: &str) -> Result<()>;
@@ -28,9 +24,9 @@ pub trait TrackWorkspaceAccessTime {
     fn track_workspace_access_time(&self, workspace: Workspace) -> Result<Workspace>;
 }
 
-pub struct ExecuteCommandWithinWorkspaceParameters {
-    pub command_id: Uuid,
-    pub workspace_id: Uuid,
+pub struct ExecuteCommandWithinWorkspaceParameters<'a> {
+    pub id: &'a CommandId,
+    pub workspace_id: &'a WorkspaceId,
     pub no_exit: bool,
 }
 
@@ -77,8 +73,8 @@ where
     T: CopyCommandToClipboard,
     G: GetCommandFromWorkspace,
 {
-    pub fn execute(&self, scoped_id: CommandWorkspaceScopedId) -> Result<()> {
-        let command = self.getter.get_command_from_workspace(scoped_id)?;
+    pub fn execute(&self, workspace_id: &WorkspaceId, id: &CommandId) -> Result<()> {
+        let command = self.getter.get_command_from_workspace(workspace_id, id)?;
 
         self.clipboard_provider
             .copy_command_to_clipboard(command.program())?;
@@ -97,7 +93,7 @@ where
 {
     pub fn execute(&self, parameters: ExecuteCommandWithinWorkspaceParameters) -> Result<Command> {
         let ExecuteCommandWithinWorkspaceParameters {
-            command_id,
+            id,
             workspace_id,
             no_exit,
         } = parameters;
@@ -110,10 +106,7 @@ where
         let command = GetCommandFromWorkspaceOperation {
             getter: self.get_command,
         }
-        .execute(CommandWorkspaceScopedId {
-            command_id,
-            workspace_id,
-        })?;
+        .execute(workspace_id, id)?;
 
         self.runner.run(RunProgramParameters {
             program: command.program(),

@@ -7,13 +7,13 @@ mod extensions;
 use chrono::DateTime;
 use hermione_ops::{
     commands::{
-        Command, CommandWorkspaceScopedId, CreateCommand, DeleteCommandFromWorkspace,
-        GetCommandFromWorkspace, ListCommandsWithinWorkspace,
-        ListCommandsWithinWorkspaceParameters, LoadCommandParameters, UpdateCommand,
+        Command, CommandId, CreateCommand, DeleteCommandFromWorkspace, GetCommandFromWorkspace,
+        ListCommandsWithinWorkspace, ListCommandsWithinWorkspaceParameters, LoadCommandParameters,
+        UpdateCommand,
     },
     workspaces::{
         CreateWorkspace, DeleteWorkspace, GetWorkspace, ListWorkspaces, ListWorkspacesParameters,
-        LoadWorkspaceParameters, UpdateWorkspace, Workspace,
+        LoadWorkspaceParameters, UpdateWorkspace, Workspace, WorkspaceId,
     },
     Error, Result,
 };
@@ -72,19 +72,19 @@ impl<'a> StorageProvider<'a> {
 
     fn delete_command_from_workspace(
         &self,
-        workspace_id: Uuid,
-        command_id: Uuid,
+        workspace_id: &WorkspaceId,
+        id: &CommandId,
     ) -> StorageProviderResult<()> {
         let mut statement = self
             .connection
             .prepare("DELETE FROM commands WHERE id = ?1 AND workspace_id = ?2")?;
 
-        statement.execute([command_id.as_bytes(), workspace_id.as_bytes()])?;
+        statement.execute([id.as_bytes(), workspace_id.as_bytes()])?;
 
         Ok(())
     }
 
-    fn delete_workspace(&self, id: Uuid) -> StorageProviderResult<()> {
+    fn delete_workspace(&self, id: WorkspaceId) -> StorageProviderResult<()> {
         let mut statement = self
             .connection
             .prepare("DELETE FROM workspaces WHERE id = ?1")?;
@@ -102,8 +102,8 @@ impl<'a> StorageProvider<'a> {
 
     fn get_command_from_workspace(
         &self,
-        workspace_id: Uuid,
-        command_id: Uuid,
+        workspace_id: &WorkspaceId,
+        id: &CommandId,
     ) -> StorageProviderResult<CommandRecord> {
         let mut statement = self.connection.prepare(
             "SELECT
@@ -116,15 +116,14 @@ impl<'a> StorageProvider<'a> {
             WHERE id = ?1 AND workspace_id = ?2",
         )?;
 
-        let record = statement
-            .query_row([command_id.as_bytes(), workspace_id.as_bytes()], |row| {
-                row.try_into()
-            })?;
+        let record = statement.query_row([id.as_bytes(), workspace_id.as_bytes()], |row| {
+            row.try_into()
+        })?;
 
         Ok(record)
     }
 
-    fn get_workspace(&self, id: Uuid) -> StorageProviderResult<WorkspaceRecord> {
+    fn get_workspace(&self, id: &WorkspaceId) -> StorageProviderResult<WorkspaceRecord> {
         let workspace = self
             .connection
             .prepare(
@@ -444,23 +443,19 @@ impl From<WorkspaceRecord> for Workspace {
     }
 }
 
-impl TryFrom<&Command> for CommandRecord {
-    type Error = Error;
-
-    fn try_from(value: &Command) -> Result<Self> {
-        let id = value.try_id()?.into_bytes();
-
+impl From<&Command> for CommandRecord {
+    fn from(value: &Command) -> Self {
         let last_execute_time = value
             .last_execute_time()
             .and_then(|date_time| date_time.timestamp_nanos_opt());
 
-        Ok(Self {
-            id,
+        Self {
+            id: value.id().into_bytes(),
             last_execute_time,
             name: value.name().to_string(),
             program: value.program().to_string(),
             workspace_id: value.workspace_id().into_bytes(),
-        })
+        }
     }
 }
 
@@ -495,14 +490,12 @@ impl TryFrom<&Workspace> for WorkspaceRecord {
     type Error = hermione_ops::Error;
 
     fn try_from(value: &Workspace) -> Result<Self> {
-        let id = value.try_id()?.into_bytes();
-
         let last_access_time = value
             .last_access_time()
             .and_then(|date_time| date_time.timestamp_nanos_opt());
 
         Ok(Self {
-            id,
+            id: value.id().into_bytes(),
             last_access_time,
             location: value.location().map(ToString::to_string),
             name: value.name().to_string(),
@@ -515,7 +508,7 @@ impl CreateCommand for StorageProvider<'_> {
         let id = Uuid::new_v4();
         command.set_id(id)?;
 
-        let record = CommandRecord::try_from(&command)?;
+        let record = CommandRecord::from(&command);
         self.insert_command(record)?;
 
         Ok(command)
@@ -536,20 +529,15 @@ impl CreateWorkspace for StorageProvider<'_> {
 }
 
 impl DeleteCommandFromWorkspace for StorageProvider<'_> {
-    fn delete(&self, scoped_id: CommandWorkspaceScopedId) -> Result<()> {
-        let CommandWorkspaceScopedId {
-            workspace_id,
-            command_id,
-        } = scoped_id;
-
-        self.delete_command_from_workspace(workspace_id, command_id)?;
+    fn delete(&self, workspace_id: &WorkspaceId, id: &CommandId) -> Result<()> {
+        self.delete_command_from_workspace(workspace_id, id)?;
 
         Ok(())
     }
 }
 
 impl DeleteWorkspace for StorageProvider<'_> {
-    fn delete(&self, id: Uuid) -> Result<()> {
+    fn delete(&self, id: WorkspaceId) -> Result<()> {
         self.delete_workspace(id)?;
 
         Ok(())
@@ -557,20 +545,19 @@ impl DeleteWorkspace for StorageProvider<'_> {
 }
 
 impl GetCommandFromWorkspace for StorageProvider<'_> {
-    fn get_command_from_workspace(&self, scoped_id: CommandWorkspaceScopedId) -> Result<Command> {
-        let CommandWorkspaceScopedId {
-            workspace_id,
-            command_id,
-        } = scoped_id;
-
-        let record = self.get_command_from_workspace(workspace_id, command_id)?;
+    fn get_command_from_workspace(
+        &self,
+        workspace_id: &WorkspaceId,
+        id: &CommandId,
+    ) -> Result<Command> {
+        let record = self.get_command_from_workspace(workspace_id, id)?;
 
         Ok(record.into())
     }
 }
 
 impl GetWorkspace for StorageProvider<'_> {
-    fn get_workspace(&self, id: Uuid) -> Result<Workspace> {
+    fn get_workspace(&self, id: &WorkspaceId) -> Result<Workspace> {
         let record = self.get_workspace(id)?;
 
         Ok(record.into())
@@ -624,7 +611,7 @@ impl ListWorkspaces for StorageProvider<'_> {
 
 impl UpdateCommand for StorageProvider<'_> {
     fn update_command(&self, entity: Command) -> Result<Command> {
-        let record = CommandRecord::try_from(&entity)?;
+        let record = CommandRecord::from(&entity);
 
         self.update_command(record)?;
 
