@@ -1,4 +1,7 @@
-use crate::WorkspacePresenter;
+use crate::{
+    themes::{Theme, Themed},
+    WorkspacePresenter,
+};
 use hermione_tui::Input;
 use ratatui::{
     layout::{Constraint, Direction, Position, Rect},
@@ -9,17 +12,24 @@ use ratatui::{
 const NAME: &str = "Name";
 const LOCATION: &str = "Location";
 
-#[derive(Default)]
 pub struct WorkspaceForm {
     id: String,
     active_input: ActiveInput,
     location: Input,
     name: Input,
+    theme: Theme,
 }
 
-#[derive(Default)]
+pub struct EditWorkspaceFormParameters {
+    pub workspace: WorkspacePresenter,
+    pub theme: Theme,
+}
+
+pub struct NewWorkspaceFormParameters {
+    pub theme: Theme,
+}
+
 enum ActiveInput {
-    #[default]
     Name,
     Location,
 }
@@ -47,6 +57,19 @@ impl WorkspaceForm {
         self.active_input_mut().delete_char();
     }
 
+    pub fn edit(parameters: EditWorkspaceFormParameters) -> Self {
+        let EditWorkspaceFormParameters { workspace, theme } = parameters;
+        let WorkspacePresenter { id, location, name } = workspace;
+
+        Self {
+            id,
+            active_input: ActiveInput::Name,
+            location: Input::new(location),
+            name: Input::new(name),
+            theme,
+        }
+    }
+
     pub fn enter_char(&mut self, c: char) {
         self.active_input_mut().enter_char(c);
     }
@@ -57,6 +80,18 @@ impl WorkspaceForm {
 
     pub fn move_cursor_right(&mut self) {
         self.active_input_mut().move_cursor_right();
+    }
+
+    pub fn new(parameters: NewWorkspaceFormParameters) -> Self {
+        let NewWorkspaceFormParameters { theme } = parameters;
+
+        Self {
+            id: Default::default(),
+            active_input: ActiveInput::Name,
+            location: Input::default(),
+            name: Input::default(),
+            theme,
+        }
     }
 
     pub fn select_next_input(&mut self) {
@@ -77,11 +112,17 @@ impl WorkspaceForm {
             .constraints(vec![Constraint::Max(3), Constraint::Min(3)])
             .areas(area);
 
-        let block = Block::default().borders(Borders::ALL).title(NAME);
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(NAME)
+            .themed(self.theme);
         let paragraph = Paragraph::new(self.name.value()).block(block);
         frame.render_widget(paragraph, name_area);
 
-        let block = Block::default().borders(Borders::ALL).title(LOCATION);
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(LOCATION)
+            .themed(self.theme);
         let paragraph = Paragraph::new(self.location.value()).block(block);
         frame.render_widget(paragraph, location_area);
 
@@ -102,19 +143,6 @@ impl ActiveInput {
         match self {
             ActiveInput::Name => ActiveInput::Location,
             ActiveInput::Location => ActiveInput::Name,
-        }
-    }
-}
-
-impl From<WorkspacePresenter> for WorkspaceForm {
-    fn from(workspace: WorkspacePresenter) -> Self {
-        let WorkspacePresenter { id, name, location } = workspace;
-
-        Self {
-            id,
-            location: Input::new(location),
-            name: Input::new(name),
-            ..Default::default()
         }
     }
 }

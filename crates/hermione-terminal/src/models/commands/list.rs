@@ -1,6 +1,7 @@
 use crate::{
-    layouts::{self, StatusBar},
+    layouts::{self, StatusBar, StatusBarWidget},
     smart_input::{NewSmartInputParameters, SmartInput},
+    themes::{Theme, Themed},
     widgets, CommandPresenter, CopyToClipboardParams, DeleteWorkspaceCommandParams,
     EditWorkspaceCommandParams, Error, ExecuteCommandParams, ListWorkspaceCommandsParams,
     ListWorkspacesParams, Message, NewWorkspaceCommandParams, OpenWindowsTerminalParams,
@@ -8,7 +9,7 @@ use crate::{
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders},
     Frame,
 };
 
@@ -23,6 +24,7 @@ pub struct ListWorkspaceCommandsModel {
     smart_input: SmartInput,
     search_query: String,
     is_running: bool,
+    theme: Theme,
 }
 
 pub struct ListWorkspaceCommandsModelParameters {
@@ -32,6 +34,7 @@ pub struct ListWorkspaceCommandsModelParameters {
     pub powershell_no_exit: bool,
     pub search_query: String,
     pub workspace: WorkspacePresenter,
+    pub theme: Theme,
 }
 
 struct PowerShellSettings {
@@ -87,14 +90,13 @@ impl Model for ListWorkspaceCommandsModel {
         let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
         let [list_area, input_area] = layouts::search_list::Layout::new().areas(main_area);
 
-        let block = Block::default().borders(Borders::all());
+        let block = Block::default().borders(Borders::all()).themed(self.theme);
         let list = widgets::list::Widget::new(&self.commands).block(block);
 
         frame.render_stateful_widget(list, list_area, &mut self.commands_state);
         self.smart_input.render(frame, input_area);
 
-        let paragraph = Paragraph::new(self.status_bar());
-        frame.render_widget(paragraph, status_bar_area);
+        frame.render_widget(self.status_bar_widget(), status_bar_area);
     }
 }
 
@@ -120,7 +122,7 @@ impl ListWorkspaceCommandsModel {
         }
     }
 
-    fn status_bar(&self) -> String {
+    fn status_bar_widget(&self) -> StatusBarWidget {
         let mut status_bar = StatusBar::default()
             .operation("List commands")
             .workspace(&self.workspace.name)
@@ -138,7 +140,9 @@ impl ListWorkspaceCommandsModel {
             status_bar = status_bar.search(&self.search_query);
         }
 
-        status_bar.try_into().unwrap_or_default()
+        let text = status_bar.try_into().unwrap_or_default();
+
+        StatusBarWidget::new(text).themed(self.theme)
     }
 
     fn execute_command(&mut self) {
@@ -217,6 +221,7 @@ impl ListWorkspaceCommandsModel {
             powershell_no_exit,
             search_query,
             workspace,
+            theme,
         } = parameters;
 
         let mut commands_state = widgets::list::State::default();
@@ -238,6 +243,7 @@ impl ListWorkspaceCommandsModel {
             workspace,
             search_query,
             is_running: true,
+            theme,
         };
 
         if !model.search_query.is_empty() {

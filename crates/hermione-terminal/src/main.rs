@@ -26,6 +26,7 @@ pub(crate) use models::*;
 pub(crate) use params::*;
 pub(crate) use presenters::*;
 pub(crate) use routes::*;
+use themes::Theme;
 
 type Error = anyhow::Error;
 type Result<T> = anyhow::Result<T>;
@@ -45,7 +46,10 @@ fn main() -> Result<()> {
         },
     };
 
-    let router = TerminalRouter { coordinator };
+    let router = TerminalRouter {
+        coordinator,
+        theme: Theme::github_dark(),
+    };
 
     let tracer = Tracer::new(NewTracerParameters {
         directory: &app_path,

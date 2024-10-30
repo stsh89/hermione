@@ -29,6 +29,7 @@ pub struct ListWorkspaceModelParameters {
     pub search_query: String,
     pub page_number: u32,
     pub page_size: u32,
+    pub theme: Theme,
 }
 
 impl Model for ListWorkspacesModel {
@@ -69,7 +70,7 @@ impl Model for ListWorkspacesModel {
         let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
         let [list_area, input_area] = layouts::search_list::Layout::new().areas(main_area);
 
-        let block = Block::default().borders(Borders::all()).themed(&self.theme);
+        let block = Block::default().borders(Borders::all()).themed(self.theme);
         let list = widgets::list::Widget::new(&self.workspaces).block(block);
 
         frame.render_stateful_widget(list, list_area, &mut self.workspaces_state);
@@ -107,7 +108,7 @@ impl ListWorkspacesModel {
 
         let text = status_bar.try_into().unwrap_or_default();
 
-        StatusBarWidget::new(text).themed(&self.theme)
+        StatusBarWidget::new(text).themed(self.theme)
     }
 
     fn exit(&mut self) {
@@ -120,6 +121,7 @@ impl ListWorkspacesModel {
             search_query,
             page_number,
             page_size,
+            theme,
         } = parameters;
 
         let mut model = Self {
@@ -131,7 +133,7 @@ impl ListWorkspacesModel {
             page_size,
             smart_input: smart_input(),
             search_query,
-            theme: Theme::github_dark(),
+            theme,
         };
 
         if !model.workspaces.is_empty() {

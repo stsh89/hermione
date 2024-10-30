@@ -1,4 +1,7 @@
-use crate::CommandPresenter;
+use crate::{
+    themes::{Theme, Themed},
+    CommandPresenter,
+};
 use hermione_tui::Input;
 use ratatui::{
     layout::{Constraint, Direction, Position, Rect},
@@ -9,18 +12,26 @@ use ratatui::{
 const NAME: &str = "Name";
 const PROGRAM: &str = "Program";
 
-#[derive(Default)]
 pub struct CommandForm {
     id: String,
     active_input: ActiveInput,
     program: Input,
     name: Input,
     workspace_id: String,
+    theme: Theme,
 }
 
-#[derive(Default)]
+pub struct EditCommandFormParameters {
+    pub command: CommandPresenter,
+    pub theme: Theme,
+}
+
+pub struct NewCommandFormParameters {
+    pub theme: Theme,
+    pub workspace_id: String,
+}
+
 enum ActiveInput {
-    #[default]
     Name,
     Program,
 }
@@ -48,6 +59,25 @@ impl CommandForm {
         self.active_input_mut().delete_char();
     }
 
+    pub fn edit(parameters: EditCommandFormParameters) -> Self {
+        let EditCommandFormParameters { command, theme } = parameters;
+        let CommandPresenter {
+            workspace_id,
+            id,
+            name,
+            program,
+        } = command;
+
+        Self {
+            id,
+            active_input: ActiveInput::Name,
+            program: Input::new(program),
+            name: Input::new(name),
+            workspace_id,
+            theme,
+        }
+    }
+
     pub fn enter_char(&mut self, c: char) {
         self.active_input_mut().enter_char(c);
     }
@@ -58,6 +88,22 @@ impl CommandForm {
 
     pub fn move_cursor_right(&mut self) {
         self.active_input_mut().move_cursor_right();
+    }
+
+    pub fn new(parameters: NewCommandFormParameters) -> Self {
+        let NewCommandFormParameters {
+            theme,
+            workspace_id,
+        } = parameters;
+
+        Self {
+            id: Default::default(),
+            active_input: ActiveInput::Name,
+            program: Input::default(),
+            name: Input::default(),
+            workspace_id,
+            theme,
+        }
     }
 
     pub fn select_next_input(&mut self) {
@@ -79,11 +125,17 @@ impl CommandForm {
             .constraints(vec![Constraint::Max(3), Constraint::Min(3)])
             .areas(area);
 
-        let block = Block::default().borders(Borders::ALL).title(NAME);
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(NAME)
+            .themed(self.theme);
         let paragraph = Paragraph::new(self.name.value()).block(block);
         frame.render_widget(paragraph, name_area);
 
-        let block = Block::default().borders(Borders::ALL).title(PROGRAM);
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(PROGRAM)
+            .themed(self.theme);
         let paragraph = Paragraph::new(self.program.value()).block(block);
         frame.render_widget(paragraph, program_area);
 
@@ -104,25 +156,6 @@ impl ActiveInput {
         match self {
             ActiveInput::Name => ActiveInput::Program,
             ActiveInput::Program => ActiveInput::Name,
-        }
-    }
-}
-
-impl From<CommandPresenter> for CommandForm {
-    fn from(command: CommandPresenter) -> Self {
-        let CommandPresenter {
-            id,
-            name,
-            program,
-            workspace_id,
-        } = command;
-
-        Self {
-            id,
-            program: Input::new(program),
-            name: Input::new(name),
-            workspace_id,
-            ..Default::default()
         }
     }
 }

@@ -1,20 +1,23 @@
 use crate::{
-    forms::WorkspaceForm,
-    layouts::{self, StatusBar},
+    forms::{EditWorkspaceFormParameters, WorkspaceForm},
+    layouts::{self, StatusBar, StatusBarWidget},
+    themes::{Theme, Themed},
     ListWorkspacesParams, Message, Result, Route, UpdateWorkspaceParams, WorkspacePresenter,
     LIST_WORKSPACES_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
-use ratatui::{widgets::Paragraph, Frame};
+use ratatui::Frame;
 
 pub struct EditWorkspaceModel {
     form: WorkspaceForm,
     status_bar: String,
     redirect: Option<Route>,
+    theme: Theme,
 }
 
 pub struct EditWorkspaceModelParameters {
     pub workspace: WorkspacePresenter,
+    pub theme: Theme,
 }
 
 impl Model for EditWorkspaceModel {
@@ -50,8 +53,10 @@ impl Model for EditWorkspaceModel {
 
         self.form.render(frame, main_area);
 
-        let paragraph = Paragraph::new(self.status_bar.as_str());
-        frame.render_widget(paragraph, status_bar_area);
+        frame.render_widget(
+            StatusBarWidget::new(self.status_bar.clone()).themed(self.theme),
+            status_bar_area,
+        );
     }
 }
 
@@ -94,7 +99,7 @@ impl EditWorkspaceModel {
     }
 
     pub fn new(parameters: EditWorkspaceModelParameters) -> Result<Self> {
-        let EditWorkspaceModelParameters { workspace } = parameters;
+        let EditWorkspaceModelParameters { workspace, theme } = parameters;
 
         let status_bar = StatusBar::default()
             .operation("Edit workspace")
@@ -104,7 +109,8 @@ impl EditWorkspaceModel {
         Ok(Self {
             redirect: None,
             status_bar,
-            form: workspace.into(),
+            form: WorkspaceForm::edit(EditWorkspaceFormParameters { workspace, theme }),
+            theme,
         })
     }
 

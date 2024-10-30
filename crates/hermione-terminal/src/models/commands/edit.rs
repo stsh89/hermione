@@ -1,21 +1,24 @@
 use crate::{
-    forms::CommandForm,
-    layouts::{self, StatusBar},
+    forms::{CommandForm, EditCommandFormParameters},
+    layouts::{self, StatusBar, StatusBarWidget},
+    themes::{Theme, Themed},
     CommandPresenter, ListWorkspaceCommandsParams, Message, Result, Route,
     UpdateWorkspaceCommandParams, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
-use ratatui::{widgets::Paragraph, Frame};
+use ratatui::Frame;
 
 pub struct EditWorkspaceCommandModel {
     status_bar: String,
     form: CommandForm,
     redirect: Option<Route>,
+    theme: Theme,
 }
 
 pub struct EditWorkspaceCommandModelParameters {
     pub command: CommandPresenter,
     pub workspace: WorkspacePresenter,
+    pub theme: Theme,
 }
 
 impl Model for EditWorkspaceCommandModel {
@@ -51,8 +54,10 @@ impl Model for EditWorkspaceCommandModel {
 
         self.form.render(frame, main_area);
 
-        let paragraph = Paragraph::new(self.status_bar.as_str());
-        frame.render_widget(paragraph, status_bar_area);
+        frame.render_widget(
+            StatusBarWidget::new(self.status_bar.clone()).themed(self.theme),
+            status_bar_area,
+        );
     }
 }
 
@@ -93,7 +98,11 @@ impl EditWorkspaceCommandModel {
     }
 
     pub fn new(parameters: EditWorkspaceCommandModelParameters) -> Result<Self> {
-        let EditWorkspaceCommandModelParameters { command, workspace } = parameters;
+        let EditWorkspaceCommandModelParameters {
+            command,
+            workspace,
+            theme,
+        } = parameters;
 
         let status_bar = StatusBar::default()
             .operation("Edit command")
@@ -104,7 +113,8 @@ impl EditWorkspaceCommandModel {
         Ok(Self {
             status_bar,
             redirect: None,
-            form: command.into(),
+            form: CommandForm::edit(EditCommandFormParameters { command, theme }),
+            theme,
         })
     }
 

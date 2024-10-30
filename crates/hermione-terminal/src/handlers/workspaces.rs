@@ -1,13 +1,15 @@
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
+    themes::Theme,
     CreateWorkspaceParams, DeleteWorkspaceParams, EditWorkspaceModel, EditWorkspaceModelParameters,
     EditWorkspaceParams, ListWorkspaceModelParameters, ListWorkspacesModel, ListWorkspacesParams,
-    NewWorkspaceModel, Result, UpdateWorkspaceParams, WorkspacePresenter,
-    LIST_WORKSPACES_PAGE_SIZE,
+    NewWorkspaceModel, NewWorkspaceModelParameters, Result, UpdateWorkspaceParams,
+    WorkspacePresenter, LIST_WORKSPACES_PAGE_SIZE,
 };
 
 pub struct WorkspacesHandler<'a> {
     pub coordinator: &'a Coordinator<'a>,
+    pub theme: Theme,
 }
 
 impl<'a> WorkspacesHandler<'a> {
@@ -31,6 +33,7 @@ impl<'a> WorkspacesHandler<'a> {
             search_query: name,
             page_number: 0,
             page_size: LIST_WORKSPACES_PAGE_SIZE,
+            theme: self.theme,
         })?;
 
         Ok(model)
@@ -52,6 +55,7 @@ impl<'a> WorkspacesHandler<'a> {
             search_query: String::new(),
             page_number: 0,
             page_size: LIST_WORKSPACES_PAGE_SIZE,
+            theme: self.theme,
         })?;
 
         Ok(model)
@@ -62,7 +66,10 @@ impl<'a> WorkspacesHandler<'a> {
 
         let workspace = self.coordinator.get_workspace(&id)?;
 
-        EditWorkspaceModel::new(EditWorkspaceModelParameters { workspace })
+        EditWorkspaceModel::new(EditWorkspaceModelParameters {
+            workspace,
+            theme: self.theme,
+        })
     }
 
     pub fn list(self, parameters: ListWorkspacesParams) -> Result<ListWorkspacesModel> {
@@ -83,11 +90,12 @@ impl<'a> WorkspacesHandler<'a> {
             search_query,
             page_number,
             page_size,
+            theme: self.theme,
         })
     }
 
     pub fn new_workspace(self) -> Result<NewWorkspaceModel> {
-        NewWorkspaceModel::new()
+        NewWorkspaceModel::new(NewWorkspaceModelParameters { theme: self.theme })
     }
 
     pub fn update(&self, parameters: UpdateWorkspaceParams) -> Result<WorkspacePresenter> {

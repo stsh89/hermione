@@ -1,5 +1,6 @@
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
+    themes::Theme,
     CommandsHandler, ListWorkspaceCommandsParams, ListWorkspacesParams, Message, PowerShellHandler,
     PowerShellRoute, Result, Route, WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute,
     LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
@@ -8,18 +9,7 @@ use hermione_tui::{BoxedModel, Router};
 
 pub struct TerminalRouter<'a> {
     pub coordinator: Coordinator<'a>,
-}
-
-struct WorkspacesRouter<'a> {
-    coordinator: &'a Coordinator<'a>,
-}
-
-struct WorkspaceCommandsRouter<'a> {
-    coordinator: &'a Coordinator<'a>,
-}
-
-struct PowerShellRouter<'a> {
-    coordinator: &'a Coordinator<'a>,
+    pub theme: Theme,
 }
 
 impl Router for TerminalRouter<'_> {
@@ -35,6 +25,7 @@ impl Router for TerminalRouter<'_> {
 
         let handler = WorkspacesHandler {
             coordinator: &self.coordinator,
+            theme: self.theme,
         };
 
         let Some(workspace) = workspaces.into_iter().next() else {
@@ -45,6 +36,7 @@ impl Router for TerminalRouter<'_> {
 
         let handler = CommandsHandler {
             coordinator: &self.coordinator,
+            theme: self.theme,
         };
 
         let model = handler.list(ListWorkspaceCommandsParams {
@@ -59,20 +51,21 @@ impl Router for TerminalRouter<'_> {
     }
 
     fn handle(&self, route: Route) -> Result<Option<BoxedModel<Route, Message>>> {
-        let TerminalRouter { coordinator } = self;
-
         match route {
-            Route::Workspaces(route) => WorkspacesRouter { coordinator }.handle(route),
-            Route::Powershell(route) => PowerShellRouter { coordinator }.handle(route),
+            Route::Workspaces(route) => self.handle_workspaces_route(route),
+            Route::Powershell(route) => self.handle_powershell_route(route),
         }
     }
 }
 
-impl<'a> PowerShellRouter<'a> {
-    pub fn handle(self, route: PowerShellRoute) -> Result<Option<BoxedModel<Route, Message>>> {
-        let PowerShellRouter { coordinator } = self;
-
-        let handler = PowerShellHandler { coordinator };
+impl<'a> TerminalRouter<'a> {
+    pub fn handle_powershell_route(
+        &self,
+        route: PowerShellRoute,
+    ) -> Result<Option<BoxedModel<Route, Message>>> {
+        let handler = PowerShellHandler {
+            coordinator: &self.coordinator,
+        };
 
         match route {
             PowerShellRoute::CopyToClipboard(parameters) => {
@@ -92,17 +85,18 @@ impl<'a> PowerShellRouter<'a> {
             }
         }
     }
-}
 
-impl<'a> WorkspacesRouter<'a> {
-    pub fn handle(self, route: WorkspacesRoute) -> Result<Option<BoxedModel<Route, Message>>> {
-        let WorkspacesRouter { coordinator } = self;
-        let handler = WorkspacesHandler { coordinator };
+    pub fn handle_workspaces_route(
+        &self,
+        route: WorkspacesRoute,
+    ) -> Result<Option<BoxedModel<Route, Message>>> {
+        let handler = WorkspacesHandler {
+            coordinator: &self.coordinator,
+            theme: self.theme,
+        };
 
         match route {
-            WorkspacesRoute::Commands(route) => {
-                WorkspaceCommandsRouter { coordinator }.handle(route)
-            }
+            WorkspacesRoute::Commands(route) => self.handle_workspace_commands_route(route),
             WorkspacesRoute::Create(parameters) => {
                 let model = handler.create(parameters)?;
 
@@ -140,15 +134,14 @@ impl<'a> WorkspacesRouter<'a> {
             }
         }
     }
-}
-
-impl<'a> WorkspaceCommandsRouter<'a> {
-    pub fn handle(
-        self,
+    pub fn handle_workspace_commands_route(
+        &self,
         route: WorkspaceCommandsRoute,
     ) -> Result<Option<BoxedModel<Route, Message>>> {
-        let WorkspaceCommandsRouter { coordinator } = self;
-        let handler = CommandsHandler { coordinator };
+        let handler = CommandsHandler {
+            coordinator: &self.coordinator,
+            theme: self.theme,
+        };
 
         match route {
             WorkspaceCommandsRoute::Create(paramters) => {

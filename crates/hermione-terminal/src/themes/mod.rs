@@ -9,9 +9,10 @@ use ratatui::{
 use crate::layouts::StatusBarWidget;
 
 pub trait Themed {
-    fn themed(self, theme: &Theme) -> Self;
+    fn themed(self, theme: Theme) -> Self;
 }
 
+#[derive(Clone, Copy)]
 pub struct Theme {
     background: Color,
     status_bar_background: Color,
@@ -27,19 +28,19 @@ impl Theme {
 }
 
 impl Themed for Block<'_> {
-    fn themed(self, theme: &Theme) -> Self {
+    fn themed(self, theme: Theme) -> Self {
         self.style(Style::default().bg(theme.background))
     }
 }
 
 impl Themed for Paragraph<'_> {
-    fn themed(self, theme: &Theme) -> Self {
+    fn themed(self, theme: Theme) -> Self {
         self.style(Style::default().bg(theme.background))
     }
 }
 
 impl Themed for StatusBarWidget {
-    fn themed(self, theme: &Theme) -> Self {
+    fn themed(self, theme: Theme) -> Self {
         self.style(Style::default().bg(theme.status_bar_background))
     }
 }

@@ -1,15 +1,21 @@
 use crate::{
-    forms::WorkspaceForm,
-    layouts::{self, StatusBar},
+    forms::{NewWorkspaceFormParameters, WorkspaceForm},
+    layouts::{self, StatusBar, StatusBarWidget},
+    themes::{Theme, Themed},
     CreateWorkspaceParams, ListWorkspacesParams, Message, Result, Route, WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
-use ratatui::{widgets::Paragraph, Frame};
+use ratatui::Frame;
 
 pub struct NewWorkspaceModel {
     status_bar: String,
     form: WorkspaceForm,
     redirect: Option<Route>,
+    theme: Theme,
+}
+
+pub struct NewWorkspaceModelParameters {
+    pub theme: Theme,
 }
 
 impl Model for NewWorkspaceModel {
@@ -45,8 +51,10 @@ impl Model for NewWorkspaceModel {
 
         self.form.render(frame, main_area);
 
-        let paragraph = Paragraph::new(self.status_bar.as_str());
-        frame.render_widget(paragraph, status_bar_area);
+        frame.render_widget(
+            StatusBarWidget::new(self.status_bar.clone()).themed(self.theme),
+            status_bar_area,
+        );
     }
 }
 
@@ -75,13 +83,15 @@ impl NewWorkspaceModel {
         self.form.move_cursor_right();
     }
 
-    pub fn new() -> Result<Self> {
+    pub fn new(parameters: NewWorkspaceModelParameters) -> Result<Self> {
+        let NewWorkspaceModelParameters { theme } = parameters;
         let status_bar = StatusBar::default().operation("New workspace").try_into()?;
 
         Ok(Self {
             status_bar,
-            form: WorkspaceForm::default(),
+            form: WorkspaceForm::new(NewWorkspaceFormParameters { theme }),
             redirect: None,
+            theme,
         })
     }
 

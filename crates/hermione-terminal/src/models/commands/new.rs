@@ -1,20 +1,23 @@
 use crate::{
-    forms::CommandForm,
-    layouts::{self, StatusBar},
+    forms::{CommandForm, NewCommandFormParameters},
+    layouts::{self, StatusBar, StatusBarWidget},
+    themes::{Theme, Themed},
     CommandPresenter, CreateWorkspaceCommandParams, ListWorkspaceCommandsParams, Message, Result,
     Route, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
-use ratatui::{widgets::Paragraph, Frame};
+use ratatui::Frame;
 
 pub struct NewWorkspaceCommandModel {
     status_bar: String,
     form: CommandForm,
     redirect: Option<Route>,
+    theme: Theme,
 }
 
 pub struct NewWorkspaceCommandModelParameters {
     pub workspace: WorkspacePresenter,
+    pub theme: Theme,
 }
 
 impl Model for NewWorkspaceCommandModel {
@@ -50,8 +53,10 @@ impl Model for NewWorkspaceCommandModel {
 
         self.form.render(frame, main_area);
 
-        let paragraph = Paragraph::new(self.status_bar.as_str());
-        frame.render_widget(paragraph, status_bar_area);
+        frame.render_widget(
+            StatusBarWidget::new(self.status_bar.clone()).themed(self.theme),
+            status_bar_area,
+        );
     }
 }
 
@@ -72,24 +77,21 @@ impl NewWorkspaceCommandModel {
     }
 
     pub fn new(parameters: NewWorkspaceCommandModelParameters) -> Result<Self> {
-        let NewWorkspaceCommandModelParameters { workspace } = parameters;
+        let NewWorkspaceCommandModelParameters { workspace, theme } = parameters;
 
         let status_bar = StatusBar::default()
             .operation("New command")
             .workspace(&workspace.name)
             .try_into()?;
 
-        let command = CommandPresenter {
-            id: String::new(),
-            name: String::new(),
-            program: String::new(),
-            workspace_id: workspace.id,
-        };
-
         Ok(Self {
-            form: command.into(),
+            form: CommandForm::new(NewCommandFormParameters {
+                workspace_id: workspace.id,
+                theme,
+            }),
             redirect: None,
             status_bar,
+            theme,
         })
     }
 

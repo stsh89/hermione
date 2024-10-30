@@ -1,5 +1,5 @@
 use crate::{
-    coordinator::ListCommandsWithinWorkspaceInput, CommandPresenter, Coordinator,
+    coordinator::ListCommandsWithinWorkspaceInput, themes::Theme, CommandPresenter, Coordinator,
     CreateWorkspaceCommandParams, DeleteWorkspaceCommandParams, EditWorkspaceCommandModel,
     EditWorkspaceCommandModelParameters, EditWorkspaceCommandParams, ListWorkspaceCommandsModel,
     ListWorkspaceCommandsModelParameters, ListWorkspaceCommandsParams, NewWorkspaceCommandModel,
@@ -9,6 +9,7 @@ use crate::{
 
 pub struct CommandsHandler<'a> {
     pub coordinator: &'a Coordinator<'a>,
+    pub theme: Theme,
 }
 
 impl<'a> CommandsHandler<'a> {
@@ -53,7 +54,11 @@ impl<'a> CommandsHandler<'a> {
 
         let workspace = self.coordinator.get_workspace(&workspace_id)?;
 
-        EditWorkspaceCommandModel::new(EditWorkspaceCommandModelParameters { command, workspace })
+        EditWorkspaceCommandModel::new(EditWorkspaceCommandModelParameters {
+            command,
+            workspace,
+            theme: self.theme,
+        })
     }
 
     pub fn list(
@@ -86,6 +91,7 @@ impl<'a> CommandsHandler<'a> {
             powershell_no_exit,
             search_query,
             workspace,
+            theme: self.theme,
         })
     }
 
@@ -97,7 +103,10 @@ impl<'a> CommandsHandler<'a> {
 
         let workspace = self.coordinator.get_workspace(&workspace_id)?;
 
-        NewWorkspaceCommandModel::new(NewWorkspaceCommandModelParameters { workspace })
+        NewWorkspaceCommandModel::new(NewWorkspaceCommandModelParameters {
+            workspace,
+            theme: self.theme,
+        })
     }
 
     pub fn update(
@@ -137,6 +146,7 @@ impl<'a> CommandsHandler<'a> {
             page_number: 0,
             page_size: LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
             powershell_no_exit: false,
+            theme: self.theme,
         })?;
 
         Ok(model)
