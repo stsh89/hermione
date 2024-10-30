@@ -1,10 +1,9 @@
-mod github_dark;
-
-use crate::{widgets::StatusBarWidget, widgets::TextInputWidget};
+use crate::{widgets::StatusBarWidget, widgets::TextInputWidget, Result};
 use ratatui::{
     style::{Color, Style},
     widgets::{Block, List},
 };
+use serde::Deserialize;
 
 pub trait Themed {
     fn themed(self, theme: Theme) -> Self;
@@ -15,23 +14,47 @@ pub struct Theme {
     background_color: Color,
     foreground_color: Color,
     highlight_color: Color,
-    highlight_symbol: &'static str,
     input_color: Color,
     status_bar_background_color: Color,
     status_bar_foreground_color: Color,
 }
 
+#[derive(Deserialize)]
+struct JsonTheme {
+    background_color: String,
+    foreground_color: String,
+    highlight_color: String,
+    input_color: String,
+    status_bar_background_color: String,
+    status_bar_foreground_color: String,
+}
+
 impl Theme {
-    pub fn github_dark() -> Self {
-        Theme {
-            background_color: github_dark::BACKGROUND_COLOR.into(),
-            foreground_color: github_dark::FOREGROUND_COLOR.into(),
-            highlight_color: github_dark::HIGHLIGHT_COLOR.into(),
-            highlight_symbol: github_dark::HIGHLIGHT_SYMBOL,
-            input_color: github_dark::INPUT_COLOR.into(),
-            status_bar_background_color: github_dark::STATUS_BAR_BACKGROUND_COLOR.into(),
-            status_bar_foreground_color: github_dark::STATUS_BAR_FOREGROUND_COLOR.into(),
-        }
+    pub fn parse(json: &str) -> Result<Self> {
+        let theme = serde_json::from_str::<JsonTheme>(json)?;
+
+        Ok(Theme {
+            background_color: theme.background_color.try_from_hex()?,
+            foreground_color: theme.foreground_color.try_from_hex()?,
+            highlight_color: theme.highlight_color.try_from_hex()?,
+            input_color: theme.input_color.try_from_hex()?,
+            status_bar_background_color: theme.status_bar_background_color.try_from_hex()?,
+            status_bar_foreground_color: theme.status_bar_foreground_color.try_from_hex()?,
+        })
+    }
+}
+
+trait TryFromHex {
+    fn try_from_hex(self) -> Result<Color>;
+}
+
+impl TryFromHex for String {
+    fn try_from_hex(self) -> Result<Color> {
+        Ok(Color::Rgb(
+            u8::from_str_radix(&self[1..3], 16)?,
+            u8::from_str_radix(&self[3..5], 16)?,
+            u8::from_str_radix(&self[5..7], 16)?,
+        ))
     }
 }
 
@@ -48,7 +71,7 @@ impl Themed for Block<'_> {
 impl Themed for List<'_> {
     fn themed(self, theme: Theme) -> Self {
         self.highlight_style(theme.highlight_color)
-            .highlight_symbol(theme.highlight_symbol)
+            .highlight_symbol("➤ ")
     }
 }
 

@@ -32,6 +32,7 @@ type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
     let app_path = hermione_storage::app_path()?;
+    let theme = Theme::parse(include_str!("../themes/github_dark.json"))?;
     let powershell_client = hermione_powershell::PowerShellClient::new()?;
     let connection = StorageProvider::connect(&app_path)?;
 
@@ -45,10 +46,7 @@ fn main() -> Result<()> {
         },
     };
 
-    let router = TerminalRouter {
-        coordinator,
-        theme: Theme::github_dark(),
-    };
+    let router = TerminalRouter { coordinator, theme };
 
     let tracer = Tracer::new(NewTracerParameters {
         directory: &app_path,
