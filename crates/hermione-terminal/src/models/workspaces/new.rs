@@ -1,14 +1,15 @@
 use crate::{
     forms::{NewWorkspaceFormParameters, WorkspaceForm},
-    layouts::{self, StatusBar, StatusBarWidget},
+    layouts::WideLayout,
     themes::{Theme, Themed},
+    widgets::{StatusBar, StatusBarState, StatusBarWidget},
     CreateWorkspaceParams, ListWorkspacesParams, Message, Result, Route, WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::Frame;
 
 pub struct NewWorkspaceModel {
-    status_bar: String,
+    status_bar_state: StatusBarState,
     form: WorkspaceForm,
     redirect: Option<Route>,
     theme: Theme,
@@ -47,12 +48,12 @@ impl Model for NewWorkspaceModel {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
+        let [main_area, status_bar_area] = WideLayout::new().areas(frame.area());
 
         self.form.render(frame, main_area);
 
         frame.render_widget(
-            StatusBarWidget::new(self.status_bar.clone()).themed(self.theme),
+            StatusBarWidget::new(&self.status_bar_state).themed(self.theme),
             status_bar_area,
         );
     }
@@ -85,10 +86,10 @@ impl NewWorkspaceModel {
 
     pub fn new(parameters: NewWorkspaceModelParameters) -> Result<Self> {
         let NewWorkspaceModelParameters { theme } = parameters;
-        let status_bar = StatusBar::default().operation("New workspace").try_into()?;
+        let status_bar_state = StatusBar::default().operation("New workspace").into();
 
         Ok(Self {
-            status_bar,
+            status_bar_state,
             form: WorkspaceForm::new(NewWorkspaceFormParameters { theme }),
             redirect: None,
             theme,

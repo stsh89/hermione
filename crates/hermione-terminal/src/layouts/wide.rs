@@ -1,10 +1,10 @@
 use ratatui::layout::{Constraint, Direction, Rect};
 
-pub struct Layout {
+pub struct WideLayout {
     layout: ratatui::layout::Layout,
 }
 
-impl Layout {
+impl WideLayout {
     pub fn new() -> Self {
         let layout = ratatui::layout::Layout::default()
             .direction(Direction::Vertical)

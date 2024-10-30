@@ -1,5 +1,6 @@
 use crate::{
     themes::{Theme, Themed},
+    widgets::TextInputWidget,
     CommandPresenter,
 };
 use hermione_tui::Input;
@@ -90,6 +91,14 @@ impl CommandForm {
         self.active_input_mut().move_cursor_right();
     }
 
+    fn name_input(&self) -> TextInputWidget {
+        TextInputWidget::new(self.name.value()).themed(self.theme)
+    }
+
+    fn name_text(&self) -> Paragraph {
+        Paragraph::new(self.name.value())
+    }
+
     pub fn new(parameters: NewCommandFormParameters) -> Self {
         let NewCommandFormParameters {
             theme,
@@ -119,6 +128,14 @@ impl CommandForm {
         }
     }
 
+    fn program_input(&self) -> TextInputWidget {
+        TextInputWidget::new(self.program.value()).themed(self.theme)
+    }
+
+    fn program_text(&self) -> Paragraph {
+        Paragraph::new(self.program.value())
+    }
+
     pub fn render(&self, frame: &mut Frame, area: Rect) {
         let [name_area, program_area] = ratatui::layout::Layout::default()
             .direction(Direction::Vertical)
@@ -129,15 +146,29 @@ impl CommandForm {
             .borders(Borders::ALL)
             .title(NAME)
             .themed(self.theme);
-        let paragraph = Paragraph::new(self.name.value()).block(block);
-        frame.render_widget(paragraph, name_area);
+
+        match self.active_input {
+            ActiveInput::Name => {
+                frame.render_widget(self.name_input().block(block), name_area);
+            }
+            ActiveInput::Program => {
+                frame.render_widget(self.name_text().block(block), name_area);
+            }
+        };
 
         let block = Block::default()
             .borders(Borders::ALL)
             .title(PROGRAM)
             .themed(self.theme);
-        let paragraph = Paragraph::new(self.program.value()).block(block);
-        frame.render_widget(paragraph, program_area);
+
+        match self.active_input {
+            ActiveInput::Name => {
+                frame.render_widget(self.program_text().block(block), program_area);
+            }
+            ActiveInput::Program => {
+                frame.render_widget(self.program_input().block(block), program_area);
+            }
+        };
 
         let active_input_area = match self.active_input {
             ActiveInput::Name => name_area,

@@ -1,9 +1,13 @@
 mod preprocessors;
 
+use crate::{
+    themes::{Theme, Themed},
+    widgets::TextInputWidget,
+};
 use hermione_tui::Input;
 use ratatui::{
     layout::Rect,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders},
     Frame,
 };
 
@@ -13,6 +17,7 @@ pub struct SmartInput {
     commands: Vec<String>,
     input: Input,
     preprocessor: Option<Preprocessor>,
+    theme: Theme,
 }
 
 enum Preprocessor {
@@ -27,6 +32,7 @@ impl Preprocessor {
 
 pub struct NewSmartInputParameters {
     pub commands: Vec<String>,
+    pub theme: Theme,
 }
 
 impl SmartInput {
@@ -116,18 +122,25 @@ impl SmartInput {
     }
 
     pub fn new(parameters: NewSmartInputParameters) -> Self {
-        let NewSmartInputParameters { commands } = parameters;
+        let NewSmartInputParameters { commands, theme } = parameters;
 
         Self {
             commands,
             input: Input::default(),
             preprocessor: None,
+            theme,
         }
     }
 
     pub fn render(&self, frame: &mut Frame, area: Rect) {
-        let block = Block::default().borders(Borders::ALL).title("Console");
-        let paragraph = Paragraph::new(self.input.value()).block(block);
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title("Console")
+            .themed(self.theme);
+
+        let paragraph = TextInputWidget::new(self.input.value())
+            .block(block)
+            .themed(self.theme);
 
         self.input.render(frame, area, paragraph);
     }

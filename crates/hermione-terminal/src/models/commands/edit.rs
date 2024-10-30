@@ -1,7 +1,8 @@
 use crate::{
     forms::{CommandForm, EditCommandFormParameters},
-    layouts::{self, StatusBar, StatusBarWidget},
+    layouts::WideLayout,
     themes::{Theme, Themed},
+    widgets::{StatusBar, StatusBarState, StatusBarWidget},
     CommandPresenter, ListWorkspaceCommandsParams, Message, Result, Route,
     UpdateWorkspaceCommandParams, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
@@ -9,7 +10,7 @@ use hermione_tui::{EventHandler, Model};
 use ratatui::Frame;
 
 pub struct EditWorkspaceCommandModel {
-    status_bar: String,
+    status_bar_state: StatusBarState,
     form: CommandForm,
     redirect: Option<Route>,
     theme: Theme,
@@ -50,12 +51,12 @@ impl Model for EditWorkspaceCommandModel {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
+        let [main_area, status_bar_area] = WideLayout::new().areas(frame.area());
 
         self.form.render(frame, main_area);
 
         frame.render_widget(
-            StatusBarWidget::new(self.status_bar.clone()).themed(self.theme),
+            StatusBarWidget::new(&self.status_bar_state).themed(self.theme),
             status_bar_area,
         );
     }
@@ -104,14 +105,14 @@ impl EditWorkspaceCommandModel {
             theme,
         } = parameters;
 
-        let status_bar = StatusBar::default()
+        let status_bar_state = StatusBar::default()
             .operation("Edit command")
             .workspace(&workspace.name)
             .command(&command.name)
-            .try_into()?;
+            .into();
 
         Ok(Self {
-            status_bar,
+            status_bar_state,
             redirect: None,
             form: CommandForm::edit(EditCommandFormParameters { command, theme }),
             theme,

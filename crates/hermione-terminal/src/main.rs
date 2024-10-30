@@ -1,4 +1,3 @@
-mod colors;
 mod coordinator;
 mod forms;
 mod handlers;

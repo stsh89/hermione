@@ -1,15 +1,16 @@
 use crate::{
-    layouts::{self, StatusBar, StatusBarWidget},
+    layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, Themed},
-    widgets, CommandPresenter, CopyToClipboardParams, DeleteWorkspaceCommandParams,
+    widgets::{StatusBar, StatusBarWidget},
+    CommandPresenter, CopyToClipboardParams, DeleteWorkspaceCommandParams,
     EditWorkspaceCommandParams, Error, ExecuteCommandParams, ListWorkspaceCommandsParams,
     ListWorkspacesParams, Message, NewWorkspaceCommandParams, OpenWindowsTerminalParams,
     PowerShellRoute, Result, Route, WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
-    widgets::{Block, Borders},
+    widgets::{Block, Borders, List, ListState},
     Frame,
 };
 
@@ -17,7 +18,7 @@ pub struct ListWorkspaceCommandsModel {
     workspace: WorkspacePresenter,
     commands: Vec<CommandPresenter>,
     redirect: Option<Route>,
-    commands_state: widgets::list::State,
+    commands_state: ListState,
     powershell_settings: PowerShellSettings,
     page_number: u32,
     page_size: u32,
@@ -87,16 +88,19 @@ impl Model for ListWorkspaceCommandsModel {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
-        let [list_area, input_area] = layouts::search_list::Layout::new().areas(main_area);
+        let [main_area, status_bar_area] = WideLayout::new().areas(frame.area());
+        let [list_area, input_area] = SearchListLayout::new().areas(main_area);
 
         let block = Block::default().borders(Borders::all()).themed(self.theme);
-        let list = widgets::list::Widget::new(&self.commands).block(block);
+        let list = List::new(&self.commands).block(block).themed(self.theme);
 
         frame.render_stateful_widget(list, list_area, &mut self.commands_state);
         self.smart_input.render(frame, input_area);
 
-        frame.render_widget(self.status_bar_widget(), status_bar_area);
+        frame.render_widget(
+            StatusBarWidget::new(&self.status_bar().into()).themed(self.theme),
+            status_bar_area,
+        );
     }
 }
 
@@ -122,27 +126,25 @@ impl ListWorkspaceCommandsModel {
         }
     }
 
-    fn status_bar_widget(&self) -> StatusBarWidget {
-        let mut status_bar = StatusBar::default()
+    fn status_bar(&self) -> StatusBar {
+        let mut search_bar = StatusBar::default()
             .operation("List commands")
             .workspace(&self.workspace.name)
             .page(self.page_number);
 
         if let Some(command) = self.command() {
-            status_bar = status_bar.selector(&command.name);
+            search_bar = search_bar.selector(&command.name);
         }
 
         if self.powershell_settings.no_exit {
-            status_bar = status_bar.pwsh("-NoExit");
+            search_bar = search_bar.pwsh("-NoExit");
         }
 
         if !self.search_query.is_empty() {
-            status_bar = status_bar.search(&self.search_query);
+            search_bar = search_bar.search(&self.search_query);
         }
 
-        let text = status_bar.try_into().unwrap_or_default();
-
-        StatusBarWidget::new(text).themed(self.theme)
+        search_bar
     }
 
     fn execute_command(&mut self) {
@@ -224,11 +226,16 @@ impl ListWorkspaceCommandsModel {
             theme,
         } = parameters;
 
-        let mut commands_state = widgets::list::State::default();
+        let mut commands_state = ListState::default();
 
         if !commands.is_empty() {
             commands_state.select_first();
         }
+
+        let smart_input = SmartInput::new(NewSmartInputParameters {
+            theme,
+            commands: Action::all().into_iter().map(Into::into).collect(),
+        });
 
         let mut model = Self {
             commands_state,
@@ -239,7 +246,7 @@ impl ListWorkspaceCommandsModel {
                 no_exit: powershell_no_exit,
             },
             redirect: None,
-            smart_input: smart_input(),
+            smart_input,
             workspace,
             search_query,
             is_running: true,
@@ -473,6 +480,23 @@ enum Action {
     UnsetPowerShellNoExit,
 }
 
+impl Action {
+    fn all() -> Vec<Self> {
+        vec![
+            Self::CopyToClipboard,
+            Self::DeleteCommand,
+            Self::EditCommand,
+            Self::ExecuteCommand,
+            Self::Exit,
+            Self::ListWorkspaces,
+            Self::NewCommand,
+            Self::OpenWindowsTerminal,
+            Self::SetPowerShellNoExit,
+            Self::UnsetPowerShellNoExit,
+        ]
+    }
+}
+
 impl From<Action> for String {
     fn from(action: Action) -> Self {
         let action = match action {
@@ -510,21 +534,4 @@ impl TryFrom<&str> for Action {
             _ => Err(anyhow::anyhow!("Unknown action: {}", value)),
         }
     }
-}
-
-fn smart_input() -> SmartInput {
-    SmartInput::new(NewSmartInputParameters {
-        commands: vec![
-            Action::CopyToClipboard.into(),
-            Action::DeleteCommand.into(),
-            Action::EditCommand.into(),
-            Action::ExecuteCommand.into(),
-            Action::Exit.into(),
-            Action::ListWorkspaces.into(),
-            Action::NewCommand.into(),
-            Action::SetPowerShellNoExit.into(),
-            Action::UnsetPowerShellNoExit.into(),
-            Action::OpenWindowsTerminal.into(),
-        ],
-    })
 }

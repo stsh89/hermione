@@ -1,21 +1,22 @@
 use crate::{
-    layouts::{self, StatusBar, StatusBarWidget},
+    layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, Themed},
-    widgets, DeleteWorkspaceParams, EditWorkspaceParams, Error, ListWorkspaceCommandsParams,
+    widgets::{StatusBar, StatusBarWidget},
+    DeleteWorkspaceParams, EditWorkspaceParams, Error, ListWorkspaceCommandsParams,
     ListWorkspacesParams, Message, Result, Route, WorkspacePresenter, WorkspacesRoute,
     LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
-    widgets::{Block, Borders},
+    widgets::{Block, Borders, List, ListState},
     Frame,
 };
 
 pub struct ListWorkspacesModel {
     is_running: bool,
     redirect: Option<Route>,
-    workspaces_state: widgets::list::State,
+    workspaces_state: ListState,
     workspaces: Vec<WorkspacePresenter>,
     page_number: u32,
     page_size: u32,
@@ -67,16 +68,19 @@ impl Model for ListWorkspacesModel {
     }
 
     fn view(&mut self, frame: &mut Frame) {
-        let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
-        let [list_area, input_area] = layouts::search_list::Layout::new().areas(main_area);
+        let [main_area, status_bar_area] = WideLayout::new().areas(frame.area());
+        let [list_area, input_area] = SearchListLayout::new().areas(main_area);
 
         let block = Block::default().borders(Borders::all()).themed(self.theme);
-        let list = widgets::list::Widget::new(&self.workspaces).block(block);
+        let list = List::new(&self.workspaces).block(block).themed(self.theme);
 
         frame.render_stateful_widget(list, list_area, &mut self.workspaces_state);
         self.smart_input.render(frame, input_area);
 
-        frame.render_widget(self.status_bar(), status_bar_area);
+        frame.render_widget(
+            StatusBarWidget::new(&self.status_bar().into()),
+            status_bar_area,
+        );
     }
 }
 
@@ -93,7 +97,7 @@ impl ListWorkspacesModel {
         }
     }
 
-    fn status_bar(&self) -> StatusBarWidget {
+    fn status_bar(&self) -> StatusBar {
         let mut status_bar = StatusBar::default()
             .operation("List workspaces")
             .page(self.page_number);
@@ -106,9 +110,7 @@ impl ListWorkspacesModel {
             status_bar = status_bar.search(&self.search_query);
         }
 
-        let text = status_bar.try_into().unwrap_or_default();
-
-        StatusBarWidget::new(text).themed(self.theme)
+        status_bar
     }
 
     fn exit(&mut self) {
@@ -124,14 +126,19 @@ impl ListWorkspacesModel {
             theme,
         } = parameters;
 
+        let smart_input = SmartInput::new(NewSmartInputParameters {
+            theme,
+            commands: Action::all().into_iter().map(Into::into).collect(),
+        });
+
         let mut model = Self {
             workspaces,
             redirect: None,
-            workspaces_state: widgets::list::State::default(),
+            workspaces_state: ListState::default(),
             is_running: true,
             page_number,
             page_size,
-            smart_input: smart_input(),
+            smart_input,
             search_query,
             theme,
         };
@@ -318,6 +325,18 @@ enum Action {
     NewWorkspace,
 }
 
+impl Action {
+    fn all() -> Vec<Self> {
+        vec![
+            Self::DeleteWorkspace,
+            Self::EditWorkspace,
+            Self::Exit,
+            Self::ListCommands,
+            Self::NewWorkspace,
+        ]
+    }
+}
+
 impl From<Action> for String {
     fn from(action: Action) -> Self {
         let action = match action {
@@ -345,16 +364,4 @@ impl TryFrom<&str> for Action {
             _ => Err(anyhow::anyhow!("Unknown action: {}", value)),
         }
     }
-}
-
-fn smart_input() -> SmartInput {
-    SmartInput::new(NewSmartInputParameters {
-        commands: vec![
-            Action::DeleteWorkspace.into(),
-            Action::EditWorkspace.into(),
-            Action::Exit.into(),
-            Action::ListCommands.into(),
-            Action::NewWorkspace.into(),
-        ],
-    })
 }

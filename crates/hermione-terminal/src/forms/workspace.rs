@@ -1,5 +1,6 @@
 use crate::{
     themes::{Theme, Themed},
+    widgets::TextInputWidget,
     WorkspacePresenter,
 };
 use hermione_tui::Input;
@@ -74,12 +75,28 @@ impl WorkspaceForm {
         self.active_input_mut().enter_char(c);
     }
 
+    fn location_input(&self) -> TextInputWidget {
+        TextInputWidget::new(self.location.value()).themed(self.theme)
+    }
+
+    fn location_text(&self) -> Paragraph {
+        Paragraph::new(self.location.value())
+    }
+
     pub fn move_cursor_left(&mut self) {
         self.active_input_mut().move_cursor_left();
     }
 
     pub fn move_cursor_right(&mut self) {
         self.active_input_mut().move_cursor_right();
+    }
+
+    fn name_input(&self) -> TextInputWidget {
+        TextInputWidget::new(self.name.value()).themed(self.theme)
+    }
+
+    fn name_text(&self) -> Paragraph {
+        Paragraph::new(self.name.value())
     }
 
     pub fn new(parameters: NewWorkspaceFormParameters) -> Self {
@@ -116,15 +133,29 @@ impl WorkspaceForm {
             .borders(Borders::ALL)
             .title(NAME)
             .themed(self.theme);
-        let paragraph = Paragraph::new(self.name.value()).block(block);
-        frame.render_widget(paragraph, name_area);
+
+        match self.active_input {
+            ActiveInput::Name => {
+                frame.render_widget(self.name_input().block(block), name_area);
+            }
+            ActiveInput::Location => {
+                frame.render_widget(self.name_text().block(block), name_area);
+            }
+        }
 
         let block = Block::default()
             .borders(Borders::ALL)
             .title(LOCATION)
             .themed(self.theme);
-        let paragraph = Paragraph::new(self.location.value()).block(block);
-        frame.render_widget(paragraph, location_area);
+
+        match self.active_input {
+            ActiveInput::Name => {
+                frame.render_widget(self.location_text().block(block), location_area)
+            }
+            ActiveInput::Location => {
+                frame.render_widget(self.location_input().block(block), location_area)
+            }
+        };
 
         let active_input_area = match self.active_input {
             ActiveInput::Name => name_area,
