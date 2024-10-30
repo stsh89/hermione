@@ -1,13 +1,14 @@
 use crate::{
-    layouts::{self, StatusBar},
+    layouts::{self, StatusBar, StatusBarWidget},
     smart_input::{NewSmartInputParameters, SmartInput},
+    themes::{Theme, Themed},
     widgets, DeleteWorkspaceParams, EditWorkspaceParams, Error, ListWorkspaceCommandsParams,
     ListWorkspacesParams, Message, Result, Route, WorkspacePresenter, WorkspacesRoute,
     LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders},
     Frame,
 };
 
@@ -20,6 +21,7 @@ pub struct ListWorkspacesModel {
     page_size: u32,
     smart_input: SmartInput,
     search_query: String,
+    theme: Theme,
 }
 
 pub struct ListWorkspaceModelParameters {
@@ -67,14 +69,13 @@ impl Model for ListWorkspacesModel {
         let [main_area, status_bar_area] = layouts::wide::Layout::new().areas(frame.area());
         let [list_area, input_area] = layouts::search_list::Layout::new().areas(main_area);
 
-        let block = Block::default().borders(Borders::all());
+        let block = Block::default().borders(Borders::all()).themed(&self.theme);
         let list = widgets::list::Widget::new(&self.workspaces).block(block);
 
         frame.render_stateful_widget(list, list_area, &mut self.workspaces_state);
         self.smart_input.render(frame, input_area);
 
-        let paragraph = Paragraph::new(self.status_bar());
-        frame.render_widget(paragraph, status_bar_area);
+        frame.render_widget(self.status_bar(), status_bar_area);
     }
 }
 
@@ -91,7 +92,7 @@ impl ListWorkspacesModel {
         }
     }
 
-    fn status_bar(&self) -> String {
+    fn status_bar(&self) -> StatusBarWidget {
         let mut status_bar = StatusBar::default()
             .operation("List workspaces")
             .page(self.page_number);
@@ -104,7 +105,9 @@ impl ListWorkspacesModel {
             status_bar = status_bar.search(&self.search_query);
         }
 
-        status_bar.try_into().unwrap_or_default()
+        let text = status_bar.try_into().unwrap_or_default();
+
+        StatusBarWidget::new(text).themed(&self.theme)
     }
 
     fn exit(&mut self) {
@@ -128,6 +131,7 @@ impl ListWorkspacesModel {
             page_size,
             smart_input: smart_input(),
             search_query,
+            theme: Theme::github_dark(),
         };
 
         if !model.workspaces.is_empty() {

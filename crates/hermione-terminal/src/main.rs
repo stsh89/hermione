@@ -11,6 +11,7 @@ mod providers;
 mod router;
 mod routes;
 mod smart_input;
+mod themes;
 mod widgets;
 
 use coordinator::Coordinator;

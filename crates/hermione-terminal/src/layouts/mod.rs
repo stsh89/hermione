@@ -1,3 +1,9 @@
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    style::{Style, Styled},
+    widgets::{Paragraph, Widget},
+};
 use serde::Serialize;
 
 pub mod search_list;
@@ -24,6 +30,11 @@ pub struct StatusBar<'a> {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pwsh: Option<&'a str>,
+}
+
+pub struct StatusBarWidget {
+    text: String,
+    style: Style,
 }
 
 impl<'a> StatusBar<'a> {
@@ -74,6 +85,43 @@ impl<'a> StatusBar<'a> {
             search: Some(search),
             ..self
         }
+    }
+}
+
+impl StatusBarWidget {
+    pub fn new(text: String) -> Self {
+        Self {
+            text,
+            style: Style::default(),
+        }
+    }
+
+    pub fn style<S: Into<Style>>(mut self, style: S) -> Self {
+        self.style = style.into();
+        self
+    }
+}
+
+impl Styled for StatusBarWidget {
+    type Item = Self;
+
+    fn style(&self) -> Style {
+        self.style
+    }
+
+    fn set_style<S: Into<Style>>(self, style: S) -> Self::Item {
+        self.style(style)
+    }
+}
+
+impl Widget for StatusBarWidget {
+    fn render(self, area: Rect, buf: &mut Buffer)
+    where
+        Self: Sized,
+    {
+        Paragraph::new(self.text)
+            .style(self.style)
+            .render(area, buf)
     }
 }
 
