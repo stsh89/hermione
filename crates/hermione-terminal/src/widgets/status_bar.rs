@@ -5,9 +5,13 @@ use ratatui::{
     widgets::{Paragraph, Widget},
 };
 use serde::Serialize;
+use std::marker::PhantomData;
 
-#[derive(Default, Serialize)]
-pub struct StatusBarBuilder<'a> {
+pub struct Set;
+pub struct Unset;
+
+#[derive(Serialize)]
+pub struct StatusBarBuilder<'a, O> {
     operation: &'a str,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -27,6 +31,23 @@ pub struct StatusBarBuilder<'a> {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pwsh: Option<&'a str>,
+
+    phantom_data: PhantomData<O>,
+}
+
+impl<'a> Default for StatusBarBuilder<'a, Unset> {
+    fn default() -> Self {
+        Self {
+            operation: "",
+            workspace: None,
+            command: None,
+            selector: None,
+            search: None,
+            page: None,
+            pwsh: None,
+            phantom_data: PhantomData,
+        }
+    }
 }
 
 pub struct StatusBar {
@@ -39,22 +60,41 @@ pub struct StatusBarWidget<'a> {
 }
 
 impl StatusBar {
-    pub fn builder<'a>() -> StatusBarBuilder<'a> {
+    pub fn builder<'a>() -> StatusBarBuilder<'a, Unset> {
         StatusBarBuilder::default()
     }
 }
 
-impl<'a> StatusBarBuilder<'a> {
+impl<'a> StatusBarBuilder<'a, Unset> {
+    pub fn operation(self, operation: &'a str) -> StatusBarBuilder<'a, Set> {
+        let StatusBarBuilder {
+            operation: _,
+            workspace,
+            command,
+            selector,
+            search,
+            page,
+            pwsh,
+            phantom_data: _,
+        } = self;
+
+        StatusBarBuilder {
+            operation,
+            workspace,
+            command,
+            selector,
+            search,
+            page,
+            pwsh,
+            phantom_data: PhantomData,
+        }
+    }
+}
+
+impl<'a> StatusBarBuilder<'a, Set> {
     pub fn build(self) -> StatusBar {
         StatusBar {
             status_line: serde_json::to_string(&self).unwrap_or_default(),
-        }
-    }
-
-    pub fn operation(self, name: &'a str) -> Self {
-        Self {
-            operation: name,
-            ..self
         }
     }
 
