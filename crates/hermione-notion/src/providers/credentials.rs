@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct CredentialsFileData {
     pub api_key: String,
-    pub commands_page_id: String,
-    pub workspaces_page_id: String,
+    pub commands_database_id: String,
+    pub workspaces_database_id: String,
 }
 
 pub struct NotionCredentialsProvider {
@@ -63,14 +63,14 @@ impl From<CredentialsFileData> for Credentials {
     fn from(credentials: CredentialsFileData) -> Self {
         let CredentialsFileData {
             api_key,
-            commands_page_id,
-            workspaces_page_id,
+            commands_database_id,
+            workspaces_database_id,
         } = credentials;
 
         Self::new(CredentialsParameters {
             api_key,
-            commands_page_id,
-            workspaces_page_id,
+            commands_database_id,
+            workspaces_database_id,
         })
     }
 }
@@ -78,9 +78,9 @@ impl From<CredentialsFileData> for Credentials {
 impl From<Credentials> for CredentialsFileData {
     fn from(value: Credentials) -> Self {
         CredentialsFileData {
-            api_key: value.api_key().into(),
-            commands_page_id: value.commands_page_id().into(),
-            workspaces_page_id: value.workspaces_page_id().into(),
+            api_key: value.api_key().to_string(),
+            commands_database_id: value.commands_database_id().to_string(),
+            workspaces_database_id: value.workspaces_database_id().to_string(),
         }
     }
 }

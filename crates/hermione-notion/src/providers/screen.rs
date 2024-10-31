@@ -11,8 +11,8 @@ pub struct ScreenProvider;
 #[derive(Serialize)]
 pub struct CredentialsStream {
     pub api_key: String,
-    pub commands_page_id: String,
-    pub workspaces_page_id: String,
+    pub commands_database_id: String,
+    pub workspaces_database_id: String,
 }
 
 impl ScreenProvider {
@@ -33,8 +33,8 @@ impl ScreenProvider {
     fn enter_credentials(&self) -> io::Result<CredentialsStream> {
         Ok(CredentialsStream {
             api_key: self.ask("Enter your Notion API key: ")?,
-            commands_page_id: self.ask("Enter your Notion commands page ID: ")?,
-            workspaces_page_id: self.ask("Enter your Notion workspaces page ID: ")?,
+            commands_database_id: self.ask("Enter your Notion commands database ID: ")?,
+            workspaces_database_id: self.ask("Enter your Notion workspaces database ID: ")?,
         })
     }
 
@@ -58,9 +58,9 @@ fn clear_screen_and_reset_cursor() {
 impl From<Credentials> for CredentialsStream {
     fn from(value: Credentials) -> Self {
         Self {
-            api_key: value.api_key().into(),
-            commands_page_id: value.commands_page_id().into(),
-            workspaces_page_id: value.workspaces_page_id().into(),
+            api_key: value.api_key().to_string(),
+            commands_database_id: value.commands_database_id().to_string(),
+            workspaces_database_id: value.workspaces_database_id().to_string(),
         }
     }
 }
@@ -69,14 +69,14 @@ impl From<CredentialsStream> for Credentials {
     fn from(value: CredentialsStream) -> Self {
         let CredentialsStream {
             api_key,
-            commands_page_id,
-            workspaces_page_id,
+            commands_database_id,
+            workspaces_database_id,
         } = value;
 
         Self::new(CredentialsParameters {
             api_key,
-            commands_page_id,
-            workspaces_page_id,
+            commands_database_id,
+            workspaces_database_id,
         })
     }
 }

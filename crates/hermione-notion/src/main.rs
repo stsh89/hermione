@@ -13,7 +13,9 @@ use hermione_ops::{
 use hermione_storage::StorageProvider;
 use hermione_tracing::{NewTracerParameters, Tracer};
 use providers::{
-    credentials::NotionCredentialsProvider, pages::NotionProvider, screen::ScreenProvider,
+    credentials::NotionCredentialsProvider,
+    pages::{NotionDatabasePropertiesProvider, NotionDatabaseProvider},
+    screen::ScreenProvider,
 };
 
 type Result<T> = anyhow::Result<T>;
@@ -48,7 +50,7 @@ impl<'a> App<'a> {
         }
         .execute()?;
 
-        let notion_provider = NotionProvider::new(Some(credentials))?;
+        let notion_provider = NotionDatabaseProvider::new(credentials)?;
 
         BackupOperation {
             iterate_commands_provider: &notion_provider.commands_iterator(),
@@ -72,7 +74,7 @@ impl<'a> App<'a> {
         }
         .execute()?;
 
-        let notion_provider = NotionProvider::new(Some(credentials))?;
+        let notion_provider = NotionDatabaseProvider::new(credentials)?;
 
         BackupOperation {
             iterate_commands_provider: &self.storage_provider.commands_iterator(),
@@ -92,9 +94,9 @@ impl<'a> App<'a> {
 
     async fn save_credentials(self) -> Result<()> {
         SaveCredentialsOperation {
-            saver: &self.credentials_provider,
-            getter: &ScreenProvider::new(),
-            verifier: &NotionProvider::new(None)?,
+            save_credentials_provider: &self.credentials_provider,
+            get_credentials_provider: &ScreenProvider::new(),
+            get_database_properties_provider: &NotionDatabasePropertiesProvider {},
         }
         .execute()
         .await?;
@@ -114,11 +116,15 @@ impl<'a> App<'a> {
     }
 
     async fn verify_credentials(self) -> Result<()> {
-        VerifyCredentialsOperation {
+        let credentials = GetCredentialsOperation {
             get_credentials_provider: &self.credentials_provider,
-            verify_credentials_provider: &NotionProvider::new(None)?,
         }
-        .execute()
+        .execute()?;
+
+        VerifyCredentialsOperation {
+            get_database_properties_provider: &NotionDatabasePropertiesProvider {},
+        }
+        .execute(&credentials)
         .await?;
 
         Ok(())

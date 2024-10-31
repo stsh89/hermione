@@ -81,6 +81,18 @@ impl NotionApiClient {
         self.execute(parameters).await
     }
 
+    pub async fn get_database_properties(&self, database_id: &str) -> Result<Response> {
+        let uri = format!("databases/{database_id}");
+
+        self.execute(SendParameters {
+            api_key_override: None,
+            body: None,
+            method: Method::get(),
+            uri: &uri,
+        })
+        .await
+    }
+
     async fn execute(&self, parameters: SendParameters<'_>) -> Result<Response> {
         let SendParameters {
             body,
@@ -205,6 +217,10 @@ impl NotionApiClient {
 }
 
 impl Method {
+    pub fn get() -> Self {
+        Self(reqwest::Method::GET)
+    }
+
     pub fn post() -> Self {
         Self(reqwest::Method::POST)
     }

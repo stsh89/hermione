@@ -7,32 +7,30 @@ use hermione_ops::backup::{
     BckListCommands, BckListWorkspaces, BckUpdateCommand, BckUpdateWorkspace,
 };
 use hermione_ops::commands::{CommandId, LoadCommandParameters};
+use hermione_ops::notion::{ApiKey, DatabaseId, DatabaseProperty, GetDatabaseProperties};
 use hermione_ops::workspaces::{LoadWorkspaceParameters, WorkspaceId};
-use hermione_ops::{
-    commands::Command,
-    notion::{Credentials, VerifyCredentials},
-    workspaces::Workspace,
-    Error, Result,
-};
+use hermione_ops::{commands::Command, notion::Credentials, workspaces::Workspace, Error, Result};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 const DEFAULT_PAGE_SIZE: u8 = 100;
 
-pub struct NotionProvider {
+pub struct NotionDatabaseProvider {
     client: NotionApiClient,
-    credentials: Option<Credentials>,
+    credentials: Credentials,
 }
 
-pub struct NotionCommandsIterator<'a> {
+pub struct NotionDatabasePropertiesProvider;
+
+pub struct NotionCommandsDatabaseIterator<'a> {
     client: &'a NotionApiClient,
-    credentials: Option<&'a Credentials>,
+    credentials: &'a Credentials,
     state: RwLock<IteratorState>,
 }
 
-pub struct NotionWorkspacesIterator<'a> {
+pub struct NotionWorkspacesDatabaseIterator<'a> {
     client: &'a NotionApiClient,
-    credentials: Option<&'a Credentials>,
+    credentials: &'a Credentials,
     state: RwLock<IteratorState>,
 }
 
@@ -51,7 +49,6 @@ pub struct ListDatabasePagesParameters<'a> {
     pub database_id: &'a str,
     pub external_ids: Option<Vec<String>>,
     pub page_size: Option<u8>,
-    pub api_key: &'a str,
     pub start_cursor: Option<&'a str>,
 }
 
@@ -108,11 +105,11 @@ struct IteratorState {
     is_done: bool,
 }
 
-impl NotionProvider {
-    pub fn commands_iterator(&self) -> NotionCommandsIterator {
-        NotionCommandsIterator {
+impl NotionDatabaseProvider {
+    pub fn commands_iterator(&self) -> NotionCommandsDatabaseIterator {
+        NotionCommandsDatabaseIterator {
             client: &self.client,
-            credentials: self.credentials.as_ref(),
+            credentials: &self.credentials,
             state: RwLock::new(IteratorState {
                 next_cursor: None,
                 is_done: false,
@@ -120,17 +117,11 @@ impl NotionProvider {
         }
     }
 
-    fn credentials(&self) -> Result<&Credentials> {
-        self.credentials.as_ref().ok_or(Error::FailedPrecondition(
-            "Missing Notion credentials".into(),
-        ))
-    }
-
     async fn find_command_page(
         &self,
         id: &CommandId,
     ) -> Result<Option<DatabasePage<CommandProperties>>> {
-        self.find_page_by_external_id(self.credentials()?.commands_page_id(), &id.to_string())
+        self.find_page_by_external_id(self.credentials.commands_database_id(), &id.to_string())
             .await
     }
 
@@ -142,14 +133,11 @@ impl NotionProvider {
     where
         T: DeserializeOwned,
     {
-        let api_key = self.credentials()?.api_key();
-
         let query_database_response = self
             .list_database_pages(ListDatabasePagesParameters {
                 database_id,
                 external_ids: Some(vec![exteranal_id.to_string()]),
                 page_size: Some(1),
-                api_key,
                 start_cursor: None,
             })
             .await?;
@@ -161,17 +149,13 @@ impl NotionProvider {
         &self,
         id: &WorkspaceId,
     ) -> Result<Option<DatabasePage<WorkspaceProperties>>> {
-        self.find_page_by_external_id(self.credentials()?.workspaces_page_id(), &id.to_string())
+        self.find_page_by_external_id(self.credentials.workspaces_database_id(), &id.to_string())
             .await
     }
 
-    pub fn new(credentials: Option<Credentials>) -> Result<Self> {
-        let api_key = credentials
-            .as_ref()
-            .map(|credentials| credentials.api_key().into());
-
+    pub fn new(credentials: Credentials) -> Result<Self> {
         let client = NotionApiClient::new(NewNotionApiClientParameters {
-            api_key,
+            api_key: Some(credentials.api_key().to_string()),
             ..Default::default()
         })?;
 
@@ -192,7 +176,6 @@ impl NotionProvider {
             external_ids,
             page_size,
             database_id,
-            api_key,
             start_cursor,
         } = parameters;
         let mut filter = None;
@@ -218,8 +201,8 @@ impl NotionProvider {
                 QueryDatabaseParameters {
                     page_size: page_size.unwrap_or(DEFAULT_PAGE_SIZE),
                     filter,
-                    api_key_override: Some(api_key),
                     start_cursor,
+                    ..Default::default()
                 },
             )
             .await?;
@@ -227,10 +210,10 @@ impl NotionProvider {
         Ok(response)
     }
 
-    pub fn workspaces_iterator(&self) -> NotionWorkspacesIterator {
-        NotionWorkspacesIterator {
+    pub fn workspaces_iterator(&self) -> NotionWorkspacesDatabaseIterator {
+        NotionWorkspacesDatabaseIterator {
             client: &self.client,
-            credentials: self.credentials.as_ref(),
+            credentials: &self.credentials,
             state: RwLock::new(IteratorState {
                 next_cursor: None,
                 is_done: false,
@@ -279,10 +262,10 @@ impl TryFrom<WorkspaceProperties> for Workspace {
     }
 }
 
-impl BckImportCommand for NotionProvider {
+impl BckImportCommand for NotionDatabaseProvider {
     async fn bck_import_command(&self, command: Command) -> Result<Command> {
         let id = command.id().to_string();
-        let page_id = self.credentials()?.commands_page_id();
+        let page_id = self.credentials.commands_database_id();
 
         self.client
             .create_database_entry(
@@ -300,10 +283,10 @@ impl BckImportCommand for NotionProvider {
     }
 }
 
-impl BckImportWorkspace for NotionProvider {
+impl BckImportWorkspace for NotionDatabaseProvider {
     async fn bck_import_workspace(&self, workspace: Workspace) -> Result<Workspace> {
         let id = workspace.id().to_string();
-        let page_id = self.credentials()?.workspaces_page_id();
+        let page_id = self.credentials.workspaces_database_id();
 
         self.client
             .create_database_entry(
@@ -320,14 +303,8 @@ impl BckImportWorkspace for NotionProvider {
     }
 }
 
-impl<'a> BckIterateCommands for NotionCommandsIterator<'a> {
+impl<'a> BckIterateCommands for NotionCommandsDatabaseIterator<'a> {
     async fn bck_iterate_commands(&self) -> Result<Option<Vec<Command>>> {
-        let Some(credentials) = self.credentials else {
-            return Err(Error::FailedPrecondition(
-                "Missing Notion credentials".into(),
-            ));
-        };
-
         let mut state = self.state.write().await;
 
         if state.is_done {
@@ -337,12 +314,12 @@ impl<'a> BckIterateCommands for NotionCommandsIterator<'a> {
         let query_database_response = self
             .client
             .query_database::<CommandProperties>(
-                credentials.commands_page_id(),
+                self.credentials.commands_database_id(),
                 QueryDatabaseParameters {
                     page_size: DEFAULT_PAGE_SIZE,
                     filter: None,
-                    api_key_override: Some(credentials.api_key()),
                     start_cursor: state.next_cursor.as_deref(),
+                    ..Default::default()
                 },
             )
             .await?;
@@ -367,14 +344,8 @@ impl<'a> BckIterateCommands for NotionCommandsIterator<'a> {
     }
 }
 
-impl<'a> BckIterateWorkspaces for NotionWorkspacesIterator<'a> {
+impl<'a> BckIterateWorkspaces for NotionWorkspacesDatabaseIterator<'a> {
     async fn bck_iterate_workspaces(&self) -> Result<Option<Vec<Workspace>>> {
-        let Some(credentials) = self.credentials else {
-            return Err(Error::FailedPrecondition(
-                "Missing Notion credentials".into(),
-            ));
-        };
-
         let mut state = self.state.write().await;
 
         if state.is_done {
@@ -384,12 +355,12 @@ impl<'a> BckIterateWorkspaces for NotionWorkspacesIterator<'a> {
         let query_database_response = self
             .client
             .query_database::<WorkspaceProperties>(
-                credentials.workspaces_page_id(),
+                self.credentials.workspaces_database_id(),
                 QueryDatabaseParameters {
                     page_size: DEFAULT_PAGE_SIZE,
                     filter: None,
-                    api_key_override: Some(credentials.api_key()),
                     start_cursor: state.next_cursor.as_deref(),
+                    ..Default::default()
                 },
             )
             .await?;
@@ -414,59 +385,39 @@ impl<'a> BckIterateWorkspaces for NotionWorkspacesIterator<'a> {
     }
 }
 
-impl BckListCommands for NotionProvider {
+impl BckListCommands for NotionDatabaseProvider {
     async fn bck_list_commands(&self, ids: Vec<&CommandId>) -> Result<Vec<Command>> {
-        let Some(credentials) = self.credentials.as_ref() else {
-            return Err(Error::FailedPrecondition(
-                "Missing Notion credentials".into(),
-            ));
-        };
-
-        let pages = self
-            .list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
-                database_id: credentials.commands_page_id(),
-                external_ids: Some(ids.iter().map(|id| id.to_string()).collect()),
-                page_size: Some(ids.len().try_into().map_err(eyre::Error::new)?),
-                api_key: credentials.api_key(),
-                start_cursor: None,
-            })
-            .await?
-            .database_pages
-            .into_iter()
-            .map(|page| page.properties.try_into())
-            .collect::<Result<Vec<Command>>>()?;
-
-        Ok(pages)
+        self.list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
+            database_id: self.credentials.commands_database_id(),
+            external_ids: Some(ids.iter().map(|id| id.to_string()).collect()),
+            page_size: Some(ids.len().try_into().map_err(eyre::Error::new)?),
+            start_cursor: None,
+        })
+        .await?
+        .database_pages
+        .into_iter()
+        .map(|page| page.properties.try_into())
+        .collect::<Result<Vec<Command>>>()
     }
 }
 
-impl BckListWorkspaces for NotionProvider {
+impl BckListWorkspaces for NotionDatabaseProvider {
     async fn bck_list_workspaces(&self, ids: Vec<&WorkspaceId>) -> Result<Vec<Workspace>> {
-        let Some(credentials) = self.credentials.as_ref() else {
-            return Err(Error::FailedPrecondition(
-                "Missing Notion credentials".into(),
-            ));
-        };
-
-        let pages = self
-            .list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
-                database_id: credentials.workspaces_page_id(),
-                external_ids: Some(ids.iter().map(|id| id.to_string()).collect()),
-                page_size: Some(ids.len().try_into().map_err(eyre::Error::new)?),
-                api_key: credentials.api_key(),
-                start_cursor: None,
-            })
-            .await?
-            .database_pages
-            .into_iter()
-            .map(|page| page.properties.try_into())
-            .collect::<Result<Vec<Workspace>>>()?;
-
-        Ok(pages)
+        self.list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
+            database_id: self.credentials.workspaces_database_id(),
+            external_ids: Some(ids.iter().map(|id| id.to_string()).collect()),
+            page_size: Some(ids.len().try_into().map_err(eyre::Error::new)?),
+            start_cursor: None,
+        })
+        .await?
+        .database_pages
+        .into_iter()
+        .map(|page| page.properties.try_into())
+        .collect::<Result<Vec<Workspace>>>()
     }
 }
 
-impl BckUpdateCommand for NotionProvider {
+impl BckUpdateCommand for NotionDatabaseProvider {
     async fn bck_update_command(&self, command: Command) -> Result<Command> {
         let page = self.find_command_page(command.id()).await?;
 
@@ -491,7 +442,7 @@ impl BckUpdateCommand for NotionProvider {
     }
 }
 
-impl BckUpdateWorkspace for NotionProvider {
+impl BckUpdateWorkspace for NotionDatabaseProvider {
     async fn bck_update_workspace(&self, workspace: Workspace) -> Result<Workspace> {
         let page = self.find_workspace_page(workspace.id()).await?;
 
@@ -516,26 +467,37 @@ impl BckUpdateWorkspace for NotionProvider {
     }
 }
 
-impl VerifyCredentials for NotionProvider {
-    async fn verify(&self, credentials: &Credentials) -> Result<()> {
-        self.list_database_pages::<CommandProperties>(ListDatabasePagesParameters {
-            database_id: credentials.commands_page_id(),
-            external_ids: None,
-            page_size: Some(1),
-            api_key: credentials.api_key(),
-            start_cursor: None,
-        })
-        .await?;
+impl GetDatabaseProperties for NotionDatabasePropertiesProvider {
+    async fn get_database_properties(
+        &self,
+        api_key: &ApiKey,
+        database_id: &DatabaseId,
+    ) -> Result<Vec<DatabaseProperty>> {
+        let client = NotionApiClient::new(NewNotionApiClientParameters {
+            api_key: Some(api_key.to_string()),
+            ..Default::default()
+        })?;
 
-        self.list_database_pages::<WorkspaceProperties>(ListDatabasePagesParameters {
-            database_id: credentials.workspaces_page_id(),
-            external_ids: None,
-            page_size: Some(1),
-            api_key: credentials.api_key(),
-            start_cursor: None,
-        })
-        .await?;
+        let response = client.get_database_properties(database_id).await?;
+        let body: serde_json::Value = response.json().await.map_err(eyre::Error::new)?;
+        let properties = body["properties"].as_object();
 
-        Ok(())
+        let Some(properties) = properties else {
+            return Err(Error::FailedPrecondition(
+                "Can't get Notion page properties".into(),
+            ));
+        };
+
+        let properties = properties
+            .into_iter()
+            .map(|(name, values)| {
+                Ok(DatabaseProperty {
+                    name: name.to_string(),
+                    kind: values["type"].as_str().unwrap_or_default().parse()?,
+                })
+            })
+            .collect::<Result<Vec<DatabaseProperty>>>()?;
+
+        Ok(properties)
     }
 }
