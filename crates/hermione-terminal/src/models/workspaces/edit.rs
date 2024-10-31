@@ -2,7 +2,7 @@ use crate::{
     forms::{EditWorkspaceFormParameters, WorkspaceForm},
     layouts::WideLayout,
     themes::{Theme, Themed},
-    widgets::{StatusBar, StatusBarState, StatusBarWidget},
+    widgets::{StatusBar, StatusBarWidget},
     ListWorkspacesParams, Message, Result, Route, UpdateWorkspaceParams, WorkspacePresenter,
     LIST_WORKSPACES_PAGE_SIZE,
 };
@@ -11,7 +11,7 @@ use ratatui::Frame;
 
 pub struct EditWorkspaceModel {
     form: WorkspaceForm,
-    status_bar_state: StatusBarState,
+    status_bar: StatusBar,
     redirect: Option<Route>,
     theme: Theme,
 }
@@ -55,7 +55,7 @@ impl Model for EditWorkspaceModel {
         self.form.render(frame, main_area);
 
         frame.render_widget(
-            StatusBarWidget::new(&self.status_bar_state).themed(self.theme),
+            StatusBarWidget::new(&self.status_bar).themed(self.theme),
             status_bar_area,
         );
     }
@@ -102,14 +102,14 @@ impl EditWorkspaceModel {
     pub fn new(parameters: EditWorkspaceModelParameters) -> Result<Self> {
         let EditWorkspaceModelParameters { workspace, theme } = parameters;
 
-        let status_bar = StatusBar::default()
+        let status_bar = StatusBar::builder()
             .operation("Edit workspace")
             .workspace(&workspace.name)
-            .into();
+            .build();
 
         Ok(Self {
             redirect: None,
-            status_bar_state: status_bar,
+            status_bar,
             form: WorkspaceForm::edit(EditWorkspaceFormParameters { workspace, theme }),
             theme,
         })

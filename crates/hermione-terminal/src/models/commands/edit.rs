@@ -2,7 +2,7 @@ use crate::{
     forms::{CommandForm, EditCommandFormParameters},
     layouts::WideLayout,
     themes::{Theme, Themed},
-    widgets::{StatusBar, StatusBarState, StatusBarWidget},
+    widgets::{StatusBar, StatusBarWidget},
     CommandPresenter, ListWorkspaceCommandsParams, Message, Result, Route,
     UpdateWorkspaceCommandParams, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
@@ -10,7 +10,7 @@ use hermione_tui::{EventHandler, Model};
 use ratatui::Frame;
 
 pub struct EditWorkspaceCommandModel {
-    status_bar_state: StatusBarState,
+    status_bar: StatusBar,
     form: CommandForm,
     redirect: Option<Route>,
     theme: Theme,
@@ -56,7 +56,7 @@ impl Model for EditWorkspaceCommandModel {
         self.form.render(frame, main_area);
 
         frame.render_widget(
-            StatusBarWidget::new(&self.status_bar_state).themed(self.theme),
+            StatusBarWidget::new(&self.status_bar).themed(self.theme),
             status_bar_area,
         );
     }
@@ -105,14 +105,14 @@ impl EditWorkspaceCommandModel {
             theme,
         } = parameters;
 
-        let status_bar_state = StatusBar::default()
+        let status_bar = StatusBar::builder()
             .operation("Edit command")
             .workspace(&workspace.name)
             .command(&command.name)
-            .into();
+            .build();
 
         Ok(Self {
-            status_bar_state,
+            status_bar,
             redirect: None,
             form: CommandForm::edit(EditCommandFormParameters { command, theme }),
             theme,

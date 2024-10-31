@@ -77,10 +77,7 @@ impl Model for ListWorkspacesModel {
         frame.render_stateful_widget(list, list_area, &mut self.workspaces_state);
         self.smart_input.render(frame, input_area);
 
-        frame.render_widget(
-            StatusBarWidget::new(&self.status_bar().into()),
-            status_bar_area,
-        );
+        frame.render_widget(StatusBarWidget::new(&self.status_bar()), status_bar_area);
     }
 }
 
@@ -98,19 +95,19 @@ impl ListWorkspacesModel {
     }
 
     fn status_bar(&self) -> StatusBar {
-        let mut status_bar = StatusBar::default()
+        let mut builder = StatusBar::builder()
             .operation("List workspaces")
             .page(self.page_number);
 
         if let Some(workspace) = self.workspace() {
-            status_bar = status_bar.selector(&workspace.name);
+            builder = builder.selector(&workspace.name);
         }
 
         if !self.search_query.is_empty() {
-            status_bar = status_bar.search(&self.search_query);
+            builder = builder.search(&self.search_query);
         }
 
-        status_bar
+        builder.build()
     }
 
     fn exit(&mut self) {

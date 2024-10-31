@@ -2,7 +2,7 @@ use crate::{
     forms::{CommandForm, NewCommandFormParameters},
     layouts::WideLayout,
     themes::{Theme, Themed},
-    widgets::{StatusBar, StatusBarState, StatusBarWidget},
+    widgets::{StatusBar, StatusBarWidget},
     CommandPresenter, CreateWorkspaceCommandParams, ListWorkspaceCommandsParams, Message, Result,
     Route, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
@@ -10,7 +10,7 @@ use hermione_tui::{EventHandler, Model};
 use ratatui::Frame;
 
 pub struct NewWorkspaceCommandModel {
-    status_bar_state: StatusBarState,
+    status_bar: StatusBar,
     form: CommandForm,
     redirect: Option<Route>,
     theme: Theme,
@@ -55,7 +55,7 @@ impl Model for NewWorkspaceCommandModel {
         self.form.render(frame, main_area);
 
         frame.render_widget(
-            StatusBarWidget::new(&self.status_bar_state).themed(self.theme),
+            StatusBarWidget::new(&self.status_bar).themed(self.theme),
             status_bar_area,
         );
     }
@@ -80,10 +80,10 @@ impl NewWorkspaceCommandModel {
     pub fn new(parameters: NewWorkspaceCommandModelParameters) -> Result<Self> {
         let NewWorkspaceCommandModelParameters { workspace, theme } = parameters;
 
-        let status_bar = StatusBar::default()
+        let status_bar = StatusBar::builder()
             .operation("New command")
             .workspace(&workspace.name)
-            .into();
+            .build();
 
         Ok(Self {
             form: CommandForm::new(NewCommandFormParameters {
@@ -91,7 +91,7 @@ impl NewWorkspaceCommandModel {
                 theme,
             }),
             redirect: None,
-            status_bar_state: status_bar,
+            status_bar,
             theme,
         })
     }

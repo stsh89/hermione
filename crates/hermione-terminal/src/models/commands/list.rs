@@ -98,7 +98,7 @@ impl Model for ListWorkspaceCommandsModel {
         self.smart_input.render(frame, input_area);
 
         frame.render_widget(
-            StatusBarWidget::new(&self.status_bar().into()).themed(self.theme),
+            StatusBarWidget::new(&self.status_bar()).themed(self.theme),
             status_bar_area,
         );
     }
@@ -127,24 +127,24 @@ impl ListWorkspaceCommandsModel {
     }
 
     fn status_bar(&self) -> StatusBar {
-        let mut search_bar = StatusBar::default()
+        let mut builder = StatusBar::builder()
             .operation("List commands")
             .workspace(&self.workspace.name)
             .page(self.page_number);
 
         if let Some(command) = self.command() {
-            search_bar = search_bar.selector(&command.name);
+            builder = builder.selector(&command.name);
         }
 
         if self.powershell_settings.no_exit {
-            search_bar = search_bar.pwsh("-NoExit");
+            builder = builder.pwsh("-NoExit");
         }
 
         if !self.search_query.is_empty() {
-            search_bar = search_bar.search(&self.search_query);
+            builder = builder.search(&self.search_query);
         }
 
-        search_bar
+        builder.build()
     }
 
     fn execute_command(&mut self) {

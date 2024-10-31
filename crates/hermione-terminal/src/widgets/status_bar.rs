@@ -7,7 +7,7 @@ use ratatui::{
 use serde::Serialize;
 
 #[derive(Default, Serialize)]
-pub struct StatusBar<'a> {
+pub struct StatusBarBuilder<'a> {
     operation: &'a str,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -29,16 +29,28 @@ pub struct StatusBar<'a> {
     pwsh: Option<&'a str>,
 }
 
-pub struct StatusBarState {
-    value: String,
+pub struct StatusBar {
+    status_line: String,
 }
 
 pub struct StatusBarWidget<'a> {
-    state: &'a StatusBarState,
+    state: &'a StatusBar,
     style: Style,
 }
 
-impl<'a> StatusBar<'a> {
+impl StatusBar {
+    pub fn builder<'a>() -> StatusBarBuilder<'a> {
+        StatusBarBuilder::default()
+    }
+}
+
+impl<'a> StatusBarBuilder<'a> {
+    pub fn build(self) -> StatusBar {
+        StatusBar {
+            status_line: serde_json::to_string(&self).unwrap_or_default(),
+        }
+    }
+
     pub fn operation(self, name: &'a str) -> Self {
         Self {
             operation: name,
@@ -90,7 +102,7 @@ impl<'a> StatusBar<'a> {
 }
 
 impl<'a> StatusBarWidget<'a> {
-    pub fn new(state: &'a StatusBarState) -> Self {
+    pub fn new(state: &'a StatusBar) -> Self {
         Self {
             state,
             style: Style::default(),
@@ -120,16 +132,8 @@ impl Widget for StatusBarWidget<'_> {
     where
         Self: Sized,
     {
-        Paragraph::new(self.state.value.as_str())
+        Paragraph::new(self.state.status_line.as_str())
             .style(self.style)
             .render(area, buf)
-    }
-}
-
-impl<'a> From<StatusBar<'a>> for StatusBarState {
-    fn from(status_bar: StatusBar) -> Self {
-        Self {
-            value: serde_json::to_string(&status_bar).unwrap_or_default(),
-        }
     }
 }
