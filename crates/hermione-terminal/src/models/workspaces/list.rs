@@ -77,7 +77,10 @@ impl Model for ListWorkspacesModel {
         frame.render_stateful_widget(list, list_area, &mut self.workspaces_state);
         self.smart_input.render(frame, input_area);
 
-        frame.render_widget(StatusBarWidget::new(&self.status_bar()), status_bar_area);
+        frame.render_widget(
+            StatusBarWidget::new(&self.status_bar()).themed(self.theme),
+            status_bar_area,
+        );
     }
 }
 
