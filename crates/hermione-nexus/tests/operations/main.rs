@@ -1,6 +1,8 @@
+mod clipboard;
 mod fixtures;
 mod storage;
 
+mod copy_command_to_clipboard_test;
 mod create_command_test;
 mod create_workspace_test;
 mod get_workspace_test;

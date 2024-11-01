@@ -17,7 +17,7 @@ pub struct WorkspaceParameters {
     pub name: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WorkspaceId(Uuid);
 
 #[derive(Clone)]
