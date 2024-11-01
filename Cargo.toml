@@ -8,6 +8,7 @@ members = [
     "crates/hermione-terminal",
     "crates/hermione-tracing",
     "crates/hermione-tui",
+    "crates/hermione-nexus",
 ]
 
 [workspace.dependencies]
@@ -28,6 +29,7 @@ tracing-appender = "0.2.3"
 tracing-subscriber = "0.3.18"
 uuid = "1.10.0"
 
+hermione-nexus = { path = "crates/hermione-nexus" }
 hermione-notion = { path = "crates/hermione-notion" }
 hermione-ops = { path = "crates/hermione-ops" }
 hermione-powershell = { path = "crates/hermione-powershell" }
