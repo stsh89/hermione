@@ -1,6 +1,6 @@
 use crate::{
     services::storage::{
-        FindWorkspace, UpdateWorkspace, UpdateWorkspaceParameters, Workspace, WorkspaceId,
+        EditWorkspaceParameters, FindWorkspace, UpdateWorkspace, Workspace, WorkspaceId,
     },
     Error, Result,
 };
@@ -10,7 +10,7 @@ pub struct UpdateWorkspaceOperation<'a, FW, UW> {
     pub update_operator: &'a UW,
 }
 
-pub struct UpdateWorkspaceOperand<'a> {
+pub struct UpdateWorkspaceParameters<'a> {
     pub id: &'a WorkspaceId,
     pub location: Option<String>,
     pub name: String,
@@ -21,10 +21,10 @@ where
     FW: FindWorkspace,
     UW: UpdateWorkspace,
 {
-    pub fn execute(&self, operand: UpdateWorkspaceOperand) -> Result<Workspace> {
+    pub fn execute(&self, parameters: UpdateWorkspaceParameters) -> Result<Workspace> {
         tracing::info!(operation = "Update workspace");
 
-        let UpdateWorkspaceOperand { id, location, name } = operand;
+        let UpdateWorkspaceParameters { id, location, name } = parameters;
 
         let Some(mut workspace) = self.find_operator.find_workspace(id)? else {
             return Err(Error::NotFound(format!("Workspace with ID: {}", **id)));
@@ -34,7 +34,7 @@ where
         workspace.set_name(name);
 
         self.update_operator
-            .update_workspace(UpdateWorkspaceParameters {
+            .update_workspace(EditWorkspaceParameters {
                 id: workspace.id(),
                 name: workspace.name(),
                 location: workspace.location(),

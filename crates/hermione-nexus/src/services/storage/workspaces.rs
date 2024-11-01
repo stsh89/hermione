@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 pub trait CreateWorkspace: StorageProvider {
-    fn create_workspace(&self, parameters: CreateWorkspaceParameters) -> Result<Workspace>;
+    fn create_workspace(&self, parameters: NewWorkspaceParameters) -> Result<Workspace>;
 }
 
 pub trait FindWorkspace: StorageProvider {
@@ -11,15 +11,15 @@ pub trait FindWorkspace: StorageProvider {
 }
 
 pub trait UpdateWorkspace: StorageProvider {
-    fn update_workspace(&self, workspace: UpdateWorkspaceParameters) -> Result<Workspace>;
+    fn update_workspace(&self, workspace: EditWorkspaceParameters) -> Result<Workspace>;
 }
 
-pub struct CreateWorkspaceParameters {
+pub struct NewWorkspaceParameters {
     pub name: String,
     pub location: Option<String>,
 }
 
-pub struct UpdateWorkspaceParameters<'a> {
+pub struct EditWorkspaceParameters<'a> {
     pub id: &'a WorkspaceId,
     pub name: &'a str,
     pub location: Option<&'a str>,

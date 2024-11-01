@@ -1,8 +1,8 @@
 use crate::{
     fixtures::{workspace_fixture, WorkspaceFixtureParameters},
-    services::InMemoryStorageProvider,
+    storage::InMemoryStorageProvider,
 };
-use hermione_nexus::{Error, Result, UpdateWorkspaceOperand, UpdateWorkspaceOperation};
+use hermione_nexus::{Error, Result, UpdateWorkspaceOperation, UpdateWorkspaceParameters};
 
 #[test]
 fn it_updates_workspace() -> Result<()> {
@@ -19,7 +19,7 @@ fn it_updates_workspace() -> Result<()> {
         find_operator: &storage_provider,
         update_operator: &storage_provider,
     }
-    .execute(UpdateWorkspaceOperand {
+    .execute(UpdateWorkspaceParameters {
         id: workspace.id(),
         name: "Spaceship".to_string(),
         location: Some("C:\\".to_string()),
@@ -41,7 +41,7 @@ fn it_returns_workspace_not_found_error() -> Result<()> {
         find_operator: &storage_provider,
         update_operator: &storage_provider,
     }
-    .execute(UpdateWorkspaceOperand {
+    .execute(UpdateWorkspaceParameters {
         id: workspace.id(),
         name: "Spaceship".to_string(),
         location: Some("C:\\".to_string()),

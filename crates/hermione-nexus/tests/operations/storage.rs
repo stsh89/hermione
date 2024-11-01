@@ -1,7 +1,7 @@
 use hermione_nexus::{
     services::storage::{
-        CreateWorkspace, CreateWorkspaceParameters, FindWorkspace, UpdateWorkspace,
-        UpdateWorkspaceParameters, Workspace, WorkspaceId, WorkspaceParameters,
+        CreateWorkspace, EditWorkspaceParameters, FindWorkspace, NewWorkspaceParameters,
+        UpdateWorkspace, Workspace, WorkspaceId, WorkspaceParameters,
     },
     Error, StorageProvider,
 };
@@ -51,8 +51,8 @@ impl InMemoryStorageProvider {
 impl StorageProvider for InMemoryStorageProvider {}
 
 impl CreateWorkspace for InMemoryStorageProvider {
-    fn create_workspace(&self, parameters: CreateWorkspaceParameters) -> Result<Workspace, Error> {
-        let CreateWorkspaceParameters { name, location } = parameters;
+    fn create_workspace(&self, parameters: NewWorkspaceParameters) -> Result<Workspace, Error> {
+        let NewWorkspaceParameters { name, location } = parameters;
 
         let workspace = Workspace::new(WorkspaceParameters {
             id: Uuid::new_v4(),
@@ -76,8 +76,8 @@ impl FindWorkspace for InMemoryStorageProvider {
 }
 
 impl UpdateWorkspace for InMemoryStorageProvider {
-    fn update_workspace(&self, workspace: UpdateWorkspaceParameters) -> Result<Workspace, Error> {
-        let UpdateWorkspaceParameters { id, location, name } = workspace;
+    fn update_workspace(&self, workspace: EditWorkspaceParameters) -> Result<Workspace, Error> {
+        let EditWorkspaceParameters { id, location, name } = workspace;
 
         let mut workspaces = self
             .workspaces

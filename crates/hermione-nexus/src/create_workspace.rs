@@ -1,5 +1,5 @@
 use crate::{
-    services::storage::{CreateWorkspace, CreateWorkspaceParameters, Workspace},
+    services::storage::{CreateWorkspace, NewWorkspaceParameters, Workspace},
     Result,
 };
 
@@ -7,7 +7,7 @@ pub struct CreateWorkspaceOperation<'a, CW> {
     pub operator: &'a CW,
 }
 
-pub struct CreateWorkspaceOperand {
+pub struct CreateWorkspaceParameters {
     pub name: String,
     pub location: Option<String>,
 }
@@ -16,12 +16,12 @@ impl<'a, CW> CreateWorkspaceOperation<'a, CW>
 where
     CW: CreateWorkspace,
 {
-    pub fn execute(&self, operand: CreateWorkspaceOperand) -> Result<Workspace> {
+    pub fn execute(&self, parameters: CreateWorkspaceParameters) -> Result<Workspace> {
         tracing::info!(operation = "Create workspace");
 
-        let CreateWorkspaceOperand { name, location } = operand;
+        let CreateWorkspaceParameters { name, location } = parameters;
 
         self.operator
-            .create_workspace(CreateWorkspaceParameters { name, location })
+            .create_workspace(NewWorkspaceParameters { name, location })
     }
 }
