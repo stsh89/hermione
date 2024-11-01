@@ -1,10 +1,11 @@
 use crate::{
-    services::storage::{FindWorkspace, Workspace, WorkspaceId},
+    definitions::{Workspace, WorkspaceId},
+    services::FindWorkspace,
     Error, Result,
 };
 
 pub struct GetWorkspaceOperation<'a, F> {
-    pub operator: &'a F,
+    pub provider: &'a F,
 }
 
 impl<'a, F> GetWorkspaceOperation<'a, F>
@@ -14,7 +15,7 @@ where
     pub fn execute(&self, id: &WorkspaceId) -> Result<Workspace> {
         tracing::info!(operation = "Get workspace");
 
-        let Some(workspace) = self.operator.find_workspace(id)? else {
+        let Some(workspace) = self.provider.find_workspace(id)? else {
             return Err(Error::NotFound(format!("Workspace with ID: {}", **id)));
         };
 

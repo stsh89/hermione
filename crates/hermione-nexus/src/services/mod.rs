@@ -1,1 +1,3 @@
-pub mod storage;
+mod storage;
+
+pub use storage::*;

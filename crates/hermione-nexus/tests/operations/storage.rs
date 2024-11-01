@@ -1,8 +1,9 @@
 use hermione_nexus::{
-    services::storage::{
-        CreateWorkspace, EditWorkspaceParameters, FilterWorkspacesParameters, FindWorkspace,
-        ListWorkspaces, NewWorkspaceParameters, UpdateWorkspace, Workspace, WorkspaceId,
-        WorkspaceParameters,
+    definitions::{Command, CommandParameters, Workspace, WorkspaceId, WorkspaceParameters},
+    services::{
+        CreateCommand, CreateWorkspace, EditWorkspaceParameters, FilterWorkspacesParameters,
+        FindWorkspace, ListWorkspaces, NewCommandParameters, NewWorkspaceParameters,
+        UpdateWorkspace,
     },
     Error, StorageProvider,
 };
@@ -20,6 +21,7 @@ pub enum InMemoryStorageError {
 
 pub struct InMemoryStorageProvider {
     pub workspaces: RwLock<HashMap<Uuid, Workspace>>,
+    pub commands: RwLock<HashMap<Uuid, Command>>,
 }
 
 impl InMemoryStorageProvider {
@@ -34,6 +36,14 @@ impl InMemoryStorageProvider {
         Ok(workspace)
     }
 
+    pub fn insert_command(&self, command: &Command) -> Result<(), InMemoryStorageError> {
+        let mut commands = self.commands.write()?;
+
+        commands.insert(**command.id(), command.clone());
+
+        Ok(())
+    }
+
     pub fn insert_workspace(&self, workspace: &Workspace) -> Result<(), InMemoryStorageError> {
         let mut workspaces = self.workspaces.write()?;
 
@@ -45,6 +55,7 @@ impl InMemoryStorageProvider {
     pub fn new() -> Self {
         Self {
             workspaces: RwLock::new(HashMap::new()),
+            commands: RwLock::new(HashMap::new()),
         }
     }
 
@@ -56,6 +67,28 @@ impl InMemoryStorageProvider {
 }
 
 impl StorageProvider for InMemoryStorageProvider {}
+
+impl CreateCommand for InMemoryStorageProvider {
+    fn create_command(&self, parameters: NewCommandParameters) -> Result<Command, Error> {
+        let NewCommandParameters {
+            name,
+            program,
+            workspace_id,
+        } = parameters;
+
+        let command = Command::new(CommandParameters {
+            id: Uuid::new_v4(),
+            last_execute_time: None,
+            name,
+            program,
+            workspace_id,
+        })?;
+
+        self.insert_command(&command)?;
+
+        Ok(command)
+    }
+}
 
 impl CreateWorkspace for InMemoryStorageProvider {
     fn create_workspace(&self, parameters: NewWorkspaceParameters) -> Result<Workspace, Error> {

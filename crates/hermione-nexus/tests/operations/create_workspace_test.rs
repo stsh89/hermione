@@ -1,10 +1,13 @@
 use crate::storage::InMemoryStorageProvider;
-use hermione_nexus::{CreateWorkspaceOperation, CreateWorkspaceParameters, Result};
+use hermione_nexus::{
+    operations::{CreateWorkspaceOperation, CreateWorkspaceParameters},
+    Result,
+};
 
 #[test]
 fn it_creates_workspace() -> Result<()> {
     let workspace = CreateWorkspaceOperation {
-        operator: &InMemoryStorageProvider::new(),
+        provider: &InMemoryStorageProvider::new(),
     }
     .execute(CreateWorkspaceParameters {
         name: "Test workspace".to_string(),

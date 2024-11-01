@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use hermione_nexus::{
-    services::storage::{Workspace, WorkspaceParameters},
+    definitions::{Workspace, WorkspaceParameters},
     Result,
 };
 use uuid::Uuid;

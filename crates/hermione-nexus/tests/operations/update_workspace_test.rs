@@ -2,7 +2,10 @@ use crate::{
     fixtures::{workspace_fixture, WorkspaceFixtureParameters},
     storage::InMemoryStorageProvider,
 };
-use hermione_nexus::{Error, Result, UpdateWorkspaceOperation, UpdateWorkspaceParameters};
+use hermione_nexus::{
+    operations::{UpdateWorkspaceOperation, UpdateWorkspaceParameters},
+    Error, Result,
+};
 
 #[test]
 fn it_updates_workspace() -> Result<()> {
@@ -16,8 +19,8 @@ fn it_updates_workspace() -> Result<()> {
     storage_provider.insert_workspace(&workspace)?;
 
     let workspace = UpdateWorkspaceOperation {
-        find_operator: &storage_provider,
-        update_operator: &storage_provider,
+        find_provider: &storage_provider,
+        update_provider: &storage_provider,
     }
     .execute(UpdateWorkspaceParameters {
         id: workspace.id(),
@@ -38,8 +41,8 @@ fn it_returns_workspace_not_found_error() -> Result<()> {
     let storage_provider = InMemoryStorageProvider::new();
 
     let result = UpdateWorkspaceOperation {
-        find_operator: &storage_provider,
-        update_operator: &storage_provider,
+        find_provider: &storage_provider,
+        update_provider: &storage_provider,
     }
     .execute(UpdateWorkspaceParameters {
         id: workspace.id(),

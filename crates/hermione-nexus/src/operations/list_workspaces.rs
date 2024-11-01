@@ -1,10 +1,11 @@
 use crate::{
-    services::storage::{FilterWorkspacesParameters, ListWorkspaces, Workspace},
+    definitions::Workspace,
+    services::{FilterWorkspacesParameters, ListWorkspaces},
     Error, Result,
 };
 
 pub struct ListWorkspacesOperation<'a, L> {
-    pub operator: &'a L,
+    pub provider: &'a L,
 }
 
 pub struct ListWorkspacesParameters<'a> {
@@ -38,7 +39,7 @@ where
             ));
         }
 
-        self.operator.list_workspaces(FilterWorkspacesParameters {
+        self.provider.list_workspaces(FilterWorkspacesParameters {
             name_contains,
             page_number,
             page_size,

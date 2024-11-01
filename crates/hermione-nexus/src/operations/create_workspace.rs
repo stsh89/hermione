@@ -1,10 +1,11 @@
 use crate::{
-    services::storage::{CreateWorkspace, NewWorkspaceParameters, Workspace},
+    definitions::Workspace,
+    services::{CreateWorkspace, NewWorkspaceParameters},
     Result,
 };
 
 pub struct CreateWorkspaceOperation<'a, CW> {
-    pub operator: &'a CW,
+    pub provider: &'a CW,
 }
 
 pub struct CreateWorkspaceParameters {
@@ -21,7 +22,7 @@ where
 
         let CreateWorkspaceParameters { name, location } = parameters;
 
-        self.operator
+        self.provider
             .create_workspace(NewWorkspaceParameters { name, location })
     }
 }

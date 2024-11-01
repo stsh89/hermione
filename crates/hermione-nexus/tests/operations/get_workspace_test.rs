@@ -1,5 +1,5 @@
 use crate::{fixtures, storage::InMemoryStorageProvider};
-use hermione_nexus::{Error, GetWorkspaceOperation, Result};
+use hermione_nexus::{operations::GetWorkspaceOperation, Error, Result};
 use uuid::Uuid;
 
 #[test]
@@ -10,7 +10,7 @@ fn it_returns_workspace() -> Result<()> {
     storage_provider.insert_workspace(&workspace)?;
 
     let found = GetWorkspaceOperation {
-        operator: &storage_provider,
+        provider: &storage_provider,
     }
     .execute(workspace.id())?;
 
@@ -25,7 +25,7 @@ fn it_returns_workspace_not_found_error() -> Result<()> {
     let id = Uuid::new_v4();
 
     let result = GetWorkspaceOperation {
-        operator: &storage_provider,
+        provider: &storage_provider,
     }
     .execute(&id.into());
 

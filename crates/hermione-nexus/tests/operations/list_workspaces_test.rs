@@ -3,7 +3,10 @@ use crate::{
     storage::InMemoryStorageProvider,
 };
 use chrono::{TimeZone, Utc};
-use hermione_nexus::{Error, ListWorkspacesOperation, ListWorkspacesParameters, Result};
+use hermione_nexus::{
+    operations::{ListWorkspacesOperation, ListWorkspacesParameters},
+    Error, Result,
+};
 use uuid::Uuid;
 
 #[test]
@@ -18,7 +21,7 @@ fn it_lists_workspaces() -> Result<()> {
     storage_provider.insert_workspace(&workspace)?;
 
     let workspaces = ListWorkspacesOperation {
-        operator: &storage_provider,
+        provider: &storage_provider,
     }
     .execute(ListWorkspacesParameters {
         name_contains: None,
@@ -56,7 +59,7 @@ fn it_paginates() -> Result<()> {
     storage_provider.insert_workspace(&workspace2)?;
 
     let workspaces = ListWorkspacesOperation {
-        operator: &storage_provider,
+        provider: &storage_provider,
     }
     .execute(ListWorkspacesParameters {
         name_contains: None,
@@ -101,7 +104,7 @@ fn it_filters_by_name() -> Result<()> {
     storage_provider.insert_workspace(&workspace3)?;
 
     let workspaces = ListWorkspacesOperation {
-        operator: &storage_provider,
+        provider: &storage_provider,
     }
     .execute(ListWorkspacesParameters {
         name_contains: Some("Test"),
@@ -125,7 +128,7 @@ fn it_validates_page_number() -> Result<()> {
     let storage_provider = InMemoryStorageProvider::new();
 
     let result = ListWorkspacesOperation {
-        operator: &storage_provider,
+        provider: &storage_provider,
     }
     .execute(ListWorkspacesParameters {
         name_contains: None,
@@ -148,7 +151,7 @@ fn it_validates_page_size() -> Result<()> {
     let storage_provider = InMemoryStorageProvider::new();
 
     let result = ListWorkspacesOperation {
-        operator: &storage_provider,
+        provider: &storage_provider,
     }
     .execute(ListWorkspacesParameters {
         name_contains: None,
@@ -193,7 +196,7 @@ fn it_sorts_workspaces_by_last_access_time_and_name() -> Result<()> {
     storage_provider.insert_workspace(&workspace3)?;
 
     let workspaces = ListWorkspacesOperation {
-        operator: &storage_provider,
+        provider: &storage_provider,
     }
     .execute(ListWorkspacesParameters {
         name_contains: None,
