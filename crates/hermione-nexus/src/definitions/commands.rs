@@ -64,7 +64,7 @@ impl Command {
             last_execute_time,
             program: CommandProgram { value: program },
             name: CommandName { value: name },
-            workspace_id: workspace_id.into(),
+            workspace_id,
         })
     }
 

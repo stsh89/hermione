@@ -1,6 +1,7 @@
 use crate::{
     definitions::{Command, WorkspaceId},
-    Result, StorageProvider,
+    services::StorageProvider,
+    Result,
 };
 
 pub trait CreateCommand: StorageProvider {

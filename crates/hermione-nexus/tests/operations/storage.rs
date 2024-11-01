@@ -3,9 +3,9 @@ use hermione_nexus::{
     services::{
         CreateCommand, CreateWorkspace, EditWorkspaceParameters, FilterWorkspacesParameters,
         FindWorkspace, ListWorkspaces, NewCommandParameters, NewWorkspaceParameters,
-        UpdateWorkspace,
+        StorageProvider, UpdateWorkspace,
     },
-    Error, StorageProvider,
+    Error,
 };
 use std::{
     collections::HashMap,
