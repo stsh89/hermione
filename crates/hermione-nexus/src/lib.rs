@@ -2,11 +2,13 @@ pub mod services;
 
 mod create_workspace;
 mod failure;
+mod get_workspace;
 mod list_workspaces;
 mod update_workspace;
 
 pub use create_workspace::*;
 pub use failure::*;
+pub use get_workspace::*;
 pub use list_workspaces::*;
 pub use update_workspace::*;
 

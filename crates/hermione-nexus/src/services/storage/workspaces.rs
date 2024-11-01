@@ -132,3 +132,9 @@ impl std::ops::Deref for WorkspaceId {
         &self.0
     }
 }
+
+impl From<Uuid> for WorkspaceId {
+    fn from(value: Uuid) -> Self {
+        Self(value)
+    }
+}
