@@ -1,7 +1,8 @@
 use hermione_nexus::{
     services::storage::{
-        CreateWorkspace, EditWorkspaceParameters, FindWorkspace, NewWorkspaceParameters,
-        UpdateWorkspace, Workspace, WorkspaceId, WorkspaceParameters,
+        CreateWorkspace, EditWorkspaceParameters, FilterWorkspacesParameters, FindWorkspace,
+        ListWorkspaces, NewWorkspaceParameters, UpdateWorkspace, Workspace, WorkspaceId,
+        WorkspaceParameters,
     },
     Error, StorageProvider,
 };
@@ -46,6 +47,12 @@ impl InMemoryStorageProvider {
             workspaces: RwLock::new(HashMap::new()),
         }
     }
+
+    fn workspaces(&self) -> Result<Vec<Workspace>, InMemoryStorageError> {
+        let workspaces = self.workspaces.read()?;
+
+        Ok(workspaces.values().cloned().collect())
+    }
 }
 
 impl StorageProvider for InMemoryStorageProvider {}
@@ -72,6 +79,40 @@ impl FindWorkspace for InMemoryStorageProvider {
         let workspaces = self.get_workspace(id)?;
 
         Ok(workspaces)
+    }
+}
+
+impl ListWorkspaces for InMemoryStorageProvider {
+    fn list_workspaces(
+        &self,
+        parameters: FilterWorkspacesParameters,
+    ) -> Result<Vec<Workspace>, Error> {
+        let FilterWorkspacesParameters {
+            name_contains,
+            page_number,
+            page_size,
+        } = parameters;
+
+        let mut workspaces = self
+            .workspaces()?
+            .into_iter()
+            .filter(|workspace| {
+                if let Some(name_contains) = name_contains {
+                    workspace.name().contains(name_contains)
+                } else {
+                    true
+                }
+            })
+            .collect::<Vec<Workspace>>();
+
+        workspaces.sort_by(|a, b| a.name().cmp(b.name()));
+        workspaces.sort_by(|a, b| a.last_access_time().cmp(&b.last_access_time()).reverse());
+
+        Ok(workspaces
+            .into_iter()
+            .skip((page_number - 1) as usize * page_size as usize)
+            .take(page_size as usize)
+            .collect())
     }
 }
 

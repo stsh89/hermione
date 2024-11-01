@@ -10,6 +10,10 @@ pub trait FindWorkspace: StorageProvider {
     fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>>;
 }
 
+pub trait ListWorkspaces: StorageProvider {
+    fn list_workspaces(&self, parameters: FilterWorkspacesParameters) -> Result<Vec<Workspace>>;
+}
+
 pub trait UpdateWorkspace: StorageProvider {
     fn update_workspace(&self, workspace: EditWorkspaceParameters) -> Result<Workspace>;
 }
@@ -25,7 +29,13 @@ pub struct EditWorkspaceParameters<'a> {
     pub location: Option<&'a str>,
 }
 
-#[derive(Clone)]
+pub struct FilterWorkspacesParameters<'a> {
+    pub name_contains: Option<&'a str>,
+    pub page_number: u32,
+    pub page_size: u32,
+}
+
+#[derive(Clone, Debug)]
 pub struct WorkspaceId(Uuid);
 
 #[derive(Clone)]
