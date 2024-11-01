@@ -2,7 +2,7 @@ use crate::{
     fixtures::{workspace_fixture, WorkspaceFixtureParameters},
     storage::InMemoryStorageProvider,
 };
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{TimeZone, Utc};
 use hermione_nexus::{Error, ListWorkspacesOperation, ListWorkspacesParameters, Result};
 use uuid::Uuid;
 
