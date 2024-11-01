@@ -7,8 +7,8 @@ use hermione_nexus::{
 #[test]
 fn it_creates_command() -> Result<()> {
     let provider = &InMemoryStorageProvider::new();
-
     let workspace = workspace_fixture(Default::default())?;
+
     provider.insert_workspace(&workspace)?;
 
     let command = CreateCommandOperation { provider }.execute(CreateCommandParameters {

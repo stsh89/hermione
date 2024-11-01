@@ -1,9 +1,12 @@
 use hermione_nexus::{
-    definitions::{Command, CommandParameters, Workspace, WorkspaceId, WorkspaceParameters},
+    definitions::{
+        Command, CommandId, CommandParameters, Workspace, WorkspaceId, WorkspaceParameters,
+    },
     services::{
-        CreateCommand, CreateWorkspace, EditWorkspaceParameters, FilterWorkspacesParameters,
-        FindWorkspace, ListWorkspaces, NewCommandParameters, NewWorkspaceParameters,
-        StorageProvider, UpdateWorkspace,
+        CreateCommand, CreateWorkspace, EditCommandParameters, EditWorkspaceParameters,
+        FilterWorkspacesParameters, FindCommand, FindWorkspace, ListWorkspaces,
+        NewCommandParameters, NewWorkspaceParameters, StorageProvider, UpdateCommand,
+        UpdateWorkspace,
     },
     Error,
 };
@@ -25,13 +28,14 @@ pub struct InMemoryStorageProvider {
 }
 
 impl InMemoryStorageProvider {
+    fn get_command(&self, command_id: &CommandId) -> Result<Option<Command>, InMemoryStorageError> {
+        let command = self.commands.read()?.get(command_id).cloned();
+
+        Ok(command)
+    }
+
     fn get_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>, InMemoryStorageError> {
-        let workspace = self
-            .workspaces
-            .read()?
-            .get(id)
-            .cloned()
-            .map(Workspace::from);
+        let workspace = self.workspaces.read()?.get(id).cloned();
 
         Ok(workspace)
     }
@@ -107,6 +111,14 @@ impl CreateWorkspace for InMemoryStorageProvider {
     }
 }
 
+impl FindCommand for InMemoryStorageProvider {
+    fn find_command(&self, id: &CommandId) -> Result<Option<Command>, Error> {
+        let command = self.get_command(id)?;
+
+        Ok(command)
+    }
+}
+
 impl FindWorkspace for InMemoryStorageProvider {
     fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>, Error> {
         let workspaces = self.get_workspace(id)?;
@@ -149,23 +161,37 @@ impl ListWorkspaces for InMemoryStorageProvider {
     }
 }
 
+impl UpdateCommand for InMemoryStorageProvider {
+    fn update_command(&self, parameters: EditCommandParameters) -> Result<Command, Error> {
+        let EditCommandParameters { id, name, program } = parameters;
+
+        let mut command = self
+            .get_command(&id)?
+            .ok_or_else(|| Error::NotFound(format!("Command with ID: {}", **id)))?;
+
+        command.set_name(name.to_string());
+        command.set_program(program.to_string());
+
+        self.insert_command(&command)?;
+
+        Ok(command.clone())
+    }
+}
+
 impl UpdateWorkspace for InMemoryStorageProvider {
-    fn update_workspace(&self, workspace: EditWorkspaceParameters) -> Result<Workspace, Error> {
-        let EditWorkspaceParameters { id, location, name } = workspace;
+    fn update_workspace(&self, parameters: EditWorkspaceParameters) -> Result<Workspace, Error> {
+        let EditWorkspaceParameters { id, location, name } = parameters;
 
-        let mut workspaces = self
-            .workspaces
-            .write()
-            .map_err(Into::<InMemoryStorageError>::into)?;
-
-        let workspace = workspaces
-            .get_mut(id)
+        let mut workspace = self
+            .get_workspace(id)?
             .ok_or_else(|| Error::NotFound(format!("Workspace with ID: {}", **id)))?;
 
         workspace.set_location(location.map(ToString::to_string));
         workspace.set_name(name.to_string());
 
-        Ok(workspace.clone())
+        self.insert_workspace(&workspace)?;
+
+        Ok(workspace)
     }
 }
 
