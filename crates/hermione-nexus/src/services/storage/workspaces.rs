@@ -6,9 +6,23 @@ pub trait CreateWorkspace: StorageProvider {
     fn create_workspace(&self, parameters: CreateWorkspaceParameters) -> Result<Workspace>;
 }
 
+pub trait FindWorkspace: StorageProvider {
+    fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>>;
+}
+
+pub trait UpdateWorkspace: StorageProvider {
+    fn update_workspace(&self, workspace: UpdateWorkspaceParameters) -> Result<Workspace>;
+}
+
 pub struct CreateWorkspaceParameters {
     pub name: String,
     pub location: Option<String>,
+}
+
+pub struct UpdateWorkspaceParameters<'a> {
+    pub id: &'a WorkspaceId,
+    pub name: &'a str,
+    pub location: Option<&'a str>,
 }
 
 #[derive(Clone)]
@@ -71,19 +85,23 @@ impl Workspace {
             name: WorkspaceName { value: name },
         };
 
-        if let Some(location) = location {
-            workspace.set_location(location);
-        }
+        workspace.set_location(location);
 
         Ok(workspace)
     }
 
-    fn set_location(&mut self, location: String) {
+    pub fn set_location(&mut self, location: Option<String>) {
+        let location = location.unwrap_or_default();
+
         if location.is_empty() {
             self.location = None;
         } else {
             self.location = Some(WorkspaceLocation { value: location });
         }
+    }
+
+    pub fn set_name(&mut self, name: String) {
+        self.name = WorkspaceName { value: name };
     }
 }
 
