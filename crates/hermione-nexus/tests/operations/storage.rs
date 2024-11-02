@@ -4,9 +4,10 @@ use hermione_nexus::{
     },
     services::{
         CreateCommand, CreateWorkspace, DeleteCommand, DeleteWorkspace, DeleteWorkspaceCommands,
-        EditCommandParameters, EditWorkspaceParameters, FilterWorkspacesParameters, FindCommand,
-        FindWorkspace, ListWorkspaces, NewCommandParameters, NewWorkspaceParameters,
-        StorageProvider, UpdateCommand, UpdateWorkspace,
+        EditCommandParameters, EditWorkspaceParameters, FilterCommandsParameters,
+        FilterWorkspacesParameters, FindCommand, FindWorkspace, ListCommands, ListWorkspaces,
+        NewCommandParameters, NewWorkspaceParameters, StorageProvider, UpdateCommand,
+        UpdateWorkspace,
     },
     Error,
 };
@@ -190,6 +191,46 @@ impl FindWorkspace for InMemoryStorageProvider {
         let workspaces = self.get_workspace(id)?;
 
         Ok(workspaces)
+    }
+}
+
+impl ListCommands for InMemoryStorageProvider {
+    fn list_commands(&self, parameters: FilterCommandsParameters) -> Result<Vec<Command>, Error> {
+        let FilterCommandsParameters {
+            program_contains,
+            page_number,
+            page_size,
+            workspace_id,
+        } = parameters;
+
+        let mut commands = self
+            .commands()?
+            .into_iter()
+            .filter(|command| {
+                let contains_program = if let Some(program_contains) = program_contains {
+                    command.program().contains(program_contains)
+                } else {
+                    true
+                };
+
+                let from_workspace = if let Some(workspace_id) = workspace_id {
+                    command.workspace_id() == workspace_id
+                } else {
+                    true
+                };
+
+                contains_program && from_workspace
+            })
+            .collect::<Vec<Command>>();
+
+        commands.sort_by(|a, b| a.program().cmp(b.program()));
+        commands.sort_by(|a, b| a.last_execute_time().cmp(&b.last_execute_time()).reverse());
+
+        Ok(commands
+            .into_iter()
+            .skip((page_number - 1) as usize * page_size as usize)
+            .take(page_size as usize)
+            .collect())
     }
 }
 

@@ -33,6 +33,10 @@ pub trait FindWorkspace: StorageProvider {
     fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>>;
 }
 
+pub trait ListCommands: StorageProvider {
+    fn list_commands(&self, parameters: FilterCommandsParameters) -> Result<Vec<Command>>;
+}
+
 pub trait ListWorkspaces: StorageProvider {
     fn list_workspaces(&self, parameters: FilterWorkspacesParameters) -> Result<Vec<Workspace>>;
 }
@@ -55,6 +59,13 @@ pub struct EditWorkspaceParameters<'a> {
     pub id: &'a WorkspaceId,
     pub name: &'a str,
     pub location: Option<&'a str>,
+}
+
+pub struct FilterCommandsParameters<'a> {
+    pub program_contains: Option<&'a str>,
+    pub page_number: u32,
+    pub page_size: u32,
+    pub workspace_id: Option<&'a WorkspaceId>,
 }
 
 pub struct FilterWorkspacesParameters<'a> {
