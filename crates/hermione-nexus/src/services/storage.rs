@@ -17,6 +17,14 @@ pub trait DeleteCommand: StorageProvider {
     fn delete_command(&self, id: &CommandId) -> Result<()>;
 }
 
+pub trait DeleteWorkspaceCommands: StorageProvider {
+    fn delete_workspace_commands(&self, id: &WorkspaceId) -> Result<()>;
+}
+
+pub trait DeleteWorkspace: StorageProvider {
+    fn delete_workspace(&self, id: &WorkspaceId) -> Result<()>;
+}
+
 pub trait FindCommand: StorageProvider {
     fn find_command(&self, id: &CommandId) -> Result<Option<Command>>;
 }

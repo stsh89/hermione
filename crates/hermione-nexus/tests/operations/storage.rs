@@ -3,10 +3,10 @@ use hermione_nexus::{
         Command, CommandId, CommandParameters, Workspace, WorkspaceId, WorkspaceParameters,
     },
     services::{
-        CreateCommand, CreateWorkspace, DeleteCommand, EditCommandParameters,
-        EditWorkspaceParameters, FilterWorkspacesParameters, FindCommand, FindWorkspace,
-        ListWorkspaces, NewCommandParameters, NewWorkspaceParameters, StorageProvider,
-        UpdateCommand, UpdateWorkspace,
+        CreateCommand, CreateWorkspace, DeleteCommand, DeleteWorkspace, DeleteWorkspaceCommands,
+        EditCommandParameters, EditWorkspaceParameters, FilterWorkspacesParameters, FindCommand,
+        FindWorkspace, ListWorkspaces, NewCommandParameters, NewWorkspaceParameters,
+        StorageProvider, UpdateCommand, UpdateWorkspace,
     },
     Error,
 };
@@ -78,7 +78,34 @@ impl InMemoryStorageProvider {
         }
     }
 
-    fn workspaces(&self) -> Result<Vec<Workspace>, InMemoryStorageError> {
+    fn remove_command(&self, id: &CommandId) -> Result<(), InMemoryStorageError> {
+        let mut commands = self.commands.write()?;
+
+        commands.remove(id);
+
+        Ok(())
+    }
+
+    fn remove_workspace_commands(&self, id: &WorkspaceId) -> Result<(), InMemoryStorageError> {
+        let mut commands = self.commands.write()?;
+
+        commands.retain(|_id, command| command.workspace_id() != id);
+
+        Ok(())
+    }
+
+    fn remove_workspace(&self, id: &WorkspaceId) -> Result<(), InMemoryStorageError> {
+        let mut workspace = self
+            .workspaces
+            .write()
+            .map_err(Into::<InMemoryStorageError>::into)?;
+
+        workspace.remove(id);
+
+        Ok(())
+    }
+
+    pub fn workspaces(&self) -> Result<Vec<Workspace>, InMemoryStorageError> {
         let workspaces = self.workspaces.read()?;
 
         Ok(workspaces.values().cloned().collect())
@@ -128,12 +155,23 @@ impl CreateWorkspace for InMemoryStorageProvider {
 
 impl DeleteCommand for InMemoryStorageProvider {
     fn delete_command(&self, id: &CommandId) -> hermione_nexus::Result<()> {
-        let mut commands = self
-            .commands
-            .write()
-            .map_err(Into::<InMemoryStorageError>::into)?;
+        self.remove_command(id)?;
 
-        commands.remove(id);
+        Ok(())
+    }
+}
+
+impl DeleteWorkspaceCommands for InMemoryStorageProvider {
+    fn delete_workspace_commands(&self, id: &WorkspaceId) -> hermione_nexus::Result<()> {
+        self.remove_workspace_commands(id)?;
+
+        Ok(())
+    }
+}
+
+impl DeleteWorkspace for InMemoryStorageProvider {
+    fn delete_workspace(&self, id: &WorkspaceId) -> hermione_nexus::Result<()> {
+        self.remove_workspace(id)?;
 
         Ok(())
     }
