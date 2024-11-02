@@ -20,7 +20,7 @@ impl ClipboardProvider for MockClipboardProvider {}
 impl MockClipboardProvider {
     pub fn new() -> Self {
         Self {
-               copied_text: RwLock::new(None),
+            copied_text: RwLock::new(None),
         }
     }
 
