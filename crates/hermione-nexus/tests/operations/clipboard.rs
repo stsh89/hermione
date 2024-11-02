@@ -1,6 +1,6 @@
 use std::sync::{PoisonError, RwLock};
 
-use hermione_nexus::{services::CopyCommandToClipboard, Error};
+use hermione_nexus::{services::{ClipboardProvider, CopyCommandToClipboard}, Error};
 
 #[derive(thiserror::Error, Debug)]
 pub enum MockClipboardError {
@@ -11,6 +11,8 @@ pub enum MockClipboardError {
 pub struct MockClipboardProvider {
     pub copied_text: RwLock<Option<String>>,
 }
+
+impl ClipboardProvider for MockClipboardProvider {}
 
 impl MockClipboardProvider {
     pub fn new() -> Self {
