@@ -1,6 +1,9 @@
 use std::sync::{PoisonError, RwLock};
 
-use hermione_nexus::{services::{ClipboardProvider, CopyCommandToClipboard}, Error};
+use hermione_nexus::{
+    services::{ClipboardProvider, CopyCommandToClipboard},
+    Error,
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum MockClipboardError {

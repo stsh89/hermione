@@ -18,6 +18,9 @@ use uuid::Uuid;
 
 #[derive(thiserror::Error, Debug)]
 pub enum InMemoryStorageError {
+    #[error("Data integrity: {0}")]
+    DataItegrity(String),
+
     #[error("Lock access: {0}")]
     LockAccess(String),
 }
@@ -42,6 +45,12 @@ impl InMemoryStorageProvider {
 
     pub fn insert_command(&self, command: &Command) -> Result<(), InMemoryStorageError> {
         let mut commands = self.commands.write()?;
+
+        if self.get_workspace(command.workspace_id())?.is_none() {
+            return Err(InMemoryStorageError::DataItegrity(
+                "Attempt to add command to non-existent workspace".to_string(),
+            ));
+        }
 
         commands.insert(**command.id(), command.clone());
 

@@ -1,5 +1,5 @@
 use crate::{
-    definitions::{CommandId, WorkspaceId},
+    definitions::CommandId,
     services::{CopyCommandToClipboard, FindCommand},
     Error, Result,
 };
@@ -14,7 +14,7 @@ where
     FCP: FindCommand,
     CP: CopyCommandToClipboard,
 {
-    pub fn execute(&self, workspace_id: &WorkspaceId, id: &CommandId) -> Result<()> {
+    pub fn execute(&self, id: &CommandId) -> Result<()> {
         tracing::info!(operation = "Copy command to clipboard");
 
         let command = self.find_command_provider.find_command(id)?;
@@ -22,12 +22,6 @@ where
         let Some(command) = command else {
             return Err(Error::NotFound(format!("Command with ID: {}", **id)));
         };
-
-        if command.workspace_id() != workspace_id {
-            return Err(Error::InvalidArgument(
-                "Command doesn't belong to workspace".to_string(),
-            ));
-        }
 
         self.clipboard_provider
             .copy_command_to_clipboard(command.program())?;

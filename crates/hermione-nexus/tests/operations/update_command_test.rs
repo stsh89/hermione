@@ -32,7 +32,6 @@ fn it_updates_command() -> Result<()> {
         id: command.id(),
         name: "Get child items".to_string(),
         program: "Get-ChildItem".to_string(),
-        workspace_id: workspace.id(),
     })?;
 
     assert_eq!(command.name(), "Get child items");
@@ -54,7 +53,6 @@ fn it_returns_command_not_found_error() -> Result<()> {
         id: &Uuid::new_v4().into(),
         name: "Get child items".to_string(),
         program: "Get-ChildItem".to_string(),
-        workspace_id: &Uuid::new_v4().into(),
     });
 
     match result {

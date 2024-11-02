@@ -26,7 +26,7 @@ fn it_copies_command_to_clipboard() -> Result<()> {
         find_command_provider: &storage,
         clipboard_provider: &clipboard,
     }
-    .execute(workspace.id(), command.id())?;
+    .execute(command.id())?;
 
     assert_eq!(clipboard.text()?.as_deref(), Some("ping 1.1.1.1"));
 
