@@ -1,6 +1,7 @@
 mod copy_command_to_clipboard;
 mod create_command;
 mod create_workspace;
+mod delete_command;
 mod get_workspace;
 mod list_workspaces;
 mod update_command;
@@ -9,6 +10,7 @@ mod update_workspace;
 pub use copy_command_to_clipboard::*;
 pub use create_command::*;
 pub use create_workspace::*;
+pub use delete_command::*;
 pub use get_workspace::*;
 pub use list_workspaces::*;
 pub use update_command::*;

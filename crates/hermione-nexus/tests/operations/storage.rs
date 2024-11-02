@@ -3,10 +3,10 @@ use hermione_nexus::{
         Command, CommandId, CommandParameters, Workspace, WorkspaceId, WorkspaceParameters,
     },
     services::{
-        CreateCommand, CreateWorkspace, EditCommandParameters, EditWorkspaceParameters,
-        FilterWorkspacesParameters, FindCommand, FindWorkspace, ListWorkspaces,
-        NewCommandParameters, NewWorkspaceParameters, StorageProvider, UpdateCommand,
-        UpdateWorkspace,
+        CreateCommand, CreateWorkspace, DeleteCommand, EditCommandParameters,
+        EditWorkspaceParameters, FilterWorkspacesParameters, FindCommand, FindWorkspace,
+        ListWorkspaces, NewCommandParameters, NewWorkspaceParameters, StorageProvider,
+        UpdateCommand, UpdateWorkspace,
     },
     Error,
 };
@@ -31,6 +31,12 @@ pub struct InMemoryStorageProvider {
 }
 
 impl InMemoryStorageProvider {
+    pub fn commands(&self) -> Result<Vec<Command>, InMemoryStorageError> {
+        let commands = self.commands.read()?;
+
+        Ok(commands.values().cloned().collect())
+    }
+
     fn get_command(&self, command_id: &CommandId) -> Result<Option<Command>, InMemoryStorageError> {
         let command = self.commands.read()?.get(command_id).cloned();
 
@@ -117,6 +123,19 @@ impl CreateWorkspace for InMemoryStorageProvider {
         self.insert_workspace(&workspace)?;
 
         Ok(workspace)
+    }
+}
+
+impl DeleteCommand for InMemoryStorageProvider {
+    fn delete_command(&self, id: &CommandId) -> hermione_nexus::Result<()> {
+        let mut commands = self
+            .commands
+            .write()
+            .map_err(Into::<InMemoryStorageError>::into)?;
+
+        commands.remove(id);
+
+        Ok(())
     }
 }
 

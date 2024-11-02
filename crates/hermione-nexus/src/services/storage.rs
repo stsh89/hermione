@@ -13,6 +13,10 @@ pub trait CreateWorkspace: StorageProvider {
     fn create_workspace(&self, parameters: NewWorkspaceParameters) -> Result<Workspace>;
 }
 
+pub trait DeleteCommand: StorageProvider {
+    fn delete_command(&self, id: &CommandId) -> Result<()>;
+}
+
 pub trait FindCommand: StorageProvider {
     fn find_command(&self, id: &CommandId) -> Result<Option<Command>>;
 }
