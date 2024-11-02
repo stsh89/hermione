@@ -67,6 +67,10 @@ impl Workspace {
         Ok(workspace)
     }
 
+    pub fn set_access_time(&mut self, time: DateTime<Utc>) {
+        self.last_access_time = Some(time);
+    }
+
     pub fn set_location(&mut self, location: Option<String>) {
         let location = location.unwrap_or_default();
 

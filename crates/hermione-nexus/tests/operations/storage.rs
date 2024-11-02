@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use hermione_nexus::{
     definitions::{
         Command, CommandId, CommandParameters, Workspace, WorkspaceId, WorkspaceParameters,
@@ -6,8 +7,8 @@ use hermione_nexus::{
         CreateCommand, CreateWorkspace, DeleteCommand, DeleteWorkspace, DeleteWorkspaceCommands,
         EditCommandParameters, EditWorkspaceParameters, FilterCommandsParameters,
         FilterWorkspacesParameters, FindCommand, FindWorkspace, ListCommands, ListWorkspaces,
-        NewCommandParameters, NewWorkspaceParameters, StorageProvider, UpdateCommand,
-        UpdateWorkspace,
+        NewCommandParameters, NewWorkspaceParameters, StorageProvider, TrackCommandExecuteTime,
+        TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace,
     },
     Error,
 };
@@ -24,6 +25,12 @@ pub enum InMemoryStorageError {
 
     #[error("Lock access: {0}")]
     LockAccess(String),
+
+    #[error("{entry_name} entry with ID {entry_id} is missing")]
+    MissingEntry {
+        entry_name: &'static str,
+        entry_id: Uuid,
+    },
 }
 
 pub struct InMemoryStorageProvider {
@@ -38,13 +45,45 @@ impl InMemoryStorageProvider {
         Ok(commands.values().cloned().collect())
     }
 
-    fn get_command(&self, command_id: &CommandId) -> Result<Option<Command>, InMemoryStorageError> {
-        let command = self.commands.read()?.get(command_id).cloned();
+    pub fn get_command_execute_time(
+        &self,
+        id: &Uuid,
+    ) -> Result<Option<DateTime<Utc>>, InMemoryStorageError> {
+        let time = self
+            .get_command(id)?
+            .ok_or(InMemoryStorageError::MissingEntry {
+                entry_name: "Command",
+                entry_id: *id,
+            })?
+            .last_execute_time()
+            .cloned();
+
+        Ok(time)
+    }
+
+    pub fn get_workspace_access_time(
+        &self,
+        id: &Uuid,
+    ) -> Result<Option<DateTime<Utc>>, InMemoryStorageError> {
+        let time = self
+            .get_workspace(id)?
+            .ok_or(InMemoryStorageError::MissingEntry {
+                entry_name: "Workspace",
+                entry_id: *id,
+            })?
+            .last_access_time()
+            .cloned();
+
+        Ok(time)
+    }
+
+    fn get_command(&self, id: &Uuid) -> Result<Option<Command>, InMemoryStorageError> {
+        let command = self.commands.read()?.get(id).cloned();
 
         Ok(command)
     }
 
-    fn get_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>, InMemoryStorageError> {
+    fn get_workspace(&self, id: &Uuid) -> Result<Option<Workspace>, InMemoryStorageError> {
         let workspace = self.workspaces.read()?.get(id).cloned();
 
         Ok(workspace)
@@ -79,7 +118,35 @@ impl InMemoryStorageProvider {
         }
     }
 
-    fn remove_command(&self, id: &CommandId) -> Result<(), InMemoryStorageError> {
+    fn set_command_execute_time(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
+        let command = self.get_command(id)?;
+
+        let Some(mut command) = command else {
+            return Ok(());
+        };
+
+        command.set_execute_time(Utc::now());
+
+        self.insert_command(&command)?;
+
+        Ok(())
+    }
+
+    fn set_workspace_access_time(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
+        let workspace = self.get_workspace(id)?;
+
+        let Some(mut workspace) = workspace else {
+            return Ok(());
+        };
+
+        workspace.set_access_time(Utc::now());
+
+        self.insert_workspace(&workspace)?;
+
+        Ok(())
+    }
+
+    fn remove_command(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
         let mut commands = self.commands.write()?;
 
         commands.remove(id);
@@ -87,15 +154,18 @@ impl InMemoryStorageProvider {
         Ok(())
     }
 
-    fn remove_workspace_commands(&self, id: &WorkspaceId) -> Result<(), InMemoryStorageError> {
+    fn remove_workspace_commands(
+        &self,
+        workspace_id: &WorkspaceId,
+    ) -> Result<(), InMemoryStorageError> {
         let mut commands = self.commands.write()?;
 
-        commands.retain(|_id, command| command.workspace_id() != id);
+        commands.retain(|_id, command| command.workspace_id() != workspace_id);
 
         Ok(())
     }
 
-    fn remove_workspace(&self, id: &WorkspaceId) -> Result<(), InMemoryStorageError> {
+    fn remove_workspace(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
         let mut workspace = self
             .workspaces
             .write()
@@ -268,6 +338,22 @@ impl ListWorkspaces for InMemoryStorageProvider {
     }
 }
 
+impl TrackCommandExecuteTime for InMemoryStorageProvider {
+    fn track_command_execute_time(&self, id: &CommandId) -> Result<(), Error> {
+        self.set_command_execute_time(id)?;
+
+        Ok(())
+    }
+}
+
+impl TrackWorkspaceAccessTime for InMemoryStorageProvider {
+    fn track_workspace_access_time(&self, id: &WorkspaceId) -> Result<(), Error> {
+        self.set_workspace_access_time(id)?;
+
+        Ok(())
+    }
+}
+
 impl UpdateCommand for InMemoryStorageProvider {
     fn update_command(&self, parameters: EditCommandParameters) -> Result<Command, Error> {
         let EditCommandParameters { id, name, program } = parameters;
@@ -310,6 +396,17 @@ impl<T> From<PoisonError<T>> for InMemoryStorageError {
 
 impl From<InMemoryStorageError> for Error {
     fn from(err: InMemoryStorageError) -> Self {
-        Error::Storage(eyre::Error::new(err))
+        match err {
+            InMemoryStorageError::DataItegrity(description) => {
+                Error::Storage(eyre::Error::msg(description))
+            }
+            InMemoryStorageError::LockAccess(description) => {
+                Error::Storage(eyre::Error::msg(description))
+            }
+            InMemoryStorageError::MissingEntry {
+                entry_name,
+                entry_id,
+            } => Self::NotFound(format!("{} {}", entry_name, entry_id.braced())),
+        }
     }
 }

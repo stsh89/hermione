@@ -41,6 +41,14 @@ pub trait ListWorkspaces: StorageProvider {
     fn list_workspaces(&self, parameters: FilterWorkspacesParameters) -> Result<Vec<Workspace>>;
 }
 
+pub trait TrackCommandExecuteTime: StorageProvider {
+    fn track_command_execute_time(&self, command_id: &CommandId) -> Result<()>;
+}
+
+pub trait TrackWorkspaceAccessTime: StorageProvider {
+    fn track_workspace_access_time(&self, workspace_id: &WorkspaceId) -> Result<()>;
+}
+
 pub trait UpdateCommand: StorageProvider {
     fn update_command(&self, parameters: EditCommandParameters) -> Result<Command>;
 }

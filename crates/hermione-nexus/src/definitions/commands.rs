@@ -68,6 +68,10 @@ impl Command {
         })
     }
 
+    pub fn set_execute_time(&mut self, time: DateTime<Utc>) {
+        self.last_execute_time = Some(time);
+    }
+
     pub fn set_program(&mut self, program: String) {
         self.program = CommandProgram { value: program };
     }
