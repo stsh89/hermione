@@ -1,5 +1,8 @@
 use crate::{
-    definitions::{Workspace, WorkspaceId}, operations::GetWorkspaceOperation, services::{EditWorkspaceParameters, FindWorkspace, UpdateWorkspace}, Error, Result
+    definitions::{Workspace, WorkspaceId},
+    operations::GetWorkspaceOperation,
+    services::{EditWorkspaceParameters, FindWorkspace, UpdateWorkspace},
+    Error, Result,
 };
 
 pub struct UpdateWorkspaceOperation<'a, FW, UW> {
@@ -25,7 +28,8 @@ where
 
         let mut workspace = GetWorkspaceOperation {
             provider: self.find_workspace_provider,
-        }.execute(id)?;
+        }
+        .execute(id)?;
 
         workspace.set_location(location);
         workspace.set_name(name);

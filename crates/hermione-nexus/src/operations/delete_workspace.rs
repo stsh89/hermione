@@ -21,7 +21,8 @@ where
     pub fn execute(&self, id: &WorkspaceId) -> Result<()> {
         GetWorkspaceOperation {
             provider: self.find_workspace_provider,
-        }.execute(id)?;
+        }
+        .execute(id)?;
 
         self.delete_workspace_commands_provider
             .delete_workspace_commands(id)?;
