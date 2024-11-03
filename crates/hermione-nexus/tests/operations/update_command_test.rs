@@ -43,8 +43,8 @@ fn it_updates_command() -> Result<()> {
         assert_eq!(command.program(), "ping 1.1.1.1");
 
         let command = UpdateCommandOperation {
-            find_provider: &storage,
-            update_provider: &storage,
+            find_command_provider: &storage,
+            update_command_provider: &storage,
         }
         .execute(UpdateCommandParameters {
             id: command.id(),
@@ -68,8 +68,8 @@ fn it_returns_not_found_error() -> Result<()> {
         } = ctx;
 
         let result = UpdateCommandOperation {
-            find_provider: &storage,
-            update_provider: &storage,
+            find_command_provider: &storage,
+            update_command_provider: &storage,
         }
         .execute(UpdateCommandParameters {
             id: &Uuid::nil().into(),

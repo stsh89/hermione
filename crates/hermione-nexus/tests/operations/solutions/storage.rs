@@ -408,17 +408,6 @@ impl<T> From<PoisonError<T>> for InMemoryStorageError {
 
 impl From<InMemoryStorageError> for Error {
     fn from(err: InMemoryStorageError) -> Self {
-        match err {
-            InMemoryStorageError::DataItegrity(description) => {
-                Error::Storage(eyre::Error::msg(description))
-            }
-            InMemoryStorageError::LockAccess(description) => {
-                Error::Storage(eyre::Error::msg(description))
-            }
-            InMemoryStorageError::MissingEntry {
-                entry_name,
-                entry_id,
-            } => Self::NotFound(format!("{} {}", entry_name, entry_id.braced())),
-        }
+        Self::Storage(eyre::Error::new(err))
     }
 }

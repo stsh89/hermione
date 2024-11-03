@@ -1,5 +1,6 @@
 use crate::{
     definitions::CommandId,
+    operations::GetCommandOperation,
     services::{DeleteCommand, FindCommand},
     Error, Result,
 };
@@ -17,9 +18,10 @@ where
     pub fn execute(&self, id: &CommandId) -> Result<()> {
         tracing::info!(operation = "Delete command");
 
-        self.find_command_provider
-            .find_command(id)?
-            .ok_or(Error::NotFound(format!("Command {}", id.braced())))?;
+        GetCommandOperation {
+            provider: self.find_command_provider,
+        }
+        .execute(id)?;
 
         self.delete_command_provider.delete_command(id)?;
 

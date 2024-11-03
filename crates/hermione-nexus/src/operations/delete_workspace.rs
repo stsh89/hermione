@@ -4,6 +4,8 @@ use crate::{
     Error, Result,
 };
 
+use super::GetWorkspaceOperation;
+
 pub struct DeleteWorkspaceOperation<'a, FWP, DWCP, DWP> {
     pub find_workspace_provider: &'a FWP,
     pub delete_workspace_commands_provider: &'a DWCP,
@@ -17,9 +19,9 @@ where
     DWP: DeleteWorkspace,
 {
     pub fn execute(&self, id: &WorkspaceId) -> Result<()> {
-        self.find_workspace_provider
-            .find_workspace(id)?
-            .ok_or(Error::NotFound(format!("Workspace {}", id.braced())))?;
+        GetWorkspaceOperation {
+            provider: self.find_workspace_provider,
+        }.execute(id)?;
 
         self.delete_workspace_commands_provider
             .delete_workspace_commands(id)?;

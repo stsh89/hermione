@@ -1,6 +1,6 @@
+use crate::solutions::{command_fixture, workspace_fixture, InMemoryStorageProvider};
 use hermione_nexus::{definitions::Command, operations::GetCommandOperation, Error, Result};
 use uuid::Uuid;
-use crate::solutions::{command_fixture, workspace_fixture, InMemoryStorageProvider};
 
 pub struct GetCommandOperationTestContext {
     storage: InMemoryStorageProvider,
@@ -26,9 +26,7 @@ fn it_returns_command() -> Result<()> {
     with_context(|ctx| {
         let GetCommandOperationTestContext { storage, command } = ctx;
 
-        let found = GetCommandOperation {
-            provider: &storage,
-        }.execute(command.id())?;
+        let found = GetCommandOperation { provider: &storage }.execute(command.id())?;
 
         assert_eq!(found.name(), command.name());
 
@@ -44,9 +42,7 @@ fn it_returns_not_found_error() -> Result<()> {
             command: _,
         } = ctx;
 
-        let result = GetCommandOperation {
-            provider: &storage,
-        }.execute(&Uuid::nil().into());
+        let result = GetCommandOperation { provider: &storage }.execute(&Uuid::nil().into());
 
         assert!(matches!(result, Err(Error::NotFound(_))));
 

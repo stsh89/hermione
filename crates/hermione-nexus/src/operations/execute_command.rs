@@ -1,5 +1,6 @@
 use crate::{
     definitions::CommandId,
+    operations::GetCommandOperation,
     services::{FindCommand, RunProgram, TrackCommandExecuteTime, TrackWorkspaceAccessTime},
     Result,
 };
@@ -21,11 +22,10 @@ where
     pub fn execute(&self, id: &CommandId) -> Result<()> {
         tracing::info!(operation = "Execute command");
 
-        let command = self.find_command_provider.find_command(id)?;
-
-        let Some(command) = command else {
-            return Err(crate::Error::NotFound(format!("Command {{{}}}", **id)));
-        };
+        let command = GetCommandOperation {
+            provider: self.find_command_provider,
+        }
+        .execute(id)?;
 
         self.system_provider.run_program(command.program())?;
         self.track_command_provider.track_command_execute_time(id)?;

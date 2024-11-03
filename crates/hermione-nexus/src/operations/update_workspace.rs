@@ -1,12 +1,10 @@
 use crate::{
-    definitions::{Workspace, WorkspaceId},
-    services::{EditWorkspaceParameters, FindWorkspace, UpdateWorkspace},
-    Error, Result,
+    definitions::{Workspace, WorkspaceId}, operations::GetWorkspaceOperation, services::{EditWorkspaceParameters, FindWorkspace, UpdateWorkspace}, Error, Result
 };
 
 pub struct UpdateWorkspaceOperation<'a, FW, UW> {
-    pub find_provider: &'a FW,
-    pub update_provider: &'a UW,
+    pub find_workspace_provider: &'a FW,
+    pub update_workspace_provider: &'a UW,
 }
 
 pub struct UpdateWorkspaceParameters<'a> {
@@ -25,14 +23,14 @@ where
 
         let UpdateWorkspaceParameters { id, location, name } = parameters;
 
-        let Some(mut workspace) = self.find_provider.find_workspace(id)? else {
-            return Err(Error::NotFound(format!("Workspace with ID: {}", **id)));
-        };
+        let mut workspace = GetWorkspaceOperation {
+            provider: self.find_workspace_provider,
+        }.execute(id)?;
 
         workspace.set_location(location);
         workspace.set_name(name);
 
-        self.update_provider
+        self.update_workspace_provider
             .update_workspace(EditWorkspaceParameters {
                 id: workspace.id(),
                 name: workspace.name(),

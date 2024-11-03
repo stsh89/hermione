@@ -35,8 +35,8 @@ fn it_updates_workspace() -> Result<()> {
         assert_eq!(workspace.location(), None);
 
         let workspace = UpdateWorkspaceOperation {
-            find_provider: &storage,
-            update_provider: &storage,
+            find_workspace_provider: &storage,
+            update_workspace_provider: &storage,
         }
         .execute(UpdateWorkspaceParameters {
             id: workspace.id(),
@@ -60,8 +60,8 @@ fn it_returns_not_found_error() -> Result<()> {
         } = ctx;
 
         let result = UpdateWorkspaceOperation {
-            find_provider: &storage,
-            update_provider: &storage,
+            find_workspace_provider: &storage,
+            update_workspace_provider: &storage,
         }
         .execute(UpdateWorkspaceParameters {
             id: &Uuid::new_v4().into(),
