@@ -1,4 +1,4 @@
-use crate::{fixtures::workspace_fixture, storage::InMemoryStorageProvider};
+use crate::solutions::{workspace_fixture, InMemoryStorageProvider};
 use hermione_nexus::{
     definitions::Workspace,
     operations::{CreateCommandOperation, CreateCommandParameters},

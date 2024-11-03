@@ -1,4 +1,4 @@
-use crate::{fixtures, storage::InMemoryStorageProvider};
+use crate::solutions::{workspace_fixture, InMemoryStorageProvider};
 use hermione_nexus::{definitions::Workspace, operations::GetWorkspaceOperation, Error, Result};
 use uuid::Uuid;
 
@@ -12,7 +12,7 @@ where
     T: FnOnce(GetWorkspaceOperationTestContext) -> Result<()>,
 {
     let storage = InMemoryStorageProvider::new();
-    let workspace = fixtures::workspace_fixture(Default::default())?;
+    let workspace = workspace_fixture(Default::default())?;
 
     storage.insert_workspace(&workspace)?;
 

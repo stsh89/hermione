@@ -1,4 +1,4 @@
-use crate::storage::InMemoryStorageProvider;
+use crate::solutions::InMemoryStorageProvider;
 use hermione_nexus::{
     operations::{CreateWorkspaceOperation, CreateWorkspaceParameters},
     Result,

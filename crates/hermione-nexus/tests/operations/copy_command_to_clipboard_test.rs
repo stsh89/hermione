@@ -1,7 +1,6 @@
-use crate::{
-    clipboard::MockClipboardProvider,
-    fixtures::{command_fixture, workspace_fixture, CommandFixtureParameters},
-    storage::InMemoryStorageProvider,
+use crate::solutions::{
+    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorageProvider,
+    MockClipboardProvider,
 };
 use hermione_nexus::{
     definitions::Command, operations::CopyCommandToClipboardOperation, Error, Result,

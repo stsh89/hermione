@@ -1,6 +1,5 @@
-use crate::{
-    fixtures::{command_fixture, workspace_fixture, CommandFixtureParameters},
-    storage::InMemoryStorageProvider,
+use crate::solutions::{
+    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorageProvider,
 };
 use hermione_nexus::{
     definitions::Command,

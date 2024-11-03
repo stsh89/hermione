@@ -1,7 +1,4 @@
-mod clipboard;
-mod fixtures;
-mod storage;
-mod system;
+pub mod solutions;
 
 mod copy_command_to_clipboard_test;
 mod create_command_test;

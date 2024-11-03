@@ -1,7 +1,4 @@
-use crate::{
-    fixtures::{workspace_fixture, WorkspaceFixtureParameters},
-    storage::InMemoryStorageProvider,
-};
+use crate::solutions::{workspace_fixture, InMemoryStorageProvider, WorkspaceFixtureParameters};
 use chrono::Utc;
 use hermione_nexus::{
     operations::{ListWorkspacesOperation, ListWorkspacesParameters},

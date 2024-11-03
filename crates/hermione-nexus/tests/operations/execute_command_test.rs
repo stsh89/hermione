@@ -1,7 +1,6 @@
-use crate::{
-    fixtures::{command_fixture, workspace_fixture, CommandFixtureParameters},
-    storage::InMemoryStorageProvider,
-    system::MockSystemProvider,
+use crate::solutions::{
+    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorageProvider,
+    MockSystemProvider,
 };
 use hermione_nexus::{definitions::Command, operations::ExecuteCommandOperation, Error, Result};
 use uuid::Uuid;
