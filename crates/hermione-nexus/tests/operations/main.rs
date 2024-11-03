@@ -11,3 +11,4 @@ mod list_commands_test;
 mod list_workspaces_test;
 mod update_command_test;
 mod update_workspace_test;
+mod get_command_test;
