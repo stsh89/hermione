@@ -16,7 +16,7 @@ where
         tracing::info!(operation = "Get workspace");
 
         let Some(workspace) = self.provider.find_workspace(id)? else {
-            return Err(Error::NotFound(format!("Workspace with ID: {}", **id)));
+            return Err(Error::NotFound(format!("Workspace {}", id.braced())));
         };
 
         Ok(workspace)
