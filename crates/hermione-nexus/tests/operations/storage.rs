@@ -45,6 +45,12 @@ impl InMemoryStorageProvider {
         Ok(commands.values().cloned().collect())
     }
 
+    pub fn commands_count(&self) -> Result<usize, InMemoryStorageError> {
+        let commands = self.commands.read()?;
+
+        Ok(commands.len())
+    }
+
     pub fn get_command_execute_time(
         &self,
         id: &Uuid,
@@ -180,6 +186,12 @@ impl InMemoryStorageProvider {
         let workspaces = self.workspaces.read()?;
 
         Ok(workspaces.values().cloned().collect())
+    }
+
+    pub fn workspaces_count(&self) -> Result<usize, InMemoryStorageError> {
+        let workspaces = self.workspaces.read()?;
+
+        Ok(workspaces.len())
     }
 }
 

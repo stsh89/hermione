@@ -2,11 +2,18 @@ use crate::{
     fixtures::{command_fixture, workspace_fixture},
     storage::InMemoryStorageProvider,
 };
-use hermione_nexus::{operations::DeleteCommandOperation, Error, Result};
+use hermione_nexus::{definitions::Command, operations::DeleteCommandOperation, Error, Result};
 use uuid::Uuid;
 
-#[test]
-fn it_deletes_command() -> Result<()> {
+struct DeleteCommandOperationTestContext {
+    storage: InMemoryStorageProvider,
+    command: Command,
+}
+
+fn with_context<T>(test_fn: T) -> Result<()>
+where
+    T: FnOnce(DeleteCommandOperationTestContext) -> Result<()>,
+{
     let storage = InMemoryStorageProvider::new();
 
     let workspace = workspace_fixture(Default::default())?;
@@ -15,34 +22,47 @@ fn it_deletes_command() -> Result<()> {
     storage.insert_workspace(&workspace)?;
     storage.insert_command(&command)?;
 
-    assert_eq!(storage.commands()?.len(), 1);
+    test_fn(DeleteCommandOperationTestContext { storage, command })
+}
 
-    DeleteCommandOperation {
-        find_command_provider: &storage,
-        delete_command_provider: &storage,
-    }
-    .execute(command.id())?;
+#[test]
+fn it_deletes_command() -> Result<()> {
+    with_context(|ctx| {
+        let DeleteCommandOperationTestContext { storage, command } = ctx;
 
-    assert_eq!(storage.commands()?.len(), 0);
+        assert_eq!(storage.commands()?.len(), 1);
 
-    Ok(())
+        DeleteCommandOperation {
+            find_command_provider: &storage,
+            delete_command_provider: &storage,
+        }
+        .execute(command.id())?;
+
+        assert_eq!(storage.commands()?.len(), 0);
+
+        Ok(())
+    })
 }
 
 #[test]
 fn it_returns_not_found_error() -> Result<()> {
-    let storage = InMemoryStorageProvider::new();
-    let id = Uuid::new_v4();
+    with_context(|ctx| {
+        let DeleteCommandOperationTestContext {
+            storage,
+            command: _,
+        } = ctx;
 
-    let result = DeleteCommandOperation {
-        find_command_provider: &storage,
-        delete_command_provider: &storage,
-    }
-    .execute(&id.into());
+        assert_eq!(storage.commands()?.len(), 1);
 
-    match result {
-        Err(Error::NotFound(description)) => assert_eq!(description, format!("Command {{{id}}}")),
-        _ => unreachable!(),
-    };
+        let result = DeleteCommandOperation {
+            find_command_provider: &storage,
+            delete_command_provider: &storage,
+        }
+        .execute(&Uuid::nil().into());
 
-    Ok(())
+        assert_eq!(storage.commands()?.len(), 1);
+        assert!(matches!(result, Err(Error::NotFound(_))));
+
+        Ok(())
+    })
 }

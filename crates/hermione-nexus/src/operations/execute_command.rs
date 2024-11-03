@@ -21,7 +21,7 @@ where
     pub fn execute(&self, id: &CommandId) -> Result<()> {
         tracing::info!(operation = "Execute command");
 
-        let command = self.find_command_provider.find_command(&id)?;
+        let command = self.find_command_provider.find_command(id)?;
 
         let Some(command) = command else {
             return Err(crate::Error::NotFound(format!("Command {{{}}}", **id)));

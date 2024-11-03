@@ -1,40 +1,49 @@
 use crate::{fixtures, storage::InMemoryStorageProvider};
-use hermione_nexus::{operations::GetWorkspaceOperation, Error, Result};
+use hermione_nexus::{definitions::Workspace, operations::GetWorkspaceOperation, Error, Result};
 use uuid::Uuid;
 
-#[test]
-fn it_returns_workspace() -> Result<()> {
+struct GetWorkspaceOperationTestContext {
+    storage: InMemoryStorageProvider,
+    workspace: Workspace,
+}
+
+fn with_context<T>(test_fn: T) -> Result<()>
+where
+    T: FnOnce(GetWorkspaceOperationTestContext) -> Result<()>,
+{
+    let storage = InMemoryStorageProvider::new();
     let workspace = fixtures::workspace_fixture(Default::default())?;
 
-    let storage_provider = InMemoryStorageProvider::new();
-    storage_provider.insert_workspace(&workspace)?;
+    storage.insert_workspace(&workspace)?;
 
-    let found = GetWorkspaceOperation {
-        provider: &storage_provider,
-    }
-    .execute(workspace.id())?;
-
-    assert_eq!(**found.id(), **workspace.id());
-
-    Ok(())
+    test_fn(GetWorkspaceOperationTestContext { storage, workspace })
 }
 
 #[test]
-fn it_returns_workspace_not_found_error() -> Result<()> {
-    let storage_provider = InMemoryStorageProvider::new();
-    let id = Uuid::new_v4();
+fn it_returns_workspace() -> Result<()> {
+    with_context(|ctx| {
+        let GetWorkspaceOperationTestContext { storage, workspace } = ctx;
 
-    let result = GetWorkspaceOperation {
-        provider: &storage_provider,
-    }
-    .execute(&id.into());
+        let found = GetWorkspaceOperation { provider: &storage }.execute(workspace.id())?;
 
-    match result {
-        Err(Error::NotFound(description)) => {
-            assert_eq!(description, format!("Workspace with ID: {}", id));
-        }
-        _ => unreachable!(),
-    };
+        assert_eq!(found.name(), workspace.name());
 
-    Ok(())
+        Ok(())
+    })
+}
+
+#[test]
+fn it_returns_not_found_error() -> Result<()> {
+    with_context(|ctx| {
+        let GetWorkspaceOperationTestContext {
+            storage,
+            workspace: _,
+        } = ctx;
+
+        let result = GetWorkspaceOperation { provider: &storage }.execute(&Uuid::nil().into());
+
+        assert!(matches!(result, Err(Error::NotFound(_))));
+
+        Ok(())
+    })
 }

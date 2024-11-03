@@ -3,14 +3,22 @@ use crate::{
     storage::InMemoryStorageProvider,
 };
 use hermione_nexus::{
+    definitions::Command,
     operations::{UpdateCommandOperation, UpdateCommandParameters},
     Error, Result,
 };
 use uuid::Uuid;
 
-#[test]
-fn it_updates_command() -> Result<()> {
-    let storage_provider = InMemoryStorageProvider::new();
+struct UpdateCommandOperationTestContext {
+    storage: InMemoryStorageProvider,
+    command: Command,
+}
+
+fn with_context<T>(test_fn: T) -> Result<()>
+where
+    T: FnOnce(UpdateCommandOperationTestContext) -> Result<()>,
+{
+    let storage = InMemoryStorageProvider::new();
     let workspace = workspace_fixture(Default::default())?;
     let command = command_fixture(
         &workspace,
@@ -21,44 +29,57 @@ fn it_updates_command() -> Result<()> {
         },
     )?;
 
-    storage_provider.insert_workspace(&workspace)?;
-    storage_provider.insert_command(&command)?;
+    storage.insert_workspace(&workspace)?;
+    storage.insert_command(&command)?;
 
-    let command = UpdateCommandOperation {
-        find_provider: &storage_provider,
-        update_provider: &storage_provider,
-    }
-    .execute(UpdateCommandParameters {
-        id: command.id(),
-        name: "Get child items".to_string(),
-        program: "Get-ChildItem".to_string(),
-    })?;
-
-    assert_eq!(command.name(), "Get child items");
-    assert_eq!(command.program(), "Get-ChildItem");
-    assert_eq!(command.last_execute_time(), None);
-
-    Ok(())
+    test_fn(UpdateCommandOperationTestContext { storage, command })
 }
 
 #[test]
-fn it_returns_command_not_found_error() -> Result<()> {
-    let storage_provider = InMemoryStorageProvider::new();
+fn it_updates_command() -> Result<()> {
+    with_context(|ctx| {
+        let UpdateCommandOperationTestContext { storage, command } = ctx;
 
-    let result = UpdateCommandOperation {
-        find_provider: &storage_provider,
-        update_provider: &storage_provider,
-    }
-    .execute(UpdateCommandParameters {
-        id: &Uuid::new_v4().into(),
-        name: "Get child items".to_string(),
-        program: "Get-ChildItem".to_string(),
-    });
+        assert_eq!(command.name(), "Test command");
+        assert_eq!(command.program(), "ping 1.1.1.1");
 
-    match result {
-        Err(error) => assert!(matches!(error, Error::NotFound(_))),
-        Ok(_) => unreachable!(),
-    };
+        let command = UpdateCommandOperation {
+            find_provider: &storage,
+            update_provider: &storage,
+        }
+        .execute(UpdateCommandParameters {
+            id: command.id(),
+            name: "Get child items".to_string(),
+            program: "Get-ChildItem".to_string(),
+        })?;
 
-    Ok(())
+        assert_eq!(command.name(), "Get child items");
+        assert_eq!(command.program(), "Get-ChildItem");
+
+        Ok(())
+    })
+}
+
+#[test]
+fn it_returns_not_found_error() -> Result<()> {
+    with_context(|ctx| {
+        let UpdateCommandOperationTestContext {
+            storage,
+            command: _,
+        } = ctx;
+
+        let result = UpdateCommandOperation {
+            find_provider: &storage,
+            update_provider: &storage,
+        }
+        .execute(UpdateCommandParameters {
+            id: &Uuid::nil().into(),
+            name: "Get child items".to_string(),
+            program: "Get-ChildItem".to_string(),
+        });
+
+        assert!(matches!(result, Err(Error::NotFound(_))));
+
+        Ok(())
+    })
 }

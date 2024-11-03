@@ -11,7 +11,6 @@ pub struct StatusBar {
     status_line_text: String,
 }
 
-
 pub struct StatusBarBuilder<'a, O> {
     command: Option<&'a str>,
     operation: Option<&'a str>,
@@ -74,7 +73,7 @@ impl<'a> StatusBarBuilder<'a, Unset> {
         } = self;
 
         StatusBarBuilder {
-            operation: Some(&operation),
+            operation: Some(operation),
             workspace,
             command,
             selector,

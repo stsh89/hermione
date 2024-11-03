@@ -2,212 +2,143 @@ use crate::{
     fixtures::{workspace_fixture, WorkspaceFixtureParameters},
     storage::InMemoryStorageProvider,
 };
-use chrono::{TimeZone, Utc};
+use chrono::Utc;
 use hermione_nexus::{
     operations::{ListWorkspacesOperation, ListWorkspacesParameters},
     Error, Result,
 };
-use uuid::Uuid;
 
-#[test]
-fn it_lists_workspaces() -> Result<()> {
-    let storage_provider = InMemoryStorageProvider::new();
+struct ListWorkspacesOperationTestContext {
+    storage: InMemoryStorageProvider,
+}
 
-    let workspace = workspace_fixture(WorkspaceFixtureParameters {
-        name: Some("Test workspace".to_string()),
-        ..Default::default()
-    })?;
+fn with_context<T>(test_fn: T) -> Result<()>
+where
+    T: FnOnce(ListWorkspacesOperationTestContext) -> Result<()>,
+{
+    let storage = InMemoryStorageProvider::new();
 
-    storage_provider.insert_workspace(&workspace)?;
+    for workspace_number in 1..=8 {
+        let workspace = workspace_fixture(WorkspaceFixtureParameters {
+            name: Some(format!("Test workspace {workspace_number}")),
+            ..Default::default()
+        })?;
 
-    let workspaces = ListWorkspacesOperation {
-        provider: &storage_provider,
+        storage.insert_workspace(&workspace)?;
     }
-    .execute(ListWorkspacesParameters {
-        name_contains: None,
-        page_number: 1,
-        page_size: 1,
-    })?;
 
-    assert_eq!(
-        workspaces
-            .into_iter()
-            .map(|v| **v.id())
-            .collect::<Vec<Uuid>>(),
-        vec![**workspace.id()]
-    );
-
-    Ok(())
+    test_fn(ListWorkspacesOperationTestContext { storage })
 }
 
 #[test]
 fn it_paginates() -> Result<()> {
-    let storage_provider = InMemoryStorageProvider::new();
+    with_context(|ctx| {
+        let ListWorkspacesOperationTestContext { storage } = ctx;
 
-    let workspace1 = workspace_fixture(WorkspaceFixtureParameters {
-        name: Some("Test workspace 1".to_string()),
-        ..Default::default()
-    })?;
+        let workspaces =
+            ListWorkspacesOperation { provider: &storage }.execute(ListWorkspacesParameters {
+                name_contains: None,
+                page_number: 2,
+                page_size: 3,
+            })?;
 
-    storage_provider.insert_workspace(&workspace1)?;
+        assert_eq!(
+            workspaces.iter().map(|w| w.name()).collect::<Vec<_>>(),
+            vec!["Test workspace 4", "Test workspace 5", "Test workspace 6",]
+        );
 
-    let workspace2 = workspace_fixture(WorkspaceFixtureParameters {
-        name: Some("Test workspace 2".to_string()),
-        ..Default::default()
-    })?;
-
-    storage_provider.insert_workspace(&workspace2)?;
-
-    let workspaces = ListWorkspacesOperation {
-        provider: &storage_provider,
-    }
-    .execute(ListWorkspacesParameters {
-        name_contains: None,
-        page_number: 2,
-        page_size: 1,
-    })?;
-
-    assert_eq!(
-        workspaces
-            .into_iter()
-            .map(|v| **v.id())
-            .collect::<Vec<Uuid>>(),
-        vec![**workspace2.id()]
-    );
-
-    Ok(())
+        Ok(())
+    })
 }
 
 #[test]
 fn it_filters_by_name() -> Result<()> {
-    let storage_provider = InMemoryStorageProvider::new();
+    with_context(|ctx| {
+        let ListWorkspacesOperationTestContext { storage } = ctx;
 
-    let workspace1 = workspace_fixture(WorkspaceFixtureParameters {
-        name: Some("Test workspace 1".to_string()),
-        ..Default::default()
-    })?;
+        let workspaces =
+            ListWorkspacesOperation { provider: &storage }.execute(ListWorkspacesParameters {
+                name_contains: Some("7"),
+                page_number: 1,
+                page_size: 10,
+            })?;
 
-    storage_provider.insert_workspace(&workspace1)?;
+        assert_eq!(
+            workspaces.iter().map(|w| w.name()).collect::<Vec<_>>(),
+            vec!["Test workspace 7",]
+        );
 
-    let workspace2 = workspace_fixture(WorkspaceFixtureParameters {
-        name: Some("Test workspace 2".to_string()),
-        ..Default::default()
-    })?;
-
-    storage_provider.insert_workspace(&workspace2)?;
-
-    let workspace3 = workspace_fixture(WorkspaceFixtureParameters {
-        name: Some("Spaceship".to_string()),
-        ..Default::default()
-    })?;
-
-    storage_provider.insert_workspace(&workspace3)?;
-
-    let workspaces = ListWorkspacesOperation {
-        provider: &storage_provider,
-    }
-    .execute(ListWorkspacesParameters {
-        name_contains: Some("Test"),
-        page_number: 1,
-        page_size: 10,
-    })?;
-
-    assert_eq!(
-        workspaces
-            .into_iter()
-            .map(|v| **v.id())
-            .collect::<Vec<Uuid>>(),
-        vec![**workspace1.id(), **workspace2.id()]
-    );
-
-    Ok(())
-}
-
-#[test]
-fn it_validates_page_number() -> Result<()> {
-    let storage_provider = InMemoryStorageProvider::new();
-
-    let result = ListWorkspacesOperation {
-        provider: &storage_provider,
-    }
-    .execute(ListWorkspacesParameters {
-        name_contains: None,
-        page_number: 0,
-        page_size: 10,
-    });
-
-    match result {
-        Err(Error::InvalidArgument(description)) => {
-            assert_eq!(description, "Page number must be greater than 0");
-        }
-        _ => unreachable!(),
-    }
-
-    Ok(())
-}
-
-#[test]
-fn it_validates_page_size() -> Result<()> {
-    let storage_provider = InMemoryStorageProvider::new();
-
-    let result = ListWorkspacesOperation {
-        provider: &storage_provider,
-    }
-    .execute(ListWorkspacesParameters {
-        name_contains: None,
-        page_number: 1,
-        page_size: 0,
-    });
-
-    match result {
-        Err(Error::InvalidArgument(description)) => {
-            assert_eq!(description, "Page size must be greater than 0");
-        }
-        _ => unreachable!(),
-    }
-
-    Ok(())
+        Ok(())
+    })
 }
 
 #[test]
 fn it_sorts_workspaces_by_last_access_time_and_name() -> Result<()> {
-    let storage_provider = InMemoryStorageProvider::new();
+    with_context(|ctx| {
+        let ListWorkspacesOperationTestContext { storage } = ctx;
 
-    let workspace1 = workspace_fixture(WorkspaceFixtureParameters {
-        name: Some("Test workspace 1".to_string()),
-        ..Default::default()
-    })?;
+        let workspace = workspace_fixture(WorkspaceFixtureParameters {
+            name: Some(format!("Test workspace 9")),
+            last_access_time: Some(Utc::now()),
+            ..Default::default()
+        })?;
 
-    storage_provider.insert_workspace(&workspace1)?;
+        storage.insert_workspace(&workspace)?;
 
-    let workspace2 = workspace_fixture(WorkspaceFixtureParameters {
-        name: Some("Test workspace 2".to_string()),
-        last_access_time: Some(Utc.with_ymd_and_hms(2024, 10, 31, 10, 0, 0).unwrap()),
-        ..Default::default()
-    })?;
+        let workspaces =
+            ListWorkspacesOperation { provider: &storage }.execute(ListWorkspacesParameters {
+                name_contains: None,
+                page_number: 1,
+                page_size: 3,
+            })?;
 
-    storage_provider.insert_workspace(&workspace2)?;
+        assert_eq!(
+            workspaces.iter().map(|w| w.name()).collect::<Vec<_>>(),
+            vec!["Test workspace 9", "Test workspace 1", "Test workspace 2",]
+        );
 
-    let workspace3 = workspace_fixture(WorkspaceFixtureParameters {
-        name: Some("Spaceship".to_string()),
-        ..Default::default()
-    })?;
+        Ok(())
+    })
+}
 
-    storage_provider.insert_workspace(&workspace3)?;
+#[test]
+fn it_validates_page_number() -> Result<()> {
+    with_context(|ctx| {
+        let ListWorkspacesOperationTestContext { storage } = ctx;
 
-    let workspaces = ListWorkspacesOperation {
-        provider: &storage_provider,
-    }
-    .execute(ListWorkspacesParameters {
-        name_contains: None,
-        page_number: 1,
-        page_size: 10,
-    })?;
+        let result =
+            ListWorkspacesOperation { provider: &storage }.execute(ListWorkspacesParameters {
+                name_contains: None,
+                page_number: 0,
+                page_size: 10,
+            });
 
-    assert_eq!(
-        workspaces.iter().map(|v| v.name()).collect::<Vec<_>>(),
-        vec![workspace2.name(), workspace3.name(), workspace1.name()]
-    );
+        assert!(matches!(
+            result,
+            Err(Error::InvalidArgument(description)) if description == "Page number must be greater than 0"
+        ));
 
-    Ok(())
+        Ok(())
+    })
+}
+
+#[test]
+fn it_validates_page_size() -> Result<()> {
+    with_context(|ctx| {
+        let ListWorkspacesOperationTestContext { storage } = ctx;
+
+        let result =
+            ListWorkspacesOperation { provider: &storage }.execute(ListWorkspacesParameters {
+                name_contains: None,
+                page_number: 1,
+                page_size: 0,
+            });
+
+        assert!(matches!(
+            result,
+            Err(Error::InvalidArgument(description)) if description == "Page size must be greater than 0"
+        ));
+
+        Ok(())
+    })
 }

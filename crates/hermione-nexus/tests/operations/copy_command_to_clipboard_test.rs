@@ -3,10 +3,21 @@ use crate::{
     fixtures::{command_fixture, workspace_fixture, CommandFixtureParameters},
     storage::InMemoryStorageProvider,
 };
-use hermione_nexus::{operations::CopyCommandToClipboardOperation, Result};
+use hermione_nexus::{
+    definitions::Command, operations::CopyCommandToClipboardOperation, Error, Result,
+};
+use uuid::Uuid;
 
-#[test]
-fn it_copies_command_to_clipboard() -> Result<()> {
+struct CopyCommandToClipboardOperationTestContext {
+    storage: InMemoryStorageProvider,
+    clipboard: MockClipboardProvider,
+    command: Command,
+}
+
+fn with_context<T>(test_fn: T) -> Result<()>
+where
+    T: FnOnce(CopyCommandToClipboardOperationTestContext) -> Result<()>,
+{
     let storage = InMemoryStorageProvider::new();
     let clipboard = MockClipboardProvider::new();
 
@@ -22,13 +33,56 @@ fn it_copies_command_to_clipboard() -> Result<()> {
     storage.insert_workspace(&workspace)?;
     storage.insert_command(&command)?;
 
-    CopyCommandToClipboardOperation {
-        find_command_provider: &storage,
-        clipboard_provider: &clipboard,
-    }
-    .execute(command.id())?;
+    test_fn(CopyCommandToClipboardOperationTestContext {
+        storage,
+        clipboard,
+        command,
+    })
+}
 
-    assert_eq!(clipboard.text()?.as_deref(), Some("ping 1.1.1.1"));
+#[test]
+fn it_copies_command_to_clipboard() -> Result<()> {
+    with_context(|ctx| {
+        let CopyCommandToClipboardOperationTestContext {
+            storage,
+            clipboard,
+            command,
+        } = ctx;
 
-    Ok(())
+        assert!(clipboard.content()?.is_none());
+
+        CopyCommandToClipboardOperation {
+            find_command_provider: &storage,
+            clipboard_provider: &clipboard,
+        }
+        .execute(command.id())?;
+
+        assert_eq!(clipboard.content()?.as_deref(), Some("ping 1.1.1.1"));
+
+        Ok(())
+    })
+}
+
+#[test]
+fn it_returns_not_found_error() -> Result<()> {
+    with_context(|ctx| {
+        let CopyCommandToClipboardOperationTestContext {
+            storage,
+            clipboard,
+            command: _,
+        } = ctx;
+
+        clipboard.set_content("Get-ChildItem")?;
+
+        let result = CopyCommandToClipboardOperation {
+            find_command_provider: &storage,
+            clipboard_provider: &clipboard,
+        }
+        .execute(&Uuid::nil().into());
+
+        assert!(matches!(result, Err(Error::NotFound(_))));
+        assert_eq!(clipboard.content()?.as_deref(), Some("Get-ChildItem"));
+
+        Ok(())
+    })
 }

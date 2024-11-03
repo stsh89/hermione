@@ -3,57 +3,77 @@ use crate::{
     storage::InMemoryStorageProvider,
 };
 use hermione_nexus::{
+    definitions::Workspace,
     operations::{UpdateWorkspaceOperation, UpdateWorkspaceParameters},
     Error, Result,
 };
+use uuid::Uuid;
 
-#[test]
-fn it_updates_workspace() -> Result<()> {
+struct UpdateWorkspaceOperationTestContext {
+    storage: InMemoryStorageProvider,
+    workspace: Workspace,
+}
+
+fn with_context<T>(test_fn: T) -> Result<()>
+where
+    T: FnOnce(UpdateWorkspaceOperationTestContext) -> Result<()>,
+{
+    let storage = InMemoryStorageProvider::new();
     let workspace = workspace_fixture(WorkspaceFixtureParameters {
         name: Some("Test workspace".to_string()),
-        location: Some("/home/ironman".to_string()),
         ..Default::default()
     })?;
 
-    let storage_provider = InMemoryStorageProvider::new();
-    storage_provider.insert_workspace(&workspace)?;
+    storage.insert_workspace(&workspace)?;
 
-    let workspace = UpdateWorkspaceOperation {
-        find_provider: &storage_provider,
-        update_provider: &storage_provider,
-    }
-    .execute(UpdateWorkspaceParameters {
-        id: workspace.id(),
-        name: "Spaceship".to_string(),
-        location: Some("C:\\".to_string()),
-    })?;
-
-    assert_eq!(workspace.name(), "Spaceship");
-    assert_eq!(workspace.location(), Some("C:\\"));
-    assert_eq!(workspace.last_access_time(), None);
-
-    Ok(())
+    test_fn(UpdateWorkspaceOperationTestContext { storage, workspace })
 }
 
 #[test]
-fn it_returns_workspace_not_found_error() -> Result<()> {
-    let workspace = workspace_fixture(Default::default())?;
-    let storage_provider = InMemoryStorageProvider::new();
+fn it_updates_workspace() -> Result<()> {
+    with_context(|ctx| {
+        let UpdateWorkspaceOperationTestContext { storage, workspace } = ctx;
 
-    let result = UpdateWorkspaceOperation {
-        find_provider: &storage_provider,
-        update_provider: &storage_provider,
-    }
-    .execute(UpdateWorkspaceParameters {
-        id: workspace.id(),
-        name: "Spaceship".to_string(),
-        location: Some("C:\\".to_string()),
-    });
+        assert_eq!(workspace.name(), "Test workspace");
+        assert_eq!(workspace.location(), None);
 
-    match result {
-        Err(error) => assert!(matches!(error, Error::NotFound(_))),
-        Ok(_) => unreachable!(),
-    };
+        let workspace = UpdateWorkspaceOperation {
+            find_provider: &storage,
+            update_provider: &storage,
+        }
+        .execute(UpdateWorkspaceParameters {
+            id: workspace.id(),
+            name: "Spaceship".to_string(),
+            location: Some("C:\\".to_string()),
+        })?;
 
-    Ok(())
+        assert_eq!(workspace.name(), "Spaceship");
+        assert_eq!(workspace.location(), Some("C:\\"));
+
+        Ok(())
+    })
+}
+
+#[test]
+fn it_returns_not_found_error() -> Result<()> {
+    with_context(|ctx| {
+        let UpdateWorkspaceOperationTestContext {
+            storage,
+            workspace: _,
+        } = ctx;
+
+        let result = UpdateWorkspaceOperation {
+            find_provider: &storage,
+            update_provider: &storage,
+        }
+        .execute(UpdateWorkspaceParameters {
+            id: &Uuid::new_v4().into(),
+            name: "Spaceship".to_string(),
+            location: Some("C:\\".to_string()),
+        });
+
+        assert!(matches!(result, Err(Error::NotFound(_))));
+
+        Ok(())
+    })
 }

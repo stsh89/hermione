@@ -6,15 +6,15 @@ use crate::{
 use hermione_nexus::{definitions::Command, operations::ExecuteCommandOperation, Error, Result};
 use uuid::Uuid;
 
-struct OperationContext {
+struct ExecuteCommandOperationTestContext {
     storage: InMemoryStorageProvider,
     system: MockSystemProvider,
     command: Command,
 }
 
-fn operation_context<T>(test_fn: T) -> Result<()>
+fn with_context<T>(test_fn: T) -> Result<()>
 where
-    T: FnOnce(OperationContext) -> Result<()>,
+    T: FnOnce(ExecuteCommandOperationTestContext) -> Result<()>,
 {
     let storage = InMemoryStorageProvider::new();
     let system = MockSystemProvider::new();
@@ -31,23 +31,23 @@ where
     storage.insert_workspace(&workspace)?;
     storage.insert_command(&command)?;
 
-    let ctx = OperationContext {
+    test_fn(ExecuteCommandOperationTestContext {
         storage,
         system,
         command,
-    };
-
-    test_fn(ctx)
+    })
 }
 
 #[test]
 fn it_executes_command() -> Result<()> {
-    operation_context(|ctx| {
-        let OperationContext {
+    with_context(|ctx| {
+        let ExecuteCommandOperationTestContext {
             storage,
             system,
             command,
         } = ctx;
+
+        assert!(system.last_executed_program()?.is_none());
 
         ExecuteCommandOperation {
             find_command_provider: &storage,
@@ -68,8 +68,8 @@ fn it_executes_command() -> Result<()> {
 
 #[test]
 fn it_tracks_command_execute_time() -> Result<()> {
-    operation_context(|ctx| {
-        let OperationContext {
+    with_context(|ctx| {
+        let ExecuteCommandOperationTestContext {
             storage,
             system,
             command,
@@ -93,8 +93,8 @@ fn it_tracks_command_execute_time() -> Result<()> {
 
 #[test]
 fn it_tracks_workspace_access_time() -> Result<()> {
-    operation_context(|ctx| {
-        let OperationContext {
+    with_context(|ctx| {
+        let ExecuteCommandOperationTestContext {
             storage,
             system,
             command,
@@ -122,23 +122,28 @@ fn it_tracks_workspace_access_time() -> Result<()> {
 
 #[test]
 fn it_returns_not_found_error() -> Result<()> {
-    operation_context(|ctx| {
-        let OperationContext {
+    with_context(|ctx| {
+        let ExecuteCommandOperationTestContext {
             storage,
             system,
             command: _,
         } = ctx;
 
-        let err = ExecuteCommandOperation {
+        system.set_program("Get-ChildItem")?;
+
+        let result = ExecuteCommandOperation {
             find_command_provider: &storage,
             track_command_provider: &storage,
             track_workspace_provider: &storage,
             system_provider: &system,
         }
-        .execute(&Uuid::nil().into())
-        .unwrap_err();
+        .execute(&Uuid::nil().into());
 
-        assert!(matches!(err, Error::NotFound(_)));
+        assert_eq!(
+            system.last_executed_program()?.as_deref(),
+            Some("Get-ChildItem")
+        );
+        assert!(matches!(result, Err(Error::NotFound(_))));
 
         Ok(())
     })
