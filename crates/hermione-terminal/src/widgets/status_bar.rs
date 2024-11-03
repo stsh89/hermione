@@ -7,24 +7,33 @@ use ratatui::{
 use serde::Serialize;
 use std::marker::PhantomData;
 
-pub struct Set;
-pub struct Unset;
+pub struct StatusBar {
+    status_line_text: String,
+}
+
+
+pub struct StatusBarBuilder<'a, O> {
+    command: Option<&'a str>,
+    operation: Option<&'a str>,
+    page: Option<u32>,
+    phantom_data: PhantomData<O>,
+    pwsh: Option<&'a str>,
+    search: Option<&'a str>,
+    selector: Option<&'a str>,
+    workspace: Option<&'a str>,
+}
+
+pub struct StatusBarWidget<'a> {
+    state: &'a StatusBar,
+    style: Style,
+}
 
 #[derive(Serialize)]
-pub struct StatusBarBuilder<'a, O> {
-    operation: &'a str,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    workspace: Option<&'a str>,
-
+pub struct StatusLine<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     command: Option<&'a str>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    selector: Option<&'a str>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    search: Option<&'a str>,
+    operation: &'a str,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     page: Option<u32>,
@@ -32,32 +41,18 @@ pub struct StatusBarBuilder<'a, O> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pwsh: Option<&'a str>,
 
-    phantom_data: PhantomData<O>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    search: Option<&'a str>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    selector: Option<&'a str>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    workspace: Option<&'a str>,
 }
 
-impl<'a> Default for StatusBarBuilder<'a, Unset> {
-    fn default() -> Self {
-        Self {
-            operation: "",
-            workspace: None,
-            command: None,
-            selector: None,
-            search: None,
-            page: None,
-            pwsh: None,
-            phantom_data: PhantomData,
-        }
-    }
-}
-
-pub struct StatusBar {
-    status_line: String,
-}
-
-pub struct StatusBarWidget<'a> {
-    state: &'a StatusBar,
-    style: Style,
-}
+pub struct Set;
+pub struct Unset;
 
 impl StatusBar {
     pub fn builder<'a>() -> StatusBarBuilder<'a, Unset> {
@@ -79,7 +74,7 @@ impl<'a> StatusBarBuilder<'a, Unset> {
         } = self;
 
         StatusBarBuilder {
-            operation,
+            operation: Some(&operation),
             workspace,
             command,
             selector,
@@ -93,8 +88,29 @@ impl<'a> StatusBarBuilder<'a, Unset> {
 
 impl<'a> StatusBarBuilder<'a, Set> {
     pub fn build(self) -> StatusBar {
+        let Self {
+            command,
+            operation,
+            page,
+            phantom_data: _,
+            pwsh,
+            search,
+            selector,
+            workspace,
+        } = self;
+
+        let status_line = StatusLine {
+            command,
+            operation: operation.unwrap(),
+            page,
+            pwsh,
+            search,
+            selector,
+            workspace,
+        };
+
         StatusBar {
-            status_line: serde_json::to_string(&self).unwrap_or_default(),
+            status_line_text: serde_json::to_string(&status_line).unwrap_or_default(),
         }
     }
 
@@ -141,6 +157,21 @@ impl<'a> StatusBarBuilder<'a, Set> {
     }
 }
 
+impl<'a> Default for StatusBarBuilder<'a, Unset> {
+    fn default() -> Self {
+        Self {
+            operation: None,
+            workspace: None,
+            command: None,
+            selector: None,
+            search: None,
+            page: None,
+            pwsh: None,
+            phantom_data: PhantomData,
+        }
+    }
+}
+
 impl<'a> StatusBarWidget<'a> {
     pub fn new(state: &'a StatusBar) -> Self {
         Self {
@@ -172,7 +203,7 @@ impl Widget for StatusBarWidget<'_> {
     where
         Self: Sized,
     {
-        Paragraph::new(self.state.status_line.as_str())
+        Paragraph::new(self.state.status_line_text.as_str())
             .style(self.style)
             .render(area, buf)
     }
