@@ -1,7 +1,7 @@
 use crate::{
     definitions::WorkspaceId,
     services::{DeleteWorkspace, DeleteWorkspaceCommands, FindWorkspace},
-    Error, Result,
+    Result,
 };
 
 use super::GetWorkspaceOperation;

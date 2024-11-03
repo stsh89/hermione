@@ -2,7 +2,7 @@ use crate::{
     definitions::{Workspace, WorkspaceId},
     operations::GetWorkspaceOperation,
     services::{EditWorkspaceParameters, FindWorkspace, UpdateWorkspace},
-    Error, Result,
+    Result,
 };
 
 pub struct UpdateWorkspaceOperation<'a, FW, UW> {

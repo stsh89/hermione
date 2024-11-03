@@ -2,7 +2,7 @@ use crate::{
     definitions::CommandId,
     operations::GetCommandOperation,
     services::{DeleteCommand, FindCommand},
-    Error, Result,
+    Result,
 };
 
 pub struct DeleteCommandOperation<'a, FCP, GCP> {

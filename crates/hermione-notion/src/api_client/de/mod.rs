@@ -296,7 +296,7 @@ mod tests {
 
         let records = values
             .into_iter()
-            .map(|r| Ok(serde_json::from_value(r)?))
+            .map(serde_json::from_value)
             .collect::<Result<Vec<Record>, serde_json::Error>>()?;
 
         assert_eq!(records.len(), 1);

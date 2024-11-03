@@ -2,7 +2,7 @@ use crate::{
     definitions::CommandId,
     operations::GetCommandOperation,
     services::{CopyCommandToClipboard, FindCommand},
-    Error, Result,
+    Result,
 };
 
 pub struct CopyCommandToClipboardOperation<'a, FCP, CP> {

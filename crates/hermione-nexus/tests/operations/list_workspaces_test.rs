@@ -75,7 +75,7 @@ fn it_sorts_workspaces_by_last_access_time_and_name() -> Result<()> {
         let ListWorkspacesOperationTestContext { storage } = ctx;
 
         let workspace = workspace_fixture(WorkspaceFixtureParameters {
-            name: Some(format!("Test workspace 9")),
+            name: Some("Test workspace 9".to_string()),
             last_access_time: Some(Utc::now()),
             ..Default::default()
         })?;

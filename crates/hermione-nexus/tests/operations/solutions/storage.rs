@@ -371,7 +371,7 @@ impl UpdateCommand for InMemoryStorageProvider {
         let EditCommandParameters { id, name, program } = parameters;
 
         let mut command = self
-            .get_command(&id)?
+            .get_command(id)?
             .ok_or_else(|| Error::NotFound(format!("Command with ID: {}", **id)))?;
 
         command.set_name(name.to_string());

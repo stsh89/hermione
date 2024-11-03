@@ -134,7 +134,7 @@ fn it_sorts_commands_by_last_execute_time_and_program() -> Result<()> {
         let command = command_fixture(
             &workspace,
             CommandFixtureParameters {
-                program: Some(format!("trace")),
+                program: Some("trace".to_string()),
                 last_execute_time: Some(Utc::now()),
                 ..Default::default()
             },

@@ -2,7 +2,7 @@ use crate::{
     definitions::{Command, CommandId},
     operations::GetCommandOperation,
     services::{EditCommandParameters, FindCommand, UpdateCommand},
-    Error, Result,
+    Result,
 };
 
 pub struct UpdateCommandOperation<'a, FW, UW> {
