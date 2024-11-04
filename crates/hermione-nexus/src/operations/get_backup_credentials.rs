@@ -4,11 +4,11 @@ use crate::{
     Error, Result,
 };
 
-pub struct GetBackupCredentials<'a, F> {
+pub struct GetBackupCredentialsOperation<'a, F> {
     pub provider: &'a F,
 }
 
-impl<'a, F> GetBackupCredentials<'a, F>
+impl<'a, F> GetBackupCredentialsOperation<'a, F>
 where
     F: FindBackupCredentials,
 {

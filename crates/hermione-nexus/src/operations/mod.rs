@@ -1,6 +1,7 @@
 mod copy_command_to_clipboard;
 mod create_command;
 mod create_workspace;
+mod delete_backup_credentials;
 mod delete_command;
 mod delete_workspace;
 mod execute_command;
@@ -18,6 +19,7 @@ mod update_workspace;
 pub use copy_command_to_clipboard::*;
 pub use create_command::*;
 pub use create_workspace::*;
+pub use delete_backup_credentials::*;
 pub use delete_command::*;
 pub use delete_workspace::*;
 pub use execute_command::*;

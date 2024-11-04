@@ -21,7 +21,7 @@ pub struct NotionBackupCredentialsParameters {
 }
 
 impl BackupCredentials {
-    pub fn kind(&self) -> BackupProviderKind {
+    pub fn provider_kind(&self) -> BackupProviderKind {
         match self {
             BackupCredentials::Notion(_) => BackupProviderKind::Notion,
         }

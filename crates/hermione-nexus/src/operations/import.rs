@@ -1,6 +1,6 @@
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
-    operations::GetBackupCredentials,
+    operations::GetBackupCredentialsOperation,
     services::{
         BackupProviderBuilder, FindBackupCredentials, ListCommandsBackup, ListWorkspacesBackup,
         UpsertCommands, UpsertWorkspaces,
@@ -31,7 +31,7 @@ where
     }
 
     fn backup_credentials(&self, kind: &BackupProviderKind) -> Result<BackupCredentials> {
-        GetBackupCredentials {
+        GetBackupCredentialsOperation {
             provider: self.backup_credentials_provider,
         }
         .execute(kind)

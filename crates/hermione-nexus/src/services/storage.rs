@@ -15,6 +15,10 @@ pub trait CreateWorkspace: StorageProvider {
     fn create_workspace(&self, parameters: NewWorkspaceParameters) -> Result<Workspace>;
 }
 
+pub trait DeleteBackupCredentials: StorageProvider {
+    fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> Result<()>;
+}
+
 pub trait DeleteCommand: StorageProvider {
     fn delete_command(&self, id: &CommandId) -> Result<()>;
 }

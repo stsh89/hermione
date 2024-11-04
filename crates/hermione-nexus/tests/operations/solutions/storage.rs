@@ -5,10 +5,10 @@ use hermione_nexus::{
         WorkspaceId, WorkspaceParameters,
     },
     services::{
-        CreateCommand, CreateWorkspace, DeleteCommand, DeleteWorkspace, DeleteWorkspaceCommands,
-        EditCommandParameters, EditWorkspaceParameters, FilterCommandsParameters,
-        FilterWorkspacesParameters, FindBackupCredentials, FindCommand, FindWorkspace,
-        ListBackupCredentials, ListCommands, ListWorkspaces, NewCommandParameters,
+        CreateCommand, CreateWorkspace, DeleteBackupCredentials, DeleteCommand, DeleteWorkspace,
+        DeleteWorkspaceCommands, EditCommandParameters, EditWorkspaceParameters,
+        FilterCommandsParameters, FilterWorkspacesParameters, FindBackupCredentials, FindCommand,
+        FindWorkspace, ListBackupCredentials, ListCommands, ListWorkspaces, NewCommandParameters,
         NewWorkspaceParameters, SaveBackupCredentials, StorageProvider, TrackCommandExecuteTime,
         TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace, UpsertCommands, UpsertWorkspaces,
     },
@@ -125,7 +125,10 @@ impl InMemoryStorageProvider {
     ) -> Result<(), InMemoryStorageError> {
         let mut collection = self.backup_credentials.write()?;
 
-        collection.insert(credentials.kind().as_str().to_string(), credentials);
+        collection.insert(
+            credentials.provider_kind().as_str().to_string(),
+            credentials,
+        );
 
         Ok(())
     }
@@ -158,6 +161,14 @@ impl InMemoryStorageProvider {
             commands: RwLock::new(HashMap::new()),
             backup_credentials: RwLock::new(HashMap::new()),
         }
+    }
+
+    fn remove_backup_credentials(&self, kind: &str) -> Result<(), InMemoryStorageError> {
+        let mut credentials = self.backup_credentials.write()?;
+
+        credentials.remove(kind);
+
+        Ok(())
     }
 
     fn remove_command(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
@@ -275,6 +286,14 @@ impl CreateWorkspace for InMemoryStorageProvider {
         self.insert_workspace(&workspace)?;
 
         Ok(workspace)
+    }
+}
+
+impl DeleteBackupCredentials for InMemoryStorageProvider {
+    fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> hermione_nexus::Result<()> {
+        self.remove_backup_credentials(kind.as_str())?;
+
+        Ok(())
     }
 }
 
