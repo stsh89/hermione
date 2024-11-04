@@ -9,8 +9,8 @@ use hermione_nexus::{
         EditCommandParameters, EditWorkspaceParameters, FilterCommandsParameters,
         FilterWorkspacesParameters, FindBackupCredentials, FindCommand, FindWorkspace,
         ListBackupCredentials, ListCommands, ListWorkspaces, NewCommandParameters,
-        NewWorkspaceParameters, StorageProvider, TrackCommandExecuteTime, TrackWorkspaceAccessTime,
-        UpdateCommand, UpdateWorkspace, UpsertCommands, UpsertWorkspaces,
+        NewWorkspaceParameters, SaveBackupCredentials, StorageProvider, TrackCommandExecuteTime,
+        TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace, UpsertCommands, UpsertWorkspaces,
     },
     Error,
 };
@@ -408,6 +408,14 @@ impl ListWorkspaces for InMemoryStorageProvider {
             .skip((page_number - 1) as usize * page_size as usize)
             .take(page_size as usize)
             .collect())
+    }
+}
+
+impl SaveBackupCredentials for InMemoryStorageProvider {
+    fn save_backup_credentials(&self, credentials: &BackupCredentials) -> Result<(), Error> {
+        self.insert_backup_credentials(credentials.clone())?;
+
+        Ok(())
     }
 }
 

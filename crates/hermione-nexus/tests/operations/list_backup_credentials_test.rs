@@ -12,7 +12,7 @@ where
 {
     let storage = InMemoryStorageProvider::new();
 
-    let backup_credentials = backup_credentials_fixture();
+    let backup_credentials = backup_credentials_fixture(Default::default());
     storage.insert_backup_credentials(backup_credentials)?;
 
     test_fn(ListBackupCredentialsOperationTestContext { storage })

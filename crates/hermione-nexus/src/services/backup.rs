@@ -20,3 +20,7 @@ pub trait ListWorkspacesBackup: BackupProvider {
 pub trait BackupProviderBuilder<T> {
     fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<T>;
 }
+
+pub trait VerifyBackupCredentials: BackupProvider {
+    fn verify_backup_credentials(&self) -> Result<bool>;
+}

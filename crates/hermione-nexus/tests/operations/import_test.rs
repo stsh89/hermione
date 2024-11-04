@@ -21,13 +21,14 @@ where
     T: FnOnce(ImportOperationTestContext) -> Result<()>,
 {
     let storage = InMemoryStorageProvider::new();
-    let backup = MockBackupProvider::new();
+
+    let credentials = backup_credentials_fixture(Default::default());
+    let backup = MockBackupProvider::new(credentials.clone());
 
     let mut workspaces: Vec<Workspace> = Vec::new();
     let mut commands: Vec<Command> = Vec::new();
 
-    let backup_credentials = backup_credentials_fixture();
-    storage.insert_backup_credentials(backup_credentials)?;
+    storage.insert_backup_credentials(credentials)?;
 
     for _ in 1..=2 {
         let workspace = workspace_fixture(Default::default())?;

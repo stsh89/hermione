@@ -1,6 +1,9 @@
 use hermione_nexus::{
     definitions::{BackupCredentials, Command, Workspace},
-    services::{BackupProvider, BackupProviderBuilder, ListCommandsBackup, ListWorkspacesBackup},
+    services::{
+        BackupProvider, BackupProviderBuilder, ListCommandsBackup, ListWorkspacesBackup,
+        VerifyBackupCredentials,
+    },
     Error,
 };
 use std::{
@@ -8,6 +11,8 @@ use std::{
     sync::{PoisonError, RwLock},
 };
 use uuid::Uuid;
+
+pub const TEST_NOTION_API_KEY: &str = "test_notion_api_key";
 
 #[derive(thiserror::Error, Debug)]
 pub enum MockBackupProviderError {
@@ -21,6 +26,7 @@ pub struct MockBackupProviderBuilder {
 }
 
 pub struct MockBackupProvider {
+    credentials: BackupCredentials,
     commands: RwLock<HashMap<Uuid, Command>>,
     workspaces: RwLock<HashMap<Uuid, Workspace>>,
 }
@@ -56,10 +62,11 @@ impl MockBackupProvider {
         Ok(())
     }
 
-    pub fn new() -> Self {
+    pub fn new(credentials: BackupCredentials) -> Self {
         Self {
             commands: RwLock::new(HashMap::new()),
             workspaces: RwLock::new(HashMap::new()),
+            credentials,
         }
     }
 
@@ -86,8 +93,11 @@ impl MockBackupProviderBuilder {
         }
     }
 
-    pub fn build(&self) -> Result<MockBackupProvider, MockBackupProviderError> {
-        let backup_provider = MockBackupProvider::new();
+    pub fn build(
+        &self,
+        credentials: BackupCredentials,
+    ) -> Result<MockBackupProvider, MockBackupProviderError> {
+        let backup_provider = MockBackupProvider::new(credentials);
 
         for command in &self.commands {
             backup_provider.insert_command(&command)?;
@@ -112,9 +122,9 @@ impl MockBackupProviderBuilder {
 impl BackupProviderBuilder<MockBackupProvider> for MockBackupProviderBuilder {
     fn build_backup_provider(
         &self,
-        _credentials: &BackupCredentials,
+        credentials: &BackupCredentials,
     ) -> Result<MockBackupProvider, Error> {
-        let backup_provider = self.build()?;
+        let backup_provider = self.build(credentials.clone())?;
 
         Ok(backup_provider)
     }
@@ -167,6 +177,14 @@ impl ListWorkspacesBackup for MockBackupProvider {
         }
 
         Ok(Some((workspaces, Some((page_id + 1).to_string()))))
+    }
+}
+
+impl VerifyBackupCredentials for MockBackupProvider {
+    fn verify_backup_credentials(&self) -> Result<bool, Error> {
+        let BackupCredentials::Notion(credentials) = &self.credentials;
+
+        Ok(credentials.api_key() == TEST_NOTION_API_KEY)
     }
 }
 

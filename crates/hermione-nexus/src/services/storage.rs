@@ -62,6 +62,10 @@ pub trait ListWorkspaces: StorageProvider {
     fn list_workspaces(&self, parameters: FilterWorkspacesParameters) -> Result<Vec<Workspace>>;
 }
 
+pub trait SaveBackupCredentials: StorageProvider {
+    fn save_backup_credentials(&self, credentials: &BackupCredentials) -> Result<()>;
+}
+
 pub trait TrackCommandExecuteTime: StorageProvider {
     fn track_command_execute_time(&self, command_id: &CommandId) -> Result<()>;
 }

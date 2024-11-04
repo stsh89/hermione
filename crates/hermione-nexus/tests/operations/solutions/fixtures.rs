@@ -8,6 +8,18 @@ use hermione_nexus::{
 };
 use uuid::Uuid;
 
+use super::TEST_NOTION_API_KEY;
+
+pub enum BackupCredentialsFixtureParameters {
+    Notion(NotionBackupCredentialsFixtureParameters),
+}
+
+pub struct NotionBackupCredentialsFixtureParameters {
+    pub api_key: Option<String>,
+    pub workspaces_database_id: Option<String>,
+    pub commands_database_id: Option<String>,
+}
+
 #[derive(Default)]
 pub struct CommandFixtureParameters {
     pub name: Option<String>,
@@ -24,12 +36,20 @@ pub struct WorkspaceFixtureParameters {
     pub id: Option<Uuid>,
 }
 
-pub fn backup_credentials_fixture() -> BackupCredentials {
-    BackupCredentials::notion(NotionBackupCredentialsParameters {
-        api_key: "test_api_key".to_string(),
-        workspaces_database_id: "test_workspaces_database_id".to_string(),
-        commands_database_id: "test_commands_database_id".to_string(),
-    })
+pub fn backup_credentials_fixture(
+    parameters: BackupCredentialsFixtureParameters,
+) -> BackupCredentials {
+    match parameters {
+        BackupCredentialsFixtureParameters::Notion(NotionBackupCredentialsFixtureParameters {
+            api_key,
+            workspaces_database_id,
+            commands_database_id,
+        }) => BackupCredentials::notion(NotionBackupCredentialsParameters {
+            api_key: api_key.unwrap_or_default(),
+            workspaces_database_id: workspaces_database_id.unwrap_or_default(),
+            commands_database_id: commands_database_id.unwrap_or_default(),
+        }),
+    }
 }
 
 pub fn command_fixture(
@@ -66,4 +86,20 @@ pub fn workspace_fixture(parameters: WorkspaceFixtureParameters) -> Result<Works
         location,
         name: name.unwrap_or("Test workspace".to_string()),
     })
+}
+
+impl Default for BackupCredentialsFixtureParameters {
+    fn default() -> Self {
+        Self::Notion(Default::default())
+    }
+}
+
+impl Default for NotionBackupCredentialsFixtureParameters {
+    fn default() -> Self {
+        NotionBackupCredentialsFixtureParameters {
+            api_key: Some(TEST_NOTION_API_KEY.to_string()),
+            workspaces_database_id: Some("test_workspaces_database_id".to_string()),
+            commands_database_id: Some("test_commands_database_id".to_string()),
+        }
+    }
 }

@@ -14,6 +14,9 @@ pub enum Error {
 
     #[error(transparent)]
     Storage(#[from] eyre::Error),
+
+    #[error("{0} verification failed")]
+    Verification(String),
 }
 
 #[cfg(test)]

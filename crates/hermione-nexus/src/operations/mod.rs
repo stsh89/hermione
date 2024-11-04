@@ -11,6 +11,7 @@ mod import;
 mod list_backup_credentials;
 mod list_commands;
 mod list_workspaces;
+mod save_backup_credentials;
 mod update_command;
 mod update_workspace;
 
@@ -27,5 +28,6 @@ pub use import::*;
 pub use list_backup_credentials::*;
 pub use list_commands::*;
 pub use list_workspaces::*;
+pub use save_backup_credentials::*;
 pub use update_command::*;
 pub use update_workspace::*;
