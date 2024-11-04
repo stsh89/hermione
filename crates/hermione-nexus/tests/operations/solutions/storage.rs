@@ -8,9 +8,9 @@ use hermione_nexus::{
         CreateCommand, CreateWorkspace, DeleteCommand, DeleteWorkspace, DeleteWorkspaceCommands,
         EditCommandParameters, EditWorkspaceParameters, FilterCommandsParameters,
         FilterWorkspacesParameters, FindBackupCredentials, FindCommand, FindWorkspace,
-        ListCommands, ListWorkspaces, NewCommandParameters, NewWorkspaceParameters,
-        StorageProvider, TrackCommandExecuteTime, TrackWorkspaceAccessTime, UpdateCommand,
-        UpdateWorkspace, UpsertCommands, UpsertWorkspaces,
+        ListBackupCredentials, ListCommands, ListWorkspaces, NewCommandParameters,
+        NewWorkspaceParameters, StorageProvider, TrackCommandExecuteTime, TrackWorkspaceAccessTime,
+        UpdateCommand, UpdateWorkspace, UpsertCommands, UpsertWorkspaces,
     },
     Error,
 };
@@ -42,6 +42,12 @@ pub struct InMemoryStorageProvider {
 }
 
 impl InMemoryStorageProvider {
+    pub fn backup_credentials(&self) -> Result<Vec<BackupCredentials>, InMemoryStorageError> {
+        let credentials = self.backup_credentials.read()?;
+
+        Ok(credentials.values().cloned().collect())
+    }
+
     pub fn commands(&self) -> Result<Vec<Command>, InMemoryStorageError> {
         let commands = self.commands.read()?;
 
@@ -320,6 +326,14 @@ impl FindWorkspace for InMemoryStorageProvider {
         let workspaces = self.get_workspace(id)?;
 
         Ok(workspaces)
+    }
+}
+
+impl ListBackupCredentials for InMemoryStorageProvider {
+    fn list_backup_credentials(&self) -> Result<Vec<BackupCredentials>, Error> {
+        let credentials = self.backup_credentials()?;
+
+        Ok(credentials)
     }
 }
 
