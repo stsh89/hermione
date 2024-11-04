@@ -8,9 +8,9 @@ use hermione_nexus::{
 use uuid::Uuid;
 
 struct CopyCommandToClipboardOperationTestContext {
-    storage: InMemoryStorageProvider,
     clipboard: MockClipboardProvider,
     command: Command,
+    storage: InMemoryStorageProvider,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
@@ -51,7 +51,7 @@ fn it_copies_command_to_clipboard() -> Result<()> {
         assert!(clipboard.content()?.is_none());
 
         CopyCommandToClipboardOperation {
-            find_command_provider: &storage,
+            storage_provider: &storage,
             clipboard_provider: &clipboard,
         }
         .execute(command.id())?;
@@ -74,7 +74,7 @@ fn it_returns_not_found_error() -> Result<()> {
         clipboard.set_content("Get-ChildItem")?;
 
         let result = CopyCommandToClipboardOperation {
-            find_command_provider: &storage,
+            storage_provider: &storage,
             clipboard_provider: &clipboard,
         }
         .execute(&Uuid::nil().into());

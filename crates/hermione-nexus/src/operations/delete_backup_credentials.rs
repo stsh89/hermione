@@ -1,25 +1,29 @@
-use super::GetBackupCredentialsOperation;
 use crate::{
     definitions::BackupProviderKind,
-    services::{DeleteBackupCredentials, FindBackupCredentials},
-    Result,
+    services::{DeleteBackupCredentials, FindBackupCredentials, StorageProvider},
+    Error, Result,
 };
 
-pub struct DeleteBackupCredentialsOperation<'a, D, F> {
-    pub find_provider: &'a F,
-    pub delete_provider: &'a D,
+pub struct DeleteBackupCredentialsOperation<'a, DBC, FBC>
+where
+    DBC: StorageProvider,
+    FBC: StorageProvider,
+{
+    pub delete_provider: &'a DBC,
+    pub find_provider: &'a FBC,
 }
 
-impl<'a, D, F> DeleteBackupCredentialsOperation<'a, D, F>
+impl<'a, DBC, FBC> DeleteBackupCredentialsOperation<'a, DBC, FBC>
 where
-    D: DeleteBackupCredentials,
-    F: FindBackupCredentials,
+    DBC: DeleteBackupCredentials,
+    FBC: FindBackupCredentials,
 {
     pub fn execute(&self, kind: &BackupProviderKind) -> Result<()> {
-        GetBackupCredentialsOperation {
-            provider: self.find_provider,
+        tracing::info!(operation = "Delete backup credentials");
+
+        if self.find_provider.find_backup_credentials(kind)?.is_none() {
+            return Err(Error::NotFound("Backup credentials".to_string()));
         }
-        .execute(kind)?;
 
         self.delete_provider.delete_backup_credentials(kind)
     }

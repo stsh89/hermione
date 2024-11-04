@@ -1,25 +1,25 @@
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
-    services::FindBackupCredentials,
+    services::{FindBackupCredentials, StorageProvider},
     Error, Result,
 };
 
-pub struct GetBackupCredentialsOperation<'a, F> {
-    pub provider: &'a F,
+pub struct GetBackupCredentialsOperation<'a, SP>
+where
+    SP: StorageProvider,
+{
+    pub provider: &'a SP,
 }
 
 impl<'a, F> GetBackupCredentialsOperation<'a, F>
 where
     F: FindBackupCredentials,
 {
-    pub fn execute(&self, backup_provider_kind: &BackupProviderKind) -> Result<BackupCredentials> {
+    pub fn execute(&self, kind: &BackupProviderKind) -> Result<BackupCredentials> {
         tracing::info!(operation = "Get backup credentials");
 
-        let credentials = self
-            .provider
-            .find_backup_credentials(backup_provider_kind)?
-            .ok_or(Error::NotFound("Backup credentials".to_string()))?;
-
-        Ok(credentials)
+        self.provider
+            .find_backup_credentials(kind)?
+            .ok_or(Error::NotFound("Backup credentials".to_string()))
     }
 }

@@ -89,7 +89,9 @@ impl Workspace {
 impl WorkspaceId {
     fn new(value: Uuid) -> Result<Self> {
         if value.is_nil() {
-            return Err(Error::Internal("Invalid workspace ID".to_string()));
+            return Err(Error::InvalidArgument(
+                "Workspace ID cannot be nil".to_string(),
+            ));
         }
 
         Ok(Self(value))

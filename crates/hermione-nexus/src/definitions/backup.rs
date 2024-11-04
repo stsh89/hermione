@@ -11,25 +11,25 @@ pub enum BackupCredentials {
 #[derive(Clone)]
 pub struct NotionBackupCredentials {
     api_key: String,
-    workspaces_database_id: String,
     commands_database_id: String,
+    workspaces_database_id: String,
 }
 
 pub struct NotionBackupCredentialsParameters {
     pub api_key: String,
-    pub workspaces_database_id: String,
     pub commands_database_id: String,
+    pub workspaces_database_id: String,
 }
 
 impl BackupCredentials {
+    pub fn notion(parameters: NotionBackupCredentialsParameters) -> Self {
+        Self::Notion(NotionBackupCredentials::new(parameters))
+    }
+
     pub fn provider_kind(&self) -> BackupProviderKind {
         match self {
             BackupCredentials::Notion(_) => BackupProviderKind::Notion,
         }
-    }
-
-    pub fn notion(parameters: NotionBackupCredentialsParameters) -> Self {
-        Self::Notion(NotionBackupCredentials::new(parameters))
     }
 }
 
@@ -46,12 +46,12 @@ impl NotionBackupCredentials {
         }
     }
 
-    pub fn workspaces_database_id(&self) -> &str {
-        &self.workspaces_database_id
-    }
-
     pub fn commands_database_id(&self) -> &str {
         &self.commands_database_id
+    }
+
+    pub fn workspaces_database_id(&self) -> &str {
+        &self.workspaces_database_id
     }
 }
 

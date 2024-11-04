@@ -15,30 +15,20 @@ pub struct MockSystemProvider {
 }
 
 impl MockSystemProvider {
-    pub fn new() -> Self {
-        Self {
-            program: RwLock::new(None),
-        }
-    }
-
     pub fn last_executed_program(&self) -> Result<Option<String>, MockSystemError> {
         let program = self.program.read()?;
 
         Ok(program.clone())
     }
 
+    pub fn new() -> Self {
+        Self {
+            program: RwLock::new(None),
+        }
+    }
+
     pub fn set_program(&self, program: &str) -> Result<(), MockSystemError> {
         *self.program.write()? = Some(program.to_string());
-
-        Ok(())
-    }
-}
-
-impl SystemProvider for MockSystemProvider {}
-
-impl RunProgram for MockSystemProvider {
-    fn run_program(&self, program: &str) -> Result<(), Error> {
-        self.set_program(program)?;
 
         Ok(())
     }
@@ -51,7 +41,17 @@ impl<T> From<PoisonError<T>> for MockSystemError {
 }
 
 impl From<MockSystemError> for Error {
-    fn from(_err: MockSystemError) -> Self {
-        Error::Internal("Can't access mock clipboard".to_string())
+    fn from(err: MockSystemError) -> Self {
+        Error::System(eyre::Error::new(err))
+    }
+}
+
+impl SystemProvider for MockSystemProvider {}
+
+impl RunProgram for MockSystemProvider {
+    fn run_program(&self, program: &str) -> Result<(), Error> {
+        self.set_program(program)?;
+
+        Ok(())
     }
 }

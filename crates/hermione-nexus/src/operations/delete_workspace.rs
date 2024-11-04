@@ -1,12 +1,15 @@
 use crate::{
     definitions::WorkspaceId,
-    services::{DeleteWorkspace, DeleteWorkspaceCommands, FindWorkspace},
-    Result,
+    services::{DeleteWorkspace, DeleteWorkspaceCommands, FindWorkspace, StorageProvider},
+    Error, Result,
 };
 
-use super::GetWorkspaceOperation;
-
-pub struct DeleteWorkspaceOperation<'a, FWP, DWCP, DWP> {
+pub struct DeleteWorkspaceOperation<'a, FWP, DWCP, DWP>
+where
+    FWP: StorageProvider,
+    DWCP: StorageProvider,
+    DWP: StorageProvider,
+{
     pub find_workspace_provider: &'a FWP,
     pub delete_workspace_commands_provider: &'a DWCP,
     pub delete_workspace_provider: &'a DWP,
@@ -19,10 +22,9 @@ where
     DWP: DeleteWorkspace,
 {
     pub fn execute(&self, id: &WorkspaceId) -> Result<()> {
-        GetWorkspaceOperation {
-            provider: self.find_workspace_provider,
+        if self.find_workspace_provider.find_workspace(id)?.is_none() {
+            return Err(Error::NotFound(format!("Workspace {}", id.braced())));
         }
-        .execute(id)?;
 
         self.delete_workspace_commands_provider
             .delete_workspace_commands(id)?;

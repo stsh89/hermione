@@ -22,14 +22,16 @@ where
 {
     let backup_credentials = backup_credentials_fixture(Default::default());
     let storage = InMemoryStorageProvider::new();
+
+    storage.insert_backup_credentials(backup_credentials.clone())?;
+
+    let BackupCredentials::Notion(credentials) = backup_credentials.clone();
     let backup_provider_builder = MockBackupProviderBuilder::default();
     let backup = MockBackupProvider::new(MockBackupProviderParameters {
-        credentials: backup_credentials.clone(),
+        credentials,
         workspaces: backup_provider_builder.workspaces(),
         commands: backup_provider_builder.commands(),
     });
-
-    storage.insert_backup_credentials(backup_credentials.clone())?;
 
     for _ in 1..=2 {
         let workspace = workspace_fixture(Default::default())?;
@@ -68,7 +70,7 @@ fn it_exports() -> Result<()> {
             backup_provider_builder,
             list_commands_provider: &storage,
             list_workspaces_provider: &storage,
-            phantom_backup_provider_builder: PhantomData,
+            backup_provider: PhantomData,
         }
         .execute(&backup_credentials.provider_kind())?;
 
@@ -96,7 +98,7 @@ fn it_returns_not_found_error() -> Result<()> {
             backup_provider_builder,
             list_commands_provider: &storage,
             list_workspaces_provider: &storage,
-            phantom_backup_provider_builder: PhantomData,
+            backup_provider: PhantomData,
         }
         .execute(&BackupProviderKind::Unknown);
 

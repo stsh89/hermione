@@ -2,7 +2,11 @@ use crate::solutions::{
     backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorageProvider,
     MockBackupProvider, MockBackupProviderBuilder, MockBackupProviderParameters,
 };
-use hermione_nexus::{definitions::BackupProviderKind, operations::ImportOperation, Error, Result};
+use hermione_nexus::{
+    definitions::{BackupCredentials, BackupProviderKind},
+    operations::ImportOperation,
+    Error, Result,
+};
 use std::marker::PhantomData;
 
 struct ImportOperationTestContext {
@@ -17,14 +21,16 @@ where
 {
     let credentials = backup_credentials_fixture(Default::default());
     let storage = InMemoryStorageProvider::new();
+
+    storage.insert_backup_credentials(credentials.clone())?;
+
+    let BackupCredentials::Notion(credentials) = credentials;
     let backup_provider_builder = MockBackupProviderBuilder::default();
     let backup = MockBackupProvider::new(MockBackupProviderParameters {
-        credentials: credentials.clone(),
+        credentials,
         workspaces: backup_provider_builder.workspaces(),
         commands: backup_provider_builder.commands(),
     });
-
-    storage.insert_backup_credentials(credentials)?;
 
     for _ in 1..=2 {
         let workspace = workspace_fixture(Default::default())?;
@@ -62,7 +68,7 @@ fn it_inserts_missing_workspaces_and_commands() -> Result<()> {
             upsert_commands_provider: &storage,
             upsert_workspaces_provider: &storage,
             backup_provider_builder,
-            phantom_backup_provider_builder: PhantomData,
+            backup_provider: PhantomData,
         }
         .execute(&BackupProviderKind::Notion)?;
 
@@ -113,7 +119,7 @@ fn it_updates_existing_workspaces_and_commands() -> Result<()> {
             upsert_commands_provider: &storage,
             upsert_workspaces_provider: &storage,
             backup_provider_builder,
-            phantom_backup_provider_builder: PhantomData,
+            backup_provider: PhantomData,
         }
         .execute(&BackupProviderKind::Notion)?;
 
@@ -146,7 +152,7 @@ fn it_returns_not_found_error() -> Result<()> {
             upsert_commands_provider: &storage,
             upsert_workspaces_provider: &storage,
             backup_provider_builder,
-            phantom_backup_provider_builder: PhantomData,
+            backup_provider: PhantomData,
         }
         .execute(&BackupProviderKind::Unknown);
 

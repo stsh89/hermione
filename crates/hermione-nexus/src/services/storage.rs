@@ -46,14 +46,6 @@ pub trait FindWorkspace: StorageProvider {
     fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>>;
 }
 
-pub trait UpsertCommands: StorageProvider {
-    fn upsert_commands(&self, commands: Vec<Command>) -> Result<()>;
-}
-
-pub trait UpsertWorkspaces: StorageProvider {
-    fn upsert_workspaces(&self, workspaces: Vec<Workspace>) -> Result<()>;
-}
-
 pub trait ListBackupCredentials: StorageProvider {
     fn list_backup_credentials(&self) -> Result<Vec<BackupCredentials>>;
 }
@@ -84,6 +76,14 @@ pub trait UpdateCommand: StorageProvider {
 
 pub trait UpdateWorkspace: StorageProvider {
     fn update_workspace(&self, workspace: EditWorkspaceParameters) -> Result<Workspace>;
+}
+
+pub trait UpsertCommands: StorageProvider {
+    fn upsert_commands(&self, commands: Vec<Command>) -> Result<()>;
+}
+
+pub trait UpsertWorkspaces: StorageProvider {
+    fn upsert_workspaces(&self, workspaces: Vec<Workspace>) -> Result<()>;
 }
 
 pub struct EditCommandParameters<'a> {

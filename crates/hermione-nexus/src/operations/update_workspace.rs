@@ -1,11 +1,15 @@
 use crate::{
     definitions::{Workspace, WorkspaceId},
     operations::GetWorkspaceOperation,
-    services::{EditWorkspaceParameters, FindWorkspace, UpdateWorkspace},
+    services::{EditWorkspaceParameters, FindWorkspace, StorageProvider, UpdateWorkspace},
     Result,
 };
 
-pub struct UpdateWorkspaceOperation<'a, FW, UW> {
+pub struct UpdateWorkspaceOperation<'a, FW, UW>
+where
+    FW: StorageProvider,
+    UW: StorageProvider,
+{
     pub find_workspace_provider: &'a FW,
     pub update_workspace_provider: &'a UW,
 }
@@ -26,10 +30,7 @@ where
 
         let UpdateWorkspaceParameters { id, location, name } = parameters;
 
-        let mut workspace = GetWorkspaceOperation {
-            provider: self.find_workspace_provider,
-        }
-        .execute(id)?;
+        let mut workspace = self.get_workspace(id)?;
 
         workspace.set_location(location);
         workspace.set_name(name);
@@ -42,5 +43,12 @@ where
             })?;
 
         Ok(workspace)
+    }
+
+    fn get_workspace(&self, id: &WorkspaceId) -> Result<Workspace> {
+        GetWorkspaceOperation {
+            provider: self.find_workspace_provider,
+        }
+        .execute(id)
     }
 }

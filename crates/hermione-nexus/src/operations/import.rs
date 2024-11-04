@@ -2,19 +2,26 @@ use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
     operations::GetBackupCredentialsOperation,
     services::{
-        BackupProviderBuilder, FindBackupCredentials, ListCommandsBackup, ListWorkspacesBackup,
-        UpsertCommands, UpsertWorkspaces,
+        BackupProvider, BackupProviderBuilder, FindBackupCredentials, ListCommandsBackup,
+        ListWorkspacesBackup, StorageProvider, UpsertCommands, UpsertWorkspaces,
     },
     Result,
 };
 use std::marker::PhantomData;
 
-pub struct ImportOperation<'a, BCP, IUCP, IUWP, BPB, BP> {
+pub struct ImportOperation<'a, BCP, IUCP, IUWP, BPB, BP>
+where
+    BCP: StorageProvider,
+    IUCP: StorageProvider,
+    IUWP: StorageProvider,
+    BPB: BackupProviderBuilder<BP>,
+    BP: BackupProvider,
+{
     pub backup_credentials_provider: &'a BCP,
     pub upsert_commands_provider: &'a IUCP,
     pub upsert_workspaces_provider: &'a IUWP,
     pub backup_provider_builder: &'a BPB,
-    pub phantom_backup_provider_builder: PhantomData<BP>,
+    pub backup_provider: PhantomData<BP>,
 }
 
 impl<'a, BCP, UCP, UWP, BPB, BP> ImportOperation<'a, BCP, UCP, UWP, BPB, BP>
@@ -25,16 +32,9 @@ where
     BPB: BackupProviderBuilder<BP>,
     BP: ListCommandsBackup + ListWorkspacesBackup,
 {
-    fn backup_provider(&self, credentials: &BackupCredentials) -> Result<BP> {
+    fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<BP> {
         self.backup_provider_builder
             .build_backup_provider(credentials)
-    }
-
-    fn backup_credentials(&self, kind: &BackupProviderKind) -> Result<BackupCredentials> {
-        GetBackupCredentialsOperation {
-            provider: self.backup_credentials_provider,
-        }
-        .execute(kind)
     }
 
     fn import_commands(&self, backup_provider: &BP) -> Result<()> {
@@ -77,12 +77,19 @@ where
     pub fn execute(&self, kind: &BackupProviderKind) -> Result<()> {
         tracing::info!(operation = "Import");
 
-        let credentials = self.backup_credentials(kind)?;
-        let backup_provider = self.backup_provider(&credentials)?;
+        let credentials = self.get_backup_credentials(kind)?;
+        let backup_provider = self.build_backup_provider(&credentials)?;
 
         self.import_workspaces(&backup_provider)?;
         self.import_commands(&backup_provider)?;
 
         Ok(())
+    }
+
+    fn get_backup_credentials(&self, kind: &BackupProviderKind) -> Result<BackupCredentials> {
+        GetBackupCredentialsOperation {
+            provider: self.backup_credentials_provider,
+        }
+        .execute(kind)
     }
 }

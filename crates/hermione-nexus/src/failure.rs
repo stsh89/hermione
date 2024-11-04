@@ -1,10 +1,10 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Backup: {0}")]
+    #[error("Backup failure: {0}")]
     Backup(String),
 
-    #[error("Internal: {0}")]
-    Internal(String),
+    #[error("Clipboard failure: {0}")]
+    Clipboard(#[source] eyre::Error),
 
     #[error("Invalid argument: {0}")]
     InvalidArgument(String),
@@ -12,8 +12,11 @@ pub enum Error {
     #[error("{0} not found")]
     NotFound(String),
 
-    #[error(transparent)]
-    Storage(#[from] eyre::Error),
+    #[error("Storage failure: {0}")]
+    Storage(#[source] eyre::Error),
+
+    #[error("System failure: {0}")]
+    System(#[source] eyre::Error),
 
     #[error("{0} verification failed")]
     Verification(String),

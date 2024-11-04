@@ -1,11 +1,14 @@
 use crate::{
     definitions::{Command, WorkspaceId},
-    services::{CreateCommand, NewCommandParameters},
+    services::{CreateCommand, NewCommandParameters, StorageProvider},
     Result,
 };
 
-pub struct CreateCommandOperation<'a, CW> {
-    pub provider: &'a CW,
+pub struct CreateCommandOperation<'a, SP>
+where
+    SP: StorageProvider,
+{
+    pub provider: &'a SP,
 }
 
 pub struct CreateCommandParameters {
@@ -14,9 +17,9 @@ pub struct CreateCommandParameters {
     pub workspace_id: WorkspaceId,
 }
 
-impl<'a, CW> CreateCommandOperation<'a, CW>
+impl<'a, CC> CreateCommandOperation<'a, CC>
 where
-    CW: CreateCommand,
+    CC: CreateCommand,
 {
     pub fn execute(&self, parameters: CreateCommandParameters) -> Result<Command> {
         tracing::info!(operation = "Create command");

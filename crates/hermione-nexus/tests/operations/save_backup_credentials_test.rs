@@ -38,7 +38,7 @@ fn it_saves_backup_credentials() -> Result<()> {
         SaveBackupCredentialsOperation {
             save_provider: &storage,
             backup_provider_builder: &backup_provider_builder,
-            backup_provider_builder_phantom: PhantomData,
+            backup_provider: PhantomData,
         }
         .execute(&credentials_fixtures)?;
 
@@ -68,7 +68,7 @@ fn it_returns_verification_error() -> Result<()> {
         let res = SaveBackupCredentialsOperation {
             save_provider: &storage,
             backup_provider_builder: &backup_provider_builder,
-            backup_provider_builder_phantom: PhantomData,
+            backup_provider: PhantomData,
         }
         .execute(&credentials_fixtures);
 

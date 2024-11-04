@@ -2,13 +2,18 @@ use crate::solutions::{
     command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorageProvider,
     MockSystemProvider,
 };
-use hermione_nexus::{definitions::Command, operations::ExecuteCommandOperation, Error, Result};
+use hermione_nexus::{
+    definitions::{Command, Workspace},
+    operations::ExecuteCommandOperation,
+    Error, Result,
+};
 use uuid::Uuid;
 
 struct ExecuteCommandOperationTestContext {
+    command: Command,
     storage: InMemoryStorageProvider,
     system: MockSystemProvider,
-    command: Command,
+    workspace: Workspace,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
@@ -34,6 +39,7 @@ where
         storage,
         system,
         command,
+        workspace,
     })
 }
 
@@ -44,6 +50,7 @@ fn it_executes_command() -> Result<()> {
             storage,
             system,
             command,
+            workspace: _,
         } = ctx;
 
         assert!(system.last_executed_program()?.is_none());
@@ -72,9 +79,10 @@ fn it_tracks_command_execute_time() -> Result<()> {
             storage,
             system,
             command,
+            workspace: _,
         } = ctx;
 
-        assert!(storage.get_command_execute_time(command.id())?.is_none());
+        assert!(command.last_execute_time().is_none());
 
         ExecuteCommandOperation {
             find_command_provider: &storage,
@@ -84,7 +92,11 @@ fn it_tracks_command_execute_time() -> Result<()> {
         }
         .execute(command.id())?;
 
-        assert!(storage.get_command_execute_time(command.id())?.is_some());
+        assert!(storage
+            .get_command(command.id())?
+            .unwrap()
+            .last_execute_time()
+            .is_some());
 
         Ok(())
     })
@@ -97,11 +109,10 @@ fn it_tracks_workspace_access_time() -> Result<()> {
             storage,
             system,
             command,
+            workspace,
         } = ctx;
 
-        assert!(storage
-            .get_workspace_access_time(command.workspace_id())?
-            .is_none());
+        assert!(workspace.last_access_time().is_none());
 
         ExecuteCommandOperation {
             find_command_provider: &storage,
@@ -112,7 +123,9 @@ fn it_tracks_workspace_access_time() -> Result<()> {
         .execute(command.id())?;
 
         assert!(storage
-            .get_workspace_access_time(command.workspace_id())?
+            .get_workspace(workspace.id())?
+            .unwrap()
+            .last_access_time()
             .is_some());
 
         Ok(())
@@ -126,6 +139,7 @@ fn it_returns_not_found_error() -> Result<()> {
             storage,
             system,
             command: _,
+            workspace: _,
         } = ctx;
 
         system.set_program("Get-ChildItem")?;

@@ -1,5 +1,5 @@
 use hermione_nexus::{
-    definitions::{BackupCredentials, Command, Workspace},
+    definitions::{BackupCredentials, Command, NotionBackupCredentials, Workspace},
     services::{
         BackupProvider, BackupProviderBuilder, ListCommandsBackup, ListWorkspacesBackup,
         UpsertCommandsBackup, UpsertWorkspacesBackup, VerifyBackupCredentials,
@@ -28,13 +28,13 @@ pub struct MockBackupProviderBuilder {
 }
 
 pub struct MockBackupProvider {
-    credentials: BackupCredentials,
+    credentials: NotionBackupCredentials,
     commands: Rc<RwLock<HashMap<Uuid, Command>>>,
     workspaces: Rc<RwLock<HashMap<Uuid, Workspace>>>,
 }
 
 pub struct MockBackupProviderParameters {
-    pub credentials: BackupCredentials,
+    pub credentials: NotionBackupCredentials,
     pub commands: Rc<RwLock<HashMap<Uuid, Command>>>,
     pub workspaces: Rc<RwLock<HashMap<Uuid, Workspace>>>,
 }
@@ -101,6 +101,8 @@ impl MockBackupProvider {
 
 impl MockBackupProviderBuilder {
     pub fn build(&self, credentials: BackupCredentials) -> MockBackupProvider {
+        let BackupCredentials::Notion(credentials) = credentials;
+
         MockBackupProvider::new(MockBackupProviderParameters {
             credentials,
             commands: self.commands.clone(),
@@ -117,17 +119,6 @@ impl MockBackupProviderBuilder {
     }
 }
 
-impl BackupProviderBuilder<MockBackupProvider> for MockBackupProviderBuilder {
-    fn build_backup_provider(
-        &self,
-        credentials: &BackupCredentials,
-    ) -> Result<MockBackupProvider, Error> {
-        let backup_provider = self.build(credentials.clone());
-
-        Ok(backup_provider)
-    }
-}
-
 impl<T> From<PoisonError<T>> for MockBackupProviderError {
     fn from(err: PoisonError<T>) -> Self {
         Self::LockAccess(err.to_string())
@@ -137,6 +128,35 @@ impl<T> From<PoisonError<T>> for MockBackupProviderError {
 impl From<MockBackupProviderError> for Error {
     fn from(err: MockBackupProviderError) -> Self {
         Self::Storage(eyre::Error::new(err))
+    }
+}
+
+fn index_from_str(page_id: Option<&str>) -> Result<usize, Error> {
+    let page_id = page_id
+        .map(|id| id.parse())
+        .transpose()
+        .map_err(|err| Error::Backup(format!("Invalid page ID: {}", err)))?
+        .unwrap_or(0);
+
+    Ok(page_id)
+}
+
+fn get_page<T>(collection: Vec<T>, index: usize) -> Vec<T> {
+    let page_size = 10;
+
+    collection
+        .into_iter()
+        .skip(index * page_size)
+        .take(page_size)
+        .collect()
+}
+
+impl BackupProviderBuilder<MockBackupProvider> for MockBackupProviderBuilder {
+    fn build_backup_provider(
+        &self,
+        credentials: &BackupCredentials,
+    ) -> Result<MockBackupProvider, Error> {
+        Ok(self.build(credentials.clone()))
     }
 }
 
@@ -200,28 +220,6 @@ impl UpsertWorkspacesBackup for MockBackupProvider {
 
 impl VerifyBackupCredentials for MockBackupProvider {
     fn verify_backup_credentials(&self) -> Result<bool, Error> {
-        let BackupCredentials::Notion(credentials) = &self.credentials;
-
-        Ok(credentials.api_key() == TEST_NOTION_API_KEY)
+        Ok(self.credentials.api_key() == TEST_NOTION_API_KEY)
     }
-}
-
-fn index_from_str(page_id: Option<&str>) -> Result<usize, Error> {
-    let page_id = page_id
-        .map(|id| id.parse())
-        .transpose()
-        .map_err(|err| Error::Backup(format!("Invalid page ID: {}", err)))?
-        .unwrap_or(0);
-
-    Ok(page_id)
-}
-
-fn get_page<T>(collection: Vec<T>, index: usize) -> Vec<T> {
-    let page_size = 10;
-
-    collection
-        .into_iter()
-        .skip(index * page_size)
-        .take(page_size)
-        .collect()
 }

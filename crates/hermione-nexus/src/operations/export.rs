@@ -1,9 +1,10 @@
 use super::GetBackupCredentialsOperation;
 use crate::{
-    definitions::{BackupCredentials, BackupProviderKind},
+    definitions::{BackupCredentials, BackupProviderKind, Command, Workspace},
     services::{
-        BackupProviderBuilder, FilterWorkspacesParameters, FindBackupCredentials, ListCommands,
-        ListWorkspaces, UpsertCommandsBackup, UpsertWorkspacesBackup,
+        BackupProvider, BackupProviderBuilder, FilterCommandsParameters,
+        FilterWorkspacesParameters, FindBackupCredentials, ListCommands, ListWorkspaces,
+        StorageProvider, UpsertCommandsBackup, UpsertWorkspacesBackup,
     },
     Result,
 };
@@ -11,12 +12,19 @@ use std::marker::PhantomData;
 
 const BACKUP_BATCH_SIZE: u32 = 100;
 
-pub struct ExportOperation<'a, BCP, LCP, LWP, BPB, BP> {
+pub struct ExportOperation<'a, BCP, LCP, LWP, BPB, BP>
+where
+    BCP: StorageProvider,
+    LCP: StorageProvider,
+    LWP: StorageProvider,
+    BPB: BackupProviderBuilder<BP>,
+    BP: BackupProvider,
+{
     pub backup_credentials_provider: &'a BCP,
     pub list_commands_provider: &'a LCP,
     pub list_workspaces_provider: &'a LWP,
     pub backup_provider_builder: &'a BPB,
-    pub phantom_backup_provider_builder: PhantomData<BP>,
+    pub backup_provider: PhantomData<BP>,
 }
 
 impl<'a, BCP, LCP, LWP, BPB, BP> ExportOperation<'a, BCP, LCP, LWP, BPB, BP>
@@ -27,14 +35,7 @@ where
     BPB: BackupProviderBuilder<BP>,
     BP: UpsertCommandsBackup + UpsertWorkspacesBackup,
 {
-    fn backup_credentials(&self, kind: &BackupProviderKind) -> Result<BackupCredentials> {
-        GetBackupCredentialsOperation {
-            provider: self.backup_credentials_provider,
-        }
-        .execute(kind)
-    }
-
-    fn backup_provider(&self, credentials: &BackupCredentials) -> Result<BP> {
+    fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<BP> {
         self.backup_provider_builder
             .build_backup_provider(credentials)
     }
@@ -43,14 +44,7 @@ where
         let mut page_number = 1;
 
         loop {
-            let commands = self.list_commands_provider.list_commands(
-                crate::services::FilterCommandsParameters {
-                    program_contains: None,
-                    page_number,
-                    page_size: BACKUP_BATCH_SIZE,
-                    workspace_id: None,
-                },
-            )?;
+            let commands = self.list_commands(page_number)?;
 
             if commands.is_empty() {
                 break;
@@ -67,13 +61,7 @@ where
         let mut page_number = 1;
 
         loop {
-            let workspaces =
-                self.list_workspaces_provider
-                    .list_workspaces(FilterWorkspacesParameters {
-                        name_contains: None,
-                        page_number,
-                        page_size: BACKUP_BATCH_SIZE,
-                    })?;
+            let workspaces = self.list_workspaces(page_number)?;
 
             if workspaces.is_empty() {
                 break;
@@ -89,12 +77,40 @@ where
     pub fn execute(&self, kind: &BackupProviderKind) -> Result<()> {
         tracing::info!(operation = "Export");
 
-        let credentials = self.backup_credentials(kind)?;
-        let backup_provider = self.backup_provider(&credentials)?;
+        let credentials = self.get_backup_credentials(kind)?;
+        let backup_provider = self.build_backup_provider(&credentials)?;
 
         self.import_workspaces(&backup_provider)?;
         self.import_commands(&backup_provider)?;
 
         Ok(())
+    }
+
+    fn get_backup_credentials(&self, kind: &BackupProviderKind) -> Result<BackupCredentials> {
+        GetBackupCredentialsOperation {
+            provider: self.backup_credentials_provider,
+        }
+        .execute(kind)
+    }
+
+    fn list_commands(&self, page_number: u32) -> Result<Vec<Command>> {
+        let parameters = FilterCommandsParameters {
+            program_contains: None,
+            page_number,
+            page_size: BACKUP_BATCH_SIZE,
+            workspace_id: None,
+        };
+
+        self.list_commands_provider.list_commands(parameters)
+    }
+
+    fn list_workspaces(&self, page_number: u32) -> Result<Vec<Workspace>> {
+        let parameters = FilterWorkspacesParameters {
+            name_contains: None,
+            page_number,
+            page_size: BACKUP_BATCH_SIZE,
+        };
+
+        self.list_workspaces_provider.list_workspaces(parameters)
     }
 }

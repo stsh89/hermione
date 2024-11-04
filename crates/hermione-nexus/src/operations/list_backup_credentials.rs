@@ -1,7 +1,14 @@
-use crate::{definitions::BackupCredentials, services::ListBackupCredentials, Result};
+use crate::{
+    definitions::BackupCredentials,
+    services::{ListBackupCredentials, StorageProvider},
+    Result,
+};
 
-pub struct ListBackupCredentialsOperation<'a, L> {
-    pub provider: &'a L,
+pub struct ListBackupCredentialsOperation<'a, SP>
+where
+    SP: StorageProvider,
+{
+    pub provider: &'a SP,
 }
 
 impl<'a, L> ListBackupCredentialsOperation<'a, L>

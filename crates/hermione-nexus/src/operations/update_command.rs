@@ -1,11 +1,15 @@
 use crate::{
     definitions::{Command, CommandId},
     operations::GetCommandOperation,
-    services::{EditCommandParameters, FindCommand, UpdateCommand},
+    services::{EditCommandParameters, FindCommand, StorageProvider, UpdateCommand},
     Result,
 };
 
-pub struct UpdateCommandOperation<'a, FW, UW> {
+pub struct UpdateCommandOperation<'a, FW, UW>
+where
+    FW: StorageProvider,
+    UW: StorageProvider,
+{
     pub find_command_provider: &'a FW,
     pub update_command_provider: &'a UW,
 }
@@ -26,10 +30,7 @@ where
 
         let UpdateCommandParameters { id, program, name } = parameters;
 
-        let mut command = GetCommandOperation {
-            provider: self.find_command_provider,
-        }
-        .execute(id)?;
+        let mut command = self.get_command(id)?;
 
         command.set_program(program);
         command.set_name(name);
@@ -42,5 +43,12 @@ where
             })?;
 
         Ok(command)
+    }
+
+    fn get_command(&self, id: &CommandId) -> Result<Command> {
+        GetCommandOperation {
+            provider: self.find_command_provider,
+        }
+        .execute(id)
     }
 }

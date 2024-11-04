@@ -7,16 +7,16 @@ use uuid::Uuid;
 pub struct Command {
     id: CommandId,
     last_execute_time: Option<DateTime<Utc>>,
-    program: CommandProgram,
     name: CommandName,
+    program: CommandProgram,
     workspace_id: WorkspaceId,
 }
 
 pub struct CommandParameters {
     pub id: Uuid,
     pub last_execute_time: Option<DateTime<Utc>>,
-    pub program: String,
     pub name: String,
+    pub program: String,
     pub workspace_id: WorkspaceId,
 }
 
@@ -42,10 +42,6 @@ impl Command {
         self.last_execute_time.as_ref()
     }
 
-    pub fn program(&self) -> &str {
-        &self.program.value
-    }
-
     pub fn name(&self) -> &str {
         &self.name.value
     }
@@ -68,6 +64,10 @@ impl Command {
         })
     }
 
+    pub fn program(&self) -> &str {
+        &self.program.value
+    }
+
     pub fn set_execute_time(&mut self, time: DateTime<Utc>) {
         self.last_execute_time = Some(time);
     }
@@ -88,7 +88,9 @@ impl Command {
 impl CommandId {
     fn new(value: Uuid) -> Result<Self> {
         if value.is_nil() {
-            return Err(Error::Internal("Invalid command ID".to_string()));
+            return Err(Error::InvalidArgument(
+                "Command ID cannot be nil".to_string(),
+            ));
         }
 
         Ok(Self(value))

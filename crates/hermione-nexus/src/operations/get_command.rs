@@ -1,11 +1,14 @@
 use crate::{
     definitions::{Command, CommandId},
-    services::FindCommand,
+    services::{FindCommand, StorageProvider},
     Error, Result,
 };
 
-pub struct GetCommandOperation<'a, F> {
-    pub provider: &'a F,
+pub struct GetCommandOperation<'a, SP>
+where
+    SP: StorageProvider,
+{
+    pub provider: &'a SP,
 }
 
 impl<'a, F> GetCommandOperation<'a, F>
@@ -15,10 +18,8 @@ where
     pub fn execute(&self, id: &CommandId) -> Result<Command> {
         tracing::info!(operation = "Get command");
 
-        let Some(command) = self.provider.find_command(id)? else {
-            return Err(Error::NotFound(format!("Command {}", id.braced())));
-        };
-
-        Ok(command)
+        self.provider
+            .find_command(id)?
+            .ok_or(Error::NotFound(format!("Command {}", id.braced())))
     }
 }

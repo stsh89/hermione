@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use hermione_nexus::{
     definitions::{
         BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters, Workspace,
@@ -36,9 +36,9 @@ pub enum InMemoryStorageError {
 }
 
 pub struct InMemoryStorageProvider {
-    pub workspaces: RwLock<HashMap<Uuid, Workspace>>,
-    pub commands: RwLock<HashMap<Uuid, Command>>,
-    pub backup_credentials: RwLock<HashMap<String, BackupCredentials>>,
+    backup_credentials: RwLock<HashMap<String, BackupCredentials>>,
+    commands: RwLock<HashMap<Uuid, Command>>,
+    workspaces: RwLock<HashMap<Uuid, Workspace>>,
 }
 
 impl InMemoryStorageProvider {
@@ -70,38 +70,6 @@ impl InMemoryStorageProvider {
         let workspaces = self.workspaces.read()?;
 
         Ok(workspaces.len())
-    }
-
-    pub fn get_command_execute_time(
-        &self,
-        id: &Uuid,
-    ) -> Result<Option<DateTime<Utc>>, InMemoryStorageError> {
-        let time = self
-            .get_command(id)?
-            .ok_or(InMemoryStorageError::MissingEntry {
-                entry_name: "Command",
-                entry_id: *id,
-            })?
-            .last_execute_time()
-            .cloned();
-
-        Ok(time)
-    }
-
-    pub fn get_workspace_access_time(
-        &self,
-        id: &Uuid,
-    ) -> Result<Option<DateTime<Utc>>, InMemoryStorageError> {
-        let time = self
-            .get_workspace(id)?
-            .ok_or(InMemoryStorageError::MissingEntry {
-                entry_name: "Workspace",
-                entry_id: *id,
-            })?
-            .last_access_time()
-            .cloned();
-
-        Ok(time)
     }
 
     fn get_backup_credentials(
@@ -239,6 +207,18 @@ impl InMemoryStorageProvider {
         let workspaces = self.workspaces.read()?;
 
         Ok(workspaces.values().cloned().collect())
+    }
+}
+
+impl<T> From<PoisonError<T>> for InMemoryStorageError {
+    fn from(err: PoisonError<T>) -> Self {
+        Self::LockAccess(err.to_string())
+    }
+}
+
+impl From<InMemoryStorageError> for Error {
+    fn from(err: InMemoryStorageError) -> Self {
+        Self::Storage(eyre::Error::new(err))
     }
 }
 
@@ -499,17 +479,5 @@ impl UpsertWorkspaces for InMemoryStorageProvider {
         }
 
         Ok(())
-    }
-}
-
-impl<T> From<PoisonError<T>> for InMemoryStorageError {
-    fn from(err: PoisonError<T>) -> Self {
-        Self::LockAccess(err.to_string())
-    }
-}
-
-impl From<InMemoryStorageError> for Error {
-    fn from(err: InMemoryStorageError) -> Self {
-        Self::Storage(eyre::Error::new(err))
     }
 }
