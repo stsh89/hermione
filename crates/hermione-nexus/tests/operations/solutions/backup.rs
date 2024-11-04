@@ -2,12 +2,13 @@ use hermione_nexus::{
     definitions::{BackupCredentials, Command, Workspace},
     services::{
         BackupProvider, BackupProviderBuilder, ListCommandsBackup, ListWorkspacesBackup,
-        VerifyBackupCredentials,
+        UpsertCommandsBackup, UpsertWorkspacesBackup, VerifyBackupCredentials,
     },
     Error,
 };
 use std::{
     collections::HashMap,
+    rc::Rc,
     sync::{PoisonError, RwLock},
 };
 use uuid::Uuid;
@@ -20,15 +21,22 @@ pub enum MockBackupProviderError {
     LockAccess(String),
 }
 
+#[derive(Default)]
 pub struct MockBackupProviderBuilder {
-    commands: Vec<Command>,
-    workspaces: Vec<Workspace>,
+    commands: Rc<RwLock<HashMap<Uuid, Command>>>,
+    workspaces: Rc<RwLock<HashMap<Uuid, Workspace>>>,
 }
 
 pub struct MockBackupProvider {
     credentials: BackupCredentials,
-    commands: RwLock<HashMap<Uuid, Command>>,
-    workspaces: RwLock<HashMap<Uuid, Workspace>>,
+    commands: Rc<RwLock<HashMap<Uuid, Command>>>,
+    workspaces: Rc<RwLock<HashMap<Uuid, Workspace>>>,
+}
+
+pub struct MockBackupProviderParameters {
+    pub credentials: BackupCredentials,
+    pub commands: Rc<RwLock<HashMap<Uuid, Command>>>,
+    pub workspaces: Rc<RwLock<HashMap<Uuid, Workspace>>>,
 }
 
 impl MockBackupProvider {
@@ -40,8 +48,14 @@ impl MockBackupProvider {
         Ok(commands)
     }
 
-    pub fn commands_count(&self) -> Result<usize, MockBackupProviderError> {
+    pub fn count_commands(&self) -> Result<usize, MockBackupProviderError> {
         let count = self.commands.read()?.len();
+
+        Ok(count)
+    }
+
+    pub fn count_workspaces(&self) -> Result<usize, MockBackupProviderError> {
+        let count = self.workspaces.read()?.len();
 
         Ok(count)
     }
@@ -62,11 +76,17 @@ impl MockBackupProvider {
         Ok(())
     }
 
-    pub fn new(credentials: BackupCredentials) -> Self {
-        Self {
-            commands: RwLock::new(HashMap::new()),
-            workspaces: RwLock::new(HashMap::new()),
+    pub fn new(parameters: MockBackupProviderParameters) -> Self {
+        let MockBackupProviderParameters {
             credentials,
+            commands,
+            workspaces,
+        } = parameters;
+
+        Self {
+            credentials,
+            commands,
+            workspaces,
         }
     }
 
@@ -77,45 +97,23 @@ impl MockBackupProvider {
 
         Ok(workspaces)
     }
-
-    pub fn workspaces_count(&self) -> Result<usize, MockBackupProviderError> {
-        let count = self.workspaces.read()?.len();
-
-        Ok(count)
-    }
 }
 
 impl MockBackupProviderBuilder {
-    pub fn new() -> Self {
-        Self {
-            commands: Vec::new(),
-            workspaces: Vec::new(),
-        }
+    pub fn build(&self, credentials: BackupCredentials) -> MockBackupProvider {
+        MockBackupProvider::new(MockBackupProviderParameters {
+            credentials,
+            commands: self.commands.clone(),
+            workspaces: self.workspaces.clone(),
+        })
     }
 
-    pub fn build(
-        &self,
-        credentials: BackupCredentials,
-    ) -> Result<MockBackupProvider, MockBackupProviderError> {
-        let backup_provider = MockBackupProvider::new(credentials);
-
-        for command in &self.commands {
-            backup_provider.insert_command(&command)?;
-        }
-
-        for workspace in &self.workspaces {
-            backup_provider.insert_workspace(&workspace)?;
-        }
-
-        Ok(backup_provider)
+    pub fn commands(&self) -> Rc<RwLock<HashMap<Uuid, Command>>> {
+        self.commands.clone()
     }
 
-    pub fn set_commands(&mut self, commands: Vec<Command>) {
-        self.commands = commands;
-    }
-
-    pub fn set_workspaces(&mut self, workspaces: Vec<Workspace>) {
-        self.workspaces = workspaces;
+    pub fn workspaces(&self) -> Rc<RwLock<HashMap<Uuid, Workspace>>> {
+        self.workspaces.clone()
     }
 }
 
@@ -124,7 +122,7 @@ impl BackupProviderBuilder<MockBackupProvider> for MockBackupProviderBuilder {
         &self,
         credentials: &BackupCredentials,
     ) -> Result<MockBackupProvider, Error> {
-        let backup_provider = self.build(credentials.clone())?;
+        let backup_provider = self.build(credentials.clone());
 
         Ok(backup_provider)
     }
@@ -177,6 +175,26 @@ impl ListWorkspacesBackup for MockBackupProvider {
         }
 
         Ok(Some((workspaces, Some((page_id + 1).to_string()))))
+    }
+}
+
+impl UpsertCommandsBackup for MockBackupProvider {
+    fn upsert_commands_backup(&self, commands: Vec<Command>) -> hermione_nexus::Result<()> {
+        for command in commands {
+            self.insert_command(&command)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl UpsertWorkspacesBackup for MockBackupProvider {
+    fn upsert_workspaces_backup(&self, workspaces: Vec<Workspace>) -> hermione_nexus::Result<()> {
+        for workspace in workspaces {
+            self.insert_workspace(&workspace)?;
+        }
+
+        Ok(())
     }
 }
 

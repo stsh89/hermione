@@ -15,7 +15,7 @@ where
     T: FnOnce(SaveBackupCredentialsOperationTestContext) -> Result<()>,
 {
     let storage = InMemoryStorageProvider::new();
-    let backup_provider_builder = MockBackupProviderBuilder::new();
+    let backup_provider_builder = MockBackupProviderBuilder::default();
 
     test_fn(SaveBackupCredentialsOperationTestContext {
         storage,

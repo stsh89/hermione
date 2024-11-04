@@ -7,6 +7,7 @@ mod delete_backup_credentials_test;
 mod delete_workspace_test;
 mod detele_command_test;
 mod execute_command_test;
+mod export_test;
 mod get_command_test;
 mod get_workspace_test;
 mod import_test;

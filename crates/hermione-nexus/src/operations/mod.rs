@@ -15,6 +15,7 @@ mod list_workspaces;
 mod save_backup_credentials;
 mod update_command;
 mod update_workspace;
+mod export;
 
 pub use copy_command_to_clipboard::*;
 pub use create_command::*;
@@ -33,3 +34,4 @@ pub use list_workspaces::*;
 pub use save_backup_credentials::*;
 pub use update_command::*;
 pub use update_workspace::*;
+pub use export::*;

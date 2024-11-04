@@ -22,7 +22,7 @@ fn it_creates_workspace() -> Result<()> {
     with_context(|ctx| {
         let CreateWorkspaceOperationTestContext { storage } = ctx;
 
-        assert_eq!(storage.workspaces_count()?, 0);
+        assert_eq!(storage.count_workspaces()?, 0);
 
         let workspace =
             CreateWorkspaceOperation { provider: &storage }.execute(CreateWorkspaceParameters {
@@ -30,7 +30,7 @@ fn it_creates_workspace() -> Result<()> {
                 location: Some("/home/ironman".to_string()),
             })?;
 
-        assert_eq!(storage.workspaces_count()?, 1);
+        assert_eq!(storage.count_workspaces()?, 1);
         assert_eq!(workspace.name(), "Test workspace");
         assert_eq!(workspace.location(), Some("/home/ironman"));
         assert_eq!(workspace.last_access_time(), None);

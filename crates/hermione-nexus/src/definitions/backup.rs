@@ -1,5 +1,6 @@
 pub enum BackupProviderKind {
     Notion,
+    Unknown,
 }
 
 #[derive(Clone)]
@@ -58,6 +59,7 @@ impl BackupProviderKind {
     pub fn as_str(&self) -> &str {
         match self {
             Self::Notion => "Notion",
+            Self::Unknown => "Unknown",
         }
     }
 }

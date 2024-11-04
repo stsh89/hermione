@@ -27,7 +27,7 @@ fn it_deletes_workspace() -> Result<()> {
     with_context(|ctx| {
         let DeleteWorkspaceOperationTestContext { storage, workspace } = ctx;
 
-        assert_eq!(storage.workspaces_count()?, 1);
+        assert_eq!(storage.count_workspaces()?, 1);
 
         DeleteWorkspaceOperation {
             find_workspace_provider: &storage,
@@ -36,7 +36,7 @@ fn it_deletes_workspace() -> Result<()> {
         }
         .execute(workspace.id())?;
 
-        assert_eq!(storage.workspaces_count()?, 0);
+        assert_eq!(storage.count_workspaces()?, 0);
 
         Ok(())
     })
@@ -47,7 +47,7 @@ fn it_deletes_workspace_commands() -> Result<()> {
     with_context(|ctx| {
         let DeleteWorkspaceOperationTestContext { storage, workspace } = ctx;
 
-        assert_eq!(storage.commands_count()?, 1);
+        assert_eq!(storage.count_commands()?, 1);
 
         DeleteWorkspaceOperation {
             find_workspace_provider: &storage,
@@ -56,7 +56,7 @@ fn it_deletes_workspace_commands() -> Result<()> {
         }
         .execute(workspace.id())?;
 
-        assert_eq!(storage.commands_count()?, 0);
+        assert_eq!(storage.count_commands()?, 0);
 
         Ok(())
     })
@@ -70,7 +70,7 @@ fn it_returns_not_found_error() -> Result<()> {
             workspace: _,
         } = ctx;
 
-        assert_eq!(storage.workspaces_count()?, 1);
+        assert_eq!(storage.count_workspaces()?, 1);
 
         let result = DeleteWorkspaceOperation {
             find_workspace_provider: &storage,
@@ -79,7 +79,7 @@ fn it_returns_not_found_error() -> Result<()> {
         }
         .execute(&Uuid::nil().into());
 
-        assert_eq!(storage.workspaces_count()?, 1);
+        assert_eq!(storage.count_workspaces()?, 1);
         assert!(matches!(result, Err(Error::NotFound(_))));
 
         Ok(())

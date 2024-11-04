@@ -54,16 +54,22 @@ impl InMemoryStorageProvider {
         Ok(commands.values().cloned().collect())
     }
 
-    pub fn commands_count(&self) -> Result<usize, InMemoryStorageError> {
+    pub fn count_backup_credentials(&self) -> Result<usize, InMemoryStorageError> {
+        let count = self.backup_credentials.read()?.len();
+
+        Ok(count)
+    }
+
+    pub fn count_commands(&self) -> Result<usize, InMemoryStorageError> {
         let commands = self.commands.read()?;
 
         Ok(commands.len())
     }
 
-    pub fn count_backup_credentials(&self) -> Result<usize, InMemoryStorageError> {
-        let count = self.backup_credentials.read()?.len();
+    pub fn count_workspaces(&self) -> Result<usize, InMemoryStorageError> {
+        let workspaces = self.workspaces.read()?;
 
-        Ok(count)
+        Ok(workspaces.len())
     }
 
     pub fn get_command_execute_time(
@@ -201,12 +207,6 @@ impl InMemoryStorageProvider {
         Ok(())
     }
 
-    pub fn reset_backup_credentials(&self) -> Result<(), InMemoryStorageError> {
-        *self.backup_credentials.write()? = HashMap::new();
-
-        Ok(())
-    }
-
     fn set_command_execute_time(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
         let command = self.get_command(id)?;
 
@@ -239,12 +239,6 @@ impl InMemoryStorageProvider {
         let workspaces = self.workspaces.read()?;
 
         Ok(workspaces.values().cloned().collect())
-    }
-
-    pub fn workspaces_count(&self) -> Result<usize, InMemoryStorageError> {
-        let workspaces = self.workspaces.read()?;
-
-        Ok(workspaces.len())
     }
 }
 

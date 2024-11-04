@@ -27,7 +27,7 @@ fn it_creates_command() -> Result<()> {
     with_context(|ctx| {
         let CreateCommandOperationTestContext { storage, workspace } = ctx;
 
-        assert_eq!(storage.commands_count()?, 0);
+        assert_eq!(storage.count_commands()?, 0);
 
         let command =
             CreateCommandOperation { provider: &storage }.execute(CreateCommandParameters {
@@ -36,7 +36,7 @@ fn it_creates_command() -> Result<()> {
                 workspace_id: workspace.id().clone(),
             })?;
 
-        assert_eq!(storage.commands_count()?, 1);
+        assert_eq!(storage.count_commands()?, 1);
         assert_eq!(command.name(), "Test command");
         assert_eq!(command.program(), "ping 1.1.1.1");
         assert_eq!(command.last_execute_time(), None);

@@ -21,6 +21,14 @@ pub trait BackupProviderBuilder<T> {
     fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<T>;
 }
 
+pub trait UpsertCommandsBackup: BackupProvider {
+    fn upsert_commands_backup(&self, commands: Vec<Command>) -> Result<()>;
+}
+
+pub trait UpsertWorkspacesBackup: BackupProvider {
+    fn upsert_workspaces_backup(&self, workspaces: Vec<Workspace>) -> Result<()>;
+}
+
 pub trait VerifyBackupCredentials: BackupProvider {
     fn verify_backup_credentials(&self) -> Result<bool>;
 }
