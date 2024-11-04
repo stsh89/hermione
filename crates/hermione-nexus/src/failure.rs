@@ -1,5 +1,8 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("Backup: {0}")]
+    Backup(String),
+
     #[error("Internal: {0}")]
     Internal(String),
 
@@ -15,9 +18,8 @@ pub enum Error {
 
 #[cfg(test)]
 mod tests {
-    use uuid::Uuid;
-
     use super::Error;
+    use uuid::Uuid;
 
     #[test]
     fn test_not_found() {

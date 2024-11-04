@@ -1,14 +1,16 @@
 use chrono::{DateTime, Utc};
 use hermione_nexus::{
     definitions::{
-        Command, CommandId, CommandParameters, Workspace, WorkspaceId, WorkspaceParameters,
+        BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters, Workspace,
+        WorkspaceId, WorkspaceParameters,
     },
     services::{
         CreateCommand, CreateWorkspace, DeleteCommand, DeleteWorkspace, DeleteWorkspaceCommands,
         EditCommandParameters, EditWorkspaceParameters, FilterCommandsParameters,
-        FilterWorkspacesParameters, FindCommand, FindWorkspace, ListCommands, ListWorkspaces,
-        NewCommandParameters, NewWorkspaceParameters, StorageProvider, TrackCommandExecuteTime,
-        TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace,
+        FilterWorkspacesParameters, FindBackupCredentials, FindCommand, FindWorkspace,
+        ListCommands, ListWorkspaces, NewCommandParameters, NewWorkspaceParameters,
+        StorageProvider, TrackCommandExecuteTime, TrackWorkspaceAccessTime, UpdateCommand,
+        UpdateWorkspace, UpsertCommands, UpsertWorkspaces,
     },
     Error,
 };
@@ -36,6 +38,7 @@ pub enum InMemoryStorageError {
 pub struct InMemoryStorageProvider {
     pub workspaces: RwLock<HashMap<Uuid, Workspace>>,
     pub commands: RwLock<HashMap<Uuid, Command>>,
+    pub backup_credentials: RwLock<HashMap<String, BackupCredentials>>,
 }
 
 impl InMemoryStorageProvider {
@@ -49,6 +52,12 @@ impl InMemoryStorageProvider {
         let commands = self.commands.read()?;
 
         Ok(commands.len())
+    }
+
+    pub fn count_backup_credentials(&self) -> Result<usize, InMemoryStorageError> {
+        let count = self.backup_credentials.read()?.len();
+
+        Ok(count)
     }
 
     pub fn get_command_execute_time(
@@ -83,16 +92,36 @@ impl InMemoryStorageProvider {
         Ok(time)
     }
 
-    fn get_command(&self, id: &Uuid) -> Result<Option<Command>, InMemoryStorageError> {
+    fn get_backup_credentials(
+        &self,
+        kind: &str,
+    ) -> Result<Option<BackupCredentials>, InMemoryStorageError> {
+        let credentials = self.backup_credentials.read()?.get(kind).cloned();
+
+        Ok(credentials)
+    }
+
+    pub fn get_command(&self, id: &Uuid) -> Result<Option<Command>, InMemoryStorageError> {
         let command = self.commands.read()?.get(id).cloned();
 
         Ok(command)
     }
 
-    fn get_workspace(&self, id: &Uuid) -> Result<Option<Workspace>, InMemoryStorageError> {
+    pub fn get_workspace(&self, id: &Uuid) -> Result<Option<Workspace>, InMemoryStorageError> {
         let workspace = self.workspaces.read()?.get(id).cloned();
 
         Ok(workspace)
+    }
+
+    pub fn insert_backup_credentials(
+        &self,
+        credentials: BackupCredentials,
+    ) -> Result<(), InMemoryStorageError> {
+        let mut collection = self.backup_credentials.write()?;
+
+        collection.insert(credentials.kind().as_str().to_string(), credentials);
+
+        Ok(())
     }
 
     pub fn insert_command(&self, command: &Command) -> Result<(), InMemoryStorageError> {
@@ -121,35 +150,8 @@ impl InMemoryStorageProvider {
         Self {
             workspaces: RwLock::new(HashMap::new()),
             commands: RwLock::new(HashMap::new()),
+            backup_credentials: RwLock::new(HashMap::new()),
         }
-    }
-
-    fn set_command_execute_time(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
-        let command = self.get_command(id)?;
-
-        let Some(mut command) = command else {
-            return Ok(());
-        };
-
-        command.set_execute_time(Utc::now());
-
-        self.insert_command(&command)?;
-
-        Ok(())
-    }
-
-    fn set_workspace_access_time(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
-        let workspace = self.get_workspace(id)?;
-
-        let Some(mut workspace) = workspace else {
-            return Ok(());
-        };
-
-        workspace.set_access_time(Utc::now());
-
-        self.insert_workspace(&workspace)?;
-
-        Ok(())
     }
 
     fn remove_command(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
@@ -178,6 +180,40 @@ impl InMemoryStorageProvider {
             .map_err(Into::<InMemoryStorageError>::into)?;
 
         workspace.remove(id);
+
+        Ok(())
+    }
+
+    pub fn reset_backup_credentials(&self) -> Result<(), InMemoryStorageError> {
+        *self.backup_credentials.write()? = HashMap::new();
+
+        Ok(())
+    }
+
+    fn set_command_execute_time(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
+        let command = self.get_command(id)?;
+
+        let Some(mut command) = command else {
+            return Ok(());
+        };
+
+        command.set_execute_time(Utc::now());
+
+        self.insert_command(&command)?;
+
+        Ok(())
+    }
+
+    fn set_workspace_access_time(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
+        let workspace = self.get_workspace(id)?;
+
+        let Some(mut workspace) = workspace else {
+            return Ok(());
+        };
+
+        workspace.set_access_time(Utc::now());
+
+        self.insert_workspace(&workspace)?;
 
         Ok(())
     }
@@ -257,6 +293,17 @@ impl DeleteWorkspace for InMemoryStorageProvider {
         self.remove_workspace(id)?;
 
         Ok(())
+    }
+}
+
+impl FindBackupCredentials for InMemoryStorageProvider {
+    fn find_backup_credentials(
+        &self,
+        kind: &BackupProviderKind,
+    ) -> Result<Option<BackupCredentials>, Error> {
+        let credentials = self.get_backup_credentials(kind.as_str())?;
+
+        Ok(credentials)
     }
 }
 
@@ -383,6 +430,16 @@ impl UpdateCommand for InMemoryStorageProvider {
     }
 }
 
+impl UpsertCommands for InMemoryStorageProvider {
+    fn upsert_commands(&self, commands: Vec<Command>) -> Result<(), Error> {
+        for command in commands {
+            self.insert_command(&command)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl UpdateWorkspace for InMemoryStorageProvider {
     fn update_workspace(&self, parameters: EditWorkspaceParameters) -> Result<Workspace, Error> {
         let EditWorkspaceParameters { id, location, name } = parameters;
@@ -397,6 +454,16 @@ impl UpdateWorkspace for InMemoryStorageProvider {
         self.insert_workspace(&workspace)?;
 
         Ok(workspace)
+    }
+}
+
+impl UpsertWorkspaces for InMemoryStorageProvider {
+    fn upsert_workspaces(&self, workspaces: Vec<Workspace>) -> Result<(), Error> {
+        for workspace in workspaces {
+            self.insert_workspace(&workspace)?;
+        }
+
+        Ok(())
     }
 }
 

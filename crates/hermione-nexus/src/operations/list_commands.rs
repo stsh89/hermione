@@ -20,6 +20,8 @@ where
     L: ListCommands,
 {
     pub fn execute(&self, parameters: ListCommandsParameters) -> Result<Vec<Command>> {
+        tracing::info!(operation = "List commands");
+
         let ListCommandsParameters {
             page_size,
             page_number,

@@ -1,6 +1,9 @@
 use chrono::{DateTime, Utc};
 use hermione_nexus::{
-    definitions::{Command, CommandParameters, Workspace, WorkspaceParameters},
+    definitions::{
+        BackupCredentials, Command, CommandParameters, NotionBackupCredentialsParameters,
+        Workspace, WorkspaceParameters,
+    },
     Result,
 };
 use uuid::Uuid;
@@ -19,6 +22,14 @@ pub struct WorkspaceFixtureParameters {
     pub location: Option<String>,
     pub last_access_time: Option<DateTime<Utc>>,
     pub id: Option<Uuid>,
+}
+
+pub fn backup_credentials_fixture() -> BackupCredentials {
+    BackupCredentials::notion(NotionBackupCredentialsParameters {
+        api_key: "test_api_key".to_string(),
+        workspaces_database_id: "test_workspaces_database_id".to_string(),
+        commands_database_id: "test_commands_database_id".to_string(),
+    })
 }
 
 pub fn command_fixture(

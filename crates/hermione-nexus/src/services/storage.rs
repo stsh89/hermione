@@ -1,5 +1,7 @@
 use crate::{
-    definitions::{Command, CommandId, Workspace, WorkspaceId},
+    definitions::{
+        BackupCredentials, BackupProviderKind, Command, CommandId, Workspace, WorkspaceId,
+    },
     Result,
 };
 
@@ -25,12 +27,31 @@ pub trait DeleteWorkspace: StorageProvider {
     fn delete_workspace(&self, id: &WorkspaceId) -> Result<()>;
 }
 
+pub trait FindBackupCredentials: StorageProvider {
+    fn find_backup_credentials(
+        &self,
+        kind: &BackupProviderKind,
+    ) -> Result<Option<BackupCredentials>>;
+}
+
 pub trait FindCommand: StorageProvider {
     fn find_command(&self, id: &CommandId) -> Result<Option<Command>>;
 }
 
 pub trait FindWorkspace: StorageProvider {
     fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>>;
+}
+
+pub trait UpsertCommands: StorageProvider {
+    fn upsert_commands(&self, commands: Vec<Command>) -> Result<()>;
+}
+
+pub trait UpsertWorkspaces: StorageProvider {
+    fn upsert_workspaces(&self, workspaces: Vec<Workspace>) -> Result<()>;
+}
+
+pub trait ListBackupCredentials: StorageProvider {
+    fn list_backup_credentials(&self) -> Result<Vec<BackupCredentials>>;
 }
 
 pub trait ListCommands: StorageProvider {

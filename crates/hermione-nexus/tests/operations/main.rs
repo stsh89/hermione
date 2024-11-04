@@ -8,6 +8,7 @@ mod detele_command_test;
 mod execute_command_test;
 mod get_command_test;
 mod get_workspace_test;
+mod import_test;
 mod list_commands_test;
 mod list_workspaces_test;
 mod update_command_test;
