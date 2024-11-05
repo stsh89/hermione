@@ -124,6 +124,29 @@ pub fn migrate(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
+pub fn restore_workspaces(conn: &Connection, records: Vec<WorkspaceRecord>) -> Result<()> {
+    let mut statement = conn.prepare(
+        "INSERT INTO
+        workspaces
+        VALUES (:id, :last_access_time, :location, :name)
+        ON CONFLICT (id) DO UPDATE SET
+            last_access_time = excluded.last_access_time,
+            location = excluded.location,
+            name = excluded.name",
+    )?;
+
+    for record in records {
+        statement.execute(named_params![
+            ":id": record.id,
+            ":last_access_time": record.last_access_time,
+            ":location": record.location,
+            ":name": record.name
+        ])?;
+    }
+
+    Ok(())
+}
+
 pub fn update_workspace(conn: &Connection, record: WorkspaceRecord) -> Result<usize> {
     let WorkspaceRecord {
         id,
