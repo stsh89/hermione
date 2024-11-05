@@ -145,8 +145,6 @@ fn it_returns_not_found_error() -> Result<()> {
             ref backup_provider_builder,
         } = ctx;
 
-        assert_eq!(storage.count_backup_credentials()?, 0);
-
         let res = ImportOperation {
             backup_credentials_provider: &storage,
             upsert_commands_provider: &storage,

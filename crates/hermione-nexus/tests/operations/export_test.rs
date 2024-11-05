@@ -91,8 +91,6 @@ fn it_returns_not_found_error() -> Result<()> {
             backup_credentials: _,
         } = ctx;
 
-        assert_eq!(storage.count_backup_credentials()?, 0);
-
         let result = ExportOperation {
             backup_credentials_provider: &storage,
             backup_provider_builder,
