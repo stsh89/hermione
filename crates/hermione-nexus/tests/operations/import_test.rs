@@ -1,6 +1,6 @@
 use crate::solutions::{
-    backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorage,
-    MockBackupProvider, MockBackupProviderBuilder, MockBackupProviderParameters,
+    backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorage, MockBackup,
+    MockBackupBuilder, MockBackupParameters, MockStorageBackup,
 };
 use hermione_nexus::{
     definitions::{BackupCredentials, BackupProviderKind},
@@ -11,25 +11,27 @@ use std::marker::PhantomData;
 
 struct ImportOperationTestContext {
     storage: InMemoryStorage,
-    backup: MockBackupProvider,
-    backup_provider_builder: MockBackupProviderBuilder,
+    backup: MockBackup,
+    backup_builder: MockBackupBuilder,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(ImportOperationTestContext) -> Result<()>,
 {
-    let credentials = backup_credentials_fixture(Default::default());
     let storage = InMemoryStorage::default();
+    let storage_backup = MockStorageBackup::default();
 
+    let credentials = backup_credentials_fixture(Default::default());
     storage.insert_backup_credentials(credentials.clone())?;
 
     let BackupCredentials::Notion(credentials) = credentials;
-    let backup_provider_builder = MockBackupProviderBuilder::default();
-    let backup = MockBackupProvider::new(MockBackupProviderParameters {
+    let backup_builder =
+        MockBackupBuilder::new(storage_backup.commands(), storage_backup.workspaces());
+    let backup = MockBackup::new(MockBackupParameters {
         credentials,
-        workspaces: backup_provider_builder.workspaces(),
-        commands: backup_provider_builder.commands(),
+        workspaces: storage_backup.workspaces(),
+        commands: storage_backup.commands(),
     });
 
     for _ in 1..=2 {
@@ -45,7 +47,7 @@ where
     test_fn(ImportOperationTestContext {
         storage,
         backup,
-        backup_provider_builder,
+        backup_builder,
     })
 }
 
@@ -55,7 +57,7 @@ fn it_inserts_missing_workspaces_and_commands() -> Result<()> {
         let ImportOperationTestContext {
             storage,
             backup,
-            ref backup_provider_builder,
+            backup_builder,
         } = ctx;
 
         assert_eq!(backup.count_commands()?, 6);
@@ -67,7 +69,7 @@ fn it_inserts_missing_workspaces_and_commands() -> Result<()> {
             backup_credentials_provider: &storage,
             upsert_commands_provider: &storage,
             upsert_workspaces_provider: &storage,
-            backup_provider_builder,
+            backup_provider_builder: &backup_builder,
             backup_provider: PhantomData,
         }
         .execute(&BackupProviderKind::Notion)?;
@@ -85,7 +87,7 @@ fn it_updates_existing_workspaces_and_commands() -> Result<()> {
         let ImportOperationTestContext {
             storage,
             backup,
-            ref backup_provider_builder,
+            backup_builder,
         } = ctx;
 
         let mut workspace = backup.workspaces()?.first().cloned().unwrap();
@@ -117,7 +119,7 @@ fn it_updates_existing_workspaces_and_commands() -> Result<()> {
             backup_credentials_provider: &storage,
             upsert_commands_provider: &storage,
             upsert_workspaces_provider: &storage,
-            backup_provider_builder,
+            backup_provider_builder: &backup_builder,
             backup_provider: PhantomData,
         }
         .execute(&BackupProviderKind::Notion)?;
@@ -141,7 +143,7 @@ fn it_returns_not_found_error() -> Result<()> {
         let ImportOperationTestContext {
             storage,
             backup: _,
-            ref backup_provider_builder,
+            backup_builder: ref backup_provider_builder,
         } = ctx;
 
         let res = ImportOperation {

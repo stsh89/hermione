@@ -6,8 +6,8 @@ use std::sync::{PoisonError, RwLock};
 
 #[derive(thiserror::Error, Debug)]
 pub enum MockSystemError {
-    #[error("Lock access: {0}")]
-    LockAccess(String),
+    #[error("Memory access error: {0}")]
+    MemoryAccess(String),
 }
 
 #[derive(Default)]
@@ -31,7 +31,7 @@ impl MockSystem {
 
 impl<T> From<PoisonError<T>> for MockSystemError {
     fn from(err: PoisonError<T>) -> Self {
-        Self::LockAccess(err.to_string())
+        Self::MemoryAccess(err.to_string())
     }
 }
 

@@ -22,11 +22,11 @@ use uuid::Uuid;
 
 #[derive(thiserror::Error, Debug)]
 pub enum InMemoryStorageError {
-    #[error("Data integrity: {0}")]
+    #[error("Data integrity error: {0}")]
     DataItegrity(String),
 
-    #[error("Lock access: {0}")]
-    LockAccess(String),
+    #[error("Memory access error: {0}")]
+    MemoryAccess(String),
 
     #[error("{entry_name} entry with ID {entry_id} is missing")]
     MissingEntry {
@@ -205,7 +205,7 @@ impl InMemoryStorage {
 
 impl<T> From<PoisonError<T>> for InMemoryStorageError {
     fn from(err: PoisonError<T>) -> Self {
-        Self::LockAccess(err.to_string())
+        Self::MemoryAccess(err.to_string())
     }
 }
 

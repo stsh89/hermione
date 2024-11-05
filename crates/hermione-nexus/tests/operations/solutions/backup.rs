@@ -16,31 +16,36 @@ use uuid::Uuid;
 pub const TEST_NOTION_API_KEY: &str = "test_notion_api_key";
 
 #[derive(thiserror::Error, Debug)]
-pub enum MockBackupProviderError {
-    #[error("Lock access: {0}")]
-    LockAccess(String),
+pub enum MockBackupError {
+    #[error("Memory access error: {0}")]
+    MemoryAccess(String),
 }
 
-#[derive(Default)]
-pub struct MockBackupProviderBuilder {
+pub struct MockBackupBuilder {
     commands: Rc<RwLock<HashMap<Uuid, Command>>>,
     workspaces: Rc<RwLock<HashMap<Uuid, Workspace>>>,
 }
 
-pub struct MockBackupProvider {
+pub struct MockBackup {
     credentials: NotionBackupCredentials,
     commands: Rc<RwLock<HashMap<Uuid, Command>>>,
     workspaces: Rc<RwLock<HashMap<Uuid, Workspace>>>,
 }
 
-pub struct MockBackupProviderParameters {
+#[derive(Default)]
+pub struct MockStorageBackup {
+    commands: Rc<RwLock<HashMap<Uuid, Command>>>,
+    workspaces: Rc<RwLock<HashMap<Uuid, Workspace>>>,
+}
+
+pub struct MockBackupParameters {
     pub credentials: NotionBackupCredentials,
     pub commands: Rc<RwLock<HashMap<Uuid, Command>>>,
     pub workspaces: Rc<RwLock<HashMap<Uuid, Workspace>>>,
 }
 
-impl MockBackupProvider {
-    pub fn commands(&self) -> Result<Vec<Command>, MockBackupProviderError> {
+impl MockBackup {
+    pub fn commands(&self) -> Result<Vec<Command>, MockBackupError> {
         let mut commands: Vec<Command> = self.commands.read()?.values().cloned().collect();
 
         commands.sort_by(|a, b| a.program().cmp(b.program()));
@@ -48,19 +53,19 @@ impl MockBackupProvider {
         Ok(commands)
     }
 
-    pub fn count_commands(&self) -> Result<usize, MockBackupProviderError> {
+    pub fn count_commands(&self) -> Result<usize, MockBackupError> {
         let count = self.commands.read()?.len();
 
         Ok(count)
     }
 
-    pub fn count_workspaces(&self) -> Result<usize, MockBackupProviderError> {
+    pub fn count_workspaces(&self) -> Result<usize, MockBackupError> {
         let count = self.workspaces.read()?.len();
 
         Ok(count)
     }
 
-    pub fn insert_command(&self, command: &Command) -> Result<(), MockBackupProviderError> {
+    pub fn insert_command(&self, command: &Command) -> Result<(), MockBackupError> {
         let mut commands = self.commands.write()?;
 
         commands.insert(**command.id(), command.clone());
@@ -68,7 +73,7 @@ impl MockBackupProvider {
         Ok(())
     }
 
-    pub fn insert_workspace(&self, workspace: &Workspace) -> Result<(), MockBackupProviderError> {
+    pub fn insert_workspace(&self, workspace: &Workspace) -> Result<(), MockBackupError> {
         let mut workspaces = self.workspaces.write()?;
 
         workspaces.insert(**workspace.id(), workspace.clone());
@@ -76,8 +81,8 @@ impl MockBackupProvider {
         Ok(())
     }
 
-    pub fn new(parameters: MockBackupProviderParameters) -> Self {
-        let MockBackupProviderParameters {
+    pub fn new(parameters: MockBackupParameters) -> Self {
+        let MockBackupParameters {
             credentials,
             commands,
             workspaces,
@@ -90,7 +95,7 @@ impl MockBackupProvider {
         }
     }
 
-    pub fn workspaces(&self) -> Result<Vec<Workspace>, MockBackupProviderError> {
+    pub fn workspaces(&self) -> Result<Vec<Workspace>, MockBackupError> {
         let mut workspaces: Vec<Workspace> = self.workspaces.read()?.values().cloned().collect();
 
         workspaces.sort_by(|a, b| a.name().cmp(b.name()));
@@ -99,17 +104,29 @@ impl MockBackupProvider {
     }
 }
 
-impl MockBackupProviderBuilder {
-    pub fn build(&self, credentials: BackupCredentials) -> MockBackupProvider {
+impl MockBackupBuilder {
+    pub fn build(&self, credentials: BackupCredentials) -> MockBackup {
         let BackupCredentials::Notion(credentials) = credentials;
 
-        MockBackupProvider::new(MockBackupProviderParameters {
+        MockBackup::new(MockBackupParameters {
             credentials,
             commands: self.commands.clone(),
             workspaces: self.workspaces.clone(),
         })
     }
 
+    pub fn new(
+        commands: Rc<RwLock<HashMap<Uuid, Command>>>,
+        workspaces: Rc<RwLock<HashMap<Uuid, Workspace>>>,
+    ) -> Self {
+        Self {
+            commands,
+            workspaces,
+        }
+    }
+}
+
+impl MockStorageBackup {
     pub fn commands(&self) -> Rc<RwLock<HashMap<Uuid, Command>>> {
         self.commands.clone()
     }
@@ -119,14 +136,14 @@ impl MockBackupProviderBuilder {
     }
 }
 
-impl<T> From<PoisonError<T>> for MockBackupProviderError {
+impl<T> From<PoisonError<T>> for MockBackupError {
     fn from(err: PoisonError<T>) -> Self {
-        Self::LockAccess(err.to_string())
+        Self::MemoryAccess(err.to_string())
     }
 }
 
-impl From<MockBackupProviderError> for Error {
-    fn from(err: MockBackupProviderError) -> Self {
+impl From<MockBackupError> for Error {
+    fn from(err: MockBackupError) -> Self {
         Self::Storage(eyre::Error::new(err))
     }
 }
@@ -151,18 +168,15 @@ fn get_page<T>(collection: Vec<T>, index: usize) -> Vec<T> {
         .collect()
 }
 
-impl BackupProviderBuilder<MockBackupProvider> for MockBackupProviderBuilder {
-    fn build_backup_provider(
-        &self,
-        credentials: &BackupCredentials,
-    ) -> Result<MockBackupProvider, Error> {
+impl BackupProviderBuilder<MockBackup> for MockBackupBuilder {
+    fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<MockBackup, Error> {
         Ok(self.build(credentials.clone()))
     }
 }
 
-impl BackupProvider for MockBackupProvider {}
+impl BackupProvider for MockBackup {}
 
-impl ListCommandsBackup for MockBackupProvider {
+impl ListCommandsBackup for MockBackup {
     fn list_commands_backup(
         &self,
         page_id: Option<&str>,
@@ -180,7 +194,7 @@ impl ListCommandsBackup for MockBackupProvider {
     }
 }
 
-impl ListWorkspacesBackup for MockBackupProvider {
+impl ListWorkspacesBackup for MockBackup {
     fn list_workspaces_backup(
         &self,
         page_id: Option<&str>,
@@ -198,7 +212,7 @@ impl ListWorkspacesBackup for MockBackupProvider {
     }
 }
 
-impl UpsertCommandsBackup for MockBackupProvider {
+impl UpsertCommandsBackup for MockBackup {
     fn upsert_commands_backup(&self, commands: Vec<Command>) -> hermione_nexus::Result<()> {
         for command in commands {
             self.insert_command(&command)?;
@@ -208,7 +222,7 @@ impl UpsertCommandsBackup for MockBackupProvider {
     }
 }
 
-impl UpsertWorkspacesBackup for MockBackupProvider {
+impl UpsertWorkspacesBackup for MockBackup {
     fn upsert_workspaces_backup(&self, workspaces: Vec<Workspace>) -> hermione_nexus::Result<()> {
         for workspace in workspaces {
             self.insert_workspace(&workspace)?;
@@ -218,7 +232,7 @@ impl UpsertWorkspacesBackup for MockBackupProvider {
     }
 }
 
-impl VerifyBackupCredentials for MockBackupProvider {
+impl VerifyBackupCredentials for MockBackup {
     fn verify_backup_credentials(&self) -> Result<bool, Error> {
         Ok(self.credentials.api_key() == TEST_NOTION_API_KEY)
     }

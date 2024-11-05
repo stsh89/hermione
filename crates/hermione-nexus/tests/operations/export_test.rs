@@ -1,6 +1,6 @@
 use crate::solutions::{
-    backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorage,
-    MockBackupProvider, MockBackupProviderBuilder, MockBackupProviderParameters,
+    backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorage, MockBackup,
+    MockBackupBuilder, MockBackupParameters, MockStorageBackup,
 };
 use hermione_nexus::{
     definitions::{BackupCredentials, BackupProviderKind},
@@ -10,27 +10,29 @@ use hermione_nexus::{
 use std::marker::PhantomData;
 
 struct ExportOperationTestContext {
-    backup: MockBackupProvider,
-    backup_provider_builder: MockBackupProviderBuilder,
-    storage: InMemoryStorage,
+    backup: MockBackup,
     backup_credentials: BackupCredentials,
+    backup_provider_builder: MockBackupBuilder,
+    storage: InMemoryStorage,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(ExportOperationTestContext) -> Result<()>,
 {
-    let backup_credentials = backup_credentials_fixture(Default::default());
     let storage = InMemoryStorage::default();
+    let storage_backup = MockStorageBackup::default();
 
+    let backup_credentials = backup_credentials_fixture(Default::default());
     storage.insert_backup_credentials(backup_credentials.clone())?;
 
     let BackupCredentials::Notion(credentials) = backup_credentials.clone();
-    let backup_provider_builder = MockBackupProviderBuilder::default();
-    let backup = MockBackupProvider::new(MockBackupProviderParameters {
+    let backup_provider_builder =
+        MockBackupBuilder::new(storage_backup.commands(), storage_backup.workspaces());
+    let backup = MockBackup::new(MockBackupParameters {
         credentials,
-        workspaces: backup_provider_builder.workspaces(),
-        commands: backup_provider_builder.commands(),
+        workspaces: storage_backup.workspaces(),
+        commands: storage_backup.commands(),
     });
 
     for _ in 1..=2 {
@@ -46,9 +48,9 @@ where
 
     test_fn(ExportOperationTestContext {
         backup,
+        backup_credentials,
         backup_provider_builder,
         storage,
-        backup_credentials,
     })
 }
 
