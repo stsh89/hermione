@@ -1,5 +1,5 @@
 use crate::solutions::{
-    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorageProvider,
+    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorage,
 };
 use hermione_nexus::{
     definitions::Command,
@@ -9,7 +9,7 @@ use hermione_nexus::{
 use uuid::Uuid;
 
 struct UpdateCommandOperationTestContext {
-    storage: InMemoryStorageProvider,
+    storage: InMemoryStorage,
     command: Command,
 }
 
@@ -17,7 +17,7 @@ fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(UpdateCommandOperationTestContext) -> Result<()>,
 {
-    let storage = InMemoryStorageProvider::new();
+    let storage = InMemoryStorage::default();
     let workspace = workspace_fixture(Default::default())?;
     let command = command_fixture(
         &workspace,

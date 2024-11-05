@@ -1,17 +1,17 @@
-use crate::solutions::{backup_credentials_fixture, InMemoryStorageProvider};
+use crate::solutions::{backup_credentials_fixture, InMemoryStorage};
 use hermione_nexus::{
     definitions::BackupProviderKind, operations::DeleteBackupCredentialsOperation, Error, Result,
 };
 
 struct DeleteBackupCredentialsOperationTestContext {
-    storage: InMemoryStorageProvider,
+    storage: InMemoryStorage,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(DeleteBackupCredentialsOperationTestContext) -> Result<()>,
 {
-    let storage = InMemoryStorageProvider::new();
+    let storage = InMemoryStorage::default();
 
     test_fn(DeleteBackupCredentialsOperationTestContext { storage })
 }

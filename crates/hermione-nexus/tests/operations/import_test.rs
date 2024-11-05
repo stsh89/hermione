@@ -1,5 +1,5 @@
 use crate::solutions::{
-    backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorageProvider,
+    backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorage,
     MockBackupProvider, MockBackupProviderBuilder, MockBackupProviderParameters,
 };
 use hermione_nexus::{
@@ -10,7 +10,7 @@ use hermione_nexus::{
 use std::marker::PhantomData;
 
 struct ImportOperationTestContext {
-    storage: InMemoryStorageProvider,
+    storage: InMemoryStorage,
     backup: MockBackupProvider,
     backup_provider_builder: MockBackupProviderBuilder,
 }
@@ -20,7 +20,7 @@ where
     T: FnOnce(ImportOperationTestContext) -> Result<()>,
 {
     let credentials = backup_credentials_fixture(Default::default());
-    let storage = InMemoryStorageProvider::new();
+    let storage = InMemoryStorage::default();
 
     storage.insert_backup_credentials(credentials.clone())?;
 
@@ -92,8 +92,7 @@ fn it_updates_existing_workspaces_and_commands() -> Result<()> {
         let mut command = backup
             .commands()?
             .into_iter()
-            .filter(|command| command.workspace_id() == workspace.id())
-            .next()
+            .find(|command| command.workspace_id() == workspace.id())
             .unwrap();
 
         workspace.set_name("Renamed workspaces".to_string());

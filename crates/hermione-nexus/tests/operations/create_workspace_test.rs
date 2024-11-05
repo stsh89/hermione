@@ -1,18 +1,18 @@
-use crate::solutions::InMemoryStorageProvider;
+use crate::solutions::InMemoryStorage;
 use hermione_nexus::{
     operations::{CreateWorkspaceOperation, CreateWorkspaceParameters},
     Result,
 };
 
 struct CreateWorkspaceOperationTestContext {
-    storage: InMemoryStorageProvider,
+    storage: InMemoryStorage,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(CreateWorkspaceOperationTestContext) -> Result<()>,
 {
-    let storage = InMemoryStorageProvider::new();
+    let storage = InMemoryStorage::default();
 
     test_fn(CreateWorkspaceOperationTestContext { storage })
 }

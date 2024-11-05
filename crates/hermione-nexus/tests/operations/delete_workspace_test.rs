@@ -1,9 +1,9 @@
-use crate::solutions::{command_fixture, workspace_fixture, InMemoryStorageProvider};
+use crate::solutions::{command_fixture, workspace_fixture, InMemoryStorage};
 use hermione_nexus::{definitions::Workspace, operations::DeleteWorkspaceOperation, Error, Result};
 use uuid::Uuid;
 
 struct DeleteWorkspaceOperationTestContext {
-    storage: InMemoryStorageProvider,
+    storage: InMemoryStorage,
     workspace: Workspace,
 }
 
@@ -11,7 +11,7 @@ fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(DeleteWorkspaceOperationTestContext) -> Result<()>,
 {
-    let storage = InMemoryStorageProvider::new();
+    let storage = InMemoryStorage::default();
 
     let workspace = workspace_fixture(Default::default())?;
     let command = command_fixture(&workspace, Default::default())?;

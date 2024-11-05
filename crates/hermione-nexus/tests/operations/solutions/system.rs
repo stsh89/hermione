@@ -10,21 +10,16 @@ pub enum MockSystemError {
     LockAccess(String),
 }
 
-pub struct MockSystemProvider {
+#[derive(Default)]
+pub struct MockSystem {
     program: RwLock<Option<String>>,
 }
 
-impl MockSystemProvider {
+impl MockSystem {
     pub fn last_executed_program(&self) -> Result<Option<String>, MockSystemError> {
         let program = self.program.read()?;
 
         Ok(program.clone())
-    }
-
-    pub fn new() -> Self {
-        Self {
-            program: RwLock::new(None),
-        }
     }
 
     pub fn set_program(&self, program: &str) -> Result<(), MockSystemError> {
@@ -46,9 +41,9 @@ impl From<MockSystemError> for Error {
     }
 }
 
-impl SystemProvider for MockSystemProvider {}
+impl SystemProvider for MockSystem {}
 
-impl RunProgram for MockSystemProvider {
+impl RunProgram for MockSystem {
     fn run_program(&self, program: &str) -> Result<(), Error> {
         self.set_program(program)?;
 

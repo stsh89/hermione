@@ -1,5 +1,5 @@
 use crate::solutions::{
-    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorageProvider,
+    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorage,
 };
 use chrono::Utc;
 use hermione_nexus::{
@@ -9,7 +9,7 @@ use hermione_nexus::{
 };
 
 struct ListCommandsOperationTestContext {
-    storage: InMemoryStorageProvider,
+    storage: InMemoryStorage,
     workspace: Workspace,
 }
 
@@ -17,7 +17,7 @@ fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(ListCommandsOperationTestContext) -> Result<()>,
 {
-    let storage = InMemoryStorageProvider::new();
+    let storage = InMemoryStorage::default();
 
     let workspace = workspace_fixture(Default::default())?;
 

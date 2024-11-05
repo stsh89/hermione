@@ -43,7 +43,7 @@ impl MockBackupProvider {
     pub fn commands(&self) -> Result<Vec<Command>, MockBackupProviderError> {
         let mut commands: Vec<Command> = self.commands.read()?.values().cloned().collect();
 
-        commands.sort_by(|a, b| a.program().cmp(&b.program()));
+        commands.sort_by(|a, b| a.program().cmp(b.program()));
 
         Ok(commands)
     }
@@ -93,7 +93,7 @@ impl MockBackupProvider {
     pub fn workspaces(&self) -> Result<Vec<Workspace>, MockBackupProviderError> {
         let mut workspaces: Vec<Workspace> = self.workspaces.read()?.values().cloned().collect();
 
-        workspaces.sort_by(|a, b| a.name().cmp(&b.name()));
+        workspaces.sort_by(|a, b| a.name().cmp(b.name()));
 
         Ok(workspaces)
     }

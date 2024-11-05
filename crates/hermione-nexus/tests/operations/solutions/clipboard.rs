@@ -11,21 +11,16 @@ pub enum MockClipboardError {
     LockAccess(String),
 }
 
-pub struct MockClipboardProvider {
+#[derive(Default)]
+pub struct MockClipboard {
     content: RwLock<Option<String>>,
 }
 
-impl MockClipboardProvider {
+impl MockClipboard {
     pub fn content(&self) -> Result<Option<String>, MockClipboardError> {
         let text = self.content.read()?;
 
         Ok(text.clone())
-    }
-
-    pub fn new() -> Self {
-        Self {
-            content: RwLock::new(None),
-        }
     }
 
     pub fn set_content(&self, text: &str) -> Result<(), MockClipboardError> {
@@ -47,9 +42,9 @@ impl From<MockClipboardError> for Error {
     }
 }
 
-impl ClipboardProvider for MockClipboardProvider {}
+impl ClipboardProvider for MockClipboard {}
 
-impl CopyCommandToClipboard for MockClipboardProvider {
+impl CopyCommandToClipboard for MockClipboard {
     fn copy_command_to_clipboard(&self, text: &str) -> Result<(), Error> {
         self.set_content(text)?;
 

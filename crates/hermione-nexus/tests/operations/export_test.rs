@@ -1,5 +1,5 @@
 use crate::solutions::{
-    backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorageProvider,
+    backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorage,
     MockBackupProvider, MockBackupProviderBuilder, MockBackupProviderParameters,
 };
 use hermione_nexus::{
@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 struct ExportOperationTestContext {
     backup: MockBackupProvider,
     backup_provider_builder: MockBackupProviderBuilder,
-    storage: InMemoryStorageProvider,
+    storage: InMemoryStorage,
     backup_credentials: BackupCredentials,
 }
 
@@ -21,7 +21,7 @@ where
     T: FnOnce(ExportOperationTestContext) -> Result<()>,
 {
     let backup_credentials = backup_credentials_fixture(Default::default());
-    let storage = InMemoryStorageProvider::new();
+    let storage = InMemoryStorage::default();
 
     storage.insert_backup_credentials(backup_credentials.clone())?;
 

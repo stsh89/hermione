@@ -1,4 +1,4 @@
-use crate::solutions::{workspace_fixture, InMemoryStorageProvider, WorkspaceFixtureParameters};
+use crate::solutions::{workspace_fixture, InMemoryStorage, WorkspaceFixtureParameters};
 use chrono::Utc;
 use hermione_nexus::{
     operations::{ListWorkspacesOperation, ListWorkspacesParameters},
@@ -6,14 +6,14 @@ use hermione_nexus::{
 };
 
 struct ListWorkspacesOperationTestContext {
-    storage: InMemoryStorageProvider,
+    storage: InMemoryStorage,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(ListWorkspacesOperationTestContext) -> Result<()>,
 {
-    let storage = InMemoryStorageProvider::new();
+    let storage = InMemoryStorage::default();
 
     for workspace_number in 1..=8 {
         let workspace = workspace_fixture(WorkspaceFixtureParameters {

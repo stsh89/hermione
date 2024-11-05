@@ -1,6 +1,5 @@
 use crate::solutions::{
-    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorageProvider,
-    MockClipboardProvider,
+    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorage, MockClipboard,
 };
 use hermione_nexus::{
     definitions::Command, operations::CopyCommandToClipboardOperation, Error, Result,
@@ -8,17 +7,17 @@ use hermione_nexus::{
 use uuid::Uuid;
 
 struct CopyCommandToClipboardOperationTestContext {
-    clipboard: MockClipboardProvider,
+    clipboard: MockClipboard,
     command: Command,
-    storage: InMemoryStorageProvider,
+    storage: InMemoryStorage,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(CopyCommandToClipboardOperationTestContext) -> Result<()>,
 {
-    let storage = InMemoryStorageProvider::new();
-    let clipboard = MockClipboardProvider::new();
+    let storage = InMemoryStorage::default();
+    let clipboard = MockClipboard::default();
 
     let workspace = workspace_fixture(Default::default())?;
     let command = command_fixture(

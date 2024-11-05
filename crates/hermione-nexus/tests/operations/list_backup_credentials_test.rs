@@ -1,16 +1,16 @@
 use hermione_nexus::{operations::ListBackupCredentialsOperation, Result};
 
-use crate::solutions::{backup_credentials_fixture, InMemoryStorageProvider};
+use crate::solutions::{backup_credentials_fixture, InMemoryStorage};
 
 struct ListBackupCredentialsOperationTestContext {
-    storage: InMemoryStorageProvider,
+    storage: InMemoryStorage,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(ListBackupCredentialsOperationTestContext) -> Result<()>,
 {
-    let storage = InMemoryStorageProvider::new();
+    let storage = InMemoryStorage::default();
 
     let backup_credentials = backup_credentials_fixture(Default::default());
     storage.insert_backup_credentials(backup_credentials)?;

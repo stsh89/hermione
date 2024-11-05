@@ -1,6 +1,5 @@
 use crate::solutions::{
-    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorageProvider,
-    MockSystemProvider,
+    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorage, MockSystem,
 };
 use hermione_nexus::{
     definitions::{Command, Workspace},
@@ -11,8 +10,8 @@ use uuid::Uuid;
 
 struct ExecuteCommandOperationTestContext {
     command: Command,
-    storage: InMemoryStorageProvider,
-    system: MockSystemProvider,
+    storage: InMemoryStorage,
+    system: MockSystem,
     workspace: Workspace,
 }
 
@@ -20,8 +19,8 @@ fn with_context<T>(test_fn: T) -> Result<()>
 where
     T: FnOnce(ExecuteCommandOperationTestContext) -> Result<()>,
 {
-    let storage = InMemoryStorageProvider::new();
-    let system = MockSystemProvider::new();
+    let storage = InMemoryStorage::default();
+    let system = MockSystem::default();
 
     let workspace = workspace_fixture(Default::default())?;
     let command = command_fixture(

@@ -35,13 +35,14 @@ pub enum InMemoryStorageError {
     },
 }
 
-pub struct InMemoryStorageProvider {
+#[derive(Default)]
+pub struct InMemoryStorage {
     backup_credentials: RwLock<HashMap<String, BackupCredentials>>,
     commands: RwLock<HashMap<Uuid, Command>>,
     workspaces: RwLock<HashMap<Uuid, Workspace>>,
 }
 
-impl InMemoryStorageProvider {
+impl InMemoryStorage {
     pub fn backup_credentials(&self) -> Result<Vec<BackupCredentials>, InMemoryStorageError> {
         let credentials = self.backup_credentials.read()?;
 
@@ -129,14 +130,6 @@ impl InMemoryStorageProvider {
         Ok(())
     }
 
-    pub fn new() -> Self {
-        Self {
-            workspaces: RwLock::new(HashMap::new()),
-            commands: RwLock::new(HashMap::new()),
-            backup_credentials: RwLock::new(HashMap::new()),
-        }
-    }
-
     fn remove_backup_credentials(&self, kind: &str) -> Result<(), InMemoryStorageError> {
         let mut credentials = self.backup_credentials.write()?;
 
@@ -222,9 +215,9 @@ impl From<InMemoryStorageError> for Error {
     }
 }
 
-impl StorageProvider for InMemoryStorageProvider {}
+impl StorageProvider for InMemoryStorage {}
 
-impl CreateCommand for InMemoryStorageProvider {
+impl CreateCommand for InMemoryStorage {
     fn create_command(&self, parameters: NewCommandParameters) -> Result<Command, Error> {
         let NewCommandParameters {
             name,
@@ -246,7 +239,7 @@ impl CreateCommand for InMemoryStorageProvider {
     }
 }
 
-impl CreateWorkspace for InMemoryStorageProvider {
+impl CreateWorkspace for InMemoryStorage {
     fn create_workspace(&self, parameters: NewWorkspaceParameters) -> Result<Workspace, Error> {
         let NewWorkspaceParameters { name, location } = parameters;
 
@@ -263,7 +256,7 @@ impl CreateWorkspace for InMemoryStorageProvider {
     }
 }
 
-impl DeleteBackupCredentials for InMemoryStorageProvider {
+impl DeleteBackupCredentials for InMemoryStorage {
     fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> hermione_nexus::Result<()> {
         self.remove_backup_credentials(kind.as_str())?;
 
@@ -271,7 +264,7 @@ impl DeleteBackupCredentials for InMemoryStorageProvider {
     }
 }
 
-impl DeleteCommand for InMemoryStorageProvider {
+impl DeleteCommand for InMemoryStorage {
     fn delete_command(&self, id: &CommandId) -> hermione_nexus::Result<()> {
         self.remove_command(id)?;
 
@@ -279,7 +272,7 @@ impl DeleteCommand for InMemoryStorageProvider {
     }
 }
 
-impl DeleteWorkspaceCommands for InMemoryStorageProvider {
+impl DeleteWorkspaceCommands for InMemoryStorage {
     fn delete_workspace_commands(&self, id: &WorkspaceId) -> hermione_nexus::Result<()> {
         self.remove_workspace_commands(id)?;
 
@@ -287,7 +280,7 @@ impl DeleteWorkspaceCommands for InMemoryStorageProvider {
     }
 }
 
-impl DeleteWorkspace for InMemoryStorageProvider {
+impl DeleteWorkspace for InMemoryStorage {
     fn delete_workspace(&self, id: &WorkspaceId) -> hermione_nexus::Result<()> {
         self.remove_workspace(id)?;
 
@@ -295,7 +288,7 @@ impl DeleteWorkspace for InMemoryStorageProvider {
     }
 }
 
-impl FindBackupCredentials for InMemoryStorageProvider {
+impl FindBackupCredentials for InMemoryStorage {
     fn find_backup_credentials(
         &self,
         kind: &BackupProviderKind,
@@ -306,7 +299,7 @@ impl FindBackupCredentials for InMemoryStorageProvider {
     }
 }
 
-impl FindCommand for InMemoryStorageProvider {
+impl FindCommand for InMemoryStorage {
     fn find_command(&self, id: &CommandId) -> Result<Option<Command>, Error> {
         let command = self.get_command(id)?;
 
@@ -314,7 +307,7 @@ impl FindCommand for InMemoryStorageProvider {
     }
 }
 
-impl FindWorkspace for InMemoryStorageProvider {
+impl FindWorkspace for InMemoryStorage {
     fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>, Error> {
         let workspaces = self.get_workspace(id)?;
 
@@ -322,7 +315,7 @@ impl FindWorkspace for InMemoryStorageProvider {
     }
 }
 
-impl ListBackupCredentials for InMemoryStorageProvider {
+impl ListBackupCredentials for InMemoryStorage {
     fn list_backup_credentials(&self) -> Result<Vec<BackupCredentials>, Error> {
         let credentials = self.backup_credentials()?;
 
@@ -330,7 +323,7 @@ impl ListBackupCredentials for InMemoryStorageProvider {
     }
 }
 
-impl ListCommands for InMemoryStorageProvider {
+impl ListCommands for InMemoryStorage {
     fn list_commands(&self, parameters: FilterCommandsParameters) -> Result<Vec<Command>, Error> {
         let FilterCommandsParameters {
             program_contains,
@@ -370,7 +363,7 @@ impl ListCommands for InMemoryStorageProvider {
     }
 }
 
-impl ListWorkspaces for InMemoryStorageProvider {
+impl ListWorkspaces for InMemoryStorage {
     fn list_workspaces(
         &self,
         parameters: FilterWorkspacesParameters,
@@ -404,7 +397,7 @@ impl ListWorkspaces for InMemoryStorageProvider {
     }
 }
 
-impl SaveBackupCredentials for InMemoryStorageProvider {
+impl SaveBackupCredentials for InMemoryStorage {
     fn save_backup_credentials(&self, credentials: &BackupCredentials) -> Result<(), Error> {
         self.insert_backup_credentials(credentials.clone())?;
 
@@ -412,7 +405,7 @@ impl SaveBackupCredentials for InMemoryStorageProvider {
     }
 }
 
-impl TrackCommandExecuteTime for InMemoryStorageProvider {
+impl TrackCommandExecuteTime for InMemoryStorage {
     fn track_command_execute_time(&self, id: &CommandId) -> Result<(), Error> {
         self.set_command_execute_time(id)?;
 
@@ -420,7 +413,7 @@ impl TrackCommandExecuteTime for InMemoryStorageProvider {
     }
 }
 
-impl TrackWorkspaceAccessTime for InMemoryStorageProvider {
+impl TrackWorkspaceAccessTime for InMemoryStorage {
     fn track_workspace_access_time(&self, id: &WorkspaceId) -> Result<(), Error> {
         self.set_workspace_access_time(id)?;
 
@@ -428,7 +421,7 @@ impl TrackWorkspaceAccessTime for InMemoryStorageProvider {
     }
 }
 
-impl UpdateCommand for InMemoryStorageProvider {
+impl UpdateCommand for InMemoryStorage {
     fn update_command(&self, parameters: EditCommandParameters) -> Result<Command, Error> {
         let EditCommandParameters { id, name, program } = parameters;
 
@@ -445,7 +438,7 @@ impl UpdateCommand for InMemoryStorageProvider {
     }
 }
 
-impl UpsertCommands for InMemoryStorageProvider {
+impl UpsertCommands for InMemoryStorage {
     fn upsert_commands(&self, commands: Vec<Command>) -> Result<(), Error> {
         for command in commands {
             self.insert_command(&command)?;
@@ -455,7 +448,7 @@ impl UpsertCommands for InMemoryStorageProvider {
     }
 }
 
-impl UpdateWorkspace for InMemoryStorageProvider {
+impl UpdateWorkspace for InMemoryStorage {
     fn update_workspace(&self, parameters: EditWorkspaceParameters) -> Result<Workspace, Error> {
         let EditWorkspaceParameters { id, location, name } = parameters;
 
@@ -472,7 +465,7 @@ impl UpdateWorkspace for InMemoryStorageProvider {
     }
 }
 
-impl UpsertWorkspaces for InMemoryStorageProvider {
+impl UpsertWorkspaces for InMemoryStorage {
     fn upsert_workspaces(&self, workspaces: Vec<Workspace>) -> Result<(), Error> {
         for workspace in workspaces {
             self.insert_workspace(&workspace)?;
