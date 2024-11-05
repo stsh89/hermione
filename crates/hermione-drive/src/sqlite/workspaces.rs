@@ -42,6 +42,13 @@ pub fn delete_workspace(conn: &Connection, id: &Bytes) -> Result<usize> {
 }
 
 pub fn insert_workspace(conn: &Connection, record: WorkspaceRecord) -> Result<usize> {
+    let WorkspaceRecord {
+        id,
+        last_access_time,
+        location,
+        name,
+    } = record;
+
     conn.prepare(
         "INSERT INTO workspaces (
             id,
@@ -51,10 +58,10 @@ pub fn insert_workspace(conn: &Connection, record: WorkspaceRecord) -> Result<us
         ) VALUES (:id, :last_access_time, :location, :name)",
     )?
     .execute(named_params![
-        ":id": record.id,
-        ":last_access_time": record.last_access_time,
-        ":location": record.location,
-        ":name": record.name
+        ":id": id,
+        ":last_access_time": last_access_time,
+        ":location": location,
+        ":name": name
     ])
 }
 
@@ -115,4 +122,28 @@ pub fn migrate(conn: &Connection) -> Result<()> {
     )?;
 
     Ok(())
+}
+
+pub fn update_workspace(conn: &Connection, record: WorkspaceRecord) -> Result<usize> {
+    let WorkspaceRecord {
+        id,
+        last_access_time,
+        location,
+        name,
+    } = record;
+
+    conn.prepare(
+        "UPDATE workspaces
+        SET
+            last_access_time = :last_access_time,
+            location = :location,
+            name = :name
+        WHERE id = :id",
+    )?
+    .execute(named_params![
+        ":id": id,
+        ":last_access_time": last_access_time,
+        ":location": location,
+        ":name": name
+    ])
 }
