@@ -5,3 +5,11 @@ edition = "2021"
 
 [lib]
 name = "hermione_drive"
+
+[dependencies]
+rusqlite = { workspace = true, features = ["array", "bundled"] }
+uuid = { workspace = true }
+
+[dev-dependencies]
+uuid = { workspace = true, features = ["v4"] }
+chrono = { workspace = true }
