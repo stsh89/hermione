@@ -1,5 +1,6 @@
 use crate::{Route, WorkspaceCommandsRoute, WorkspacesRoute};
 use std::num::NonZeroU32;
+use uuid::Uuid;
 
 pub const LIST_WORKSPACES_PAGE_SIZE: u32 = 100;
 pub const LIST_WORKSPACE_COMMANDS_PAGE_SIZE: u32 = 100;
@@ -12,24 +13,24 @@ pub struct CreateWorkspaceParams {
 pub struct CreateWorkspaceCommandParams {
     pub name: String,
     pub program: String,
-    pub workspace_id: String,
+    pub workspace_id: Uuid,
 }
 
 pub struct DeleteWorkspaceParams {
-    pub id: String,
+    pub id: Uuid,
 }
 
 pub struct DeleteCommandParams {
-    pub command_id: String,
-    pub workspace_id: String,
+    pub command_id: Uuid,
+    pub workspace_id: Uuid,
 }
 
 pub struct EditWorkspaceParams {
-    pub id: String,
+    pub id: Uuid,
 }
 
 pub struct EditCommandParams {
-    pub command_id: String,
+    pub command_id: Uuid,
 }
 
 pub struct ListWorkspacesParams {
@@ -39,7 +40,7 @@ pub struct ListWorkspacesParams {
 }
 
 pub struct ListWorkspaceCommandsParams {
-    pub workspace_id: String,
+    pub workspace_id: Uuid,
     pub search_query: String,
     pub page_number: Option<NonZeroU32>,
     pub page_size: Option<NonZeroU32>,
@@ -47,16 +48,16 @@ pub struct ListWorkspaceCommandsParams {
 }
 
 pub struct NewWorkspaceCommandParams {
-    pub workspace_id: String,
+    pub workspace_id: Uuid,
 }
 
 pub struct CopyCommandToClipboardParams {
-    pub command_id: String,
+    pub command_id: Uuid,
 }
 
 pub struct ExecuteCommandParams {
-    pub command_id: String,
-    pub workspace_id: String,
+    pub command_id: Uuid,
+    pub workspace_id: Uuid,
     pub powershell_no_exit: bool,
 }
 
@@ -65,16 +66,16 @@ pub struct OpenWindowsTerminalParams {
 }
 
 pub struct UpdateWorkspaceParams {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
     pub location: String,
 }
 
 pub struct UpdateWorkspaceCommandParams {
-    pub command_id: String,
+    pub command_id: Uuid,
     pub name: String,
     pub program: String,
-    pub workspace_id: String,
+    pub workspace_id: Uuid,
 }
 
 impl Default for ListWorkspacesParams {

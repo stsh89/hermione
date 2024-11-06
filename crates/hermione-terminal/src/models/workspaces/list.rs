@@ -185,22 +185,12 @@ impl ListWorkspacesModel {
         match action {
             Action::DeleteWorkspace => {
                 if let Some(workspace) = self.workspace() {
-                    self.set_redirect(
-                        DeleteWorkspaceParams {
-                            id: workspace.id.clone(),
-                        }
-                        .into(),
-                    )
+                    self.set_redirect(DeleteWorkspaceParams { id: workspace.id }.into())
                 }
             }
             Action::EditWorkspace => {
                 if let Some(workspace) = self.workspace() {
-                    self.set_redirect(
-                        EditWorkspaceParams {
-                            id: workspace.id.clone(),
-                        }
-                        .into(),
-                    );
+                    self.set_redirect(EditWorkspaceParams { id: workspace.id }.into());
                 }
             }
             Action::Exit => self.exit(),
@@ -208,7 +198,7 @@ impl ListWorkspacesModel {
                 if let Some(workspace) = self.workspace() {
                     self.set_redirect(
                         ListWorkspaceCommandsParams {
-                            workspace_id: workspace.id.clone(),
+                            workspace_id: workspace.id,
                             search_query: "".into(),
                             page_number: NonZeroU32::new(1),
                             page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),

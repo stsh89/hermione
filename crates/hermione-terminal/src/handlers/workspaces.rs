@@ -1,5 +1,7 @@
 use std::num::NonZeroU32;
 
+use uuid::Uuid;
+
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
     themes::Theme,
@@ -19,7 +21,7 @@ impl<'a> WorkspacesHandler<'a> {
         let CreateWorkspaceParams { name, location } = parameters;
 
         self.coordinator.create_workspace(WorkspacePresenter {
-            id: String::new(),
+            id: Uuid::nil(),
             location,
             name: name.clone(),
         })?;
@@ -44,7 +46,7 @@ impl<'a> WorkspacesHandler<'a> {
     pub fn delete(self, parameters: DeleteWorkspaceParams) -> Result<ListWorkspacesModel> {
         let DeleteWorkspaceParams { id } = parameters;
 
-        self.coordinator.delete_workspace(&id)?;
+        self.coordinator.delete_workspace(id)?;
 
         let workspaces = self.coordinator.list_workspaces(ListWorkspacesInput {
             name_contains: "",
@@ -66,7 +68,7 @@ impl<'a> WorkspacesHandler<'a> {
     pub fn edit(self, parameters: EditWorkspaceParams) -> Result<EditWorkspaceModel> {
         let EditWorkspaceParams { id } = parameters;
 
-        let workspace = self.coordinator.get_workspace(&id)?;
+        let workspace = self.coordinator.get_workspace(id)?;
 
         EditWorkspaceModel::new(EditWorkspaceModelParameters {
             workspace,
@@ -103,7 +105,7 @@ impl<'a> WorkspacesHandler<'a> {
     pub fn update(&self, parameters: UpdateWorkspaceParams) -> Result<WorkspacePresenter> {
         let UpdateWorkspaceParams { id, name, location } = parameters;
 
-        let mut workspace = self.coordinator.get_workspace(&id)?;
+        let mut workspace = self.coordinator.get_workspace(id)?;
 
         workspace.name = name;
         workspace.location = location;

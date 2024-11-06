@@ -4,14 +4,14 @@ use ratatui::widgets::ListItem;
 use uuid::Uuid;
 
 pub struct CommandPresenter {
-    pub workspace_id: String,
-    pub id: String,
+    pub workspace_id: Uuid,
+    pub id: Uuid,
     pub name: String,
     pub program: String,
 }
 
 pub struct WorkspacePresenter {
-    pub id: String,
+    pub id: Uuid,
     pub location: String,
     pub name: String,
 }
@@ -31,7 +31,7 @@ impl<'a> From<&WorkspacePresenter> for ListItem<'a> {
 impl From<Workspace> for WorkspacePresenter {
     fn from(workspace: Workspace) -> Self {
         Self {
-            id: workspace.id().to_string(),
+            id: **workspace.id(),
             location: workspace.location().unwrap_or_default().into(),
             name: workspace.name().to_string(),
         }
@@ -45,7 +45,7 @@ impl TryFrom<WorkspacePresenter> for Workspace {
         let WorkspacePresenter { id, location, name } = value;
 
         let workspace = Workspace::new(WorkspaceParameters {
-            id: id.parse()?,
+            id,
             name,
             location: Some(location),
             last_access_time: None,
@@ -58,10 +58,10 @@ impl TryFrom<WorkspacePresenter> for Workspace {
 impl From<Command> for CommandPresenter {
     fn from(command: Command) -> Self {
         Self {
-            id: command.id().to_string(),
+            id: **command.id(),
             name: command.name().to_string(),
             program: command.program().to_string(),
-            workspace_id: command.workspace_id().to_string(),
+            workspace_id: **command.workspace_id(),
         }
     }
 }
@@ -77,10 +77,8 @@ impl TryFrom<CommandPresenter> for Command {
             workspace_id,
         } = value;
 
-        let workspace_id: Uuid = workspace_id.parse()?;
-
         let command = Command::new(CommandParameters {
-            id: id.parse()?,
+            id,
             name,
             last_execute_time: None,
             program,

@@ -116,7 +116,7 @@ impl ListWorkspaceCommandsModel {
         if !self.search_query.is_empty() {
             self.set_redirect(
                 ListWorkspaceCommandsParams {
-                    workspace_id: self.workspace.id.clone(),
+                    workspace_id: self.workspace.id,
                     search_query: "".into(),
                     page_number: NonZeroU32::new(1),
                     page_size: Some(self.page_size),
@@ -156,8 +156,8 @@ impl ListWorkspaceCommandsModel {
         let command = self.commands.remove(index);
 
         let route = Route::Powershell(PowerShellRoute::ExecuteCommand(ExecuteCommandParams {
-            command_id: command.id.clone(),
-            workspace_id: command.workspace_id.clone(),
+            command_id: command.id,
+            workspace_id: command.workspace_id,
             powershell_no_exit: self.powershell_settings.no_exit,
         }));
 
@@ -179,7 +179,7 @@ impl ListWorkspaceCommandsModel {
 
     fn copy_to_clipboard_parameters(&self) -> Option<CopyCommandToClipboardParams> {
         self.command().map(|command| CopyCommandToClipboardParams {
-            command_id: command.id.clone(),
+            command_id: command.id,
         })
     }
 
@@ -276,7 +276,7 @@ impl ListWorkspaceCommandsModel {
 
     fn new_command_parameters(&self) -> NewWorkspaceCommandParams {
         NewWorkspaceCommandParams {
-            workspace_id: self.workspace.id.clone(),
+            workspace_id: self.workspace.id,
         }
     }
 
@@ -298,8 +298,8 @@ impl ListWorkspaceCommandsModel {
                 if let Some(command) = self.command() {
                     self.set_redirect(
                         DeleteCommandParams {
-                            workspace_id: self.workspace.id.clone(),
-                            command_id: command.id.clone(),
+                            workspace_id: self.workspace.id,
+                            command_id: command.id,
                         }
                         .into(),
                     )
@@ -310,7 +310,7 @@ impl ListWorkspaceCommandsModel {
                 if let Some(command) = self.command() {
                     self.set_redirect(
                         EditCommandParams {
-                            command_id: command.id.clone(),
+                            command_id: command.id,
                         }
                         .into(),
                     )
@@ -351,7 +351,7 @@ impl ListWorkspaceCommandsModel {
         self.set_redirect(
             ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
-                workspace_id: self.workspace.id.clone(),
+                workspace_id: self.workspace.id,
                 page_number: NonZeroU32::new(1),
                 page_size: Some(self.page_size),
                 powershell_no_exit: self.powershell_settings.no_exit,
@@ -370,7 +370,7 @@ impl ListWorkspaceCommandsModel {
         self.set_redirect(
             ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
-                workspace_id: self.workspace.id.clone(),
+                workspace_id: self.workspace.id,
                 page_number: NonZeroU32::new(1),
                 page_size: Some(self.page_size),
                 powershell_no_exit: self.powershell_settings.no_exit,
@@ -389,7 +389,7 @@ impl ListWorkspaceCommandsModel {
         self.set_redirect(
             ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
-                workspace_id: self.workspace.id.clone(),
+                workspace_id: self.workspace.id,
                 page_number: NonZeroU32::new(1),
                 page_size: Some(self.page_size),
                 powershell_no_exit: self.powershell_settings.no_exit,

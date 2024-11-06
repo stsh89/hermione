@@ -9,12 +9,13 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
+use uuid::Uuid;
 
 const NAME: &str = "Name";
 const LOCATION: &str = "Location";
 
 pub struct WorkspaceForm {
-    id: String,
+    id: Uuid,
     active_input: ActiveInput,
     location: Input,
     name: Input,
@@ -117,9 +118,9 @@ impl WorkspaceForm {
 
     pub fn workspace(&self) -> WorkspacePresenter {
         WorkspacePresenter {
-            id: self.id.clone(),
-            name: self.name.value().into(),
-            location: self.location.value().into(),
+            id: self.id,
+            name: self.name.value().to_string(),
+            location: self.location.value().to_string(),
         }
     }
 

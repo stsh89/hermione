@@ -11,20 +11,20 @@ use crate::{
 use hermione_tui::{EventHandler, Model};
 use ratatui::Frame;
 
-pub struct EditWorkspaceCommandModel {
+pub struct EditCommandModel {
     status_bar: StatusBar,
     form: CommandForm,
     redirect: Option<Route>,
     theme: Theme,
 }
 
-pub struct EditWorkspaceCommandModelParameters {
+pub struct EditCommandModelParameters {
     pub command: CommandPresenter,
     pub workspace: WorkspacePresenter,
     pub theme: Theme,
 }
 
-impl Model for EditWorkspaceCommandModel {
+impl Model for EditCommandModel {
     type Message = Message;
     type Route = Route;
 
@@ -64,7 +64,7 @@ impl Model for EditWorkspaceCommandModel {
     }
 }
 
-impl EditWorkspaceCommandModel {
+impl EditCommandModel {
     fn back(&mut self) {
         let command = self.form.command();
 
@@ -100,8 +100,8 @@ impl EditWorkspaceCommandModel {
         self.form.move_cursor_right();
     }
 
-    pub fn new(parameters: EditWorkspaceCommandModelParameters) -> Result<Self> {
-        let EditWorkspaceCommandModelParameters {
+    pub fn new(parameters: EditCommandModelParameters) -> Result<Self> {
+        let EditCommandModelParameters {
             command,
             workspace,
             theme,

@@ -9,16 +9,17 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
+use uuid::Uuid;
 
 const NAME: &str = "Name";
 const PROGRAM: &str = "Program";
 
 pub struct CommandForm {
-    id: String,
+    id: Uuid,
     active_input: ActiveInput,
     program: Input,
     name: Input,
-    workspace_id: String,
+    workspace_id: Uuid,
     theme: Theme,
 }
 
@@ -29,7 +30,7 @@ pub struct EditCommandFormParameters {
 
 pub struct NewCommandFormParameters {
     pub theme: Theme,
-    pub workspace_id: String,
+    pub workspace_id: Uuid,
 }
 
 enum ActiveInput {
@@ -121,10 +122,10 @@ impl CommandForm {
 
     pub fn command(&self) -> CommandPresenter {
         CommandPresenter {
-            id: self.id.clone(),
-            name: self.name.value().into(),
-            program: self.program.value().into(),
-            workspace_id: self.workspace_id.clone(),
+            id: self.id,
+            name: self.name.value().to_string(),
+            program: self.program.value().to_string(),
+            workspace_id: self.workspace_id,
         }
     }
 

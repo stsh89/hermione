@@ -12,10 +12,7 @@ use hermione_nexus::operations::{
     UpdateWorkspaceOperation, UpdateWorkspaceParameters,
 };
 use rusqlite::Connection;
-use std::{
-    num::{NonZero, NonZeroU32},
-    str::FromStr,
-};
+use std::num::{NonZero, NonZeroU32};
 use uuid::Uuid;
 
 pub struct Coordinator {
@@ -23,9 +20,9 @@ pub struct Coordinator {
     pub powershell: PowerShellClient,
 }
 
-pub struct ExecuteCommandWithinWorkspaceInput<'a> {
-    pub id: &'a str,
-    pub workspace_id: &'a str,
+pub struct ExecuteCommandInput {
+    pub command_id: Uuid,
+    pub workspace_id: Uuid,
     pub no_exit: bool,
 }
 
@@ -39,7 +36,7 @@ pub struct ListCommandsWithinWorkspaceInput<'a> {
     pub page_number: Option<NonZeroU32>,
     pub page_size: Option<NonZeroU32>,
     pub program_contains: &'a str,
-    pub workspace_id: &'a str,
+    pub workspace_id: Uuid,
 }
 
 pub struct OpenWindowsTerminalInput<'a> {
@@ -53,12 +50,12 @@ impl Coordinator {
         }
     }
 
-    pub fn copy_command_to_clipboard(&self, id: &str) -> Result<()> {
+    pub fn copy_command_to_clipboard(&self, id: Uuid) -> Result<()> {
         CopyCommandToClipboardOperation {
             clipboard_provider: &self.clipboard(),
             storage_provider: &self.storage(),
         }
-        .execute(&Uuid::from_str(id)?.into())?;
+        .execute(&id.into())?;
 
         Ok(())
     }
@@ -77,7 +74,7 @@ impl Coordinator {
         .execute(CreateCommandParameters {
             name,
             program,
-            workspace_id: Uuid::from_str(&workspace_id)?.into(),
+            workspace_id: workspace_id.into(),
         })?;
 
         Ok(command.into())
@@ -101,19 +98,19 @@ impl Coordinator {
         Ok(workspace.into())
     }
 
-    pub fn delete_command(&self, id: &str) -> Result<()> {
+    pub fn delete_command(&self, id: Uuid) -> Result<()> {
         let storage = self.storage();
 
         DeleteCommandOperation {
             find_command_provider: &storage,
             delete_command_provider: &storage,
         }
-        .execute(&Uuid::from_str(id)?.into())?;
+        .execute(&id.into())?;
 
         Ok(())
     }
 
-    pub fn delete_workspace(&self, id: &str) -> Result<()> {
+    pub fn delete_workspace(&self, id: Uuid) -> Result<()> {
         let storage = self.storage();
 
         DeleteWorkspaceOperation {
@@ -121,14 +118,14 @@ impl Coordinator {
             delete_workspace_provider: &storage,
             delete_workspace_commands_provider: &storage,
         }
-        .execute(&Uuid::from_str(id)?.into())?;
+        .execute(&id.into())?;
 
         Ok(())
     }
 
-    pub fn execute_command(&self, input: ExecuteCommandWithinWorkspaceInput) -> Result<()> {
-        let ExecuteCommandWithinWorkspaceInput {
-            id,
+    pub fn execute_command(&self, input: ExecuteCommandInput) -> Result<()> {
+        let ExecuteCommandInput {
+            command_id,
             workspace_id,
             no_exit,
         } = input;
@@ -153,25 +150,25 @@ impl Coordinator {
             track_command_provider: &storage,
             track_workspace_provider: &storage,
         }
-        .execute(&Uuid::from_str(id)?.into())?;
+        .execute(&command_id.into())?;
 
         Ok(())
     }
 
-    pub fn get_command(&self, id: &str) -> Result<CommandPresenter> {
+    pub fn get_command(&self, id: Uuid) -> Result<CommandPresenter> {
         let command = GetCommandOperation {
             provider: &self.storage(),
         }
-        .execute(&Uuid::from_str(id)?.into())?;
+        .execute(&id.into())?;
 
         Ok(command.into())
     }
 
-    pub fn get_workspace(&self, id: &str) -> Result<WorkspacePresenter> {
+    pub fn get_workspace(&self, id: Uuid) -> Result<WorkspacePresenter> {
         let workspace = GetWorkspaceOperation {
             provider: &self.storage(),
         }
-        .execute(&Uuid::from_str(id)?.into())?;
+        .execute(&id.into())?;
 
         Ok(workspace.into())
     }
@@ -194,7 +191,7 @@ impl Coordinator {
             page_size: page_size.unwrap_or_else(|| NonZero::new(10).unwrap()),
             page_number: page_number.unwrap_or_else(|| NonZero::new(1).unwrap()),
             program_contains: Some(program_contains),
-            workspace_id: Some(&Uuid::parse_str(workspace_id)?.into()),
+            workspace_id: Some(&workspace_id.into()),
         })?;
 
         Ok(workspaces.into_iter().map(Into::into).collect())
@@ -262,7 +259,7 @@ impl Coordinator {
             update_command_provider: &storage,
         }
         .execute(UpdateCommandParameters {
-            id: &Uuid::from_str(&id)?.into(),
+            id: &id.into(),
             name,
             program,
         })?;
@@ -280,7 +277,7 @@ impl Coordinator {
             update_workspace_provider: &storage,
         }
         .execute(UpdateWorkspaceParameters {
-            id: &Uuid::from_str(&id)?.into(),
+            id: &id.into(),
             location: Some(location),
             name,
         })?;
