@@ -17,7 +17,10 @@ pub fn create_backup_credentials_table_if_not_exists(conn: &Connection) -> Resul
     Ok(())
 }
 
-pub fn find_backup_credentials(conn: &Connection, id: &str) -> Result<Option<BackupCredentialsRecord>> {
+pub fn find_backup_credentials(
+    conn: &Connection,
+    id: &str,
+) -> Result<Option<BackupCredentialsRecord>> {
     conn.prepare(
         "SELECT
             id,
@@ -39,11 +42,11 @@ pub fn delete_backup_credentials(conn: &Connection, id: &str) -> Result<usize> {
         .execute(params![id])
 }
 
-pub fn insert_backup_credentials(conn: &Connection, record: BackupCredentialsRecord) -> Result<usize> {
-    let BackupCredentialsRecord {
-        id,
-        secrets,
-    } = record;
+pub fn insert_backup_credentials(
+    conn: &Connection,
+    record: BackupCredentialsRecord,
+) -> Result<usize> {
+    let BackupCredentialsRecord { id, secrets } = record;
 
     conn.prepare(
         "INSERT INTO backup_credentials (
@@ -67,25 +70,22 @@ pub fn list_backup_credentials(conn: &Connection) -> Result<Vec<BackupCredential
     )?;
 
     let records = statement
-        .query_map(
-            [],
-            |row| {
-                Ok(BackupCredentialsRecord {
-                    id: row.get(0)?,
-                    secrets: row.get(1)?,
-                })
-            },
-        )?
+        .query_map([], |row| {
+            Ok(BackupCredentialsRecord {
+                id: row.get(0)?,
+                secrets: row.get(1)?,
+            })
+        })?
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(records)
 }
 
-pub fn update_backup_credentials(conn: &Connection, record: BackupCredentialsRecord) -> Result<usize> {
-    let BackupCredentialsRecord {
-        id,
-        secrets,
-    } = record;
+pub fn update_backup_credentials(
+    conn: &Connection,
+    record: BackupCredentialsRecord,
+) -> Result<usize> {
+    let BackupCredentialsRecord { id, secrets } = record;
 
     conn.prepare(
         "UPDATE backup_credentials
