@@ -1,15 +1,17 @@
-use std::num::NonZeroU32;
-
-use uuid::Uuid;
-
 use crate::{
-    coordinator::ListCommandsWithinWorkspaceInput, themes::Theme, CommandPresenter, Coordinator,
-    CreateWorkspaceCommandParams, DeleteCommandParams, EditCommandModel,
-    EditCommandModelParameters, EditCommandParams, ListWorkspaceCommandsModel,
-    ListWorkspaceCommandsModelParameters, ListWorkspaceCommandsParams, NewWorkspaceCommandModel,
-    NewWorkspaceCommandModelParameters, NewWorkspaceCommandParams, Result,
+    coordinator::ListCommandsWithinWorkspaceInput,
+    models::{
+        EditCommandModel, EditCommandModelParameters, ListWorkspaceCommandsModel,
+        ListWorkspaceCommandsModelParameters, NewWorkspaceCommandModel,
+        NewWorkspaceCommandModelParameters,
+    },
+    themes::Theme,
+    CommandPresenter, Coordinator, CreateWorkspaceCommandParams, DeleteCommandParams,
+    EditCommandParams, ListWorkspaceCommandsParams, NewWorkspaceCommandParams, Result,
     UpdateWorkspaceCommandParams, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
+use std::num::NonZeroU32;
+use uuid::Uuid;
 
 pub struct CommandsHandler<'a> {
     pub coordinator: &'a Coordinator,

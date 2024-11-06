@@ -1,15 +1,15 @@
-use std::num::NonZeroU32;
-
-use uuid::Uuid;
-
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
+    models::{
+        EditWorkspaceModel, EditWorkspaceModelParameters, ListWorkspaceModelParameters,
+        ListWorkspacesModel, NewWorkspaceModel, NewWorkspaceModelParameters,
+    },
     themes::Theme,
-    CreateWorkspaceParams, DeleteWorkspaceParams, EditWorkspaceModel, EditWorkspaceModelParameters,
-    EditWorkspaceParams, ListWorkspaceModelParameters, ListWorkspacesModel, ListWorkspacesParams,
-    NewWorkspaceModel, NewWorkspaceModelParameters, Result, UpdateWorkspaceParams,
-    WorkspacePresenter, LIST_WORKSPACES_PAGE_SIZE,
+    CreateWorkspaceParams, DeleteWorkspaceParams, EditWorkspaceParams, ListWorkspacesParams,
+    Result, UpdateWorkspaceParams, WorkspacePresenter, LIST_WORKSPACES_PAGE_SIZE,
 };
+use std::num::NonZeroU32;
+use uuid::Uuid;
 
 pub struct WorkspacesHandler<'a> {
     pub coordinator: &'a Coordinator,

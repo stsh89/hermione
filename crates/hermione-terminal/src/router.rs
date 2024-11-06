@@ -1,8 +1,8 @@
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
+    models::{ListBackupCredentialsModel, ListBackupCredentialsModelParameters},
     themes::Theme,
-    BackupCredentialsRoute, CommandsHandler, ListBackupCredentialsModel,
-    ListBackupCredentialsModelParameters, ListWorkspaceCommandsParams, ListWorkspacesParams,
+    BackupCredentialsRoute, CommandsHandler, ListWorkspaceCommandsParams, ListWorkspacesParams,
     Message, PowerShellHandler, PowerShellRoute, Result, Route, WorkspaceCommandsRoute,
     WorkspacesHandler, WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };

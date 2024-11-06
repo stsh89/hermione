@@ -16,7 +16,6 @@ mod widgets;
 
 pub(crate) use handlers::*;
 pub(crate) use message::*;
-pub(crate) use models::*;
 pub(crate) use params::*;
 pub(crate) use presenters::*;
 pub(crate) use routes::*;
