@@ -15,14 +15,6 @@ pub struct ListWorkspacesQuery<'a> {
     pub offset: u32,
 }
 
-pub fn count_workspaces(conn: &Connection) -> Result<usize> {
-    let count = conn
-        .prepare("SELECT COUNT(*) FROM workspaces")?
-        .query_row([], |row| row.get(0))?;
-
-    Ok(count)
-}
-
 pub fn find_workspace(conn: &Connection, id: &Bytes) -> Result<Option<WorkspaceRecord>> {
     conn.prepare("SELECT id, last_access_time, location, name FROM workspaces WHERE id = ?1")?
         .query_row(params![id], |row| {

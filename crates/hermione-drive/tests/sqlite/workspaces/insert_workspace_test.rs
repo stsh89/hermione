@@ -1,3 +1,4 @@
+use crate::solutions::count_workspaces;
 use hermione_drive::sqlite::workspaces::{self, WorkspaceRecord};
 use rusqlite::{Connection, Result};
 use uuid::Uuid;
@@ -21,7 +22,7 @@ fn it_inserts_workspace() -> Result<()> {
     with_context(|ctx| {
         let InsertWorkspaceTestContext { conn } = ctx;
 
-        assert_eq!(workspaces::count_workspaces(&conn)?, 0);
+        assert_eq!(count_workspaces(&conn)?, 0);
 
         let count = workspaces::insert_workspace(
             &conn,
@@ -34,7 +35,7 @@ fn it_inserts_workspace() -> Result<()> {
         )?;
 
         assert_eq!(count, 1);
-        assert_eq!(workspaces::count_workspaces(&conn)?, 1);
+        assert_eq!(count_workspaces(&conn)?, 1);
 
         Ok(())
     })

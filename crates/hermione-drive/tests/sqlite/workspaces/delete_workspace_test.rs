@@ -1,4 +1,4 @@
-use crate::solutions::workspace_record_fixture;
+use crate::solutions::{count_workspaces, workspace_record_fixture};
 use hermione_drive::sqlite::workspaces::{self, WorkspaceRecord};
 use rusqlite::{Connection, Result};
 use uuid::Uuid;
@@ -16,7 +16,6 @@ where
     workspaces::migrate(&conn)?;
 
     let record = workspace_record_fixture(Default::default());
-
     workspaces::insert_workspace(&conn, record.clone())?;
 
     test_fn(DeleteWorkspaceTestContext { conn, record })
@@ -27,12 +26,12 @@ fn it_deletes_workspace() -> Result<()> {
     with_context(|ctx| {
         let DeleteWorkspaceTestContext { conn, record } = ctx;
 
-        assert_eq!(workspaces::count_workspaces(&conn)?, 1);
+        assert_eq!(count_workspaces(&conn)?, 1);
 
         let count = workspaces::delete_workspace(&conn, &record.id)?;
 
         assert_eq!(count, 1);
-        assert_eq!(workspaces::count_workspaces(&conn)?, 0);
+        assert_eq!(count_workspaces(&conn)?, 0);
 
         Ok(())
     })
@@ -43,11 +42,11 @@ fn it_does_not_delete_workspace() -> Result<()> {
     with_context(|ctx| {
         let DeleteWorkspaceTestContext { conn, record: _ } = ctx;
 
-        assert_eq!(workspaces::count_workspaces(&conn)?, 1);
+        assert_eq!(count_workspaces(&conn)?, 1);
 
         let count = workspaces::delete_workspace(&conn, Uuid::nil().as_bytes())?;
 
-        assert_eq!(workspaces::count_workspaces(&conn)?, 1);
+        assert_eq!(count_workspaces(&conn)?, 1);
         assert_eq!(count, 0);
 
         Ok(())

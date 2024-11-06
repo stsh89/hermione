@@ -1,4 +1,6 @@
-use crate::solutions::{workspace_record_fixture, WorkspaceRecordFixtureParameters};
+use crate::solutions::{
+    count_workspaces, workspace_record_fixture, WorkspaceRecordFixtureParameters,
+};
 use hermione_drive::sqlite::workspaces::{self, WorkspaceRecord};
 use rusqlite::{Connection, Result};
 
@@ -21,7 +23,7 @@ fn it_inserts_workspace() -> Result<()> {
     with_context(|ctx| {
         let RestoreWorkspacesTestContest { conn } = ctx;
 
-        assert_eq!(workspaces::count_workspaces(&conn)?, 0);
+        assert_eq!(count_workspaces(&conn)?, 0);
 
         let mut workspaces = vec![];
 
@@ -55,7 +57,7 @@ fn it_inserts_workspace() -> Result<()> {
 }
 
 #[test]
-fn it_udpates_existing_workspaces() -> Result<()> {
+fn it_updates_existing_workspaces() -> Result<()> {
     with_context(|ctx| {
         let RestoreWorkspacesTestContest { conn } = ctx;
 
