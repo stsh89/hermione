@@ -1,3 +1,1 @@
-mod powershell;
-
-pub use powershell::*;
+pub mod powershell;

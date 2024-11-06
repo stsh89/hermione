@@ -23,7 +23,7 @@ pub(crate) use routes::*;
 
 use coordinator::Coordinator;
 use hermione_tracing::{NewTracerParameters, Tracer};
-use providers::PowerShellClient;
+use providers::powershell::PowerShellProcess;
 use router::TerminalRouter;
 use rusqlite::Connection;
 use std::{
@@ -46,8 +46,8 @@ fn main() -> Result<()> {
     hermione_drive::sqlite::create_backup_credentials_table_if_not_exists(&conn)?;
 
     let coordinator = Coordinator {
-        connection: conn,
-        powershell: PowerShellClient::new()?,
+        database_connection: conn,
+        powershell_process: PowerShellProcess::spawn()?,
     };
 
     let router = TerminalRouter { coordinator, theme };

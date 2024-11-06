@@ -1,5 +1,5 @@
 use crate::{
-    providers::{PowerShellClient, PowerShellParameters},
+    providers::powershell::{self, PowerShellParameters, PowerShellProcess},
     services::{Clipboard, Storage, System},
     BackupCredentialsKind, CommandPresenter, Result, WorkspacePresenter,
 };
@@ -16,8 +16,8 @@ use std::num::{NonZero, NonZeroU32};
 use uuid::Uuid;
 
 pub struct Coordinator {
-    pub connection: Connection,
-    pub powershell: PowerShellClient,
+    pub database_connection: Connection,
+    pub powershell_process: PowerShellProcess,
 }
 
 pub struct ExecuteCommandInput {
@@ -46,7 +46,7 @@ pub struct OpenWindowsTerminalInput<'a> {
 impl Coordinator {
     fn clipboard(&self) -> Clipboard {
         Clipboard {
-            client: &self.powershell,
+            process: &self.powershell_process,
         }
     }
 
@@ -143,7 +143,7 @@ impl Coordinator {
         ExecuteCommandOperation {
             find_command_provider: &storage,
             system_provider: &System {
-                client: &self.powershell,
+                process: &self.powershell_process,
                 no_exit,
                 working_directory,
             },
@@ -237,19 +237,21 @@ impl Coordinator {
             Some(working_directory)
         };
 
-        self.powershell
-            .open_windows_terminal(Some(PowerShellParameters {
+        powershell::open_windows_terminal(
+            &self.powershell_process,
+            Some(PowerShellParameters {
                 command: None,
                 no_exit: false,
                 working_directory,
-            }))?;
+            }),
+        )?;
 
         Ok(())
     }
 
     fn storage(&self) -> Storage {
         Storage {
-            conn: &self.connection,
+            conn: &self.database_connection,
         }
     }
 

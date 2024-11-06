@@ -4,10 +4,10 @@ use std::{
     sync::RwLock,
 };
 
-const DEFAULT_WINDOWS_TERMINAL_COMMAND: &str = "wt pwsh";
-const POWERSHELL_COMMAND: &str = "pwsh";
+const DEFAULT_WINDOWS_TERMINAL_COMMAND_TEXT: &str = "wt pwsh";
+const POWERSHELL_COMMAND_TEXT: &str = "pwsh";
 
-pub struct PowerShellClient {
+pub struct PowerShellProcess {
     child: RwLock<Child>,
 }
 
@@ -24,49 +24,43 @@ pub struct PowerShellParameters<'a> {
     pub working_directory: Option<&'a str>,
 }
 
-impl PowerShellClient {
-    pub fn copy_to_clipboard(&self, text: &str) -> io::Result<()> {
-        let command = format!("Set-Clipboard '{}'", text);
-        self.execute(&command)
-    }
+impl PowerShellProcess {
+    pub fn spawn() -> io::Result<Self> {
+        let mut cmd = Command::new(POWERSHELL_COMMAND_TEXT);
 
-    pub fn execute(&self, command: &str) -> io::Result<()> {
-        let mut child = self
-            .child
-            .write()
-            .map_err(|_err| io::Error::other("Failed to obtain PowerShell child processlock"))?;
+        cmd.stdin(Stdio::piped());
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
 
-        execute(&mut child, command)
-    }
-
-    pub fn new() -> io::Result<Self> {
-        let child = spawn()?;
+        let child = cmd.spawn()?;
 
         Ok(Self {
             child: RwLock::new(child),
         })
     }
-
-    pub fn open_windows_terminal(
-        &self,
-        parameters: Option<PowerShellParameters>,
-    ) -> io::Result<()> {
-        let command = open_windows_terminal_command(parameters);
-        self.execute(&command)
-    }
 }
 
-fn execute(child: &mut Child, command: &str) -> io::Result<()> {
-    let stdin = child.stdin.as_mut().ok_or(io::Error::other(
-        "Can't obtain handle for writing to the PowerShell's standard input",
-    ))?;
+pub fn copy_to_clipboard(conn: &PowerShellProcess, text: &str) -> io::Result<()> {
+    let text = copy_to_clipboard_command_text(text);
 
-    use io::Write;
-    writeln!(stdin, "{}", &command)
+    execute(conn, &text)
 }
 
-pub fn open_windows_terminal_command(parameters: Option<PowerShellParameters>) -> String {
-    let cmd = DEFAULT_WINDOWS_TERMINAL_COMMAND.to_string();
+pub fn open_windows_terminal(
+    conn: &PowerShellProcess,
+    parameters: Option<PowerShellParameters>,
+) -> io::Result<()> {
+    let text = open_windows_termina_command_text(parameters);
+
+    execute(conn, &text)
+}
+
+fn copy_to_clipboard_command_text(text: &str) -> String {
+    format!("Set-Clipboard '{}'", text)
+}
+
+fn open_windows_termina_command_text(parameters: Option<PowerShellParameters>) -> String {
+    let cmd = DEFAULT_WINDOWS_TERMINAL_COMMAND_TEXT.to_string();
 
     let Some(parameters) = parameters else {
         return cmd;
@@ -95,12 +89,16 @@ pub fn open_windows_terminal_command(parameters: Option<PowerShellParameters>) -
     cmd.join(" ")
 }
 
-fn spawn() -> io::Result<Child> {
-    let mut cmd = Command::new(POWERSHELL_COMMAND);
+fn execute(conn: &PowerShellProcess, program: &str) -> io::Result<()> {
+    let mut child = conn
+        .child
+        .write()
+        .map_err(|_err| io::Error::other("Can't access PowerShell process"))?;
 
-    cmd.stdin(Stdio::piped());
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
+    let stdin = child.stdin.as_mut().ok_or(io::Error::other(
+        "Can't access PowerShell process stdin stream",
+    ))?;
 
-    cmd.spawn()
+    use io::Write;
+    writeln!(stdin, "{}", &program)
 }
