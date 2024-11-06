@@ -21,6 +21,7 @@ pub(crate) use presenters::*;
 pub(crate) use routes::*;
 
 use coordinator::Coordinator;
+use hermione_drive::sqlite;
 use hermione_tracing::{NewTracerParameters, Tracer};
 use providers::powershell::PowerShellProcess;
 use router::TerminalRouter;
@@ -40,9 +41,9 @@ fn main() -> Result<()> {
     let theme = Theme::parse(include_str!("../themes/github_dark.json"))?;
     let conn = Connection::open(app_path.join("hermione.db3"))?;
 
-    hermione_drive::sqlite::create_workspaces_table_if_not_exists(&conn)?;
-    hermione_drive::sqlite::create_commands_table_if_not_exists(&conn)?;
-    hermione_drive::sqlite::create_backup_credentials_table_if_not_exists(&conn)?;
+    sqlite::create_workspaces_table_if_not_exists(&conn)?;
+    sqlite::create_commands_table_if_not_exists(&conn)?;
+    sqlite::create_backup_credentials_table_if_not_exists(&conn)?;
 
     let coordinator = Coordinator {
         database_connection: conn,
