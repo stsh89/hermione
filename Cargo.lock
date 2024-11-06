@@ -969,10 +969,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hermione-powershell"
-version = "0.1.0"
-
-[[package]]
 name = "hermione-storage"
 version = "0.1.0"
 dependencies = [
