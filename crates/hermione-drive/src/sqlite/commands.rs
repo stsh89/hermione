@@ -1,6 +1,7 @@
 use rusqlite::{named_params, params, Connection, OptionalExtension, Result};
 use uuid::Bytes;
 
+#[derive(Clone)]
 pub struct CommandRecord {
     pub id: Bytes,
     pub last_execute_time: Option<i64>,
@@ -12,8 +13,8 @@ pub struct CommandRecord {
 pub struct ListCommandsQuery<'a> {
     pub program_contains: &'a str,
     pub workspace_id: Option<Bytes>,
-    pub page_number: u32,
-    pub page_size: u32,
+    pub offset: u32,
+    pub limit: u32,
 }
 
 pub fn create_commands_table_if_not_exists(conn: &Connection) -> Result<()> {
@@ -81,7 +82,7 @@ pub fn insert_command(conn: &Connection, record: CommandRecord) -> Result<usize>
     } = record;
 
     conn.prepare(
-        "INSERT INTO workspaces (
+        "INSERT INTO commands (
             id,
             last_execute_time,
             name,
@@ -102,8 +103,8 @@ pub fn list_commands(conn: &Connection, query: ListCommandsQuery) -> Result<Vec<
     let ListCommandsQuery {
         program_contains,
         workspace_id,
-        page_number,
-        page_size,
+        offset,
+        limit,
     } = query;
 
     let program_contains = format!("%{}%", program_contains.to_lowercase());
@@ -117,7 +118,7 @@ pub fn list_commands(conn: &Connection, query: ListCommandsQuery) -> Result<Vec<
             workspace_id
         FROM commands
         WHERE
-            LOWER(name) LIKE :program_contains
+            LOWER(program) LIKE :program_contains
             AND (workspace_id = :workspace_id OR :workspace_id IS NULL)
         ORDER BY last_execute_time DESC, program ASC
         LIMIT :limit OFFSET :offset",
@@ -126,8 +127,8 @@ pub fn list_commands(conn: &Connection, query: ListCommandsQuery) -> Result<Vec<
     let records = statement
         .query_map(
             named_params![
-                ":limit": page_size,
-                ":offset": page_number * page_size,
+                ":limit": limit,
+                ":offset": limit * offset,
                 ":program_contains": program_contains,
                 ":workspace_id": workspace_id,
             ],
@@ -144,6 +145,11 @@ pub fn list_commands(conn: &Connection, query: ListCommandsQuery) -> Result<Vec<
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(records)
+}
+
+pub fn refresh_command_execute_time(conn: &Connection, id: &Bytes, time: i64) -> Result<usize> {
+    conn.prepare("UPDATE commands SET last_execute_time = :time WHERE id = :id")?
+        .execute(named_params!(":id": id, ":time": time))
 }
 
 pub fn restore_commands(conn: &Connection, records: Vec<CommandRecord>) -> Result<()> {
@@ -188,7 +194,7 @@ pub fn update_command(conn: &Connection, record: CommandRecord) -> Result<usize>
     } = record;
 
     conn.prepare(
-        "UPDATE workspaces
+        "UPDATE commands
         SET
             last_execute_time = :last_execute_time,
             name = :name,

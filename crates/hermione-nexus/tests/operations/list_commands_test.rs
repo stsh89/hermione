@@ -1,11 +1,12 @@
 use crate::solutions::{
-    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorage,
+    command_fixture, page_number, page_size, workspace_fixture, CommandFixtureParameters,
+    InMemoryStorage,
 };
 use chrono::Utc;
 use hermione_nexus::{
     definitions::Workspace,
     operations::{ListCommandsOperation, ListCommandsParameters},
-    Error, Result,
+    Result,
 };
 
 struct ListCommandsOperationTestContext {
@@ -61,8 +62,8 @@ fn it_filters_commands_by_workspace() -> Result<()> {
 
         let commands =
             ListCommandsOperation { provider: &storage }.execute(ListCommandsParameters {
-                page_size: 10,
-                page_number: 1,
+                page_size: page_size(10)?,
+                page_number: page_number(1)?,
                 program_contains: None,
                 workspace_id: Some(workspace.id()),
             })?;
@@ -86,8 +87,8 @@ fn it_filters_commands_by_program() -> Result<()> {
 
         let commands =
             ListCommandsOperation { provider: &storage }.execute(ListCommandsParameters {
-                page_size: 10,
-                page_number: 1,
+                page_size: page_size(10)?,
+                page_number: page_number(1)?,
                 program_contains: Some("ping"),
                 workspace_id: None,
             })?;
@@ -111,8 +112,8 @@ fn it_paginates() -> Result<()> {
 
         let commands =
             ListCommandsOperation { provider: &storage }.execute(ListCommandsParameters {
-                page_number: 2,
-                page_size: 2,
+                page_number: page_number(2)?,
+                page_size: page_size(2)?,
                 program_contains: None,
                 workspace_id: None,
             })?;
@@ -144,8 +145,8 @@ fn it_sorts_commands_by_last_execute_time_and_program() -> Result<()> {
 
         let commands =
             ListCommandsOperation { provider: &storage }.execute(ListCommandsParameters {
-                page_size: 3,
-                page_number: 1,
+                page_size: page_size(3)?,
+                page_number: page_number(1)?,
                 program_contains: None,
                 workspace_id: None,
             })?;
@@ -153,52 +154,6 @@ fn it_sorts_commands_by_last_execute_time_and_program() -> Result<()> {
         assert_eq!(
             commands.iter().map(|w| w.program()).collect::<Vec<_>>(),
             vec!["trace", "Get-ChildItem 1", "Get-ChildItem 2",]
-        );
-
-        Ok(())
-    })
-}
-
-#[test]
-fn it_validates_page_size() -> Result<()> {
-    with_context(|ctx| {
-        let ListCommandsOperationTestContext {
-            storage,
-            workspace: _,
-        } = ctx;
-
-        let result = ListCommandsOperation { provider: &storage }.execute(ListCommandsParameters {
-            program_contains: None,
-            workspace_id: None,
-            page_number: 1,
-            page_size: 0,
-        });
-
-        assert!(
-            matches!(result, Err(Error::InvalidArgument(description)) if description == "Page size must be greater than 0")
-        );
-
-        Ok(())
-    })
-}
-
-#[test]
-fn it_validates_page_number() -> Result<()> {
-    with_context(|ctx| {
-        let ListCommandsOperationTestContext {
-            storage,
-            workspace: _,
-        } = ctx;
-
-        let result = ListCommandsOperation { provider: &storage }.execute(ListCommandsParameters {
-            program_contains: None,
-            workspace_id: None,
-            page_number: 0,
-            page_size: 1,
-        });
-
-        assert!(
-            matches!(result, Err(Error::InvalidArgument(description)) if description == "Page number must be greater than 0")
         );
 
         Ok(())

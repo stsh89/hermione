@@ -41,7 +41,7 @@ where
     }
 
     fn import_commands(&self, backup_provider: &BP) -> Result<()> {
-        let mut page_number = 1;
+        let mut page_number = 0;
 
         loop {
             let commands = self.list_commands(page_number)?;
@@ -58,7 +58,7 @@ where
     }
 
     fn import_workspaces(&self, backup_provider: &BP) -> Result<()> {
-        let mut page_number = 1;
+        let mut page_number = 0;
 
         loop {
             let workspaces = self.list_workspaces(page_number)?;

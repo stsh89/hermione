@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
     themes::Theme,
@@ -8,7 +10,7 @@ use crate::{
 };
 
 pub struct WorkspacesHandler<'a> {
-    pub coordinator: &'a Coordinator<'a>,
+    pub coordinator: &'a Coordinator,
     pub theme: Theme,
 }
 
@@ -24,15 +26,15 @@ impl<'a> WorkspacesHandler<'a> {
 
         let workspaces = self.coordinator.list_workspaces(ListWorkspacesInput {
             name_contains: name.as_str(),
-            page_number: 0,
-            page_size: LIST_WORKSPACES_PAGE_SIZE,
+            page_number: NonZeroU32::new(1),
+            page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
         })?;
 
         let model = ListWorkspacesModel::new(ListWorkspaceModelParameters {
             workspaces,
             search_query: name,
-            page_number: 0,
-            page_size: LIST_WORKSPACES_PAGE_SIZE,
+            page_number: NonZeroU32::new(1),
+            page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
             theme: self.theme,
         })?;
 
@@ -46,15 +48,15 @@ impl<'a> WorkspacesHandler<'a> {
 
         let workspaces = self.coordinator.list_workspaces(ListWorkspacesInput {
             name_contains: "",
-            page_number: 0,
-            page_size: LIST_WORKSPACES_PAGE_SIZE,
+            page_number: NonZeroU32::new(1),
+            page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
         })?;
 
         let model = ListWorkspacesModel::new(ListWorkspaceModelParameters {
             workspaces,
             search_query: String::new(),
-            page_number: 0,
-            page_size: LIST_WORKSPACES_PAGE_SIZE,
+            page_number: NonZeroU32::new(1),
+            page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
             theme: self.theme,
         })?;
 

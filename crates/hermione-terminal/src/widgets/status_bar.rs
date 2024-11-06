@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Paragraph, Widget},
 };
 use serde::Serialize;
-use std::marker::PhantomData;
+use std::{marker::PhantomData, num::NonZeroU32};
 
 pub struct StatusBar {
     status_line_text: String,
@@ -14,7 +14,7 @@ pub struct StatusBar {
 pub struct StatusBarBuilder<'a, O> {
     command: Option<&'a str>,
     operation: Option<&'a str>,
-    page: Option<u32>,
+    page: Option<NonZeroU32>,
     phantom_data: PhantomData<O>,
     pwsh: Option<&'a str>,
     search: Option<&'a str>,
@@ -35,7 +35,7 @@ pub struct StatusLine<'a> {
     operation: &'a str,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    page: Option<u32>,
+    page: Option<NonZeroU32>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pwsh: Option<&'a str>,
@@ -127,7 +127,7 @@ impl<'a> StatusBarBuilder<'a, Set> {
         }
     }
 
-    pub fn page(self, page: u32) -> Self {
+    pub fn page(self, page: NonZeroU32) -> Self {
         Self {
             page: Some(page),
             ..self

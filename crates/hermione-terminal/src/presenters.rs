@@ -1,8 +1,7 @@
-use hermione_ops::{
-    commands::{Command, LoadCommandParameters},
-    workspaces::{LoadWorkspaceParameters, Workspace},
-};
+use crate::{Error, Result};
+use hermione_nexus::definitions::{Command, CommandParameters, Workspace, WorkspaceParameters};
 use ratatui::widgets::ListItem;
+use uuid::Uuid;
 
 pub struct CommandPresenter {
     pub workspace_id: String,
@@ -40,17 +39,19 @@ impl From<Workspace> for WorkspacePresenter {
 }
 
 impl TryFrom<WorkspacePresenter> for Workspace {
-    type Error = anyhow::Error;
+    type Error = Error;
 
-    fn try_from(value: WorkspacePresenter) -> anyhow::Result<Self> {
+    fn try_from(value: WorkspacePresenter) -> Result<Self> {
         let WorkspacePresenter { id, location, name } = value;
 
-        Ok(Workspace::load(LoadWorkspaceParameters {
+        let workspace = Workspace::new(WorkspaceParameters {
             id: id.parse()?,
             name,
             location: Some(location),
             last_access_time: None,
-        }))
+        })?;
+
+        Ok(workspace)
     }
 }
 
@@ -66,9 +67,9 @@ impl From<Command> for CommandPresenter {
 }
 
 impl TryFrom<CommandPresenter> for Command {
-    type Error = anyhow::Error;
+    type Error = Error;
 
-    fn try_from(value: CommandPresenter) -> anyhow::Result<Self> {
+    fn try_from(value: CommandPresenter) -> Result<Self> {
         let CommandPresenter {
             id,
             name,
@@ -76,12 +77,16 @@ impl TryFrom<CommandPresenter> for Command {
             workspace_id,
         } = value;
 
-        Ok(Command::load(LoadCommandParameters {
+        let workspace_id: Uuid = workspace_id.parse()?;
+
+        let command = Command::new(CommandParameters {
             id: id.parse()?,
             name,
             last_execute_time: None,
             program,
-            workspace_id: workspace_id.parse()?,
-        }))
+            workspace_id: workspace_id.into(),
+        })?;
+
+        Ok(command)
     }
 }

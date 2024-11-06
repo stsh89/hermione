@@ -1,4 +1,5 @@
 use crate::{Route, WorkspaceCommandsRoute, WorkspacesRoute};
+use std::num::NonZeroU32;
 
 pub const LIST_WORKSPACES_PAGE_SIZE: u32 = 100;
 pub const LIST_WORKSPACE_COMMANDS_PAGE_SIZE: u32 = 100;
@@ -18,7 +19,7 @@ pub struct DeleteWorkspaceParams {
     pub id: String,
 }
 
-pub struct DeleteWorkspaceCommandParams {
+pub struct DeleteCommandParams {
     pub command_id: String,
     pub workspace_id: String,
 }
@@ -27,22 +28,21 @@ pub struct EditWorkspaceParams {
     pub id: String,
 }
 
-pub struct EditWorkspaceCommandParams {
+pub struct EditCommandParams {
     pub command_id: String,
-    pub workspace_id: String,
 }
 
 pub struct ListWorkspacesParams {
     pub search_query: String,
-    pub page_number: u32,
-    pub page_size: u32,
+    pub page_number: Option<NonZeroU32>,
+    pub page_size: Option<NonZeroU32>,
 }
 
 pub struct ListWorkspaceCommandsParams {
     pub workspace_id: String,
     pub search_query: String,
-    pub page_number: u32,
-    pub page_size: u32,
+    pub page_number: Option<NonZeroU32>,
+    pub page_size: Option<NonZeroU32>,
     pub powershell_no_exit: bool,
 }
 
@@ -50,9 +50,8 @@ pub struct NewWorkspaceCommandParams {
     pub workspace_id: String,
 }
 
-pub struct CopyToClipboardParams {
+pub struct CopyCommandToClipboardParams {
     pub command_id: String,
-    pub workspace_id: String,
 }
 
 pub struct ExecuteCommandParams {
@@ -82,8 +81,8 @@ impl Default for ListWorkspacesParams {
     fn default() -> Self {
         Self {
             search_query: String::new(),
-            page_number: 0,
-            page_size: LIST_WORKSPACES_PAGE_SIZE,
+            page_number: NonZeroU32::new(1),
+            page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
         }
     }
 }
@@ -108,8 +107,8 @@ impl From<DeleteWorkspaceParams> for Route {
     }
 }
 
-impl From<DeleteWorkspaceCommandParams> for Route {
-    fn from(parameters: DeleteWorkspaceCommandParams) -> Self {
+impl From<DeleteCommandParams> for Route {
+    fn from(parameters: DeleteCommandParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Commands(WorkspaceCommandsRoute::Delete(
             parameters,
         )))
@@ -122,8 +121,8 @@ impl From<EditWorkspaceParams> for Route {
     }
 }
 
-impl From<EditWorkspaceCommandParams> for Route {
-    fn from(parameters: EditWorkspaceCommandParams) -> Self {
+impl From<EditCommandParams> for Route {
+    fn from(parameters: EditCommandParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Commands(WorkspaceCommandsRoute::Edit(
             parameters,
         )))

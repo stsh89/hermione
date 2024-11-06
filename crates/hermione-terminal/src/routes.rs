@@ -1,7 +1,7 @@
 use crate::{
-    CopyToClipboardParams, CreateWorkspaceCommandParams, CreateWorkspaceParams,
-    DeleteWorkspaceCommandParams, DeleteWorkspaceParams, EditWorkspaceCommandParams,
-    EditWorkspaceParams, ExecuteCommandParams, ListWorkspaceCommandsParams, ListWorkspacesParams,
+    CopyCommandToClipboardParams, CreateWorkspaceCommandParams, CreateWorkspaceParams,
+    DeleteCommandParams, DeleteWorkspaceParams, EditCommandParams, EditWorkspaceParams,
+    ExecuteCommandParams, ListWorkspaceCommandsParams, ListWorkspacesParams,
     NewWorkspaceCommandParams, OpenWindowsTerminalParams, UpdateWorkspaceCommandParams,
     UpdateWorkspaceParams,
 };
@@ -13,7 +13,7 @@ pub enum Route {
 
 pub enum PowerShellRoute {
     ExecuteCommand(ExecuteCommandParams),
-    CopyToClipboard(CopyToClipboardParams),
+    CopyToClipboard(CopyCommandToClipboardParams),
     OpenWindowsTerminal(OpenWindowsTerminalParams),
 }
 
@@ -29,8 +29,8 @@ pub enum WorkspacesRoute {
 
 pub enum WorkspaceCommandsRoute {
     Create(CreateWorkspaceCommandParams),
-    Delete(DeleteWorkspaceCommandParams),
-    Edit(EditWorkspaceCommandParams),
+    Delete(DeleteCommandParams),
+    Edit(EditCommandParams),
     List(ListWorkspaceCommandsParams),
     New(NewWorkspaceCommandParams),
     Update(UpdateWorkspaceCommandParams),

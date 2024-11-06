@@ -1,8 +1,10 @@
-use crate::solutions::{workspace_fixture, InMemoryStorage, WorkspaceFixtureParameters};
+use crate::solutions::{
+    page_number, page_size, workspace_fixture, InMemoryStorage, WorkspaceFixtureParameters,
+};
 use chrono::Utc;
 use hermione_nexus::{
     operations::{ListWorkspacesOperation, ListWorkspacesParameters},
-    Error, Result,
+    Result,
 };
 
 struct ListWorkspacesOperationTestContext {
@@ -35,8 +37,8 @@ fn it_paginates() -> Result<()> {
         let workspaces =
             ListWorkspacesOperation { provider: &storage }.execute(ListWorkspacesParameters {
                 name_contains: None,
-                page_number: 2,
-                page_size: 3,
+                page_number: page_number(2)?,
+                page_size: page_size(3)?,
             })?;
 
         assert_eq!(
@@ -56,8 +58,8 @@ fn it_filters_by_name() -> Result<()> {
         let workspaces =
             ListWorkspacesOperation { provider: &storage }.execute(ListWorkspacesParameters {
                 name_contains: Some("7"),
-                page_number: 1,
-                page_size: 10,
+                page_number: page_number(1)?,
+                page_size: page_size(10)?,
             })?;
 
         assert_eq!(
@@ -85,56 +87,14 @@ fn it_sorts_workspaces_by_last_access_time_and_name() -> Result<()> {
         let workspaces =
             ListWorkspacesOperation { provider: &storage }.execute(ListWorkspacesParameters {
                 name_contains: None,
-                page_number: 1,
-                page_size: 3,
+                page_number: page_number(1)?,
+                page_size: page_size(3)?,
             })?;
 
         assert_eq!(
             workspaces.iter().map(|w| w.name()).collect::<Vec<_>>(),
             vec!["Test workspace 9", "Test workspace 1", "Test workspace 2",]
         );
-
-        Ok(())
-    })
-}
-
-#[test]
-fn it_validates_page_number() -> Result<()> {
-    with_context(|ctx| {
-        let ListWorkspacesOperationTestContext { storage } = ctx;
-
-        let result =
-            ListWorkspacesOperation { provider: &storage }.execute(ListWorkspacesParameters {
-                name_contains: None,
-                page_number: 0,
-                page_size: 10,
-            });
-
-        assert!(matches!(
-            result,
-            Err(Error::InvalidArgument(description)) if description == "Page number must be greater than 0"
-        ));
-
-        Ok(())
-    })
-}
-
-#[test]
-fn it_validates_page_size() -> Result<()> {
-    with_context(|ctx| {
-        let ListWorkspacesOperationTestContext { storage } = ctx;
-
-        let result =
-            ListWorkspacesOperation { provider: &storage }.execute(ListWorkspacesParameters {
-                name_contains: None,
-                page_number: 1,
-                page_size: 0,
-            });
-
-        assert!(matches!(
-            result,
-            Err(Error::InvalidArgument(description)) if description == "Page size must be greater than 0"
-        ));
 
         Ok(())
     })

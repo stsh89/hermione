@@ -9,6 +9,9 @@ pub enum Error {
     #[error("Invalid argument: {0}")]
     InvalidArgument(String),
 
+    #[error("IO error: {0}")]
+    IO(#[from] std::io::Error),
+
     #[error("{0} not found")]
     NotFound(String),
 

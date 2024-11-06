@@ -1,14 +1,16 @@
+use std::num::NonZeroU32;
+
 use crate::{
     coordinator::ListCommandsWithinWorkspaceInput, themes::Theme, CommandPresenter, Coordinator,
-    CreateWorkspaceCommandParams, DeleteWorkspaceCommandParams, EditWorkspaceCommandModel,
-    EditWorkspaceCommandModelParameters, EditWorkspaceCommandParams, ListWorkspaceCommandsModel,
+    CreateWorkspaceCommandParams, DeleteCommandParams, EditCommandParams,
+    EditWorkspaceCommandModel, EditWorkspaceCommandModelParameters, ListWorkspaceCommandsModel,
     ListWorkspaceCommandsModelParameters, ListWorkspaceCommandsParams, NewWorkspaceCommandModel,
     NewWorkspaceCommandModelParameters, NewWorkspaceCommandParams, Result,
     UpdateWorkspaceCommandParams, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 
 pub struct CommandsHandler<'a> {
-    pub coordinator: &'a Coordinator<'a>,
+    pub coordinator: &'a Coordinator,
     pub theme: Theme,
 }
 
@@ -30,29 +32,23 @@ impl<'a> CommandsHandler<'a> {
         self.coordinator.create_command(command)
     }
 
-    pub fn delete(&self, parameters: DeleteWorkspaceCommandParams) -> Result<WorkspacePresenter> {
-        let DeleteWorkspaceCommandParams {
-            workspace_id,
+    pub fn delete(&self, parameters: DeleteCommandParams) -> Result<WorkspacePresenter> {
+        let DeleteCommandParams {
             command_id,
+            workspace_id,
         } = parameters;
 
-        self.coordinator
-            .delete_command_from_workspace(&workspace_id, &command_id)?;
+        self.coordinator.delete_command(&command_id)?;
 
         self.coordinator.get_workspace(&workspace_id)
     }
 
-    pub fn edit(self, parameters: EditWorkspaceCommandParams) -> Result<EditWorkspaceCommandModel> {
-        let EditWorkspaceCommandParams {
-            command_id,
-            workspace_id,
-        } = parameters;
+    pub fn edit(self, parameters: EditCommandParams) -> Result<EditWorkspaceCommandModel> {
+        let EditCommandParams { command_id } = parameters;
 
-        let command = self
-            .coordinator
-            .get_command_from_workspace(&workspace_id, &command_id)?;
+        let command = self.coordinator.get_command(&command_id)?;
 
-        let workspace = self.coordinator.get_workspace(&workspace_id)?;
+        let workspace = self.coordinator.get_workspace(&command.workspace_id)?;
 
         EditWorkspaceCommandModel::new(EditWorkspaceCommandModelParameters {
             command,
@@ -77,7 +73,7 @@ impl<'a> CommandsHandler<'a> {
 
         let commands =
             self.coordinator
-                .list_commands_within_workspace(ListCommandsWithinWorkspaceInput {
+                .list_workspace_commands(ListCommandsWithinWorkspaceInput {
                     workspace_id: &workspace_id,
                     program_contains: &search_query,
                     page_number,
@@ -132,9 +128,9 @@ impl<'a> CommandsHandler<'a> {
 
         let commands =
             self.coordinator
-                .list_commands_within_workspace(ListCommandsWithinWorkspaceInput {
-                    page_number: 0,
-                    page_size: LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+                .list_workspace_commands(ListCommandsWithinWorkspaceInput {
+                    page_number: NonZeroU32::new(1),
+                    page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
                     program_contains: &command.program,
                     workspace_id: &command.workspace_id,
                 })?;
@@ -143,8 +139,8 @@ impl<'a> CommandsHandler<'a> {
             commands,
             workspace,
             search_query: command.program,
-            page_number: 0,
-            page_size: LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+            page_number: NonZeroU32::new(1),
+            page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
             powershell_no_exit: false,
             theme: self.theme,
         })?;

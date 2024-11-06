@@ -11,9 +11,13 @@ ratatui = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tracing = { workspace = true }
+dirs = { workspace = true }
+rusqlite = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
 
-hermione-ops = { workspace = true, features = ["extensions"] }
-hermione-powershell = { workspace = true }
-hermione-storage = { workspace = true, features = ["extensions"] }
+hermione-drive = { workspace = true }
+hermione-nexus = { workspace = true }
 hermione-tracing = { workspace = true }
 hermione-tui = { workspace = true }

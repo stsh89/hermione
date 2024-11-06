@@ -16,6 +16,7 @@ use hermione_nexus::{
 };
 use std::{
     collections::HashMap,
+    num::NonZeroU32,
     sync::{PoisonError, RwLock},
 };
 use uuid::Uuid;
@@ -24,6 +25,12 @@ use uuid::Uuid;
 pub enum InMemoryStorageError {
     #[error("Data integrity error: {0}")]
     DataItegrity(String),
+
+    #[error("Invalid page number: {0}")]
+    InvalidPageNumber(u32),
+
+    #[error("Invalid page size: {0}")]
+    InvalidPageSize(u32),
 
     #[error("Memory access error: {0}")]
     MemoryAccess(String),
@@ -203,6 +210,14 @@ impl InMemoryStorage {
     }
 }
 
+pub fn page_size(size: u32) -> Result<NonZeroU32, InMemoryStorageError> {
+    NonZeroU32::new(size).ok_or(InMemoryStorageError::InvalidPageSize(size))
+}
+
+pub fn page_number(size: u32) -> Result<NonZeroU32, InMemoryStorageError> {
+    NonZeroU32::new(size).ok_or(InMemoryStorageError::InvalidPageNumber(size))
+}
+
 impl<T> From<PoisonError<T>> for InMemoryStorageError {
     fn from(err: PoisonError<T>) -> Self {
         Self::MemoryAccess(err.to_string())
@@ -357,7 +372,7 @@ impl ListCommands for InMemoryStorage {
 
         Ok(commands
             .into_iter()
-            .skip((page_number - 1) as usize * page_size as usize)
+            .skip(page_number as usize * page_size as usize)
             .take(page_size as usize)
             .collect())
     }
@@ -391,7 +406,7 @@ impl ListWorkspaces for InMemoryStorage {
 
         Ok(workspaces
             .into_iter()
-            .skip((page_number - 1) as usize * page_size as usize)
+            .skip(page_number as usize * page_size as usize)
             .take(page_size as usize)
             .collect())
     }
@@ -422,7 +437,7 @@ impl TrackWorkspaceAccessTime for InMemoryStorage {
 }
 
 impl UpdateCommand for InMemoryStorage {
-    fn update_command(&self, parameters: EditCommandParameters) -> Result<Command, Error> {
+    fn update_command(&self, parameters: EditCommandParameters) -> Result<(), Error> {
         let EditCommandParameters { id, name, program } = parameters;
 
         let mut command = self
@@ -434,7 +449,7 @@ impl UpdateCommand for InMemoryStorage {
 
         self.insert_command(&command)?;
 
-        Ok(command.clone())
+        Ok(())
     }
 }
 
@@ -449,7 +464,7 @@ impl UpsertCommands for InMemoryStorage {
 }
 
 impl UpdateWorkspace for InMemoryStorage {
-    fn update_workspace(&self, parameters: EditWorkspaceParameters) -> Result<Workspace, Error> {
+    fn update_workspace(&self, parameters: EditWorkspaceParameters) -> Result<(), Error> {
         let EditWorkspaceParameters { id, location, name } = parameters;
 
         let mut workspace = self
@@ -461,7 +476,7 @@ impl UpdateWorkspace for InMemoryStorage {
 
         self.insert_workspace(&workspace)?;
 
-        Ok(workspace)
+        Ok(())
     }
 }
 

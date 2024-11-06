@@ -993,16 +993,20 @@ name = "hermione-terminal"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
+ "dirs",
  "eyre",
- "hermione-ops",
- "hermione-powershell",
- "hermione-storage",
+ "hermione-drive",
+ "hermione-nexus",
  "hermione-tracing",
  "hermione-tui",
  "ratatui",
+ "rusqlite",
  "serde",
  "serde_json",
+ "thiserror",
  "tracing",
+ "uuid",
 ]
 
 [[package]]

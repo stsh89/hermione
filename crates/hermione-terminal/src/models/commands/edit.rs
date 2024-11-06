@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use crate::{
     forms::{CommandForm, EditCommandFormParameters},
     layouts::WideLayout,
@@ -70,8 +72,8 @@ impl EditWorkspaceCommandModel {
             ListWorkspaceCommandsParams {
                 workspace_id: command.workspace_id,
                 search_query: command.program,
-                page_number: 0,
-                page_size: LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+                page_number: NonZeroU32::new(1),
+                page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
                 powershell_no_exit: false,
             }
             .into(),

@@ -1,31 +1,25 @@
 use crate::{
-    providers::{clipboard::ClipboardProvider, system::SystemProvider},
+    providers::{PowerShellClient, PowerShellParameters},
+    services::{Clipboard, Storage, System},
     CommandPresenter, Result, WorkspacePresenter,
 };
-use hermione_ops::{
-    commands::{
-        Command, CreateCommandOperation, DeleteCommandFromWorkspaceOperation,
-        GetCommandFromWorkspaceOperation, ListCommandsWithinWorkspaceOperation,
-        ListCommandsWithinWorkspaceParameters, NewCommandParameters, UpdateCommandOperation,
-        UpdateCommandParameters,
-    },
-    extensions::{
-        CopyCommandToClipboardOperation, ExecuteCommandOperation,
-        ExecuteCommandWithinWorkspaceParameters, OpenWindowsTerminalOperation,
-        OpenWindowsTerminalParameters,
-    },
-    workspaces::{
-        CreateWorkspaceOperation, DeleteWorkspaceOperation, GetWorkspaceOperation,
-        ListWorkspaceOperation, ListWorkspacesParameters, NewWorkspaceParameters,
-        UpdateWorkspaceOperation, UpdateWorkspaceParameters, Workspace,
-    },
+use hermione_nexus::operations::{
+    CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
+    CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteCommandOperation,
+    DeleteWorkspaceOperation, ExecuteCommandOperation, GetCommandOperation, GetWorkspaceOperation,
+    ListCommandsOperation, ListCommandsParameters, ListWorkspacesOperation,
+    ListWorkspacesParameters, UpdateCommandOperation, UpdateCommandParameters,
+    UpdateWorkspaceOperation, UpdateWorkspaceParameters,
 };
-use hermione_storage::StorageProvider;
+use std::{
+    num::{NonZero, NonZeroU32},
+    str::FromStr,
+};
+use uuid::Uuid;
 
-pub struct Coordinator<'a> {
-    pub storage_provider: StorageProvider<'a>,
-    pub clipboard_provider: ClipboardProvider<'a>,
-    pub system_provider: SystemProvider<'a>,
+pub struct Coordinator {
+    pub storage: Storage,
+    pub powershell: PowerShellClient,
 }
 
 pub struct ExecuteCommandWithinWorkspaceInput<'a> {
@@ -36,13 +30,13 @@ pub struct ExecuteCommandWithinWorkspaceInput<'a> {
 
 pub struct ListWorkspacesInput<'a> {
     pub name_contains: &'a str,
-    pub page_number: u32,
-    pub page_size: u32,
+    pub page_number: Option<NonZeroU32>,
+    pub page_size: Option<NonZeroU32>,
 }
 
 pub struct ListCommandsWithinWorkspaceInput<'a> {
-    pub page_number: u32,
-    pub page_size: u32,
+    pub page_number: Option<NonZeroU32>,
+    pub page_size: Option<NonZeroU32>,
     pub program_contains: &'a str,
     pub workspace_id: &'a str,
 }
@@ -51,13 +45,19 @@ pub struct OpenWindowsTerminalInput<'a> {
     pub working_directory: &'a str,
 }
 
-impl<'a> Coordinator<'a> {
-    pub fn copy_program_to_clipboard(&self, workspace_id: &str, id: &str) -> Result<()> {
-        CopyCommandToClipboardOperation {
-            clipboard_provider: &self.clipboard_provider,
-            getter: &self.storage_provider,
+impl Coordinator {
+    fn clipboard(&self) -> Clipboard {
+        Clipboard {
+            client: &self.powershell,
         }
-        .execute(&workspace_id.parse()?, &id.parse()?)?;
+    }
+
+    pub fn copy_command_to_clipboard(&self, id: &str) -> Result<()> {
+        CopyCommandToClipboardOperation {
+            clipboard_provider: &self.clipboard(),
+            storage_provider: &self.storage,
+        }
+        .execute(&Uuid::from_str(id)?.into())?;
 
         Ok(())
     }
@@ -70,16 +70,14 @@ impl<'a> Coordinator<'a> {
             workspace_id,
         } = dto;
 
-        let new_command = Command::new(NewCommandParameters {
+        let command = CreateCommandOperation {
+            provider: &self.storage,
+        }
+        .execute(CreateCommandParameters {
             name,
             program,
-            workspace_id: workspace_id.parse()?,
-        });
-
-        let command = CreateCommandOperation {
-            creator: &self.storage_provider,
-        }
-        .execute(new_command)?;
+            workspace_id: Uuid::from_str(&workspace_id)?.into(),
+        })?;
 
         Ok(command.into())
     }
@@ -91,33 +89,34 @@ impl<'a> Coordinator<'a> {
             name,
         } = dto;
 
-        let new_workspace = Workspace::new(NewWorkspaceParameters {
+        let workspace = CreateWorkspaceOperation {
+            provider: &self.storage,
+        }
+        .execute(CreateWorkspaceParameters {
             name,
             location: Some(location),
-        });
-
-        let workspace = CreateWorkspaceOperation {
-            creator: &self.storage_provider,
-        }
-        .execute(new_workspace)?;
+        })?;
 
         Ok(workspace.into())
     }
 
-    pub fn delete_command_from_workspace(&self, workspace_id: &str, id: &str) -> Result<()> {
-        DeleteCommandFromWorkspaceOperation {
-            deleter: &self.storage_provider,
+    pub fn delete_command(&self, id: &str) -> Result<()> {
+        DeleteCommandOperation {
+            find_command_provider: &self.storage,
+            delete_command_provider: &self.storage,
         }
-        .execute(&workspace_id.parse()?, &id.parse()?)?;
+        .execute(&Uuid::from_str(id)?.into())?;
 
         Ok(())
     }
 
     pub fn delete_workspace(&self, id: &str) -> Result<()> {
         DeleteWorkspaceOperation {
-            deleter: &self.storage_provider,
+            find_workspace_provider: &self.storage,
+            delete_workspace_provider: &self.storage,
+            delete_workspace_commands_provider: &self.storage,
         }
-        .execute(id.parse()?)?;
+        .execute(&Uuid::from_str(id)?.into())?;
 
         Ok(())
     }
@@ -129,45 +128,48 @@ impl<'a> Coordinator<'a> {
             no_exit,
         } = input;
 
+        let workspace = self.get_workspace(workspace_id)?;
+
+        let working_directory = if workspace.location.is_empty() {
+            None
+        } else {
+            Some(workspace.location.as_str())
+        };
+
         ExecuteCommandOperation {
-            get_command: &self.storage_provider,
-            runner: &self.system_provider,
-            command_tracker: &self.storage_provider,
-            get_workspace: &self.storage_provider,
-            workspace_tracker: &self.storage_provider,
+            find_command_provider: &self.storage,
+            system_provider: &System {
+                client: &self.powershell,
+                no_exit,
+                working_directory,
+            },
+            track_command_provider: &self.storage,
+            track_workspace_provider: &self.storage,
         }
-        .execute(ExecuteCommandWithinWorkspaceParameters {
-            id: &id.parse()?,
-            workspace_id: &workspace_id.parse()?,
-            no_exit,
-        })?;
+        .execute(&Uuid::from_str(id)?.into())?;
 
         Ok(())
     }
 
-    pub fn get_command_from_workspace(
-        &self,
-        workspace_id: &str,
-        id: &str,
-    ) -> Result<CommandPresenter> {
-        let command = GetCommandFromWorkspaceOperation {
-            getter: &self.storage_provider,
+    pub fn get_command(&self, id: &str) -> Result<CommandPresenter> {
+        let command = GetCommandOperation {
+            provider: &self.storage,
         }
-        .execute(&workspace_id.parse()?, &id.parse()?)?;
+        .execute(&Uuid::from_str(id)?.into())?;
 
         Ok(command.into())
     }
 
     pub fn get_workspace(&self, id: &str) -> Result<WorkspacePresenter> {
         let workspace = GetWorkspaceOperation {
-            getter: &self.storage_provider,
+            provider: &self.storage,
         }
-        .execute(&id.parse()?)?;
+        .execute(&Uuid::from_str(id)?.into())?;
 
         Ok(workspace.into())
     }
 
-    pub fn list_commands_within_workspace(
+    pub fn list_workspace_commands(
         &self,
         parameters: ListCommandsWithinWorkspaceInput,
     ) -> Result<Vec<CommandPresenter>> {
@@ -178,14 +180,14 @@ impl<'a> Coordinator<'a> {
             workspace_id,
         } = parameters;
 
-        let workspaces = ListCommandsWithinWorkspaceOperation {
-            lister: &self.storage_provider,
+        let workspaces = ListCommandsOperation {
+            provider: &self.storage,
         }
-        .execute(ListCommandsWithinWorkspaceParameters {
-            page_number,
-            page_size,
-            program_contains,
-            workspace_id: workspace_id.parse()?,
+        .execute(ListCommandsParameters {
+            page_size: page_size.unwrap_or_else(|| NonZero::new(10).unwrap()),
+            page_number: page_number.unwrap_or_else(|| NonZero::new(1).unwrap()),
+            program_contains: Some(program_contains),
+            workspace_id: Some(&Uuid::parse_str(workspace_id)?.into()),
         })?;
 
         Ok(workspaces.into_iter().map(Into::into).collect())
@@ -201,13 +203,13 @@ impl<'a> Coordinator<'a> {
             page_size,
         } = parameters;
 
-        let workspaces = ListWorkspaceOperation {
-            lister: &self.storage_provider,
+        let workspaces = ListWorkspacesOperation {
+            provider: &self.storage,
         }
         .execute(ListWorkspacesParameters {
-            name_contains,
-            page_number,
-            page_size,
+            name_contains: Some(name_contains),
+            page_number: page_number.unwrap_or_else(|| NonZero::new(1).unwrap()),
+            page_size: page_size.unwrap_or_else(|| NonZero::new(10).unwrap()),
         })?;
 
         Ok(workspaces.into_iter().map(Into::into).collect())
@@ -216,31 +218,38 @@ impl<'a> Coordinator<'a> {
     pub fn open_windows_terminal(&self, parameters: OpenWindowsTerminalInput) -> Result<()> {
         let OpenWindowsTerminalInput { working_directory } = parameters;
 
-        OpenWindowsTerminalOperation {
-            windows_terminal_provider: &self.system_provider,
-        }
-        .execute(OpenWindowsTerminalParameters { working_directory })?;
+        let working_directory = if working_directory.is_empty() {
+            None
+        } else {
+            Some(working_directory)
+        };
+
+        self.powershell
+            .open_windows_terminal(Some(PowerShellParameters {
+                command: None,
+                no_exit: false,
+                working_directory,
+            }))?;
 
         Ok(())
     }
 
     pub fn update_command(&self, data: CommandPresenter) -> Result<CommandPresenter> {
         let CommandPresenter {
-            workspace_id,
+            workspace_id: _,
             id,
             name,
             program,
         } = data;
 
         let command = UpdateCommandOperation {
-            get_command_provider: &self.storage_provider,
-            update_command_provider: &self.storage_provider,
+            find_command_provider: &self.storage,
+            update_command_provider: &self.storage,
         }
         .execute(UpdateCommandParameters {
-            id: &id.parse()?,
+            id: &Uuid::from_str(&id)?.into(),
             name,
             program,
-            workspace_id: &workspace_id.parse()?,
         })?;
 
         Ok(command.into())
@@ -250,12 +259,12 @@ impl<'a> Coordinator<'a> {
         let WorkspacePresenter { id, location, name } = presenter;
 
         let workspace = UpdateWorkspaceOperation {
-            get_workspace_provider: &self.storage_provider,
-            update_workspace_provider: &self.storage_provider,
+            find_workspace_provider: &self.storage,
+            update_workspace_provider: &self.storage,
         }
         .execute(UpdateWorkspaceParameters {
-            id: &id.parse()?,
-            location,
+            id: &Uuid::from_str(&id)?.into(),
+            location: Some(location),
             name,
         })?;
 

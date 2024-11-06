@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use crate::{
     layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
@@ -18,8 +20,8 @@ pub struct ListWorkspacesModel {
     redirect: Option<Route>,
     workspaces_state: ListState,
     workspaces: Vec<WorkspacePresenter>,
-    page_number: u32,
-    page_size: u32,
+    page_number: NonZeroU32,
+    page_size: NonZeroU32,
     smart_input: SmartInput,
     search_query: String,
     theme: Theme,
@@ -28,8 +30,8 @@ pub struct ListWorkspacesModel {
 pub struct ListWorkspaceModelParameters {
     pub workspaces: Vec<WorkspacePresenter>,
     pub search_query: String,
-    pub page_number: u32,
-    pub page_size: u32,
+    pub page_number: Option<NonZeroU32>,
+    pub page_size: Option<NonZeroU32>,
     pub theme: Theme,
 }
 
@@ -136,8 +138,9 @@ impl ListWorkspacesModel {
             redirect: None,
             workspaces_state: ListState::default(),
             is_running: true,
-            page_number,
-            page_size,
+            page_number: page_number.unwrap_or_else(|| NonZeroU32::new(1).unwrap()),
+            page_size: page_size
+                .unwrap_or_else(|| NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE).unwrap()),
             smart_input,
             search_query,
             theme,
@@ -164,8 +167,8 @@ impl ListWorkspacesModel {
         self.redirect = Some(
             ListWorkspacesParams {
                 search_query,
-                page_number: 0,
-                page_size: self.page_size,
+                page_number: NonZeroU32::new(1),
+                page_size: Some(self.page_size),
             }
             .into(),
         );
@@ -207,8 +210,8 @@ impl ListWorkspacesModel {
                         ListWorkspaceCommandsParams {
                             workspace_id: workspace.id.clone(),
                             search_query: "".into(),
-                            page_number: 0,
-                            page_size: LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+                            page_number: NonZeroU32::new(1),
+                            page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
                             powershell_no_exit: false,
                         }
                         .into(),
@@ -222,55 +225,10 @@ impl ListWorkspacesModel {
     }
 
     fn select_next(&mut self) {
-        let Some(index) = self.workspaces_state.selected() else {
-            return;
-        };
-
-        if index == self.workspaces.len() - 1 && self.workspaces.len() == self.page_size as usize {
-            self.set_redirect(
-                ListWorkspacesParams {
-                    search_query: self.search_query.clone(),
-                    page_number: self.page_number + 1,
-                    page_size: self.page_size,
-                }
-                .into(),
-            );
-
-            return;
-        }
-
         self.workspaces_state.select_next();
     }
 
     fn select_previous(&mut self) {
-        let Some(index) = self.workspaces_state.selected() else {
-            if self.page_number != 0 {
-                self.set_redirect(
-                    ListWorkspacesParams {
-                        search_query: self.search_query.clone(),
-                        page_number: self.page_number - 1,
-                        page_size: self.page_size,
-                    }
-                    .into(),
-                );
-            }
-
-            return;
-        };
-
-        if index == 0 && self.page_number != 0 {
-            self.set_redirect(
-                ListWorkspacesParams {
-                    search_query: self.search_query.clone(),
-                    page_number: self.page_number - 1,
-                    page_size: self.page_size,
-                }
-                .into(),
-            );
-
-            return;
-        }
-
         self.workspaces_state.select_previous();
     }
 

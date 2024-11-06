@@ -3,16 +3,17 @@ use crate::{
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, Themed},
     widgets::{StatusBar, StatusBarWidget},
-    CommandPresenter, CopyToClipboardParams, DeleteWorkspaceCommandParams,
-    EditWorkspaceCommandParams, Error, ExecuteCommandParams, ListWorkspaceCommandsParams,
-    ListWorkspacesParams, Message, NewWorkspaceCommandParams, OpenWindowsTerminalParams,
-    PowerShellRoute, Result, Route, WorkspacePresenter,
+    CommandPresenter, CopyCommandToClipboardParams, DeleteCommandParams, EditCommandParams, Error,
+    ExecuteCommandParams, ListWorkspaceCommandsParams, ListWorkspacesParams, Message,
+    NewWorkspaceCommandParams, OpenWindowsTerminalParams, PowerShellRoute, Result, Route,
+    WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
     widgets::{Block, Borders, List, ListState},
     Frame,
 };
+use std::num::NonZeroU32;
 
 pub struct ListWorkspaceCommandsModel {
     workspace: WorkspacePresenter,
@@ -20,8 +21,8 @@ pub struct ListWorkspaceCommandsModel {
     redirect: Option<Route>,
     commands_state: ListState,
     powershell_settings: PowerShellSettings,
-    page_number: u32,
-    page_size: u32,
+    page_number: NonZeroU32,
+    page_size: NonZeroU32,
     smart_input: SmartInput,
     search_query: String,
     is_running: bool,
@@ -30,8 +31,8 @@ pub struct ListWorkspaceCommandsModel {
 
 pub struct ListWorkspaceCommandsModelParameters {
     pub commands: Vec<CommandPresenter>,
-    pub page_number: u32,
-    pub page_size: u32,
+    pub page_number: Option<NonZeroU32>,
+    pub page_size: Option<NonZeroU32>,
     pub powershell_no_exit: bool,
     pub search_query: String,
     pub workspace: WorkspacePresenter,
@@ -117,8 +118,8 @@ impl ListWorkspaceCommandsModel {
                 ListWorkspaceCommandsParams {
                     workspace_id: self.workspace.id.clone(),
                     search_query: "".into(),
-                    page_number: 0,
-                    page_size: self.page_size,
+                    page_number: NonZeroU32::new(1),
+                    page_size: Some(self.page_size),
                     powershell_no_exit: self.powershell_settings.no_exit,
                 }
                 .into(),
@@ -176,9 +177,8 @@ impl ListWorkspaceCommandsModel {
             .and_then(|index| self.commands.get(index))
     }
 
-    fn copy_to_clipboard_parameters(&self) -> Option<CopyToClipboardParams> {
-        self.command().map(|command| CopyToClipboardParams {
-            workspace_id: self.workspace.id.clone(),
+    fn copy_to_clipboard_parameters(&self) -> Option<CopyCommandToClipboardParams> {
+        self.command().map(|command| CopyCommandToClipboardParams {
             command_id: command.id.clone(),
         })
     }
@@ -240,8 +240,8 @@ impl ListWorkspaceCommandsModel {
         let mut model = Self {
             commands_state,
             commands,
-            page_number,
-            page_size,
+            page_number: page_number.unwrap_or_else(|| NonZeroU32::new(1).unwrap()),
+            page_size: page_size.unwrap_or_else(|| NonZeroU32::new(10).unwrap()),
             powershell_settings: PowerShellSettings {
                 no_exit: powershell_no_exit,
             },
@@ -263,69 +263,10 @@ impl ListWorkspaceCommandsModel {
     }
 
     fn select_next(&mut self) {
-        let Some(index) = self.commands_state.selected() else {
-            return;
-        };
-
-        if index == self.commands.len() - 1 {
-            if self.commands.len() < self.page_size as usize {
-                return;
-            }
-
-            self.redirect = Some(
-                ListWorkspaceCommandsParams {
-                    search_query: self.search_query.clone(),
-                    workspace_id: self.workspace.id.clone(),
-                    page_number: self.page_number + 1,
-                    page_size: self.page_size,
-                    powershell_no_exit: self.powershell_settings.no_exit,
-                }
-                .into(),
-            );
-
-            return;
-        }
-
         self.commands_state.select_next();
     }
 
     fn select_previous(&mut self) {
-        let Some(index) = self.commands_state.selected() else {
-            if self.page_number != 0 {
-                self.redirect = Some(
-                    ListWorkspaceCommandsParams {
-                        search_query: self.search_query.clone(),
-                        workspace_id: self.workspace.id.clone(),
-                        page_number: self.page_number - 1,
-                        page_size: self.page_size,
-                        powershell_no_exit: self.powershell_settings.no_exit,
-                    }
-                    .into(),
-                );
-            }
-
-            return;
-        };
-
-        if index == 0 {
-            if self.page_number == 0 {
-                return;
-            }
-
-            self.redirect = Some(
-                ListWorkspaceCommandsParams {
-                    search_query: self.search_query.clone(),
-                    workspace_id: self.workspace.id.clone(),
-                    page_number: self.page_number - 1,
-                    page_size: self.page_size,
-                    powershell_no_exit: self.powershell_settings.no_exit,
-                }
-                .into(),
-            );
-
-            return;
-        }
-
         self.commands_state.select_previous();
     }
 
@@ -356,7 +297,7 @@ impl ListWorkspaceCommandsModel {
             Action::DeleteCommand => {
                 if let Some(command) = self.command() {
                     self.set_redirect(
-                        DeleteWorkspaceCommandParams {
+                        DeleteCommandParams {
                             workspace_id: self.workspace.id.clone(),
                             command_id: command.id.clone(),
                         }
@@ -368,8 +309,7 @@ impl ListWorkspaceCommandsModel {
             Action::EditCommand => {
                 if let Some(command) = self.command() {
                     self.set_redirect(
-                        EditWorkspaceCommandParams {
-                            workspace_id: self.workspace.id.clone(),
+                        EditCommandParams {
                             command_id: command.id.clone(),
                         }
                         .into(),
@@ -380,8 +320,8 @@ impl ListWorkspaceCommandsModel {
             Action::ListWorkspaces => {
                 self.set_redirect(
                     ListWorkspacesParams {
-                        page_number: 0,
-                        page_size: self.page_size,
+                        page_number: NonZeroU32::new(1),
+                        page_size: Some(self.page_size),
                         search_query: "".into(),
                     }
                     .into(),
@@ -412,8 +352,8 @@ impl ListWorkspaceCommandsModel {
             ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
                 workspace_id: self.workspace.id.clone(),
-                page_number: 0,
-                page_size: self.page_size,
+                page_number: NonZeroU32::new(1),
+                page_size: Some(self.page_size),
                 powershell_no_exit: self.powershell_settings.no_exit,
             }
             .into(),
@@ -431,8 +371,8 @@ impl ListWorkspaceCommandsModel {
             ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
                 workspace_id: self.workspace.id.clone(),
-                page_number: 0,
-                page_size: self.page_size,
+                page_number: NonZeroU32::new(1),
+                page_size: Some(self.page_size),
                 powershell_no_exit: self.powershell_settings.no_exit,
             }
             .into(),
@@ -450,8 +390,8 @@ impl ListWorkspaceCommandsModel {
             ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
                 workspace_id: self.workspace.id.clone(),
-                page_number: 0,
-                page_size: self.page_size,
+                page_number: NonZeroU32::new(1),
+                page_size: Some(self.page_size),
                 powershell_no_exit: self.powershell_settings.no_exit,
             }
             .into(),

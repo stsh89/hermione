@@ -117,6 +117,11 @@ pub fn list_workspaces(
     Ok(records)
 }
 
+pub fn refresh_workspace_access_time(conn: &Connection, id: &Bytes, time: i64) -> Result<usize> {
+    conn.prepare("UPDATE workspaces SET last_access_time = :time WHERE id = :id")?
+        .execute(named_params! {":id": id, ":time": time})
+}
+
 pub fn restore_workspaces(conn: &Connection, records: Vec<WorkspaceRecord>) -> Result<()> {
     let mut statement = conn.prepare(
         "INSERT INTO workspaces

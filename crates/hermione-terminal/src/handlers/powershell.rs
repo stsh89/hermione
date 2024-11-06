@@ -1,21 +1,17 @@
 use crate::{
     coordinator::{Coordinator, ExecuteCommandWithinWorkspaceInput, OpenWindowsTerminalInput},
-    CopyToClipboardParams, ExecuteCommandParams, OpenWindowsTerminalParams, Result,
+    CopyCommandToClipboardParams, ExecuteCommandParams, OpenWindowsTerminalParams, Result,
 };
 
 pub struct PowerShellHandler<'a> {
-    pub coordinator: &'a Coordinator<'a>,
+    pub coordinator: &'a Coordinator,
 }
 
 impl<'a> PowerShellHandler<'a> {
-    pub fn copy_to_clipboard(self, parameters: CopyToClipboardParams) -> Result<()> {
-        let CopyToClipboardParams {
-            workspace_id,
-            command_id,
-        } = parameters;
+    pub fn copy_to_clipboard(self, parameters: CopyCommandToClipboardParams) -> Result<()> {
+        let CopyCommandToClipboardParams { command_id } = parameters;
 
-        self.coordinator
-            .copy_program_to_clipboard(&workspace_id, &command_id)?;
+        self.coordinator.copy_command_to_clipboard(&command_id)?;
 
         Ok(())
     }

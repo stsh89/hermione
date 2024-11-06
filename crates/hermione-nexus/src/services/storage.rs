@@ -71,11 +71,11 @@ pub trait TrackWorkspaceAccessTime: StorageProvider {
 }
 
 pub trait UpdateCommand: StorageProvider {
-    fn update_command(&self, parameters: EditCommandParameters) -> Result<Command>;
+    fn update_command(&self, parameters: EditCommandParameters) -> Result<()>;
 }
 
 pub trait UpdateWorkspace: StorageProvider {
-    fn update_workspace(&self, workspace: EditWorkspaceParameters) -> Result<Workspace>;
+    fn update_workspace(&self, workspace: EditWorkspaceParameters) -> Result<()>;
 }
 
 pub trait UpsertCommands: StorageProvider {
