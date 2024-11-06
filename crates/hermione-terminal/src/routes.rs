@@ -7,8 +7,13 @@ use crate::{
 };
 
 pub enum Route {
+    BackupCredentials(BackupCredentialsRoute),
     Powershell(PowerShellRoute),
     Workspaces(WorkspacesRoute),
+}
+
+pub enum BackupCredentialsRoute {
+    List,
 }
 
 pub enum PowerShellRoute {

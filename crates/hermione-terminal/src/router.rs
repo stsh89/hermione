@@ -1,9 +1,10 @@
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
     themes::Theme,
-    CommandsHandler, ListWorkspaceCommandsParams, ListWorkspacesParams, Message, PowerShellHandler,
-    PowerShellRoute, Result, Route, WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute,
-    LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    BackupCredentialsRoute, CommandsHandler, ListBackupCredentialsModel,
+    ListBackupCredentialsModelParameters, ListWorkspaceCommandsParams, ListWorkspacesParams,
+    Message, PowerShellHandler, PowerShellRoute, Result, Route, WorkspaceCommandsRoute,
+    WorkspacesHandler, WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{BoxedModel, Router};
 use std::num::NonZeroU32;
@@ -53,13 +54,32 @@ impl Router for TerminalRouter {
 
     fn handle(&self, route: Route) -> Result<Option<BoxedModel<Route, Message>>> {
         match route {
-            Route::Workspaces(route) => self.handle_workspaces_route(route),
+            Route::BackupCredentials(route) => self.handle_backup_credentials_route(route),
             Route::Powershell(route) => self.handle_powershell_route(route),
+            Route::Workspaces(route) => self.handle_workspaces_route(route),
         }
     }
 }
 
 impl TerminalRouter {
+    fn handle_backup_credentials_route(
+        &self,
+        route: BackupCredentialsRoute,
+    ) -> Result<Option<BoxedModel<Route, Message>>> {
+        match route {
+            BackupCredentialsRoute::List => {
+                let backup_credentials_kinds = self.coordinator.list_backup_credentials()?;
+
+                let model = ListBackupCredentialsModel::new(ListBackupCredentialsModelParameters {
+                    backup_credentials_kinds,
+                    theme: self.theme,
+                });
+
+                Ok(Some(Box::new(model)))
+            }
+        }
+    }
+
     pub fn handle_powershell_route(
         &self,
         route: PowerShellRoute,

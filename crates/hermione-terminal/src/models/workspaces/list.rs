@@ -5,9 +5,9 @@ use crate::{
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, Themed},
     widgets::{StatusBar, StatusBarWidget},
-    DeleteWorkspaceParams, EditWorkspaceParams, Error, ListWorkspaceCommandsParams,
-    ListWorkspacesParams, Message, Result, Route, WorkspacePresenter, WorkspacesRoute,
-    LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    BackupCredentialsRoute, DeleteWorkspaceParams, EditWorkspaceParams, Error,
+    ListWorkspaceCommandsParams, ListWorkspacesParams, Message, Result, Route, WorkspacePresenter,
+    WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -194,6 +194,9 @@ impl ListWorkspacesModel {
                 }
             }
             Action::Exit => self.exit(),
+            Action::ListBackupCredentials => {
+                self.set_redirect(Route::BackupCredentials(BackupCredentialsRoute::List))
+            }
             Action::ListCommands => {
                 if let Some(workspace) = self.workspace() {
                     self.set_redirect(
@@ -271,6 +274,7 @@ enum Action {
     Exit,
     ListCommands,
     NewWorkspace,
+    ListBackupCredentials,
 }
 
 impl Action {
@@ -281,6 +285,7 @@ impl Action {
             Self::Exit,
             Self::ListCommands,
             Self::NewWorkspace,
+            Self::ListBackupCredentials,
         ]
     }
 }
@@ -291,6 +296,7 @@ impl From<Action> for String {
             Action::DeleteWorkspace => "Delete workspace",
             Action::EditWorkspace => "Edit workspace",
             Action::Exit => "Exit",
+            Action::ListBackupCredentials => "List backup credentials",
             Action::ListCommands => "List commands",
             Action::NewWorkspace => "New workspace",
         };
@@ -309,6 +315,7 @@ impl TryFrom<&str> for Action {
             "Exit" => Ok(Self::Exit),
             "List commands" => Ok(Self::ListCommands),
             "New workspace" => Ok(Self::NewWorkspace),
+            "List backup credentials" => Ok(Self::ListBackupCredentials),
             _ => Err(anyhow::anyhow!("Unknown action: {}", value)),
         }
     }

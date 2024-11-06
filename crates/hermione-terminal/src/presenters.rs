@@ -1,7 +1,13 @@
 use crate::{Error, Result};
-use hermione_nexus::definitions::{Command, CommandParameters, Workspace, WorkspaceParameters};
+use hermione_nexus::definitions::{
+    BackupCredentials, Command, CommandParameters, Workspace, WorkspaceParameters,
+};
 use ratatui::widgets::ListItem;
 use uuid::Uuid;
+
+pub struct BackupCredentialsKind {
+    pub name: String,
+}
 
 pub struct CommandPresenter {
     pub workspace_id: Uuid,
@@ -16,6 +22,12 @@ pub struct WorkspacePresenter {
     pub name: String,
 }
 
+impl<'a> From<&BackupCredentialsKind> for ListItem<'a> {
+    fn from(value: &BackupCredentialsKind) -> Self {
+        ListItem::new(value.name.clone())
+    }
+}
+
 impl<'a> From<&CommandPresenter> for ListItem<'a> {
     fn from(command: &CommandPresenter) -> Self {
         ListItem::new(command.program.clone())
@@ -25,6 +37,25 @@ impl<'a> From<&CommandPresenter> for ListItem<'a> {
 impl<'a> From<&WorkspacePresenter> for ListItem<'a> {
     fn from(workspace: &WorkspacePresenter) -> Self {
         ListItem::new(workspace.name.clone())
+    }
+}
+
+impl From<BackupCredentials> for BackupCredentialsKind {
+    fn from(value: BackupCredentials) -> Self {
+        Self {
+            name: value.provider_kind().as_str().to_string(),
+        }
+    }
+}
+
+impl From<Command> for CommandPresenter {
+    fn from(command: Command) -> Self {
+        Self {
+            id: **command.id(),
+            name: command.name().to_string(),
+            program: command.program().to_string(),
+            workspace_id: **command.workspace_id(),
+        }
     }
 }
 
@@ -52,17 +83,6 @@ impl TryFrom<WorkspacePresenter> for Workspace {
         })?;
 
         Ok(workspace)
-    }
-}
-
-impl From<Command> for CommandPresenter {
-    fn from(command: Command) -> Self {
-        Self {
-            id: **command.id(),
-            name: command.name().to_string(),
-            program: command.program().to_string(),
-            workspace_id: **command.workspace_id(),
-        }
     }
 }
 

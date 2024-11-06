@@ -14,7 +14,7 @@ tracing = { workspace = true }
 dirs = { workspace = true }
 rusqlite = { workspace = true }
 thiserror = { workspace = true }
-uuid = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true }
 
 hermione-drive = { workspace = true }

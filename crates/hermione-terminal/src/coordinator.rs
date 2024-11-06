@@ -1,15 +1,15 @@
 use crate::{
     providers::{PowerShellClient, PowerShellParameters},
     services::{Clipboard, Storage, System},
-    CommandPresenter, Result, WorkspacePresenter,
+    BackupCredentialsKind, CommandPresenter, Result, WorkspacePresenter,
 };
 use hermione_nexus::operations::{
     CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
     CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteCommandOperation,
     DeleteWorkspaceOperation, ExecuteCommandOperation, GetCommandOperation, GetWorkspaceOperation,
-    ListCommandsOperation, ListCommandsParameters, ListWorkspacesOperation,
-    ListWorkspacesParameters, UpdateCommandOperation, UpdateCommandParameters,
-    UpdateWorkspaceOperation, UpdateWorkspaceParameters,
+    ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
+    ListWorkspacesOperation, ListWorkspacesParameters, UpdateCommandOperation,
+    UpdateCommandParameters, UpdateWorkspaceOperation, UpdateWorkspaceParameters,
 };
 use rusqlite::Connection;
 use std::num::{NonZero, NonZeroU32};
@@ -171,6 +171,15 @@ impl Coordinator {
         .execute(&id.into())?;
 
         Ok(workspace.into())
+    }
+
+    pub fn list_backup_credentials(&self) -> Result<Vec<BackupCredentialsKind>> {
+        let backup_credentials = ListBackupCredentialsOperation {
+            provider: &self.storage(),
+        }
+        .execute()?;
+
+        Ok(backup_credentials.into_iter().map(Into::into).collect())
     }
 
     pub fn list_workspace_commands(
