@@ -18,8 +18,8 @@ use hermione_nexus::{
 use rusqlite::Connection;
 use uuid::Uuid;
 
-pub struct Storage {
-    pub conn: Connection,
+pub struct Storage<'a> {
+    pub conn: &'a Connection,
 }
 
 fn internal_error(err: rusqlite::Error) -> Error {
@@ -60,9 +60,9 @@ fn workspace_from_record(record: WorkspaceRecord) -> Result<Workspace> {
     })
 }
 
-impl StorageProvider for Storage {}
+impl StorageProvider for Storage<'_> {}
 
-impl CreateCommand for Storage {
+impl CreateCommand for Storage<'_> {
     fn create_command(&self, parameters: NewCommandParameters) -> Result<Command> {
         let NewCommandParameters {
             name,
@@ -80,13 +80,13 @@ impl CreateCommand for Storage {
 
         let command = command_from_record(record.clone())?;
 
-        sqlite::insert_command(&self.conn, record).map_err(internal_error)?;
+        sqlite::insert_command(self.conn, record).map_err(internal_error)?;
 
         Ok(command)
     }
 }
 
-impl CreateWorkspace for Storage {
+impl CreateWorkspace for Storage<'_> {
     fn create_workspace(&self, parameters: NewWorkspaceParameters) -> Result<Workspace> {
         let NewWorkspaceParameters { name, location } = parameters;
 
@@ -99,53 +99,53 @@ impl CreateWorkspace for Storage {
 
         let workspace = workspace_from_record(record.clone())?;
 
-        sqlite::insert_workspace(&self.conn, record).map_err(internal_error)?;
+        sqlite::insert_workspace(self.conn, record).map_err(internal_error)?;
 
         Ok(workspace)
     }
 }
 
-impl DeleteCommand for Storage {
+impl DeleteCommand for Storage<'_> {
     fn delete_command(&self, id: &CommandId) -> Result<()> {
-        sqlite::delete_command(&self.conn, id.as_bytes()).map_err(internal_error)?;
+        sqlite::delete_command(self.conn, id.as_bytes()).map_err(internal_error)?;
 
         Ok(())
     }
 }
 
-impl DeleteWorkspace for Storage {
+impl DeleteWorkspace for Storage<'_> {
     fn delete_workspace(&self, id: &WorkspaceId) -> Result<()> {
-        sqlite::delete_workspace(&self.conn, id.as_bytes()).map_err(internal_error)?;
+        sqlite::delete_workspace(self.conn, id.as_bytes()).map_err(internal_error)?;
 
         Ok(())
     }
 }
 
-impl DeleteWorkspaceCommands for Storage {
+impl DeleteWorkspaceCommands for Storage<'_> {
     fn delete_workspace_commands(&self, id: &WorkspaceId) -> Result<()> {
-        sqlite::delete_workspace_commands(&self.conn, id.as_bytes()).map_err(internal_error)?;
+        sqlite::delete_workspace_commands(self.conn, id.as_bytes()).map_err(internal_error)?;
 
         Ok(())
     }
 }
 
-impl FindCommand for Storage {
+impl FindCommand for Storage<'_> {
     fn find_command(&self, id: &CommandId) -> Result<Option<Command>> {
-        let record = sqlite::find_command(&self.conn, id.as_bytes()).map_err(internal_error)?;
+        let record = sqlite::find_command(self.conn, id.as_bytes()).map_err(internal_error)?;
 
         record.map(command_from_record).transpose()
     }
 }
 
-impl FindWorkspace for Storage {
+impl FindWorkspace for Storage<'_> {
     fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>> {
-        let record = sqlite::find_workspace(&self.conn, id.as_bytes()).map_err(internal_error)?;
+        let record = sqlite::find_workspace(self.conn, id.as_bytes()).map_err(internal_error)?;
 
         record.map(workspace_from_record).transpose()
     }
 }
 
-impl ListCommands for Storage {
+impl ListCommands for Storage<'_> {
     fn list_commands(&self, parameters: FilterCommandsParameters) -> Result<Vec<Command>> {
         let FilterCommandsParameters {
             program_contains,
@@ -155,7 +155,7 @@ impl ListCommands for Storage {
         } = parameters;
 
         let records = sqlite::list_commands(
-            &self.conn,
+            self.conn,
             ListCommandsQuery {
                 program_contains: program_contains.unwrap_or_default(),
                 workspace_id: workspace_id.map(|id| id.into_bytes()),
@@ -172,7 +172,7 @@ impl ListCommands for Storage {
     }
 }
 
-impl ListWorkspaces for Storage {
+impl ListWorkspaces for Storage<'_> {
     fn list_workspaces(&self, parameters: FilterWorkspacesParameters) -> Result<Vec<Workspace>> {
         let FilterWorkspacesParameters {
             name_contains,
@@ -181,7 +181,7 @@ impl ListWorkspaces for Storage {
         } = parameters;
 
         let records = sqlite::list_workspaces(
-            &self.conn,
+            self.conn,
             ListWorkspacesQuery {
                 name_contains: name_contains.unwrap_or_default(),
                 limit: page_size,
@@ -197,10 +197,10 @@ impl ListWorkspaces for Storage {
     }
 }
 
-impl TrackCommandExecuteTime for Storage {
+impl TrackCommandExecuteTime for Storage<'_> {
     fn track_command_execute_time(&self, id: &CommandId) -> Result<()> {
         sqlite::refresh_command_execute_time(
-            &self.conn,
+            self.conn,
             id.as_bytes(),
             Utc::now().timestamp_micros(),
         )
@@ -210,10 +210,10 @@ impl TrackCommandExecuteTime for Storage {
     }
 }
 
-impl TrackWorkspaceAccessTime for Storage {
+impl TrackWorkspaceAccessTime for Storage<'_> {
     fn track_workspace_access_time(&self, id: &WorkspaceId) -> Result<()> {
         sqlite::refresh_workspace_access_time(
-            &self.conn,
+            self.conn,
             id.as_bytes(),
             Utc::now().timestamp_micros(),
         )
@@ -223,16 +223,16 @@ impl TrackWorkspaceAccessTime for Storage {
     }
 }
 
-impl UpdateCommand for Storage {
+impl UpdateCommand for Storage<'_> {
     fn update_command(&self, parameters: EditCommandParameters) -> Result<()> {
         let EditCommandParameters { id, name, program } = parameters;
 
-        let record = sqlite::find_command(&self.conn, id.as_bytes())
+        let record = sqlite::find_command(self.conn, id.as_bytes())
             .map_err(internal_error)?
             .ok_or(Error::NotFound(format!("Command {}", Uuid::nil().braced())))?;
 
         sqlite::update_command(
-            &self.conn,
+            self.conn,
             CommandRecord {
                 name: name.to_string(),
                 program: program.to_string(),
@@ -245,11 +245,11 @@ impl UpdateCommand for Storage {
     }
 }
 
-impl UpdateWorkspace for Storage {
+impl UpdateWorkspace for Storage<'_> {
     fn update_workspace(&self, parameters: EditWorkspaceParameters) -> Result<()> {
         let EditWorkspaceParameters { id, location, name } = parameters;
 
-        let record = sqlite::find_workspace(&self.conn, id.as_bytes())
+        let record = sqlite::find_workspace(self.conn, id.as_bytes())
             .map_err(internal_error)?
             .ok_or(Error::NotFound(format!(
                 "Workspace {}",
@@ -257,7 +257,7 @@ impl UpdateWorkspace for Storage {
             )))?;
 
         sqlite::update_workspace(
-            &self.conn,
+            self.conn,
             WorkspaceRecord {
                 location: location.map(ToString::to_string),
                 name: name.to_string(),

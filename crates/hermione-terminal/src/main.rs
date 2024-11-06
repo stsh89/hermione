@@ -26,7 +26,6 @@ use hermione_tracing::{NewTracerParameters, Tracer};
 use providers::PowerShellClient;
 use router::TerminalRouter;
 use rusqlite::Connection;
-use services::Storage;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -47,7 +46,7 @@ fn main() -> Result<()> {
     hermione_drive::sqlite::create_backup_credentials_table_if_not_exists(&conn)?;
 
     let coordinator = Coordinator {
-        storage: Storage { conn },
+        connection: conn,
         powershell: PowerShellClient::new()?,
     };
 

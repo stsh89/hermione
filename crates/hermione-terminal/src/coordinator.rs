@@ -11,6 +11,7 @@ use hermione_nexus::operations::{
     ListWorkspacesParameters, UpdateCommandOperation, UpdateCommandParameters,
     UpdateWorkspaceOperation, UpdateWorkspaceParameters,
 };
+use rusqlite::Connection;
 use std::{
     num::{NonZero, NonZeroU32},
     str::FromStr,
@@ -18,7 +19,7 @@ use std::{
 use uuid::Uuid;
 
 pub struct Coordinator {
-    pub storage: Storage,
+    pub connection: Connection,
     pub powershell: PowerShellClient,
 }
 
@@ -55,7 +56,7 @@ impl Coordinator {
     pub fn copy_command_to_clipboard(&self, id: &str) -> Result<()> {
         CopyCommandToClipboardOperation {
             clipboard_provider: &self.clipboard(),
-            storage_provider: &self.storage,
+            storage_provider: &self.storage(),
         }
         .execute(&Uuid::from_str(id)?.into())?;
 
@@ -71,7 +72,7 @@ impl Coordinator {
         } = dto;
 
         let command = CreateCommandOperation {
-            provider: &self.storage,
+            provider: &self.storage(),
         }
         .execute(CreateCommandParameters {
             name,
@@ -90,7 +91,7 @@ impl Coordinator {
         } = dto;
 
         let workspace = CreateWorkspaceOperation {
-            provider: &self.storage,
+            provider: &self.storage(),
         }
         .execute(CreateWorkspaceParameters {
             name,
@@ -101,9 +102,11 @@ impl Coordinator {
     }
 
     pub fn delete_command(&self, id: &str) -> Result<()> {
+        let storage = self.storage();
+
         DeleteCommandOperation {
-            find_command_provider: &self.storage,
-            delete_command_provider: &self.storage,
+            find_command_provider: &storage,
+            delete_command_provider: &storage,
         }
         .execute(&Uuid::from_str(id)?.into())?;
 
@@ -111,10 +114,12 @@ impl Coordinator {
     }
 
     pub fn delete_workspace(&self, id: &str) -> Result<()> {
+        let storage = self.storage();
+
         DeleteWorkspaceOperation {
-            find_workspace_provider: &self.storage,
-            delete_workspace_provider: &self.storage,
-            delete_workspace_commands_provider: &self.storage,
+            find_workspace_provider: &storage,
+            delete_workspace_provider: &storage,
+            delete_workspace_commands_provider: &storage,
         }
         .execute(&Uuid::from_str(id)?.into())?;
 
@@ -136,15 +141,17 @@ impl Coordinator {
             Some(workspace.location.as_str())
         };
 
+        let storage = self.storage();
+
         ExecuteCommandOperation {
-            find_command_provider: &self.storage,
+            find_command_provider: &storage,
             system_provider: &System {
                 client: &self.powershell,
                 no_exit,
                 working_directory,
             },
-            track_command_provider: &self.storage,
-            track_workspace_provider: &self.storage,
+            track_command_provider: &storage,
+            track_workspace_provider: &storage,
         }
         .execute(&Uuid::from_str(id)?.into())?;
 
@@ -153,7 +160,7 @@ impl Coordinator {
 
     pub fn get_command(&self, id: &str) -> Result<CommandPresenter> {
         let command = GetCommandOperation {
-            provider: &self.storage,
+            provider: &self.storage(),
         }
         .execute(&Uuid::from_str(id)?.into())?;
 
@@ -162,7 +169,7 @@ impl Coordinator {
 
     pub fn get_workspace(&self, id: &str) -> Result<WorkspacePresenter> {
         let workspace = GetWorkspaceOperation {
-            provider: &self.storage,
+            provider: &self.storage(),
         }
         .execute(&Uuid::from_str(id)?.into())?;
 
@@ -181,7 +188,7 @@ impl Coordinator {
         } = parameters;
 
         let workspaces = ListCommandsOperation {
-            provider: &self.storage,
+            provider: &self.storage(),
         }
         .execute(ListCommandsParameters {
             page_size: page_size.unwrap_or_else(|| NonZero::new(10).unwrap()),
@@ -204,7 +211,7 @@ impl Coordinator {
         } = parameters;
 
         let workspaces = ListWorkspacesOperation {
-            provider: &self.storage,
+            provider: &self.storage(),
         }
         .execute(ListWorkspacesParameters {
             name_contains: Some(name_contains),
@@ -234,6 +241,12 @@ impl Coordinator {
         Ok(())
     }
 
+    fn storage(&self) -> Storage {
+        Storage {
+            conn: &self.connection,
+        }
+    }
+
     pub fn update_command(&self, data: CommandPresenter) -> Result<CommandPresenter> {
         let CommandPresenter {
             workspace_id: _,
@@ -242,9 +255,11 @@ impl Coordinator {
             program,
         } = data;
 
+        let storage = self.storage();
+
         let command = UpdateCommandOperation {
-            find_command_provider: &self.storage,
-            update_command_provider: &self.storage,
+            find_command_provider: &storage,
+            update_command_provider: &storage,
         }
         .execute(UpdateCommandParameters {
             id: &Uuid::from_str(&id)?.into(),
@@ -258,9 +273,11 @@ impl Coordinator {
     pub fn update_workspace(&self, presenter: WorkspacePresenter) -> Result<WorkspacePresenter> {
         let WorkspacePresenter { id, location, name } = presenter;
 
+        let storage = self.storage();
+
         let workspace = UpdateWorkspaceOperation {
-            find_workspace_provider: &self.storage,
-            update_workspace_provider: &self.storage,
+            find_workspace_provider: &storage,
+            update_workspace_provider: &storage,
         }
         .execute(UpdateWorkspaceParameters {
             id: &Uuid::from_str(&id)?.into(),
