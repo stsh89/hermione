@@ -1,6 +1,6 @@
 use crate::providers::powershell::{self, PowerShellProcess};
 use hermione_nexus::{
-    services::{ClipboardProvider, CopyCommandToClipboard},
+    services::{ClipboardService, CopyCommandToClipboard},
     Result,
 };
 
@@ -8,7 +8,7 @@ pub struct Clipboard<'a> {
     pub process: &'a PowerShellProcess,
 }
 
-impl ClipboardProvider for Clipboard<'_> {}
+impl ClipboardService for Clipboard<'_> {}
 
 impl CopyCommandToClipboard for Clipboard<'_> {
     fn copy_command_to_clipboard(&self, text: &str) -> Result<()> {

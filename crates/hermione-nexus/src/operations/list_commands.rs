@@ -2,13 +2,13 @@ use std::num::NonZeroU32;
 
 use crate::{
     definitions::{Command, WorkspaceId},
-    services::{FilterCommandsParameters, ListCommands, StorageProvider},
+    services::{FilterCommandsParameters, ListCommands, StorageService},
     Result,
 };
 
 pub struct ListCommandsOperation<'a, SP>
 where
-    SP: StorageProvider,
+    SP: StorageService,
 {
     pub provider: &'a SP,
 }

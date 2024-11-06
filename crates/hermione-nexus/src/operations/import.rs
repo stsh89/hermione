@@ -2,8 +2,8 @@ use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
     operations::GetBackupCredentialsOperation,
     services::{
-        BackupProvider, BackupProviderBuilder, FindBackupCredentials, ListCommandsBackup,
-        ListWorkspacesBackup, StorageProvider, UpsertCommands, UpsertWorkspaces,
+        BackupService, BackupServiceBuilder, FindBackupCredentials, ListCommandsBackup,
+        ListWorkspacesBackup, StorageService, UpsertCommands, UpsertWorkspaces,
     },
     Result,
 };
@@ -11,11 +11,11 @@ use std::marker::PhantomData;
 
 pub struct ImportOperation<'a, BCP, IUCP, IUWP, BPB, BP>
 where
-    BCP: StorageProvider,
-    IUCP: StorageProvider,
-    IUWP: StorageProvider,
-    BPB: BackupProviderBuilder<BP>,
-    BP: BackupProvider,
+    BCP: StorageService,
+    IUCP: StorageService,
+    IUWP: StorageService,
+    BPB: BackupServiceBuilder<BP>,
+    BP: BackupService,
 {
     pub backup_credentials_provider: &'a BCP,
     pub upsert_commands_provider: &'a IUCP,
@@ -29,7 +29,7 @@ where
     BCP: FindBackupCredentials,
     UCP: UpsertCommands,
     UWP: UpsertWorkspaces,
-    BPB: BackupProviderBuilder<BP>,
+    BPB: BackupServiceBuilder<BP>,
     BP: ListCommandsBackup + ListWorkspacesBackup,
 {
     fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<BP> {

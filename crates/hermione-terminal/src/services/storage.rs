@@ -12,9 +12,8 @@ use hermione_nexus::{
         CreateCommand, CreateWorkspace, DeleteCommand, DeleteWorkspace, DeleteWorkspaceCommands,
         EditCommandParameters, EditWorkspaceParameters, FilterCommandsParameters,
         FilterWorkspacesParameters, FindCommand, FindWorkspace, ListBackupCredentials,
-        ListCommands, ListWorkspaces, NewCommandParameters, NewWorkspaceParameters,
-        StorageProvider, TrackCommandExecuteTime, TrackWorkspaceAccessTime, UpdateCommand,
-        UpdateWorkspace,
+        ListCommands, ListWorkspaces, NewCommandParameters, NewWorkspaceParameters, StorageService,
+        TrackCommandExecuteTime, TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace,
     },
     Error, Result,
 };
@@ -118,7 +117,7 @@ impl TryFrom<&str> for BackupCredentialsId {
     }
 }
 
-impl StorageProvider for Storage<'_> {}
+impl StorageService for Storage<'_> {}
 
 impl CreateCommand for Storage<'_> {
     fn create_command(&self, parameters: NewCommandParameters) -> Result<Command> {

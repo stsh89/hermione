@@ -1,14 +1,14 @@
 use crate::{
     definitions::{Command, CommandId},
     operations::GetCommandOperation,
-    services::{ClipboardProvider, CopyCommandToClipboard, FindCommand, StorageProvider},
+    services::{ClipboardService, CopyCommandToClipboard, FindCommand, StorageService},
     Result,
 };
 
 pub struct CopyCommandToClipboardOperation<'a, SP, CP>
 where
-    CP: ClipboardProvider,
-    SP: StorageProvider,
+    CP: ClipboardService,
+    SP: StorageService,
 {
     pub clipboard_provider: &'a CP,
     pub storage_provider: &'a SP,

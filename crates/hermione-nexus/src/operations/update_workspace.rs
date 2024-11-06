@@ -1,14 +1,14 @@
 use crate::{
     definitions::{Workspace, WorkspaceId},
     operations::GetWorkspaceOperation,
-    services::{EditWorkspaceParameters, FindWorkspace, StorageProvider, UpdateWorkspace},
+    services::{EditWorkspaceParameters, FindWorkspace, StorageService, UpdateWorkspace},
     Result,
 };
 
 pub struct UpdateWorkspaceOperation<'a, FW, UW>
 where
-    FW: StorageProvider,
-    UW: StorageProvider,
+    FW: StorageService,
+    UW: StorageService,
 {
     pub find_workspace_provider: &'a FW,
     pub update_workspace_provider: &'a UW,

@@ -1,12 +1,12 @@
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
-    services::{FindBackupCredentials, StorageProvider},
+    services::{FindBackupCredentials, StorageService},
     Error, Result,
 };
 
 pub struct GetBackupCredentialsOperation<'a, SP>
 where
-    SP: StorageProvider,
+    SP: StorageService,
 {
     pub provider: &'a SP,
 }

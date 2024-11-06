@@ -9,7 +9,7 @@ use hermione_nexus::{
         DeleteWorkspaceCommands, EditCommandParameters, EditWorkspaceParameters,
         FilterCommandsParameters, FilterWorkspacesParameters, FindBackupCredentials, FindCommand,
         FindWorkspace, ListBackupCredentials, ListCommands, ListWorkspaces, NewCommandParameters,
-        NewWorkspaceParameters, SaveBackupCredentials, StorageProvider, TrackCommandExecuteTime,
+        NewWorkspaceParameters, SaveBackupCredentials, StorageService, TrackCommandExecuteTime,
         TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace, UpsertCommands, UpsertWorkspaces,
     },
     Error,
@@ -230,7 +230,7 @@ impl From<InMemoryStorageError> for Error {
     }
 }
 
-impl StorageProvider for InMemoryStorage {}
+impl StorageService for InMemoryStorage {}
 
 impl CreateCommand for InMemoryStorage {
     fn create_command(&self, parameters: NewCommandParameters) -> Result<Command, Error> {

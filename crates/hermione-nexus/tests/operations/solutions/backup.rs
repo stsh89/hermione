@@ -1,7 +1,7 @@
 use hermione_nexus::{
     definitions::{BackupCredentials, Command, NotionBackupCredentials, Workspace},
     services::{
-        BackupProvider, BackupProviderBuilder, ListCommandsBackup, ListWorkspacesBackup,
+        BackupService, BackupServiceBuilder, ListCommandsBackup, ListWorkspacesBackup,
         UpsertCommandsBackup, UpsertWorkspacesBackup, VerifyBackupCredentials,
     },
     Error,
@@ -168,13 +168,13 @@ fn get_page<T>(collection: Vec<T>, index: usize) -> Vec<T> {
         .collect()
 }
 
-impl BackupProviderBuilder<MockBackup> for MockBackupBuilder {
+impl BackupServiceBuilder<MockBackup> for MockBackupBuilder {
     fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<MockBackup, Error> {
         Ok(self.build(credentials.clone()))
     }
 }
 
-impl BackupProvider for MockBackup {}
+impl BackupService for MockBackup {}
 
 impl ListCommandsBackup for MockBackup {
     fn list_commands_backup(

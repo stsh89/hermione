@@ -69,7 +69,7 @@ impl Coordinator {
         } = dto;
 
         let command = CreateCommandOperation {
-            provider: &self.storage(),
+            storage_provider: &self.storage(),
         }
         .execute(CreateCommandParameters {
             name,
@@ -88,7 +88,7 @@ impl Coordinator {
         } = dto;
 
         let workspace = CreateWorkspaceOperation {
-            provider: &self.storage(),
+            storage_provider: &self.storage(),
         }
         .execute(CreateWorkspaceParameters {
             name,
@@ -102,8 +102,8 @@ impl Coordinator {
         let storage = self.storage();
 
         DeleteCommandOperation {
-            find_command_provider: &storage,
-            delete_command_provider: &storage,
+            find_provider: &storage,
+            delete_provider: &storage,
         }
         .execute(&id.into())?;
 

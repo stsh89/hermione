@@ -1,7 +1,7 @@
 use crate::{
     definitions::BackupCredentials,
     services::{
-        BackupProvider, BackupProviderBuilder, SaveBackupCredentials, StorageProvider,
+        BackupService, BackupServiceBuilder, SaveBackupCredentials, StorageService,
         VerifyBackupCredentials,
     },
     Error, Result,
@@ -10,9 +10,9 @@ use std::marker::PhantomData;
 
 pub struct SaveBackupCredentialsOperation<'a, S, BPB, V>
 where
-    S: StorageProvider,
-    BPB: BackupProviderBuilder<V>,
-    V: BackupProvider,
+    S: StorageService,
+    BPB: BackupServiceBuilder<V>,
+    V: BackupService,
 {
     pub save_provider: &'a S,
     pub backup_provider_builder: &'a BPB,
@@ -22,7 +22,7 @@ where
 impl<'a, S, BPB, V> SaveBackupCredentialsOperation<'a, S, BPB, V>
 where
     S: SaveBackupCredentials,
-    BPB: BackupProviderBuilder<V>,
+    BPB: BackupServiceBuilder<V>,
     V: VerifyBackupCredentials,
 {
     fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<V> {

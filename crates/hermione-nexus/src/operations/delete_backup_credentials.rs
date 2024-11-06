@@ -1,13 +1,13 @@
 use crate::{
     definitions::BackupProviderKind,
-    services::{DeleteBackupCredentials, FindBackupCredentials, StorageProvider},
+    services::{DeleteBackupCredentials, FindBackupCredentials, StorageService},
     Error, Result,
 };
 
 pub struct DeleteBackupCredentialsOperation<'a, DBC, FBC>
 where
-    DBC: StorageProvider,
-    FBC: StorageProvider,
+    DBC: StorageService,
+    FBC: StorageService,
 {
     pub delete_provider: &'a DBC,
     pub find_provider: &'a FBC,

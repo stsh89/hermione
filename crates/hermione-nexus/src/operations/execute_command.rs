@@ -2,7 +2,7 @@ use crate::{
     definitions::{Command, CommandId},
     operations::GetCommandOperation,
     services::{
-        FindCommand, RunProgram, StorageProvider, SystemProvider, TrackCommandExecuteTime,
+        ExecuteProgram, FindCommand, StorageService, SystemService, TrackCommandExecuteTime,
         TrackWorkspaceAccessTime,
     },
     Result,
@@ -10,10 +10,10 @@ use crate::{
 
 pub struct ExecuteCommandOperation<'a, FCP, SP, TCP, TWP>
 where
-    FCP: StorageProvider,
-    SP: SystemProvider,
-    TCP: StorageProvider,
-    TWP: StorageProvider,
+    FCP: StorageService,
+    SP: SystemService,
+    TCP: StorageService,
+    TWP: StorageService,
 {
     pub find_command_provider: &'a FCP,
     pub system_provider: &'a SP,
@@ -24,7 +24,7 @@ where
 impl<'a, FCP, SP, TCP, TWP> ExecuteCommandOperation<'a, FCP, SP, TCP, TWP>
 where
     FCP: FindCommand,
-    SP: RunProgram,
+    SP: ExecuteProgram,
     TCP: TrackCommandExecuteTime,
     TWP: TrackWorkspaceAccessTime,
 {
@@ -33,7 +33,7 @@ where
 
         let command = self.get_command(id)?;
 
-        self.system_provider.run_program(command.program())?;
+        self.system_provider.execute_program(command.program())?;
         self.track_command_provider.track_command_execute_time(id)?;
         self.track_workspace_provider
             .track_workspace_access_time(command.workspace_id())?;

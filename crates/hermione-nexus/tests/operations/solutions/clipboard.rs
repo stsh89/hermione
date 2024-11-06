@@ -1,5 +1,5 @@
 use hermione_nexus::{
-    services::{ClipboardProvider, CopyCommandToClipboard},
+    services::{ClipboardService, CopyCommandToClipboard},
     Error,
 };
 use std::sync::{PoisonError, RwLock};
@@ -41,7 +41,7 @@ impl From<MockClipboardError> for Error {
     }
 }
 
-impl ClipboardProvider for MockClipboard {}
+impl ClipboardService for MockClipboard {}
 
 impl CopyCommandToClipboard for MockClipboard {
     fn copy_command_to_clipboard(&self, text: &str) -> Result<(), Error> {

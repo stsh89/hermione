@@ -30,8 +30,8 @@ fn it_deletes_command() -> Result<()> {
         assert_eq!(storage.commands()?.len(), 1);
 
         DeleteCommandOperation {
-            find_command_provider: &storage,
-            delete_command_provider: &storage,
+            find_provider: &storage,
+            delete_provider: &storage,
         }
         .execute(command.id())?;
 
@@ -52,8 +52,8 @@ fn it_returns_not_found_error() -> Result<()> {
         assert_eq!(storage.commands()?.len(), 1);
 
         let result = DeleteCommandOperation {
-            find_command_provider: &storage,
-            delete_command_provider: &storage,
+            find_provider: &storage,
+            delete_provider: &storage,
         }
         .execute(&Uuid::nil().into());
 

@@ -1,5 +1,5 @@
 use hermione_nexus::{
-    services::{RunProgram, SystemProvider},
+    services::{ExecuteProgram, SystemService},
     Error,
 };
 use std::sync::{PoisonError, RwLock};
@@ -41,10 +41,10 @@ impl From<MockSystemError> for Error {
     }
 }
 
-impl SystemProvider for MockSystem {}
+impl SystemService for MockSystem {}
 
-impl RunProgram for MockSystem {
-    fn run_program(&self, program: &str) -> Result<(), Error> {
+impl ExecuteProgram for MockSystem {
+    fn execute_program(&self, program: &str) -> Result<(), Error> {
         self.set_program(program)?;
 
         Ok(())

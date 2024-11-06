@@ -2,9 +2,9 @@ use super::GetBackupCredentialsOperation;
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind, Command, Workspace},
     services::{
-        BackupProvider, BackupProviderBuilder, FilterCommandsParameters,
-        FilterWorkspacesParameters, FindBackupCredentials, ListCommands, ListWorkspaces,
-        StorageProvider, UpsertCommandsBackup, UpsertWorkspacesBackup,
+        BackupService, BackupServiceBuilder, FilterCommandsParameters, FilterWorkspacesParameters,
+        FindBackupCredentials, ListCommands, ListWorkspaces, StorageService, UpsertCommandsBackup,
+        UpsertWorkspacesBackup,
     },
     Result,
 };
@@ -14,11 +14,11 @@ const BACKUP_BATCH_SIZE: u32 = 100;
 
 pub struct ExportOperation<'a, BCP, LCP, LWP, BPB, BP>
 where
-    BCP: StorageProvider,
-    LCP: StorageProvider,
-    LWP: StorageProvider,
-    BPB: BackupProviderBuilder<BP>,
-    BP: BackupProvider,
+    BCP: StorageService,
+    LCP: StorageService,
+    LWP: StorageService,
+    BPB: BackupServiceBuilder<BP>,
+    BP: BackupService,
 {
     pub backup_credentials_provider: &'a BCP,
     pub list_commands_provider: &'a LCP,
@@ -32,7 +32,7 @@ where
     LCP: ListCommands,
     LWP: ListWorkspaces,
     BCP: FindBackupCredentials,
-    BPB: BackupProviderBuilder<BP>,
+    BPB: BackupServiceBuilder<BP>,
     BP: UpsertCommandsBackup + UpsertWorkspacesBackup,
 {
     fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<BP> {

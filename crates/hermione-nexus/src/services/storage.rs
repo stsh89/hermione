@@ -5,84 +5,84 @@ use crate::{
     Result,
 };
 
-pub trait StorageProvider {}
+pub trait StorageService {}
 
-pub trait CreateCommand: StorageProvider {
+pub trait CreateCommand: StorageService {
     fn create_command(&self, parameters: NewCommandParameters) -> Result<Command>;
 }
 
-pub trait CreateWorkspace: StorageProvider {
+pub trait CreateWorkspace: StorageService {
     fn create_workspace(&self, parameters: NewWorkspaceParameters) -> Result<Workspace>;
 }
 
-pub trait DeleteBackupCredentials: StorageProvider {
+pub trait DeleteBackupCredentials: StorageService {
     fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> Result<()>;
 }
 
-pub trait DeleteCommand: StorageProvider {
+pub trait DeleteCommand: StorageService {
     fn delete_command(&self, id: &CommandId) -> Result<()>;
 }
 
-pub trait DeleteWorkspaceCommands: StorageProvider {
+pub trait DeleteWorkspaceCommands: StorageService {
     fn delete_workspace_commands(&self, id: &WorkspaceId) -> Result<()>;
 }
 
-pub trait DeleteWorkspace: StorageProvider {
+pub trait DeleteWorkspace: StorageService {
     fn delete_workspace(&self, id: &WorkspaceId) -> Result<()>;
 }
 
-pub trait FindBackupCredentials: StorageProvider {
+pub trait FindBackupCredentials: StorageService {
     fn find_backup_credentials(
         &self,
         kind: &BackupProviderKind,
     ) -> Result<Option<BackupCredentials>>;
 }
 
-pub trait FindCommand: StorageProvider {
+pub trait FindCommand: StorageService {
     fn find_command(&self, id: &CommandId) -> Result<Option<Command>>;
 }
 
-pub trait FindWorkspace: StorageProvider {
+pub trait FindWorkspace: StorageService {
     fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>>;
 }
 
-pub trait ListBackupCredentials: StorageProvider {
+pub trait ListBackupCredentials: StorageService {
     fn list_backup_credentials(&self) -> Result<Vec<BackupCredentials>>;
 }
 
-pub trait ListCommands: StorageProvider {
+pub trait ListCommands: StorageService {
     fn list_commands(&self, parameters: FilterCommandsParameters) -> Result<Vec<Command>>;
 }
 
-pub trait ListWorkspaces: StorageProvider {
+pub trait ListWorkspaces: StorageService {
     fn list_workspaces(&self, parameters: FilterWorkspacesParameters) -> Result<Vec<Workspace>>;
 }
 
-pub trait SaveBackupCredentials: StorageProvider {
+pub trait SaveBackupCredentials: StorageService {
     fn save_backup_credentials(&self, credentials: &BackupCredentials) -> Result<()>;
 }
 
-pub trait TrackCommandExecuteTime: StorageProvider {
+pub trait TrackCommandExecuteTime: StorageService {
     fn track_command_execute_time(&self, command_id: &CommandId) -> Result<()>;
 }
 
-pub trait TrackWorkspaceAccessTime: StorageProvider {
+pub trait TrackWorkspaceAccessTime: StorageService {
     fn track_workspace_access_time(&self, workspace_id: &WorkspaceId) -> Result<()>;
 }
 
-pub trait UpdateCommand: StorageProvider {
+pub trait UpdateCommand: StorageService {
     fn update_command(&self, parameters: EditCommandParameters) -> Result<()>;
 }
 
-pub trait UpdateWorkspace: StorageProvider {
+pub trait UpdateWorkspace: StorageService {
     fn update_workspace(&self, workspace: EditWorkspaceParameters) -> Result<()>;
 }
 
-pub trait UpsertCommands: StorageProvider {
+pub trait UpsertCommands: StorageService {
     fn upsert_commands(&self, commands: Vec<Command>) -> Result<()>;
 }
 
-pub trait UpsertWorkspaces: StorageProvider {
+pub trait UpsertWorkspaces: StorageService {
     fn upsert_workspaces(&self, workspaces: Vec<Workspace>) -> Result<()>;
 }
 

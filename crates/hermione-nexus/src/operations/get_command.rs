@@ -1,12 +1,12 @@
 use crate::{
     definitions::{Command, CommandId},
-    services::{FindCommand, StorageProvider},
+    services::{FindCommand, StorageService},
     Error, Result,
 };
 
 pub struct GetCommandOperation<'a, SP>
 where
-    SP: StorageProvider,
+    SP: StorageService,
 {
     pub provider: &'a SP,
 }

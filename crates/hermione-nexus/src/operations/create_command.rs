@@ -1,14 +1,14 @@
 use crate::{
     definitions::{Command, WorkspaceId},
-    services::{CreateCommand, NewCommandParameters, StorageProvider},
+    services::{CreateCommand, NewCommandParameters, StorageService},
     Result,
 };
 
 pub struct CreateCommandOperation<'a, SP>
 where
-    SP: StorageProvider,
+    SP: StorageService,
 {
-    pub provider: &'a SP,
+    pub storage_provider: &'a SP,
 }
 
 pub struct CreateCommandParameters {
@@ -30,7 +30,7 @@ where
             workspace_id,
         } = parameters;
 
-        self.provider.create_command(NewCommandParameters {
+        self.storage_provider.create_command(NewCommandParameters {
             name,
             program,
             workspace_id,

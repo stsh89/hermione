@@ -1,6 +1,6 @@
 use crate::providers::powershell::{self, PowerShellParameters, PowerShellProcess};
 use hermione_nexus::{
-    services::{RunProgram, SystemProvider},
+    services::{ExecuteProgram, SystemService},
     Result,
 };
 
@@ -10,10 +10,10 @@ pub struct System<'a> {
     pub working_directory: Option<&'a str>,
 }
 
-impl SystemProvider for System<'_> {}
+impl SystemService for System<'_> {}
 
-impl RunProgram for System<'_> {
-    fn run_program(&self, program: &str) -> Result<()> {
+impl ExecuteProgram for System<'_> {
+    fn execute_program(&self, program: &str) -> Result<()> {
         powershell::open_windows_terminal(
             self.process,
             Some(PowerShellParameters {

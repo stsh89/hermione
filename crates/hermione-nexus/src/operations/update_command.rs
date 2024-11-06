@@ -1,14 +1,14 @@
 use crate::{
     definitions::{Command, CommandId},
     operations::GetCommandOperation,
-    services::{EditCommandParameters, FindCommand, StorageProvider, UpdateCommand},
+    services::{EditCommandParameters, FindCommand, StorageService, UpdateCommand},
     Result,
 };
 
 pub struct UpdateCommandOperation<'a, FW, UW>
 where
-    FW: StorageProvider,
-    UW: StorageProvider,
+    FW: StorageService,
+    UW: StorageService,
 {
     pub find_command_provider: &'a FW,
     pub update_command_provider: &'a UW,

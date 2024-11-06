@@ -29,12 +29,14 @@ fn it_creates_command() -> Result<()> {
 
         assert_eq!(storage.count_commands()?, 0);
 
-        let command =
-            CreateCommandOperation { provider: &storage }.execute(CreateCommandParameters {
-                name: "Test command".to_string(),
-                program: "ping 1.1.1.1".to_string(),
-                workspace_id: workspace.id().clone(),
-            })?;
+        let command = CreateCommandOperation {
+            storage_provider: &storage,
+        }
+        .execute(CreateCommandParameters {
+            name: "Test command".to_string(),
+            program: "ping 1.1.1.1".to_string(),
+            workspace_id: workspace.id().clone(),
+        })?;
 
         assert_eq!(storage.count_commands()?, 1);
         assert_eq!(command.name(), "Test command");

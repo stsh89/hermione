@@ -1,14 +1,14 @@
 use crate::{
     definitions::WorkspaceId,
-    services::{DeleteWorkspace, DeleteWorkspaceCommands, FindWorkspace, StorageProvider},
+    services::{DeleteWorkspace, DeleteWorkspaceCommands, FindWorkspace, StorageService},
     Error, Result,
 };
 
 pub struct DeleteWorkspaceOperation<'a, FWP, DWCP, DWP>
 where
-    FWP: StorageProvider,
-    DWCP: StorageProvider,
-    DWP: StorageProvider,
+    FWP: StorageService,
+    DWCP: StorageService,
+    DWP: StorageService,
 {
     pub find_workspace_provider: &'a FWP,
     pub delete_workspace_commands_provider: &'a DWCP,

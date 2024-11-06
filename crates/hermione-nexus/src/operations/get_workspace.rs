@@ -1,12 +1,12 @@
 use crate::{
     definitions::{Workspace, WorkspaceId},
-    services::{FindWorkspace, StorageProvider},
+    services::{FindWorkspace, StorageService},
     Error, Result,
 };
 
 pub struct GetWorkspaceOperation<'a, SP>
 where
-    SP: StorageProvider,
+    SP: StorageService,
 {
     pub provider: &'a SP,
 }

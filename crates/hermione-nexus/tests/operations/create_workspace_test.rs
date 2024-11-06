@@ -24,11 +24,13 @@ fn it_creates_workspace() -> Result<()> {
 
         assert_eq!(storage.count_workspaces()?, 0);
 
-        let workspace =
-            CreateWorkspaceOperation { provider: &storage }.execute(CreateWorkspaceParameters {
-                name: "Test workspace".to_string(),
-                location: Some("/home/ironman".to_string()),
-            })?;
+        let workspace = CreateWorkspaceOperation {
+            storage_provider: &storage,
+        }
+        .execute(CreateWorkspaceParameters {
+            name: "Test workspace".to_string(),
+            location: Some("/home/ironman".to_string()),
+        })?;
 
         assert_eq!(storage.count_workspaces()?, 1);
         assert_eq!(workspace.name(), "Test workspace");
