@@ -15,6 +15,20 @@ pub struct ListWorkspacesQuery<'a> {
     pub offset: u32,
 }
 
+pub fn create_workspaces_table_if_not_exists(conn: &Connection) -> Result<()> {
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS workspaces (
+            id BLOB PRIMARY KEY,
+            last_access_time INTEGER,
+            location TEXT,
+            name TEXT NOT NULL
+        )",
+        (),
+    )?;
+
+    Ok(())
+}
+
 pub fn find_workspace(conn: &Connection, id: &Bytes) -> Result<Option<WorkspaceRecord>> {
     conn.prepare("SELECT id, last_access_time, location, name FROM workspaces WHERE id = ?1")?
         .query_row(params![id], |row| {
@@ -76,7 +90,8 @@ pub fn list_workspaces(
             location,
             name
         FROM workspaces
-        WHERE LOWER(name) LIKE :name_contains
+        WHERE
+            LOWER(name) LIKE :name_contains
         ORDER BY last_access_time DESC, name ASC
         LIMIT :limit OFFSET :offset",
     )?;
@@ -102,20 +117,6 @@ pub fn list_workspaces(
     Ok(records)
 }
 
-pub fn create_workspaces_table(conn: &Connection) -> Result<()> {
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS workspaces (
-            id BLOB PRIMARY KEY,
-            last_access_time INTEGER,
-            location TEXT,
-            name TEXT NOT NULL
-        )",
-        (),
-    )?;
-
-    Ok(())
-}
-
 pub fn restore_workspaces(conn: &Connection, records: Vec<WorkspaceRecord>) -> Result<()> {
     let mut statement = conn.prepare(
         "INSERT INTO workspaces
@@ -127,11 +128,18 @@ pub fn restore_workspaces(conn: &Connection, records: Vec<WorkspaceRecord>) -> R
     )?;
 
     for record in records {
+        let WorkspaceRecord {
+            id,
+            last_access_time,
+            location,
+            name,
+        } = record;
+
         statement.execute(named_params![
-            ":id": record.id,
-            ":last_access_time": record.last_access_time,
-            ":location": record.location,
-            ":name": record.name
+            ":id": id,
+            ":last_access_time": last_access_time,
+            ":location": location,
+            ":name": name
         ])?;
     }
 

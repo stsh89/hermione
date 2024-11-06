@@ -13,7 +13,7 @@ where
     T: FnOnce(DeleteWorkspaceTestContext) -> Result<()>,
 {
     let conn = Connection::open_in_memory()?;
-    sqlite::create_workspaces_table(&conn)?;
+    sqlite::create_workspaces_table_if_not_exists(&conn)?;
 
     let record = workspace_record_fixture(Default::default());
     sqlite::insert_workspace(&conn, record.clone())?;

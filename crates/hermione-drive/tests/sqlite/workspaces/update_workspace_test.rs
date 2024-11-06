@@ -15,7 +15,7 @@ where
     T: FnOnce(UpdateWorkspaceTestContext) -> Result<()>,
 {
     let conn = Connection::open_in_memory()?;
-    sqlite::create_workspaces_table(&conn)?;
+    sqlite::create_workspaces_table_if_not_exists(&conn)?;
 
     let workspace = workspace_record_fixture(WorkspaceRecordFixtureParameters {
         name: Some("Workspace 1".to_string()),

@@ -13,7 +13,7 @@ where
     T: FnOnce(ListWorkspacesTestContest) -> Result<()>,
 {
     let conn = Connection::open_in_memory()?;
-    sqlite::create_workspaces_table(&conn)?;
+    sqlite::create_workspaces_table_if_not_exists(&conn)?;
 
     for workspace_number in 1..=8 {
         let record = workspace_record_fixture(WorkspaceRecordFixtureParameters {

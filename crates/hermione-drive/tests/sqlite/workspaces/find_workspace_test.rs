@@ -12,7 +12,7 @@ where
     T: FnOnce(FindWorkspaceTestContest) -> Result<()>,
 {
     let conn = Connection::open_in_memory()?;
-    sqlite::create_workspaces_table(&conn)?;
+    sqlite::create_workspaces_table_if_not_exists(&conn)?;
 
     test_fn(FindWorkspaceTestContest { conn })
 }
