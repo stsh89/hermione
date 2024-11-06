@@ -1,5 +1,5 @@
 use chrono::Utc;
-use hermione_drive::sqlite::workspaces;
+use hermione_drive::sqlite::{self, ListWorkspacesQuery};
 use rusqlite::{Connection, Result};
 
 use crate::solutions::{workspace_record_fixture, WorkspaceRecordFixtureParameters};
@@ -13,7 +13,7 @@ where
     T: FnOnce(ListWorkspacesTestContest) -> Result<()>,
 {
     let conn = Connection::open_in_memory()?;
-    workspaces::migrate(&conn)?;
+    sqlite::create_workspaces_table(&conn)?;
 
     for workspace_number in 1..=8 {
         let record = workspace_record_fixture(WorkspaceRecordFixtureParameters {
@@ -21,7 +21,7 @@ where
             ..Default::default()
         });
 
-        workspaces::insert_workspace(&conn, record)?;
+        sqlite::insert_workspace(&conn, record)?;
     }
 
     test_fn(ListWorkspacesTestContest { conn })
@@ -32,9 +32,9 @@ fn it_paginates_workspaces() -> Result<()> {
     with_context(|ctx| {
         let ListWorkspacesTestContest { conn } = ctx;
 
-        let workspaces = workspaces::list_workspaces(
+        let workspaces = sqlite::list_workspaces(
             &conn,
-            workspaces::ListWorkspacesQuery {
+            ListWorkspacesQuery {
                 name_contains: "",
                 limit: 2,
                 offset: 3,
@@ -61,11 +61,11 @@ fn it_sorts_workspaces_by_last_access_time_and_name() -> Result<()> {
             ..Default::default()
         });
 
-        workspaces::insert_workspace(&conn, record)?;
+        sqlite::insert_workspace(&conn, record)?;
 
-        let workspaces = workspaces::list_workspaces(
+        let workspaces = sqlite::list_workspaces(
             &conn,
-            workspaces::ListWorkspacesQuery {
+            ListWorkspacesQuery {
                 name_contains: "",
                 limit: 4,
                 offset: 0,
@@ -86,9 +86,9 @@ fn it_filters_workspaces_by_name() -> Result<()> {
     with_context(|ctx| {
         let ListWorkspacesTestContest { conn } = ctx;
 
-        let workspaces = workspaces::list_workspaces(
+        let workspaces = sqlite::list_workspaces(
             &conn,
-            workspaces::ListWorkspacesQuery {
+            ListWorkspacesQuery {
                 name_contains: "4",
                 limit: 4,
                 offset: 0,

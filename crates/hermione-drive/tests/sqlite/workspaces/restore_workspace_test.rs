@@ -1,7 +1,7 @@
 use crate::solutions::{
     count_workspaces, workspace_record_fixture, WorkspaceRecordFixtureParameters,
 };
-use hermione_drive::sqlite::workspaces::{self, WorkspaceRecord};
+use hermione_drive::sqlite::{self, ListWorkspacesQuery, WorkspaceRecord};
 use rusqlite::{Connection, Result};
 
 struct RestoreWorkspacesTestContest {
@@ -13,7 +13,7 @@ where
     T: FnOnce(RestoreWorkspacesTestContest) -> Result<()>,
 {
     let conn = Connection::open_in_memory()?;
-    workspaces::migrate(&conn)?;
+    sqlite::create_workspaces_table(&conn)?;
 
     test_fn(RestoreWorkspacesTestContest { conn })
 }
@@ -36,11 +36,11 @@ fn it_inserts_workspace() -> Result<()> {
             workspaces.push(workspace);
         }
 
-        workspaces::restore_workspaces(&conn, workspaces)?;
+        sqlite::restore_workspaces(&conn, workspaces)?;
 
-        let workspaces = workspaces::list_workspaces(
+        let workspaces = sqlite::list_workspaces(
             &conn,
-            workspaces::ListWorkspacesQuery {
+            ListWorkspacesQuery {
                 name_contains: "",
                 limit: 10,
                 offset: 0,
@@ -66,7 +66,7 @@ fn it_updates_existing_workspaces() -> Result<()> {
             ..Default::default()
         });
 
-        workspaces::insert_workspace(&conn, workspace1.clone())?;
+        sqlite::insert_workspace(&conn, workspace1.clone())?;
 
         let workspace2 = workspace_record_fixture(WorkspaceRecordFixtureParameters {
             name: Some("Workspace 2".to_string()),
@@ -78,11 +78,11 @@ fn it_updates_existing_workspaces() -> Result<()> {
             ..workspace1
         };
 
-        workspaces::restore_workspaces(&conn, vec![workspace1, workspace2])?;
+        sqlite::restore_workspaces(&conn, vec![workspace1, workspace2])?;
 
-        let workspaces = workspaces::list_workspaces(
+        let workspaces = sqlite::list_workspaces(
             &conn,
-            workspaces::ListWorkspacesQuery {
+            ListWorkspacesQuery {
                 name_contains: "",
                 limit: 10,
                 offset: 0,

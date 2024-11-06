@@ -102,7 +102,7 @@ pub fn list_workspaces(
     Ok(records)
 }
 
-pub fn migrate(conn: &Connection) -> Result<()> {
+pub fn create_workspaces_table(conn: &Connection) -> Result<()> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS workspaces (
             id BLOB PRIMARY KEY,

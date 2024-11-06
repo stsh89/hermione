@@ -1,5 +1,5 @@
 use crate::solutions::{workspace_record_fixture, WorkspaceRecordFixtureParameters};
-use hermione_drive::sqlite::workspaces::{self, WorkspaceRecord};
+use hermione_drive::sqlite::{self, WorkspaceRecord};
 use rusqlite::{Connection, Result};
 use uuid::Uuid;
 
@@ -12,7 +12,7 @@ where
     T: FnOnce(FindWorkspaceTestContest) -> Result<()>,
 {
     let conn = Connection::open_in_memory()?;
-    workspaces::migrate(&conn)?;
+    sqlite::create_workspaces_table(&conn)?;
 
     test_fn(FindWorkspaceTestContest { conn })
 }
@@ -28,14 +28,14 @@ fn it_returns_workspace() -> Result<()> {
             last_access_time: Some(1),
             ..Default::default()
         });
-        workspaces::insert_workspace(&conn, record.clone())?;
+        sqlite::insert_workspace(&conn, record.clone())?;
 
         let Some(WorkspaceRecord {
             id,
             last_access_time,
             location,
             name,
-        }) = workspaces::find_workspace(&conn, &record.id)?
+        }) = sqlite::find_workspace(&conn, &record.id)?
         else {
             unreachable!("Expected record to be found")
         };
@@ -55,9 +55,9 @@ fn it_does_not_return_workspace() -> Result<()> {
         let FindWorkspaceTestContest { conn } = ctx;
 
         let record = workspace_record_fixture(Default::default());
-        workspaces::insert_workspace(&conn, record.clone())?;
+        sqlite::insert_workspace(&conn, record.clone())?;
 
-        let workspace = workspaces::find_workspace(&conn, Uuid::nil().as_bytes())?;
+        let workspace = sqlite::find_workspace(&conn, Uuid::nil().as_bytes())?;
 
         assert!(workspace.is_none());
 

@@ -1,5 +1,5 @@
 use chrono::Utc;
-use hermione_drive::sqlite::workspaces::{self, WorkspaceRecord};
+use hermione_drive::sqlite::{self, WorkspaceRecord};
 use rusqlite::{Connection, Result};
 use uuid::Uuid;
 
@@ -15,7 +15,7 @@ where
     T: FnOnce(UpdateWorkspaceTestContext) -> Result<()>,
 {
     let conn = Connection::open_in_memory()?;
-    workspaces::migrate(&conn)?;
+    sqlite::create_workspaces_table(&conn)?;
 
     let workspace = workspace_record_fixture(WorkspaceRecordFixtureParameters {
         name: Some("Workspace 1".to_string()),
@@ -24,7 +24,7 @@ where
         ..Default::default()
     });
 
-    workspaces::insert_workspace(&conn, workspace.clone())?;
+    sqlite::insert_workspace(&conn, workspace.clone())?;
 
     test_fn(UpdateWorkspaceTestContext { conn, workspace })
 }
@@ -41,11 +41,11 @@ fn it_updates_workspace_name() -> Result<()> {
             ..workspace
         };
 
-        let count = workspaces::update_workspace(&conn, update)?;
+        let count = sqlite::update_workspace(&conn, update)?;
 
         assert_eq!(count, 1);
 
-        let Some(updated) = workspaces::find_workspace(&conn, &workspace.id)? else {
+        let Some(updated) = sqlite::find_workspace(&conn, &workspace.id)? else {
             unreachable!("Workspace should be found")
         };
 
@@ -67,11 +67,11 @@ fn it_updates_workspace_location() -> Result<()> {
             ..workspace
         };
 
-        let count = workspaces::update_workspace(&conn, update)?;
+        let count = sqlite::update_workspace(&conn, update)?;
 
         assert_eq!(count, 1);
 
-        let Some(updated) = workspaces::find_workspace(&conn, &workspace.id)? else {
+        let Some(updated) = sqlite::find_workspace(&conn, &workspace.id)? else {
             unreachable!("Workspace should be found")
         };
 
@@ -91,11 +91,11 @@ fn it_updates_workspace_last_access_time() -> Result<()> {
             ..workspace
         };
 
-        let count = workspaces::update_workspace(&conn, update)?;
+        let count = sqlite::update_workspace(&conn, update)?;
 
         assert_eq!(count, 1);
 
-        let Some(updated) = workspaces::find_workspace(&conn, &workspace.id)? else {
+        let Some(updated) = sqlite::find_workspace(&conn, &workspace.id)? else {
             unreachable!("Workspace should be found")
         };
 
@@ -118,11 +118,11 @@ fn it_does_not_update_workspace() -> Result<()> {
             ..workspace
         };
 
-        let count = workspaces::update_workspace(&conn, update)?;
+        let count = sqlite::update_workspace(&conn, update)?;
 
         assert_eq!(count, 0);
 
-        let Some(updated) = workspaces::find_workspace(&conn, &workspace.id)? else {
+        let Some(updated) = sqlite::find_workspace(&conn, &workspace.id)? else {
             unreachable!("Workspace should be found")
         };
 
