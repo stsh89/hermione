@@ -6,13 +6,12 @@ use crate::{
     },
     themes::Theme,
     BackupCredentialsPresenter, BackupCredentialsRoute, CommandsHandler,
-    DeleteBackupCredentialsParams, ImportParams, ListWorkspaceCommandsParams, ListWorkspacesParams,
-    Message, NotionBackupCredentialsPresenter, PowerShellHandler, PowerShellRoute, Result, Route,
-    SaveNotionBackupCredentialsParams, WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute,
-    LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    DeleteBackupCredentialsParams, ExportParams, ImportParams, ListWorkspaceCommandsParams,
+    ListWorkspacesParams, Message, NotionBackupCredentialsPresenter, PowerShellHandler,
+    PowerShellRoute, Result, Route, SaveNotionBackupCredentialsParams, WorkspaceCommandsRoute,
+    WorkspacesHandler, WorkspacesRoute,
 };
 use hermione_tui::{BoxedModel, Router};
-use std::num::NonZeroU32;
 
 pub struct TerminalRouter {
     pub coordinator: Coordinator,
@@ -26,8 +25,8 @@ impl Router for TerminalRouter {
     fn default_model(&self) -> Result<BoxedModel<Route, Message>> {
         let workspaces = self.coordinator.list_workspaces(ListWorkspacesInput {
             name_contains: "",
-            page_number: NonZeroU32::new(1),
-            page_size: NonZeroU32::new(1),
+            page_number: None,
+            page_size: None,
         })?;
 
         let handler = WorkspacesHandler {
@@ -48,8 +47,8 @@ impl Router for TerminalRouter {
 
         let model = handler.list(ListWorkspaceCommandsParams {
             workspace_id: workspace.id,
-            page_number: NonZeroU32::new(1),
-            page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
+            page_number: None,
+            page_size: None,
             search_query: "".into(),
             powershell_no_exit: false,
         })?;
@@ -140,6 +139,13 @@ impl TerminalRouter {
 
                 Ok(None)
             }
+            BackupCredentialsRoute::Export(params) => {
+                let ExportParams { kind } = params;
+
+                self.coordinator.export(kind)?;
+
+                Ok(None)
+            }
         }
     }
 
@@ -208,10 +214,11 @@ impl TerminalRouter {
             }
             WorkspacesRoute::Update(parameters) => {
                 let workspace = handler.update(parameters)?;
+
                 let model = handler.list(ListWorkspacesParams {
                     search_query: workspace.name,
-                    page_number: NonZeroU32::new(1),
-                    page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
+                    page_number: None,
+                    page_size: None,
                 })?;
 
                 Ok(Some(Box::new(model)))
@@ -234,8 +241,8 @@ impl TerminalRouter {
                 let model = handler.list(ListWorkspaceCommandsParams {
                     workspace_id: command.workspace_id,
                     search_query: command.program,
-                    page_number: NonZeroU32::new(1),
-                    page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
+                    page_number: None,
+                    page_size: None,
                     powershell_no_exit: false,
                 })?;
 
@@ -247,8 +254,8 @@ impl TerminalRouter {
                 let model = handler.list(ListWorkspaceCommandsParams {
                     workspace_id: workspace.id,
                     search_query: "".to_string(),
-                    page_number: NonZeroU32::new(1),
-                    page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
+                    page_number: None,
+                    page_size: None,
                     powershell_no_exit: false,
                 })?;
 

@@ -9,7 +9,7 @@ use hermione_nexus::{
     operations::{
         CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
         CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
-        DeleteCommandOperation, DeleteWorkspaceOperation, ExecuteCommandOperation,
+        DeleteCommandOperation, DeleteWorkspaceOperation, ExecuteCommandOperation, ExportOperation,
         GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation, ImportOperation,
         ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
         ListWorkspacesOperation, ListWorkspacesParameters, SaveBackupCredentialsOperation,
@@ -18,8 +18,13 @@ use hermione_nexus::{
     },
 };
 use rusqlite::Connection;
-use std::num::{NonZero, NonZeroU32};
+use std::num::NonZeroU32;
 use uuid::Uuid;
+
+pub const FIRST_PAGE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1) };
+pub const DEFAULT_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(43) };
+
+const DEFAULT_BACKUP_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(100) };
 
 pub struct Coordinator {
     pub database_connection: Connection,
@@ -173,6 +178,23 @@ impl Coordinator {
         Ok(())
     }
 
+    pub fn export(&self, kind: BackupCredentialsKind) -> Result<()> {
+        let storage = self.storage();
+
+        ExportOperation {
+            backup_credentials_provider: &storage,
+            list_commands_provider: &storage,
+            list_workspaces_provider: &storage,
+            backup_provider_builder: &NotionBackupBuilder {
+                page_size: DEFAULT_BACKUP_PAGE_SIZE,
+            },
+            backup_provider: std::marker::PhantomData,
+        }
+        .execute(&kind.into())?;
+
+        Ok(())
+    }
+
     pub fn find_notion_backup_credentials(
         &self,
     ) -> Result<Option<NotionBackupCredentialsPresenter>> {
@@ -220,7 +242,9 @@ impl Coordinator {
             backup_credentials_provider: &storage,
             upsert_commands_provider: &storage,
             upsert_workspaces_provider: &storage,
-            backup_provider_builder: &NotionBackupBuilder {},
+            backup_provider_builder: &NotionBackupBuilder {
+                page_size: DEFAULT_BACKUP_PAGE_SIZE,
+            },
             backup_provider: std::marker::PhantomData,
         }
         .execute(&kind.into())?;
@@ -252,8 +276,8 @@ impl Coordinator {
             provider: &self.storage(),
         }
         .execute(ListCommandsParameters {
-            page_size: page_size.unwrap_or_else(|| NonZero::new(10).unwrap()),
-            page_number: page_number.unwrap_or_else(|| NonZero::new(1).unwrap()),
+            page_size: page_size.unwrap_or(DEFAULT_PAGE_SIZE),
+            page_number: page_number.unwrap_or(FIRST_PAGE),
             program_contains: Some(program_contains),
             workspace_id: Some(&workspace_id.into()),
         })?;
@@ -276,8 +300,8 @@ impl Coordinator {
         }
         .execute(ListWorkspacesParameters {
             name_contains: Some(name_contains),
-            page_number: page_number.unwrap_or_else(|| NonZero::new(1).unwrap()),
-            page_size: page_size.unwrap_or_else(|| NonZero::new(10).unwrap()),
+            page_number: page_number.unwrap_or(FIRST_PAGE),
+            page_size: page_size.unwrap_or(DEFAULT_PAGE_SIZE),
         })?;
 
         Ok(workspaces.into_iter().map(Into::into).collect())
@@ -309,7 +333,9 @@ impl Coordinator {
 
         SaveBackupCredentialsOperation {
             save_provider: &self.storage(),
-            backup_provider_builder: &NotionBackupBuilder {},
+            backup_provider_builder: &NotionBackupBuilder {
+                page_size: DEFAULT_BACKUP_PAGE_SIZE,
+            },
             backup_provider: std::marker::PhantomData,
         }
         .execute(&credentials)?;

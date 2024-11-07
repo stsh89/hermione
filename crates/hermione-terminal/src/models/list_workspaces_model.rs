@@ -1,19 +1,19 @@
-use std::num::NonZeroU32;
-
 use crate::{
+    coordinator::{DEFAULT_PAGE_SIZE, FIRST_PAGE},
     layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, Themed},
     widgets::{StatusBar, StatusBarWidget},
     BackupCredentialsRoute, DeleteWorkspaceParams, EditWorkspaceParams, Error,
     ListWorkspaceCommandsParams, ListWorkspacesParams, Message, Result, Route, WorkspacePresenter,
-    WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    WorkspacesRoute,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
     widgets::{Block, Borders, List, ListState},
     Frame,
 };
+use std::num::NonZeroU32;
 
 pub struct ListWorkspacesModel {
     is_running: bool,
@@ -138,9 +138,8 @@ impl ListWorkspacesModel {
             redirect: None,
             workspaces_state: ListState::default(),
             is_running: true,
-            page_number: page_number.unwrap_or_else(|| NonZeroU32::new(1).unwrap()),
-            page_size: page_size
-                .unwrap_or_else(|| NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE).unwrap()),
+            page_number: page_number.unwrap_or(FIRST_PAGE),
+            page_size: page_size.unwrap_or(DEFAULT_PAGE_SIZE),
             smart_input,
             search_query,
             theme,
@@ -167,7 +166,7 @@ impl ListWorkspacesModel {
         self.redirect = Some(
             ListWorkspacesParams {
                 search_query,
-                page_number: NonZeroU32::new(1),
+                page_number: None,
                 page_size: Some(self.page_size),
             }
             .into(),
@@ -203,8 +202,8 @@ impl ListWorkspacesModel {
                         ListWorkspaceCommandsParams {
                             workspace_id: workspace.id,
                             search_query: "".into(),
-                            page_number: NonZeroU32::new(1),
-                            page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
+                            page_number: None,
+                            page_size: Some(self.page_size),
                             powershell_no_exit: false,
                         }
                         .into(),

@@ -1,5 +1,3 @@
-use std::num::NonZeroU32;
-
 use hermione_drive::notion::{
     get_database_properties, query_datrabase_response, verify_commands_database_properties,
     verify_workspaces_database_properties, NotionApiClient, NotionApiClientParameters,
@@ -13,25 +11,39 @@ use hermione_nexus::{
     },
     services::{
         BackupService, BackupServiceBuilder, ListCommandsBackup, ListWorkspacesBackup,
-        VerifyBackupCredentials,
+        UpsertCommandsBackup, UpsertWorkspacesBackup, VerifyBackupCredentials,
     },
     Error, Result,
 };
+use std::num::NonZeroU32;
 use uuid::Uuid;
 
 pub struct NotionBackup {
     credentials: NotionBackupCredentials,
     api_client: NotionApiClient,
+    page_size: NonZeroU32,
 }
 
-pub struct NotionBackupBuilder;
+pub struct NotionBackupParameters {
+    pub credentials: NotionBackupCredentials,
+    pub page_size: NonZeroU32,
+}
+
+pub struct NotionBackupBuilder {
+    pub page_size: NonZeroU32,
+}
 
 fn api_client_error(error: ureq::Error) -> Error {
     Error::Backup(eyre::Error::new(error))
 }
 
 impl NotionBackup {
-    pub fn new(credentials: NotionBackupCredentials) -> Result<Self> {
+    pub fn new(parameters: NotionBackupParameters) -> Result<Self> {
+        let NotionBackupParameters {
+            credentials,
+            page_size,
+        } = parameters;
+
         let api_client = NotionApiClient::new(NotionApiClientParameters {
             api_key: credentials.api_key().to_string(),
             base_url_override: None,
@@ -40,6 +52,7 @@ impl NotionBackup {
         Ok(Self {
             api_client,
             credentials,
+            page_size,
         })
     }
 }
@@ -48,7 +61,10 @@ impl NotionBackupBuilder {
     pub fn build(&self, credentials: BackupCredentials) -> Result<NotionBackup> {
         let BackupCredentials::Notion(credentials) = credentials;
 
-        NotionBackup::new(credentials)
+        NotionBackup::new(NotionBackupParameters {
+            credentials,
+            page_size: self.page_size,
+        })
     }
 }
 
@@ -72,7 +88,7 @@ impl ListCommandsBackup for NotionBackup {
             .query_database(QueryDatabaseParameters {
                 database_id,
                 start_cursor: page_id,
-                page_size: NonZeroU32::new(1),
+                page_size: Some(self.page_size),
             })
             .map_err(api_client_error)?;
 
@@ -118,7 +134,7 @@ impl ListWorkspacesBackup for NotionBackup {
             .query_database(QueryDatabaseParameters {
                 database_id,
                 start_cursor: page_id,
-                page_size: NonZeroU32::new(1),
+                page_size: Some(self.page_size),
             })
             .map_err(api_client_error)?;
 
@@ -145,6 +161,18 @@ impl ListWorkspacesBackup for NotionBackup {
             .collect::<Result<Vec<Workspace>>>()?;
 
         Ok(Some((workspaces, next_page_token)))
+    }
+}
+
+impl UpsertCommandsBackup for NotionBackup {
+    fn upsert_commands_backup(&self, commands: Vec<Command>) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl UpsertWorkspacesBackup for NotionBackup {
+    fn upsert_workspaces_backup(&self, workspaces: Vec<Workspace>) -> Result<()> {
+        Ok(())
     }
 }
 

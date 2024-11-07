@@ -6,9 +6,8 @@ use crate::{
     },
     themes::Theme,
     CreateWorkspaceParams, DeleteWorkspaceParams, EditWorkspaceParams, ListWorkspacesParams,
-    Result, UpdateWorkspaceParams, WorkspacePresenter, LIST_WORKSPACES_PAGE_SIZE,
+    Result, UpdateWorkspaceParams, WorkspacePresenter,
 };
-use std::num::NonZeroU32;
 use uuid::Uuid;
 
 pub struct WorkspacesHandler<'a> {
@@ -28,15 +27,15 @@ impl<'a> WorkspacesHandler<'a> {
 
         let workspaces = self.coordinator.list_workspaces(ListWorkspacesInput {
             name_contains: name.as_str(),
-            page_number: NonZeroU32::new(1),
-            page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
+            page_number: None,
+            page_size: None,
         })?;
 
         let model = ListWorkspacesModel::new(ListWorkspaceModelParameters {
             workspaces,
             search_query: name,
-            page_number: NonZeroU32::new(1),
-            page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
+            page_number: None,
+            page_size: None,
             theme: self.theme,
         })?;
 
@@ -50,15 +49,15 @@ impl<'a> WorkspacesHandler<'a> {
 
         let workspaces = self.coordinator.list_workspaces(ListWorkspacesInput {
             name_contains: "",
-            page_number: NonZeroU32::new(1),
-            page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
+            page_number: None,
+            page_size: None,
         })?;
 
         let model = ListWorkspacesModel::new(ListWorkspaceModelParameters {
             workspaces,
             search_query: String::new(),
-            page_number: NonZeroU32::new(1),
-            page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
+            page_number: None,
+            page_size: None,
             theme: self.theme,
         })?;
 

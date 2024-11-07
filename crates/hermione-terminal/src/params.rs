@@ -1,11 +1,9 @@
 use crate::{
+    coordinator::{DEFAULT_PAGE_SIZE, FIRST_PAGE},
     BackupCredentialsKind, BackupCredentialsRoute, Route, WorkspaceCommandsRoute, WorkspacesRoute,
 };
 use std::num::NonZeroU32;
 use uuid::Uuid;
-
-pub const LIST_WORKSPACES_PAGE_SIZE: u32 = 100;
-pub const LIST_WORKSPACE_COMMANDS_PAGE_SIZE: u32 = 100;
 
 pub struct CreateWorkspaceParams {
     pub name: String,
@@ -37,6 +35,10 @@ pub struct EditWorkspaceParams {
 
 pub struct EditCommandParams {
     pub command_id: Uuid,
+}
+
+pub struct ExportParams {
+    pub kind: BackupCredentialsKind,
 }
 
 pub struct ExecuteCommandParams {
@@ -98,8 +100,8 @@ impl Default for ListWorkspacesParams {
     fn default() -> Self {
         Self {
             search_query: String::new(),
-            page_number: NonZeroU32::new(1),
-            page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
+            page_number: Some(FIRST_PAGE),
+            page_size: Some(DEFAULT_PAGE_SIZE),
         }
     }
 }
@@ -141,6 +143,12 @@ impl From<DeleteWorkspaceParams> for Route {
 impl From<EditWorkspaceParams> for Route {
     fn from(value: EditWorkspaceParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Edit(value))
+    }
+}
+
+impl From<ExportParams> for Route {
+    fn from(value: ExportParams) -> Self {
+        Self::BackupCredentials(BackupCredentialsRoute::Export(value))
     }
 }
 

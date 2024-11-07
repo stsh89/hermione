@@ -1,12 +1,10 @@
-use std::num::NonZeroU32;
-
 use crate::{
     forms::{CommandForm, EditCommandFormParameters},
     layouts::WideLayout,
     themes::{Theme, Themed},
     widgets::{StatusBar, StatusBarWidget},
     CommandPresenter, ListWorkspaceCommandsParams, Message, Result, Route,
-    UpdateWorkspaceCommandParams, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    UpdateWorkspaceCommandParams, WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::Frame;
@@ -72,8 +70,8 @@ impl EditCommandModel {
             ListWorkspaceCommandsParams {
                 workspace_id: command.workspace_id,
                 search_query: command.program,
-                page_number: NonZeroU32::new(1),
-                page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
+                page_number: None,
+                page_size: None,
                 powershell_no_exit: false,
             }
             .into(),

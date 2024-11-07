@@ -8,9 +8,8 @@ use crate::{
     themes::Theme,
     CommandPresenter, Coordinator, CreateWorkspaceCommandParams, DeleteCommandParams,
     EditCommandParams, ListWorkspaceCommandsParams, NewWorkspaceCommandParams, Result,
-    UpdateWorkspaceCommandParams, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    UpdateWorkspaceCommandParams, WorkspacePresenter,
 };
-use std::num::NonZeroU32;
 use uuid::Uuid;
 
 pub struct CommandsHandler<'a> {
@@ -132,8 +131,8 @@ impl<'a> CommandsHandler<'a> {
         let commands =
             self.coordinator
                 .list_workspace_commands(ListCommandsWithinWorkspaceInput {
-                    page_number: NonZeroU32::new(1),
-                    page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
+                    page_number: None,
+                    page_size: None,
                     program_contains: &command.program,
                     workspace_id: command.workspace_id,
                 })?;
@@ -142,8 +141,8 @@ impl<'a> CommandsHandler<'a> {
             commands,
             workspace,
             search_query: command.program,
-            page_number: NonZeroU32::new(1),
-            page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
+            page_number: None,
+            page_size: None,
             powershell_no_exit: false,
             theme: self.theme,
         })?;

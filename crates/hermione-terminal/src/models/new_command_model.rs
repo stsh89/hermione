@@ -4,11 +4,10 @@ use crate::{
     themes::{Theme, Themed},
     widgets::{StatusBar, StatusBarWidget},
     CommandPresenter, CreateWorkspaceCommandParams, ListWorkspaceCommandsParams, Message, Result,
-    Route, WorkspacePresenter, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    Route, WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::Frame;
-use std::num::NonZeroU32;
 
 pub struct NewWorkspaceCommandModel {
     status_bar: StatusBar,
@@ -70,8 +69,8 @@ impl NewWorkspaceCommandModel {
             ListWorkspaceCommandsParams {
                 workspace_id: command.workspace_id,
                 search_query: "".into(),
-                page_number: NonZeroU32::new(1),
-                page_size: NonZeroU32::new(LIST_WORKSPACE_COMMANDS_PAGE_SIZE),
+                page_number: None,
+                page_size: None,
                 powershell_no_exit: false,
             }
             .into(),

@@ -4,11 +4,9 @@ use crate::{
     themes::{Theme, Themed},
     widgets::{StatusBar, StatusBarWidget},
     ListWorkspacesParams, Message, Result, Route, UpdateWorkspaceParams, WorkspacePresenter,
-    LIST_WORKSPACES_PAGE_SIZE,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::Frame;
-use std::num::NonZeroU32;
 
 pub struct EditWorkspaceModel {
     form: WorkspaceForm,
@@ -73,8 +71,8 @@ impl EditWorkspaceModel {
         self.redirect = Some(
             ListWorkspacesParams {
                 search_query,
-                page_number: NonZeroU32::new(1),
-                page_size: NonZeroU32::new(LIST_WORKSPACES_PAGE_SIZE),
+                page_number: None,
+                page_size: None,
             }
             .into(),
         );

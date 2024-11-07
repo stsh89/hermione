@@ -1,4 +1,5 @@
 use crate::{
+    coordinator::{DEFAULT_PAGE_SIZE, FIRST_PAGE},
     layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, Themed},
@@ -118,7 +119,7 @@ impl ListWorkspaceCommandsModel {
                 ListWorkspaceCommandsParams {
                     workspace_id: self.workspace.id,
                     search_query: "".into(),
-                    page_number: NonZeroU32::new(1),
+                    page_number: None,
                     page_size: Some(self.page_size),
                     powershell_no_exit: self.powershell_settings.no_exit,
                 }
@@ -240,8 +241,8 @@ impl ListWorkspaceCommandsModel {
         let mut model = Self {
             commands_state,
             commands,
-            page_number: page_number.unwrap_or_else(|| NonZeroU32::new(1).unwrap()),
-            page_size: page_size.unwrap_or_else(|| NonZeroU32::new(10).unwrap()),
+            page_number: page_number.unwrap_or(FIRST_PAGE),
+            page_size: page_size.unwrap_or(DEFAULT_PAGE_SIZE),
             powershell_settings: PowerShellSettings {
                 no_exit: powershell_no_exit,
             },
@@ -320,7 +321,7 @@ impl ListWorkspaceCommandsModel {
             Action::ListWorkspaces => {
                 self.set_redirect(
                     ListWorkspacesParams {
-                        page_number: NonZeroU32::new(1),
+                        page_number: None,
                         page_size: Some(self.page_size),
                         search_query: "".into(),
                     }
@@ -352,7 +353,7 @@ impl ListWorkspaceCommandsModel {
             ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
                 workspace_id: self.workspace.id,
-                page_number: NonZeroU32::new(1),
+                page_number: None,
                 page_size: Some(self.page_size),
                 powershell_no_exit: self.powershell_settings.no_exit,
             }
@@ -371,7 +372,7 @@ impl ListWorkspaceCommandsModel {
             ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
                 workspace_id: self.workspace.id,
-                page_number: NonZeroU32::new(1),
+                page_number: None,
                 page_size: Some(self.page_size),
                 powershell_no_exit: self.powershell_settings.no_exit,
             }
@@ -390,7 +391,7 @@ impl ListWorkspaceCommandsModel {
             ListWorkspaceCommandsParams {
                 search_query: search_query.into(),
                 workspace_id: self.workspace.id,
-                page_number: NonZeroU32::new(1),
+                page_number: None,
                 page_size: Some(self.page_size),
                 powershell_no_exit: self.powershell_settings.no_exit,
             }
