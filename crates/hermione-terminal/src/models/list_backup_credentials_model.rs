@@ -3,8 +3,8 @@ use crate::{
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, Themed},
     widgets::{StatusBar, StatusBarWidget},
-    BackupCredentialsKind, BackupCredentialsRoute, Error, ListWorkspacesParams, Message, Result,
-    Route,
+    BackupCredentialsKind, BackupCredentialsRoute, DeleteBackupCredentialsParams, Error,
+    ListWorkspacesParams, Message, Result, Route,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -84,6 +84,12 @@ impl ListBackupCredentialsModel {
         self.smart_input.autocomplete();
     }
 
+    fn backup_credentials_kind(&self) -> Option<&BackupCredentialsKind> {
+        self.backup_credentials_kinds_state
+            .selected()
+            .and_then(|index| self.backup_credentials_kinds.get(index))
+    }
+
     fn cancel(&mut self) {
         self.smart_input.reset_input();
     }
@@ -118,6 +124,12 @@ impl ListBackupCredentialsModel {
             theme,
         } = parameters;
 
+        let mut backup_credentials_kinds_state = ListState::default();
+
+        if !backup_credentials_kinds.is_empty() {
+            backup_credentials_kinds_state.select_first();
+        }
+
         let smart_input = SmartInput::new(NewSmartInputParameters {
             theme,
             commands: Action::all().into_iter().map(Into::into).collect(),
@@ -127,7 +139,7 @@ impl ListBackupCredentialsModel {
             theme,
             is_running: true,
             backup_credentials_kinds,
-            backup_credentials_kinds_state: ListState::default(),
+            backup_credentials_kinds_state,
             smart_input,
             redirect: None,
         }
@@ -160,7 +172,11 @@ impl ListBackupCredentialsModel {
         let action = Action::try_from(command)?;
 
         match action {
-            Action::DeleteBackupCredentials => {}
+            Action::DeleteBackupCredentials => {
+                if let Some(kind) = self.backup_credentials_kind().cloned() {
+                    self.set_redirect(DeleteBackupCredentialsParams { kind }.into());
+                }
+            }
             Action::EditBackupCredentials => {}
             Action::Exit => self.exit(),
             Action::ListWorkspaces => {

@@ -6,9 +6,10 @@ use crate::{
     },
     themes::Theme,
     BackupCredentialsPresenter, BackupCredentialsRoute, CommandsHandler,
-    ListWorkspaceCommandsParams, ListWorkspacesParams, Message, NotionBackupCredentialsPresenter,
-    PowerShellHandler, PowerShellRoute, Result, Route, SaveNotionBackupCredentialsParams,
-    WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    DeleteBackupCredentialsParams, ListWorkspaceCommandsParams, ListWorkspacesParams, Message,
+    NotionBackupCredentialsPresenter, PowerShellHandler, PowerShellRoute, Result, Route,
+    SaveNotionBackupCredentialsParams, WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute,
+    LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{BoxedModel, Router};
 use std::num::NonZeroU32;
@@ -108,6 +109,20 @@ impl TerminalRouter {
                             workspaces_database_id,
                         },
                     ))?;
+
+                let backup_credentials_kinds = self.coordinator.list_backup_credentials()?;
+
+                let model = ListBackupCredentialsModel::new(ListBackupCredentialsModelParameters {
+                    backup_credentials_kinds,
+                    theme: self.theme,
+                });
+
+                Ok(Some(Box::new(model)))
+            }
+            BackupCredentialsRoute::DeleteBackupCredentials(params) => {
+                let DeleteBackupCredentialsParams { kind } = params;
+
+                self.coordinator.delete_backup_credentials(kind)?;
 
                 let backup_credentials_kinds = self.coordinator.list_backup_credentials()?;
 

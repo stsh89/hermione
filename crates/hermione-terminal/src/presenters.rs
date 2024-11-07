@@ -1,11 +1,12 @@
 use crate::{Error, Result};
 use hermione_nexus::definitions::{
-    BackupCredentials, Command, CommandParameters, NotionBackupCredentialsParameters, Workspace,
-    WorkspaceParameters,
+    BackupCredentials, BackupProviderKind, Command, CommandParameters,
+    NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
 };
 use ratatui::widgets::ListItem;
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub enum BackupCredentialsKind {
     Notion,
 }
@@ -63,6 +64,14 @@ impl From<BackupCredentials> for BackupCredentialsKind {
     fn from(value: BackupCredentials) -> Self {
         match value {
             BackupCredentials::Notion(_) => BackupCredentialsKind::Notion,
+        }
+    }
+}
+
+impl From<BackupCredentialsKind> for BackupProviderKind {
+    fn from(value: BackupCredentialsKind) -> Self {
+        match value {
+            BackupCredentialsKind::Notion => BackupProviderKind::Notion,
         }
     }
 }

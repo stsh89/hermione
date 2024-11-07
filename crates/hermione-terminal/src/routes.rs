@@ -1,7 +1,7 @@
 use crate::{
     CopyCommandToClipboardParams, CreateWorkspaceCommandParams, CreateWorkspaceParams,
-    DeleteCommandParams, DeleteWorkspaceParams, EditCommandParams, EditWorkspaceParams,
-    ExecuteCommandParams, ListWorkspaceCommandsParams, ListWorkspacesParams,
+    DeleteBackupCredentialsParams, DeleteCommandParams, DeleteWorkspaceParams, EditCommandParams,
+    EditWorkspaceParams, ExecuteCommandParams, ListWorkspaceCommandsParams, ListWorkspacesParams,
     NewWorkspaceCommandParams, OpenWindowsTerminalParams, SaveNotionBackupCredentialsParams,
     UpdateWorkspaceCommandParams, UpdateWorkspaceParams,
 };
@@ -16,6 +16,7 @@ pub enum BackupCredentialsRoute {
     List,
     ManageNotionBackupCredentials,
     SaveNotionBackupCredentials(SaveNotionBackupCredentialsParams),
+    DeleteBackupCredentials(DeleteBackupCredentialsParams),
 }
 
 pub enum PowerShellRoute {

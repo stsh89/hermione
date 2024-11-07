@@ -1,4 +1,6 @@
-use crate::{BackupCredentialsRoute, Route, WorkspaceCommandsRoute, WorkspacesRoute};
+use crate::{
+    BackupCredentialsKind, BackupCredentialsRoute, Route, WorkspaceCommandsRoute, WorkspacesRoute,
+};
 use std::num::NonZeroU32;
 use uuid::Uuid;
 
@@ -16,13 +18,17 @@ pub struct CreateWorkspaceCommandParams {
     pub workspace_id: Uuid,
 }
 
-pub struct DeleteWorkspaceParams {
-    pub id: Uuid,
+pub struct DeleteBackupCredentialsParams {
+    pub kind: BackupCredentialsKind,
 }
 
 pub struct DeleteCommandParams {
     pub command_id: Uuid,
     pub workspace_id: Uuid,
+}
+
+pub struct DeleteWorkspaceParams {
+    pub id: Uuid,
 }
 
 pub struct EditWorkspaceParams {
@@ -108,9 +114,9 @@ impl From<CreateWorkspaceCommandParams> for Route {
     }
 }
 
-impl From<DeleteWorkspaceParams> for Route {
-    fn from(value: DeleteWorkspaceParams) -> Self {
-        Self::Workspaces(WorkspacesRoute::Delete(value))
+impl From<DeleteBackupCredentialsParams> for Route {
+    fn from(value: DeleteBackupCredentialsParams) -> Self {
+        Self::BackupCredentials(BackupCredentialsRoute::DeleteBackupCredentials(value))
     }
 }
 
@@ -119,6 +125,12 @@ impl From<DeleteCommandParams> for Route {
         Self::Workspaces(WorkspacesRoute::Commands(WorkspaceCommandsRoute::Delete(
             parameters,
         )))
+    }
+}
+
+impl From<DeleteWorkspaceParams> for Route {
+    fn from(value: DeleteWorkspaceParams) -> Self {
+        Self::Workspaces(WorkspacesRoute::Delete(value))
     }
 }
 

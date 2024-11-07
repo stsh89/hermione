@@ -9,10 +9,10 @@ use hermione_nexus::{
         NotionBackupCredentialsParameters, Workspace, WorkspaceId, WorkspaceParameters,
     },
     services::{
-        CreateCommand, CreateWorkspace, DeleteCommand, DeleteWorkspace, DeleteWorkspaceCommands,
-        EditCommandParameters, EditWorkspaceParameters, FilterCommandsParameters,
-        FilterWorkspacesParameters, FindBackupCredentials, FindCommand, FindWorkspace,
-        ListBackupCredentials, ListCommands, ListWorkspaces, NewCommandParameters,
+        CreateCommand, CreateWorkspace, DeleteBackupCredentials, DeleteCommand, DeleteWorkspace,
+        DeleteWorkspaceCommands, EditCommandParameters, EditWorkspaceParameters,
+        FilterCommandsParameters, FilterWorkspacesParameters, FindBackupCredentials, FindCommand,
+        FindWorkspace, ListBackupCredentials, ListCommands, ListWorkspaces, NewCommandParameters,
         NewWorkspaceParameters, SaveBackupCredentials, StorageService, TrackCommandExecuteTime,
         TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace,
     },
@@ -162,6 +162,19 @@ impl CreateWorkspace for Storage<'_> {
         sqlite::insert_workspace(self.conn, record).map_err(internal_error)?;
 
         Ok(workspace)
+    }
+}
+
+impl DeleteBackupCredentials for Storage<'_> {
+    fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> Result<()> {
+        let id = match kind {
+            BackupProviderKind::Notion => NOTION_BACKUP_CREDENTIALS_ID,
+            BackupProviderKind::Unknown => return Ok(()),
+        };
+
+        sqlite::delete_backup_credentials(self.conn, id).map_err(internal_error)?;
+
+        Ok(())
     }
 }
 

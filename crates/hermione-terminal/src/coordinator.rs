@@ -8,12 +8,13 @@ use hermione_nexus::{
     definitions::BackupProviderKind,
     operations::{
         CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
-        CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteCommandOperation,
-        DeleteWorkspaceOperation, ExecuteCommandOperation, GetBackupCredentialsOperation,
-        GetCommandOperation, GetWorkspaceOperation, ListBackupCredentialsOperation,
-        ListCommandsOperation, ListCommandsParameters, ListWorkspacesOperation,
-        ListWorkspacesParameters, SaveBackupCredentialsOperation, UpdateCommandOperation,
-        UpdateCommandParameters, UpdateWorkspaceOperation, UpdateWorkspaceParameters,
+        CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
+        DeleteCommandOperation, DeleteWorkspaceOperation, ExecuteCommandOperation,
+        GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation,
+        ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
+        ListWorkspacesOperation, ListWorkspacesParameters, SaveBackupCredentialsOperation,
+        UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
+        UpdateWorkspaceParameters,
     },
 };
 use rusqlite::Connection;
@@ -101,6 +102,18 @@ impl Coordinator {
         })?;
 
         Ok(workspace.into())
+    }
+
+    pub fn delete_backup_credentials(&self, kind: BackupCredentialsKind) -> Result<()> {
+        let storage = self.storage();
+
+        DeleteBackupCredentialsOperation {
+            find_provider: &storage,
+            delete_provider: &storage,
+        }
+        .execute(&kind.into())?;
+
+        Ok(())
     }
 
     pub fn delete_command(&self, id: Uuid) -> Result<()> {
