@@ -1,7 +1,7 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Backup failure: {0}")]
-    Backup(String),
+    Backup(#[source] eyre::Error),
 
     #[error("Clipboard failure: {0}")]
     Clipboard(#[source] eyre::Error),

@@ -25,12 +25,6 @@ impl BackupCredentials {
     pub fn notion(parameters: NotionBackupCredentialsParameters) -> Self {
         Self::Notion(NotionBackupCredentials::new(parameters))
     }
-
-    pub fn provider_kind(&self) -> BackupProviderKind {
-        match self {
-            BackupCredentials::Notion(_) => BackupProviderKind::Notion,
-        }
-    }
 }
 
 impl NotionBackupCredentials {

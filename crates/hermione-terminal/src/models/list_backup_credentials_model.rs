@@ -3,7 +3,8 @@ use crate::{
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, Themed},
     widgets::{StatusBar, StatusBarWidget},
-    BackupCredentialsKind, Error, ListWorkspacesParams, Message, Result, Route,
+    BackupCredentialsKind, BackupCredentialsRoute, Error, ListWorkspacesParams, Message, Result,
+    Route,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -165,7 +166,11 @@ impl ListBackupCredentialsModel {
             Action::ListWorkspaces => {
                 self.set_redirect(ListWorkspacesParams::default().into());
             }
-            Action::NewNotionBackupCredentials => {}
+            Action::ManageNotionBackupCredentials => {
+                self.set_redirect(Route::BackupCredentials(
+                    BackupCredentialsRoute::ManageNotionBackupCredentials,
+                ));
+            }
         }
 
         Ok(())
@@ -176,7 +181,7 @@ enum Action {
     DeleteBackupCredentials,
     EditBackupCredentials,
     Exit,
-    NewNotionBackupCredentials,
+    ManageNotionBackupCredentials,
     ListWorkspaces,
 }
 
@@ -185,7 +190,7 @@ impl Action {
         vec![
             Self::DeleteBackupCredentials,
             Self::Exit,
-            Self::NewNotionBackupCredentials,
+            Self::ManageNotionBackupCredentials,
             Self::EditBackupCredentials,
             Self::ListWorkspaces,
         ]
@@ -198,7 +203,7 @@ impl From<Action> for String {
             Action::DeleteBackupCredentials => "Delete backup credentials",
             Action::EditBackupCredentials => "Edit backup credentials",
             Action::Exit => "Exit",
-            Action::NewNotionBackupCredentials => "New Notion backup credentials",
+            Action::ManageNotionBackupCredentials => "Manage Notion backup credentials",
             Action::ListWorkspaces => "List workspaces",
         };
 
@@ -214,7 +219,7 @@ impl TryFrom<&str> for Action {
             "Delete backup credentials" => Self::DeleteBackupCredentials,
             "Exit" => Self::Exit,
             "Edit backup credentials" => Self::EditBackupCredentials,
-            "New Notion backup credentials" => Self::NewNotionBackupCredentials,
+            "Manage Notion backup credentials" => Self::ManageNotionBackupCredentials,
             "List workspaces" => Self::ListWorkspaces,
             _ => {
                 return Err(anyhow::anyhow!(

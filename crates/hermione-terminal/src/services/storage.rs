@@ -5,21 +5,24 @@ use hermione_drive::sqlite::{
 };
 use hermione_nexus::{
     definitions::{
-        BackupCredentials, Command, CommandId, CommandParameters,
+        BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters,
         NotionBackupCredentialsParameters, Workspace, WorkspaceId, WorkspaceParameters,
     },
     services::{
         CreateCommand, CreateWorkspace, DeleteCommand, DeleteWorkspace, DeleteWorkspaceCommands,
         EditCommandParameters, EditWorkspaceParameters, FilterCommandsParameters,
-        FilterWorkspacesParameters, FindCommand, FindWorkspace, ListBackupCredentials,
-        ListCommands, ListWorkspaces, NewCommandParameters, NewWorkspaceParameters, StorageService,
-        TrackCommandExecuteTime, TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace,
+        FilterWorkspacesParameters, FindBackupCredentials, FindCommand, FindWorkspace,
+        ListBackupCredentials, ListCommands, ListWorkspaces, NewCommandParameters,
+        NewWorkspaceParameters, SaveBackupCredentials, StorageService, TrackCommandExecuteTime,
+        TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace,
     },
     Error, Result,
 };
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+const NOTION_BACKUP_CREDENTIALS_ID: &str = "Notion";
 
 pub struct Storage<'a> {
     pub conn: &'a Connection,
@@ -30,7 +33,7 @@ fn internal_error(err: rusqlite::Error) -> Error {
 }
 
 #[derive(Serialize, Deserialize)]
-struct NotionSecrets {
+struct NotionBackupSecrets {
     api_key: String,
     commands_database_id: String,
     workspaces_database_id: String,
@@ -45,10 +48,10 @@ fn backup_credentials_from_record(record: BackupCredentialsRecord) -> Result<Bac
 
     match BackupCredentialsId::try_from(id.as_str())? {
         BackupCredentialsId::Notion => {
-            let secrets: NotionSecrets = serde_json::from_str(&secrets)
+            let secrets: NotionBackupSecrets = serde_json::from_str(&secrets)
                 .map_err(|err| Error::Storage(eyre::Error::new(err)))?;
 
-            let NotionSecrets {
+            let NotionBackupSecrets {
                 api_key,
                 commands_database_id,
                 workspaces_database_id,
@@ -104,7 +107,7 @@ impl TryFrom<&str> for BackupCredentialsId {
 
     fn try_from(value: &str) -> Result<Self> {
         let id = match value {
-            "Notion" => BackupCredentialsId::Notion,
+            NOTION_BACKUP_CREDENTIALS_ID => BackupCredentialsId::Notion,
             _ => {
                 return Err(Error::Storage(eyre::Error::msg(format!(
                     "Unexpected backup credentials id: {}",
@@ -186,6 +189,22 @@ impl DeleteWorkspaceCommands for Storage<'_> {
     }
 }
 
+impl FindBackupCredentials for Storage<'_> {
+    fn find_backup_credentials(
+        &self,
+        kind: &BackupProviderKind,
+    ) -> Result<Option<BackupCredentials>> {
+        let id = match kind {
+            BackupProviderKind::Notion => NOTION_BACKUP_CREDENTIALS_ID,
+            BackupProviderKind::Unknown => return Ok(None),
+        };
+
+        let record = sqlite::find_backup_credentials(self.conn, id).map_err(internal_error)?;
+
+        record.map(backup_credentials_from_record).transpose()
+    }
+}
+
 impl FindCommand for Storage<'_> {
     fn find_command(&self, id: &CommandId) -> Result<Option<Command>> {
         let record = sqlite::find_command(self.conn, id.as_bytes()).map_err(internal_error)?;
@@ -262,6 +281,30 @@ impl ListWorkspaces for Storage<'_> {
             .into_iter()
             .map(workspace_from_record)
             .collect::<Result<Vec<_>>>()
+    }
+}
+
+impl SaveBackupCredentials for Storage<'_> {
+    fn save_backup_credentials(&self, credentials: &BackupCredentials) -> Result<()> {
+        let record = match credentials {
+            BackupCredentials::Notion(notion_backup_credentials) => BackupCredentialsRecord {
+                id: NOTION_BACKUP_CREDENTIALS_ID.to_string(),
+                secrets: serde_json::to_string(&NotionBackupSecrets {
+                    api_key: notion_backup_credentials.api_key().to_string(),
+                    commands_database_id: notion_backup_credentials
+                        .commands_database_id()
+                        .to_string(),
+                    workspaces_database_id: notion_backup_credentials
+                        .workspaces_database_id()
+                        .to_string(),
+                })
+                .map_err(|err| Error::Storage(eyre::Error::new(err)))?,
+            },
+        };
+
+        sqlite::insert_backup_credentials(self.conn, record).map_err(internal_error)?;
+
+        Ok(())
     }
 }
 

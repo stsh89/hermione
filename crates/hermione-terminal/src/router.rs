@@ -1,10 +1,14 @@
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
-    models::{ListBackupCredentialsModel, ListBackupCredentialsModelParameters},
+    models::{
+        ListBackupCredentialsModel, ListBackupCredentialsModelParameters,
+        ManageNotionBackupCredentialsModel, ManageNotionBackupCredentialsModelParameters,
+    },
     themes::Theme,
-    BackupCredentialsRoute, CommandsHandler, ListWorkspaceCommandsParams, ListWorkspacesParams,
-    Message, PowerShellHandler, PowerShellRoute, Result, Route, WorkspaceCommandsRoute,
-    WorkspacesHandler, WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
+    BackupCredentialsPresenter, BackupCredentialsRoute, CommandsHandler,
+    ListWorkspaceCommandsParams, ListWorkspacesParams, Message, NotionBackupCredentialsPresenter,
+    PowerShellHandler, PowerShellRoute, Result, Route, SaveNotionBackupCredentialsParams,
+    WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute, LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
 use hermione_tui::{BoxedModel, Router};
 use std::num::NonZeroU32;
@@ -68,6 +72,43 @@ impl TerminalRouter {
     ) -> Result<Option<BoxedModel<Route, Message>>> {
         match route {
             BackupCredentialsRoute::List => {
+                let backup_credentials_kinds = self.coordinator.list_backup_credentials()?;
+
+                let model = ListBackupCredentialsModel::new(ListBackupCredentialsModelParameters {
+                    backup_credentials_kinds,
+                    theme: self.theme,
+                });
+
+                Ok(Some(Box::new(model)))
+            }
+            BackupCredentialsRoute::ManageNotionBackupCredentials => {
+                let credentials = self.coordinator.find_notion_backup_credentials()?;
+
+                let model = ManageNotionBackupCredentialsModel::new(
+                    ManageNotionBackupCredentialsModelParameters {
+                        theme: self.theme,
+                        credentials,
+                    },
+                );
+
+                Ok(Some(Box::new(model)))
+            }
+            BackupCredentialsRoute::SaveNotionBackupCredentials(parameters) => {
+                let SaveNotionBackupCredentialsParams {
+                    api_key,
+                    commands_database_id,
+                    workspaces_database_id,
+                } = parameters;
+
+                self.coordinator
+                    .save_backup_credentials(BackupCredentialsPresenter::Notion(
+                        NotionBackupCredentialsPresenter {
+                            api_key,
+                            commands_database_id,
+                            workspaces_database_id,
+                        },
+                    ))?;
+
                 let backup_credentials_kinds = self.coordinator.list_backup_credentials()?;
 
                 let model = ListBackupCredentialsModel::new(ListBackupCredentialsModelParameters {

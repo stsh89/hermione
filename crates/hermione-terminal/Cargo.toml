@@ -16,6 +16,7 @@ rusqlite = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true }
+ureq = { workspace = true }
 
 hermione-drive = { workspace = true }
 hermione-nexus = { workspace = true }

@@ -1,15 +1,20 @@
 use crate::{
     providers::powershell::{self, PowerShellParameters, PowerShellProcess},
-    services::{Clipboard, Storage, System},
-    BackupCredentialsKind, CommandPresenter, Result, WorkspacePresenter,
+    services::{Clipboard, NotionBackupBuilder, Storage, System},
+    BackupCredentialsKind, BackupCredentialsPresenter, CommandPresenter,
+    NotionBackupCredentialsPresenter, Result, WorkspacePresenter,
 };
-use hermione_nexus::operations::{
-    CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
-    CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteCommandOperation,
-    DeleteWorkspaceOperation, ExecuteCommandOperation, GetCommandOperation, GetWorkspaceOperation,
-    ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
-    ListWorkspacesOperation, ListWorkspacesParameters, UpdateCommandOperation,
-    UpdateCommandParameters, UpdateWorkspaceOperation, UpdateWorkspaceParameters,
+use hermione_nexus::{
+    definitions::BackupProviderKind,
+    operations::{
+        CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
+        CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteCommandOperation,
+        DeleteWorkspaceOperation, ExecuteCommandOperation, GetBackupCredentialsOperation,
+        GetCommandOperation, GetWorkspaceOperation, ListBackupCredentialsOperation,
+        ListCommandsOperation, ListCommandsParameters, ListWorkspacesOperation,
+        ListWorkspacesParameters, SaveBackupCredentialsOperation, UpdateCommandOperation,
+        UpdateCommandParameters, UpdateWorkspaceOperation, UpdateWorkspaceParameters,
+    },
 };
 use rusqlite::Connection;
 use std::num::{NonZero, NonZeroU32};
@@ -155,6 +160,28 @@ impl Coordinator {
         Ok(())
     }
 
+    pub fn find_notion_backup_credentials(
+        &self,
+    ) -> Result<Option<NotionBackupCredentialsPresenter>> {
+        let kinds = self.list_backup_credentials()?;
+
+        let notion_credential_kind = kinds
+            .into_iter()
+            .find(|kind| matches!(kind, BackupCredentialsKind::Notion));
+
+        if notion_credential_kind.is_none() {
+            return Ok(None);
+        }
+
+        let credentials = GetBackupCredentialsOperation {
+            provider: &self.storage(),
+        }
+        .execute(&BackupProviderKind::Notion)?
+        .into();
+
+        Ok(Some(credentials))
+    }
+
     pub fn get_command(&self, id: Uuid) -> Result<CommandPresenter> {
         let command = GetCommandOperation {
             provider: &self.storage(),
@@ -245,6 +272,19 @@ impl Coordinator {
                 working_directory,
             }),
         )?;
+
+        Ok(())
+    }
+
+    pub fn save_backup_credentials(&self, credentials: BackupCredentialsPresenter) -> Result<()> {
+        let credentials = credentials.try_into()?;
+
+        SaveBackupCredentialsOperation {
+            save_provider: &self.storage(),
+            backup_provider_builder: &NotionBackupBuilder {},
+            backup_provider: std::marker::PhantomData,
+        }
+        .execute(&credentials)?;
 
         Ok(())
     }

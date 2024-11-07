@@ -1,4 +1,4 @@
-use crate::{Route, WorkspaceCommandsRoute, WorkspacesRoute};
+use crate::{BackupCredentialsRoute, Route, WorkspaceCommandsRoute, WorkspacesRoute};
 use std::num::NonZeroU32;
 use uuid::Uuid;
 
@@ -33,6 +33,12 @@ pub struct EditCommandParams {
     pub command_id: Uuid,
 }
 
+pub struct ExecuteCommandParams {
+    pub command_id: Uuid,
+    pub workspace_id: Uuid,
+    pub powershell_no_exit: bool,
+}
+
 pub struct ListWorkspacesParams {
     pub search_query: String,
     pub page_number: Option<NonZeroU32>,
@@ -55,14 +61,14 @@ pub struct CopyCommandToClipboardParams {
     pub command_id: Uuid,
 }
 
-pub struct ExecuteCommandParams {
-    pub command_id: Uuid,
-    pub workspace_id: Uuid,
-    pub powershell_no_exit: bool,
-}
-
 pub struct OpenWindowsTerminalParams {
     pub working_directory: String,
+}
+
+pub struct SaveNotionBackupCredentialsParams {
+    pub api_key: String,
+    pub commands_database_id: String,
+    pub workspaces_database_id: String,
 }
 
 pub struct UpdateWorkspaceParams {
@@ -149,6 +155,12 @@ impl From<NewWorkspaceCommandParams> for Route {
         Self::Workspaces(WorkspacesRoute::Commands(WorkspaceCommandsRoute::New(
             parameters,
         )))
+    }
+}
+
+impl From<SaveNotionBackupCredentialsParams> for Route {
+    fn from(value: SaveNotionBackupCredentialsParams) -> Self {
+        Self::BackupCredentials(BackupCredentialsRoute::SaveNotionBackupCredentials(value))
     }
 }
 

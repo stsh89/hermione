@@ -11,7 +11,6 @@ use std::marker::PhantomData;
 
 struct ExportOperationTestContext {
     backup: MockBackup,
-    backup_credentials: BackupCredentials,
     backup_provider_builder: MockBackupBuilder,
     storage: InMemoryStorage,
 }
@@ -48,7 +47,6 @@ where
 
     test_fn(ExportOperationTestContext {
         backup,
-        backup_credentials,
         backup_provider_builder,
         storage,
     })
@@ -61,7 +59,6 @@ fn it_exports() -> Result<()> {
             backup,
             ref backup_provider_builder,
             storage,
-            backup_credentials,
         } = ctx;
 
         assert_eq!(backup.count_workspaces()?, 0);
@@ -74,7 +71,7 @@ fn it_exports() -> Result<()> {
             list_workspaces_provider: &storage,
             backup_provider: PhantomData,
         }
-        .execute(&backup_credentials.provider_kind())?;
+        .execute(&BackupProviderKind::Notion)?;
 
         assert_eq!(backup.count_workspaces()?, 2);
         assert_eq!(backup.count_commands()?, 6);
@@ -90,7 +87,6 @@ fn it_returns_not_found_error() -> Result<()> {
             storage,
             backup: _,
             ref backup_provider_builder,
-            backup_credentials: _,
         } = ctx;
 
         let result = ExportOperation {

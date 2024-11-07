@@ -1,12 +1,23 @@
 use crate::{Error, Result};
 use hermione_nexus::definitions::{
-    BackupCredentials, Command, CommandParameters, Workspace, WorkspaceParameters,
+    BackupCredentials, Command, CommandParameters, NotionBackupCredentialsParameters, Workspace,
+    WorkspaceParameters,
 };
 use ratatui::widgets::ListItem;
 use uuid::Uuid;
 
-pub struct BackupCredentialsKind {
-    pub name: String,
+pub enum BackupCredentialsKind {
+    Notion,
+}
+
+pub enum BackupCredentialsPresenter {
+    Notion(NotionBackupCredentialsPresenter),
+}
+
+pub struct NotionBackupCredentialsPresenter {
+    pub api_key: String,
+    pub workspaces_database_id: String,
+    pub commands_database_id: String,
 }
 
 pub struct CommandPresenter {
@@ -22,9 +33,17 @@ pub struct WorkspacePresenter {
     pub name: String,
 }
 
+impl BackupCredentialsKind {
+    fn as_str(&self) -> &str {
+        match self {
+            BackupCredentialsKind::Notion => "Notion",
+        }
+    }
+}
+
 impl<'a> From<&BackupCredentialsKind> for ListItem<'a> {
     fn from(value: &BackupCredentialsKind) -> Self {
-        ListItem::new(value.name.clone())
+        ListItem::new(value.as_str().to_string())
     }
 }
 
@@ -42,8 +61,20 @@ impl<'a> From<&WorkspacePresenter> for ListItem<'a> {
 
 impl From<BackupCredentials> for BackupCredentialsKind {
     fn from(value: BackupCredentials) -> Self {
-        Self {
-            name: value.provider_kind().as_str().to_string(),
+        match value {
+            BackupCredentials::Notion(_) => BackupCredentialsKind::Notion,
+        }
+    }
+}
+
+impl From<BackupCredentials> for NotionBackupCredentialsPresenter {
+    fn from(value: BackupCredentials) -> Self {
+        match value {
+            BackupCredentials::Notion(credentials) => NotionBackupCredentialsPresenter {
+                api_key: credentials.api_key().to_string(),
+                workspaces_database_id: credentials.workspaces_database_id().to_string(),
+                commands_database_id: credentials.commands_database_id().to_string(),
+            },
         }
     }
 }
@@ -69,20 +100,27 @@ impl From<Workspace> for WorkspacePresenter {
     }
 }
 
-impl TryFrom<WorkspacePresenter> for Workspace {
+impl TryFrom<BackupCredentialsPresenter> for BackupCredentials {
     type Error = Error;
 
-    fn try_from(value: WorkspacePresenter) -> Result<Self> {
-        let WorkspacePresenter { id, location, name } = value;
+    fn try_from(value: BackupCredentialsPresenter) -> Result<Self> {
+        let credentials = match value {
+            BackupCredentialsPresenter::Notion(presenter) => {
+                let NotionBackupCredentialsPresenter {
+                    api_key,
+                    workspaces_database_id,
+                    commands_database_id,
+                } = presenter;
 
-        let workspace = Workspace::new(WorkspaceParameters {
-            id,
-            name,
-            location: Some(location),
-            last_access_time: None,
-        })?;
+                BackupCredentials::notion(NotionBackupCredentialsParameters {
+                    api_key,
+                    commands_database_id,
+                    workspaces_database_id,
+                })
+            }
+        };
 
-        Ok(workspace)
+        Ok(credentials)
     }
 }
 
@@ -106,5 +144,22 @@ impl TryFrom<CommandPresenter> for Command {
         })?;
 
         Ok(command)
+    }
+}
+
+impl TryFrom<WorkspacePresenter> for Workspace {
+    type Error = Error;
+
+    fn try_from(value: WorkspacePresenter) -> Result<Self> {
+        let WorkspacePresenter { id, location, name } = value;
+
+        let workspace = Workspace::new(WorkspaceParameters {
+            id,
+            name,
+            location: Some(location),
+            last_access_time: None,
+        })?;
+
+        Ok(workspace)
     }
 }

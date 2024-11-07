@@ -21,6 +21,8 @@ use std::{
 };
 use uuid::Uuid;
 
+const NOTION_CREDENTIALS_KEY: &str = "notion";
+
 #[derive(thiserror::Error, Debug)]
 pub enum InMemoryStorageError {
     #[error("Data integrity error: {0}")]
@@ -107,10 +109,11 @@ impl InMemoryStorage {
     ) -> Result<(), InMemoryStorageError> {
         let mut collection = self.backup_credentials.write()?;
 
-        collection.insert(
-            credentials.provider_kind().as_str().to_string(),
-            credentials,
-        );
+        let key = match &credentials {
+            BackupCredentials::Notion(_) => NOTION_CREDENTIALS_KEY.to_string(),
+        };
+
+        collection.insert(key, credentials);
 
         Ok(())
     }
@@ -273,7 +276,12 @@ impl CreateWorkspace for InMemoryStorage {
 
 impl DeleteBackupCredentials for InMemoryStorage {
     fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> hermione_nexus::Result<()> {
-        self.remove_backup_credentials(kind.as_str())?;
+        let key = match kind {
+            BackupProviderKind::Notion => NOTION_CREDENTIALS_KEY,
+            BackupProviderKind::Unknown => return Ok(()),
+        };
+
+        self.remove_backup_credentials(key)?;
 
         Ok(())
     }
@@ -308,7 +316,12 @@ impl FindBackupCredentials for InMemoryStorage {
         &self,
         kind: &BackupProviderKind,
     ) -> Result<Option<BackupCredentials>, Error> {
-        let credentials = self.get_backup_credentials(kind.as_str())?;
+        let key = match kind {
+            BackupProviderKind::Notion => NOTION_CREDENTIALS_KEY,
+            BackupProviderKind::Unknown => return Ok(None),
+        };
+
+        let credentials = self.get_backup_credentials(key)?;
 
         Ok(credentials)
     }

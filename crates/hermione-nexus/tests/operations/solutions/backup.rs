@@ -152,7 +152,7 @@ fn index_from_str(page_id: Option<&str>) -> Result<usize, Error> {
     let page_id = page_id
         .map(|id| id.parse())
         .transpose()
-        .map_err(|err| Error::Backup(format!("Invalid page ID: {}", err)))?
+        .map_err(|err| Error::Backup(eyre::Error::msg(format!("Invalid page ID: {}", err))))?
         .unwrap_or(0);
 
     Ok(page_id)
