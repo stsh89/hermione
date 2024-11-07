@@ -65,6 +65,7 @@ impl NotionApiClient {
             body["start_cursor"] = start_cursor.into();
         }
 
+        // TODO: process 429 error properly
         self.agent
             .post(&path)
             .set("Content-Type", "application/json")
