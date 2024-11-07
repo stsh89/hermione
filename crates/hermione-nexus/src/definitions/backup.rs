@@ -48,12 +48,3 @@ impl NotionBackupCredentials {
         &self.workspaces_database_id
     }
 }
-
-impl BackupProviderKind {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Notion => "Notion",
-            Self::Unknown => "Unknown",
-        }
-    }
-}
