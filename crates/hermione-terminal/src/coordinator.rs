@@ -10,7 +10,7 @@ use hermione_nexus::{
         CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
         CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
         DeleteCommandOperation, DeleteWorkspaceOperation, ExecuteCommandOperation,
-        GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation,
+        GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation, ImportOperation,
         ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
         ListWorkspacesOperation, ListWorkspacesParameters, SaveBackupCredentialsOperation,
         UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
@@ -211,6 +211,21 @@ impl Coordinator {
         .execute(&id.into())?;
 
         Ok(workspace.into())
+    }
+
+    pub fn import(&self, kind: BackupCredentialsKind) -> Result<()> {
+        let storage = self.storage();
+
+        ImportOperation {
+            backup_credentials_provider: &storage,
+            upsert_commands_provider: &storage,
+            upsert_workspaces_provider: &storage,
+            backup_provider_builder: &NotionBackupBuilder {},
+            backup_provider: std::marker::PhantomData,
+        }
+        .execute(&kind.into())?;
+
+        Ok(())
     }
 
     pub fn list_backup_credentials(&self) -> Result<Vec<BackupCredentialsKind>> {

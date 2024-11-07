@@ -45,6 +45,10 @@ pub struct ExecuteCommandParams {
     pub powershell_no_exit: bool,
 }
 
+pub struct ImportParams {
+    pub kind: BackupCredentialsKind,
+}
+
 pub struct ListWorkspacesParams {
     pub search_query: String,
     pub page_number: Option<NonZeroU32>,
@@ -137,6 +141,12 @@ impl From<DeleteWorkspaceParams> for Route {
 impl From<EditWorkspaceParams> for Route {
     fn from(value: EditWorkspaceParams) -> Self {
         Self::Workspaces(WorkspacesRoute::Edit(value))
+    }
+}
+
+impl From<ImportParams> for Route {
+    fn from(value: ImportParams) -> Self {
+        Self::BackupCredentials(BackupCredentialsRoute::Import(value))
     }
 }
 

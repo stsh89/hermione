@@ -4,7 +4,7 @@ use crate::{
     themes::{Theme, Themed},
     widgets::{StatusBar, StatusBarWidget},
     BackupCredentialsKind, BackupCredentialsRoute, DeleteBackupCredentialsParams, Error,
-    ListWorkspacesParams, Message, Result, Route,
+    ImportParams, ListWorkspacesParams, Message, Result, Route,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -179,6 +179,12 @@ impl ListBackupCredentialsModel {
             }
             Action::EditBackupCredentials => {}
             Action::Exit => self.exit(),
+
+            Action::Import => {
+                if let Some(kind) = self.backup_credentials_kind().cloned() {
+                    self.set_redirect(ImportParams { kind }.into());
+                }
+            }
             Action::ListWorkspaces => {
                 self.set_redirect(ListWorkspacesParams::default().into());
             }
@@ -197,6 +203,7 @@ enum Action {
     DeleteBackupCredentials,
     EditBackupCredentials,
     Exit,
+    Import,
     ManageNotionBackupCredentials,
     ListWorkspaces,
 }
@@ -209,6 +216,7 @@ impl Action {
             Self::ManageNotionBackupCredentials,
             Self::EditBackupCredentials,
             Self::ListWorkspaces,
+            Self::Import,
         ]
     }
 }
@@ -221,6 +229,7 @@ impl From<Action> for String {
             Action::Exit => "Exit",
             Action::ManageNotionBackupCredentials => "Manage Notion backup credentials",
             Action::ListWorkspaces => "List workspaces",
+            Action::Import => "Import",
         };
 
         action.to_string()
@@ -237,6 +246,7 @@ impl TryFrom<&str> for Action {
             "Edit backup credentials" => Self::EditBackupCredentials,
             "Manage Notion backup credentials" => Self::ManageNotionBackupCredentials,
             "List workspaces" => Self::ListWorkspaces,
+            "Import" => Self::Import,
             _ => {
                 return Err(anyhow::anyhow!(
                     "Unknown backup credentials action: {}",

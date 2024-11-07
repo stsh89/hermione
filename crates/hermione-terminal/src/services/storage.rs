@@ -14,7 +14,7 @@ use hermione_nexus::{
         FilterCommandsParameters, FilterWorkspacesParameters, FindBackupCredentials, FindCommand,
         FindWorkspace, ListBackupCredentials, ListCommands, ListWorkspaces, NewCommandParameters,
         NewWorkspaceParameters, SaveBackupCredentials, StorageService, TrackCommandExecuteTime,
-        TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace,
+        TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace, UpsertCommands, UpsertWorkspaces,
     },
     Error, Result,
 };
@@ -65,6 +65,29 @@ fn backup_credentials_from_record(record: BackupCredentialsRecord) -> Result<Bac
                 },
             ))
         }
+    }
+}
+
+fn command_to_record(command: Command) -> CommandRecord {
+    CommandRecord {
+        id: command.id().into_bytes(),
+        last_execute_time: command
+            .last_execute_time()
+            .map(|date_time| date_time.timestamp_micros()),
+        name: command.name().to_string(),
+        program: command.program().to_string(),
+        workspace_id: command.workspace_id().into_bytes(),
+    }
+}
+
+fn workspace_to_record(workspace: Workspace) -> WorkspaceRecord {
+    WorkspaceRecord {
+        id: workspace.id().into_bytes(),
+        last_access_time: workspace
+            .last_access_time()
+            .map(|date_time| date_time.timestamp_micros()),
+        location: workspace.location().map(ToString::to_string),
+        name: workspace.name().to_string(),
     }
 }
 
@@ -366,6 +389,22 @@ impl UpdateCommand for Storage<'_> {
         .map_err(internal_error)?;
 
         Ok(())
+    }
+}
+
+impl UpsertCommands for Storage<'_> {
+    fn upsert_commands(&self, commands: Vec<Command>) -> Result<()> {
+        let records = commands.into_iter().map(command_to_record).collect();
+
+        sqlite::restore_commands(self.conn, records).map_err(internal_error)
+    }
+}
+
+impl UpsertWorkspaces for Storage<'_> {
+    fn upsert_workspaces(&self, workspaces: Vec<Workspace>) -> Result<()> {
+        let records = workspaces.into_iter().map(workspace_to_record).collect();
+
+        sqlite::restore_workspaces(self.conn, records).map_err(internal_error)
     }
 }
 

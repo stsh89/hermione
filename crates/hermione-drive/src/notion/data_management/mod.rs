@@ -1,9 +1,12 @@
+mod de;
+
+use serde::Deserialize;
 use serde_json::Value;
 use std::{
     io::{Error, Result},
     str::FromStr,
 };
-use ureq::Response;
+use ureq::{serde::de::DeserializeOwned, Response};
 
 pub struct DatabaseProperty {
     pub name: String,
@@ -16,6 +19,70 @@ pub enum DatabasePropertyKind {
     RichText,
     CreatedTime,
     LastEditedTime,
+}
+
+#[derive(Deserialize)]
+pub struct NotionCommandProperties {
+    #[serde(
+        rename(deserialize = "Name"),
+        deserialize_with = "de::title::deserializer"
+    )]
+    pub name: String,
+
+    #[serde(
+        rename(deserialize = "External ID"),
+        deserialize_with = "de::rich_text::deserializer"
+    )]
+    pub external_id: String,
+
+    #[serde(
+        rename(deserialize = "Workspace ID"),
+        deserialize_with = "de::rich_text::deserializer"
+    )]
+    pub workspace_id: String,
+
+    #[serde(
+        rename(deserialize = "Program"),
+        deserialize_with = "de::rich_text::deserializer"
+    )]
+    pub program: String,
+}
+
+#[derive(Deserialize)]
+pub struct NotionWorkspaceProperties {
+    #[serde(
+        rename(deserialize = "Name"),
+        deserialize_with = "de::title::deserializer"
+    )]
+    pub name: String,
+
+    #[serde(
+        rename(deserialize = "External ID"),
+        deserialize_with = "de::rich_text::deserializer"
+    )]
+    pub external_id: String,
+
+    #[serde(
+        rename(deserialize = "Location"),
+        deserialize_with = "de::rich_text::deserializer"
+    )]
+    pub location: String,
+}
+
+#[derive(Deserialize)]
+pub struct QueryDatabaseResponse<T> {
+    #[serde(rename(deserialize = "results"))]
+    pub database_pages: Vec<DatabasePage<T>>,
+
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct DatabasePage<T> {
+    #[serde(rename(deserialize = "id"))]
+    pub page_id: String,
+
+    pub properties: T,
 }
 
 pub fn get_database_properties(response: Response) -> Result<Vec<DatabaseProperty>> {
@@ -37,6 +104,13 @@ pub fn get_database_properties(response: Response) -> Result<Vec<DatabasePropert
         .collect::<Result<Vec<DatabaseProperty>>>()?;
 
     Ok(properties)
+}
+
+pub fn query_datrabase_response<T>(response: Response) -> Result<QueryDatabaseResponse<T>>
+where
+    T: DeserializeOwned,
+{
+    response.into_json()
 }
 
 pub fn verify_commands_database_properties(properties: Vec<DatabaseProperty>) -> bool {

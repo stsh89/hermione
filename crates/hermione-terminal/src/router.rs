@@ -6,8 +6,8 @@ use crate::{
     },
     themes::Theme,
     BackupCredentialsPresenter, BackupCredentialsRoute, CommandsHandler,
-    DeleteBackupCredentialsParams, ListWorkspaceCommandsParams, ListWorkspacesParams, Message,
-    NotionBackupCredentialsPresenter, PowerShellHandler, PowerShellRoute, Result, Route,
+    DeleteBackupCredentialsParams, ImportParams, ListWorkspaceCommandsParams, ListWorkspacesParams,
+    Message, NotionBackupCredentialsPresenter, PowerShellHandler, PowerShellRoute, Result, Route,
     SaveNotionBackupCredentialsParams, WorkspaceCommandsRoute, WorkspacesHandler, WorkspacesRoute,
     LIST_WORKSPACE_COMMANDS_PAGE_SIZE,
 };
@@ -132,6 +132,13 @@ impl TerminalRouter {
                 });
 
                 Ok(Some(Box::new(model)))
+            }
+            BackupCredentialsRoute::Import(params) => {
+                let ImportParams { kind } = params;
+
+                self.coordinator.import(kind)?;
+
+                Ok(None)
             }
         }
     }
