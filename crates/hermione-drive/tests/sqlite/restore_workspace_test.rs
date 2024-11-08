@@ -1,7 +1,7 @@
-use crate::solutions::{
+use crate::support::{
     count_workspaces, workspace_record_fixture, WorkspaceRecordFixtureParameters,
 };
-use hermione_drive::sqlite::{self, ListWorkspacesQuery, WorkspaceRecord};
+use hermione_drive::sqlite::{self, ListWorkspacesQueryOptions, WorkspaceRecord};
 use rusqlite::{Connection, Result};
 
 struct RestoreWorkspacesTestContest {
@@ -40,7 +40,7 @@ fn it_inserts_workspace() -> Result<()> {
 
         let workspaces = sqlite::list_workspaces(
             &conn,
-            ListWorkspacesQuery {
+            ListWorkspacesQueryOptions {
                 name_contains: "",
                 limit: 10,
                 offset: 0,
@@ -82,7 +82,7 @@ fn it_updates_existing_workspaces() -> Result<()> {
 
         let workspaces = sqlite::list_workspaces(
             &conn,
-            ListWorkspacesQuery {
+            ListWorkspacesQueryOptions {
                 name_contains: "",
                 limit: 10,
                 offset: 0,

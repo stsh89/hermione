@@ -9,7 +9,7 @@ pub struct WorkspaceRecord {
     pub name: String,
 }
 
-pub struct ListWorkspacesQuery<'a> {
+pub struct ListWorkspacesQueryOptions<'a> {
     pub name_contains: &'a str,
     pub limit: u32,
     pub offset: u32,
@@ -29,6 +29,11 @@ pub fn create_workspaces_table_if_not_exists(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
+pub fn delete_workspace(conn: &Connection, id: &Bytes) -> Result<usize> {
+    conn.prepare("DELETE FROM workspaces WHERE id = ?1")?
+        .execute(params![id])
+}
+
 pub fn find_workspace(conn: &Connection, id: &Bytes) -> Result<Option<WorkspaceRecord>> {
     conn.prepare("SELECT id, last_access_time, location, name FROM workspaces WHERE id = ?1")?
         .query_row(params![id], |row| {
@@ -40,11 +45,6 @@ pub fn find_workspace(conn: &Connection, id: &Bytes) -> Result<Option<WorkspaceR
             })
         })
         .optional()
-}
-
-pub fn delete_workspace(conn: &Connection, id: &Bytes) -> Result<usize> {
-    conn.prepare("DELETE FROM workspaces WHERE id = ?1")?
-        .execute(params![id])
 }
 
 pub fn insert_workspace(conn: &Connection, record: WorkspaceRecord) -> Result<usize> {
@@ -73,9 +73,9 @@ pub fn insert_workspace(conn: &Connection, record: WorkspaceRecord) -> Result<us
 
 pub fn list_workspaces(
     conn: &Connection,
-    query: ListWorkspacesQuery,
+    query: ListWorkspacesQueryOptions,
 ) -> Result<Vec<WorkspaceRecord>> {
-    let ListWorkspacesQuery {
+    let ListWorkspacesQueryOptions {
         name_contains,
         limit,
         offset,
@@ -115,11 +115,6 @@ pub fn list_workspaces(
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(records)
-}
-
-pub fn refresh_workspace_access_time(conn: &Connection, id: &Bytes, time: i64) -> Result<usize> {
-    conn.prepare("UPDATE workspaces SET last_access_time = :time WHERE id = :id")?
-        .execute(named_params! {":id": id, ":time": time})
 }
 
 pub fn restore_workspaces(conn: &Connection, records: Vec<WorkspaceRecord>) -> Result<()> {
@@ -173,4 +168,9 @@ pub fn update_workspace(conn: &Connection, record: WorkspaceRecord) -> Result<us
         ":location": location,
         ":name": name
     ])
+}
+
+pub fn update_workspace_access_time(conn: &Connection, id: &Bytes, time: i64) -> Result<usize> {
+    conn.prepare("UPDATE workspaces SET last_access_time = :time WHERE id = :id")?
+        .execute(named_params! {":id": id, ":time": time})
 }

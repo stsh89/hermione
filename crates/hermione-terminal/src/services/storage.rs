@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use hermione_drive::sqlite::{
-    self, BackupCredentialsRecord, CommandRecord, ListCommandsQuery, ListWorkspacesQuery,
+    self, BackupCredentialsRecord, CommandRecord, ListCommandsQuery, ListWorkspacesQueryOptions,
     WorkspaceRecord,
 };
 use hermione_nexus::{
@@ -305,7 +305,7 @@ impl ListWorkspaces for Storage<'_> {
 
         let records = sqlite::list_workspaces(
             self.conn,
-            ListWorkspacesQuery {
+            ListWorkspacesQueryOptions {
                 name_contains: name_contains.unwrap_or_default(),
                 limit: page_size,
                 offset: page_number,
@@ -359,7 +359,7 @@ impl TrackCommandExecuteTime for Storage<'_> {
 
 impl TrackWorkspaceAccessTime for Storage<'_> {
     fn track_workspace_access_time(&self, id: &WorkspaceId) -> Result<()> {
-        sqlite::refresh_workspace_access_time(
+        sqlite::update_workspace_access_time(
             self.conn,
             id.as_bytes(),
             Utc::now().timestamp_micros(),

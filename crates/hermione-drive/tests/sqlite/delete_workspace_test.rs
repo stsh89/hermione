@@ -1,4 +1,4 @@
-use crate::solutions::{count_workspaces, workspace_record_fixture};
+use crate::support::{count_workspaces, workspace_record_fixture};
 use hermione_drive::sqlite::{self, WorkspaceRecord};
 use rusqlite::{Connection, Result};
 use uuid::Uuid;

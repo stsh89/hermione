@@ -1,8 +1,8 @@
 use chrono::Utc;
-use hermione_drive::sqlite::{self, ListWorkspacesQuery};
+use hermione_drive::sqlite::{self, ListWorkspacesQueryOptions};
 use rusqlite::{Connection, Result};
 
-use crate::solutions::{workspace_record_fixture, WorkspaceRecordFixtureParameters};
+use crate::support::{workspace_record_fixture, WorkspaceRecordFixtureParameters};
 
 struct ListWorkspacesTestContest {
     conn: Connection,
@@ -34,7 +34,7 @@ fn it_paginates_workspaces() -> Result<()> {
 
         let workspaces = sqlite::list_workspaces(
             &conn,
-            ListWorkspacesQuery {
+            ListWorkspacesQueryOptions {
                 name_contains: "",
                 limit: 2,
                 offset: 3,
@@ -65,7 +65,7 @@ fn it_sorts_workspaces_by_last_access_time_and_name() -> Result<()> {
 
         let workspaces = sqlite::list_workspaces(
             &conn,
-            ListWorkspacesQuery {
+            ListWorkspacesQueryOptions {
                 name_contains: "",
                 limit: 4,
                 offset: 0,
@@ -88,7 +88,7 @@ fn it_filters_workspaces_by_name() -> Result<()> {
 
         let workspaces = sqlite::list_workspaces(
             &conn,
-            ListWorkspacesQuery {
+            ListWorkspacesQueryOptions {
                 name_contains: "4",
                 limit: 4,
                 offset: 0,
