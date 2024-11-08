@@ -181,12 +181,14 @@ impl ListBackupCredentialsModel {
             Action::Exit => self.exit(),
             Action::Export => {
                 if let Some(kind) = self.backup_credentials_kind().cloned() {
+                    self.smart_input.reset_input();
                     self.set_redirect(ExportParams { kind }.into());
                 }
             }
 
             Action::Import => {
                 if let Some(kind) = self.backup_credentials_kind().cloned() {
+                    self.smart_input.reset_input();
                     self.set_redirect(ImportParams { kind }.into());
                 }
             }

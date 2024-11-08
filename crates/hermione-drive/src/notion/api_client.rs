@@ -22,16 +22,17 @@ pub struct QueryDatabaseParameters<'a> {
     pub database_id: &'a str,
     pub start_cursor: Option<&'a str>,
     pub page_size: Option<NonZeroU32>,
+    pub filter: Option<Value>,
 }
 
 pub struct CreateDatabaseEntryParameters<'a> {
     pub database_id: &'a str,
-    pub properties: Vec<Value>,
+    pub properties: Value,
 }
 
 pub struct UpdateDatabaseEntryParameters<'a> {
     pub entry_id: &'a str,
-    pub properties: Vec<Value>,
+    pub properties: Value,
 }
 
 impl NotionApiClient {
@@ -80,6 +81,7 @@ impl NotionApiClient {
             database_id,
             start_cursor,
             page_size,
+            filter,
         } = parameters;
 
         let page_size = page_size.unwrap_or(DEFAULT_PAGE_SIZE).get();
@@ -100,6 +102,10 @@ impl NotionApiClient {
 
         if let Some(start_cursor) = start_cursor {
             body["start_cursor"] = start_cursor.into();
+        }
+
+        if let Some(filter) = filter {
+            body["filter"] = filter;
         }
 
         // TODO: process 429 error properly

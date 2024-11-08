@@ -1,6 +1,6 @@
 mod de;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     io::{Error, Result},
@@ -83,6 +83,35 @@ pub struct DatabasePage<T> {
     pub page_id: String,
 
     pub properties: T,
+}
+
+#[derive(Serialize)]
+struct RichTextFilter<'a> {
+    property: String,
+    rich_text: RichTextEqualsFilter<'a>,
+}
+
+#[derive(Serialize)]
+struct RichTextEqualsFilter<'a> {
+    equals: &'a str,
+}
+
+pub fn external_ids_filter(external_ids: Vec<String>) -> Option<Value> {
+    if external_ids.is_empty() {
+        return None;
+    }
+
+    let filters: Vec<RichTextFilter> = external_ids
+        .iter()
+        .map(|id| RichTextFilter {
+            property: "External ID".to_string(),
+            rich_text: RichTextEqualsFilter { equals: id },
+        })
+        .collect();
+
+    Some(serde_json::json!({
+        "or": serde_json::json!(filters),
+    }))
 }
 
 pub fn get_database_properties(response: Response) -> Result<Vec<DatabaseProperty>> {

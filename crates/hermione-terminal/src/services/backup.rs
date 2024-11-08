@@ -1,8 +1,9 @@
 use hermione_drive::notion::{
-    get_database_properties, query_datrabase_response, verify_commands_database_properties,
-    verify_workspaces_database_properties, NotionApiClient, NotionApiClientParameters,
+    external_ids_filter, get_database_properties, query_datrabase_response,
+    verify_commands_database_properties, verify_workspaces_database_properties,
+    CreateDatabaseEntryParameters, NotionApiClient, NotionApiClientParameters,
     NotionCommandProperties, NotionWorkspaceProperties, QueryDatabaseParameters,
-    QueryDatabaseResponse,
+    QueryDatabaseResponse, UpdateDatabaseEntryParameters,
 };
 use hermione_nexus::{
     definitions::{
@@ -89,6 +90,7 @@ impl ListCommandsBackup for NotionBackup {
                 database_id,
                 start_cursor: page_id,
                 page_size: Some(self.page_size),
+                filter: None,
             })
             .map_err(api_client_error)?;
 
@@ -135,6 +137,7 @@ impl ListWorkspacesBackup for NotionBackup {
                 database_id,
                 start_cursor: page_id,
                 page_size: Some(self.page_size),
+                filter: None,
             })
             .map_err(api_client_error)?;
 
@@ -166,12 +169,133 @@ impl ListWorkspacesBackup for NotionBackup {
 
 impl UpsertCommandsBackup for NotionBackup {
     fn upsert_commands_backup(&self, commands: Vec<Command>) -> Result<()> {
+        if commands.is_empty() {
+            return Ok(());
+        }
+
+        let database_id = self.credentials.commands_database_id();
+        let external_ids: Vec<String> = commands
+            .iter()
+            .map(|command| command.id().to_string())
+            .collect();
+        let count = external_ids.len();
+
+        let filter = external_ids_filter(external_ids);
+
+        let response = self
+            .api_client
+            .query_database(QueryDatabaseParameters {
+                database_id,
+                start_cursor: None,
+                page_size: NonZeroU32::new(count as u32),
+                filter,
+            })
+            .map_err(api_client_error)?;
+
+        let response: QueryDatabaseResponse<NotionCommandProperties> =
+            query_datrabase_response(response)?;
+
+        for command in commands {
+            let page = response
+                .database_pages
+                .iter()
+                .find(|p| p.properties.external_id == command.id().to_string());
+
+            let Some(page) = page else {
+                self.api_client.create_database_entry(CreateDatabaseEntryParameters {
+                    database_id,
+                    properties: serde_json::json!({
+                        "Name": {"title": [{"text": {"content": command.name()}}]},
+                        "External ID": {"rich_text": [{"text": {"content": command.id().to_string()}}]},
+                        "Program": {"rich_text": [{"text": {"content": command.program()}}]},
+                        "Workspace ID": {"rich_text": [{"text": {"content": command.workspace_id().to_string()}}]}
+                    }),
+                }).map_err(api_client_error)?;
+
+                continue;
+            };
+
+            if command.name() != page.properties.name
+                || command.program() != page.properties.program
+            {
+                self.api_client
+                    .update_database_entry(UpdateDatabaseEntryParameters {
+                        entry_id: &page.page_id,
+                        properties: serde_json::json!({
+                            "Name": {"title": [{"text": {"content": command.name()}}]},
+                            "Program": {"rich_text": [{"text": {"content": command.program()}}]}
+                        }),
+                    })
+                    .map_err(api_client_error)?;
+            }
+        }
+
         Ok(())
     }
 }
 
 impl UpsertWorkspacesBackup for NotionBackup {
     fn upsert_workspaces_backup(&self, workspaces: Vec<Workspace>) -> Result<()> {
+        if workspaces.is_empty() {
+            return Ok(());
+        }
+
+        let database_id = self.credentials.workspaces_database_id();
+        let external_ids: Vec<String> = workspaces
+            .iter()
+            .map(|command| command.id().to_string())
+            .collect();
+        let count = external_ids.len();
+
+        let filter = external_ids_filter(external_ids);
+
+        let response = self
+            .api_client
+            .query_database(QueryDatabaseParameters {
+                database_id,
+                start_cursor: None,
+                page_size: NonZeroU32::new(count as u32),
+                filter,
+            })
+            .map_err(api_client_error)?;
+
+        let response: QueryDatabaseResponse<NotionWorkspaceProperties> =
+            query_datrabase_response(response)?;
+
+        for workspace in workspaces {
+            let page = response
+                .database_pages
+                .iter()
+                .find(|p| p.properties.external_id == workspace.id().to_string());
+
+            let Some(page) = page else {
+                self.api_client.create_database_entry(CreateDatabaseEntryParameters {
+                    database_id,
+                    properties: serde_json::json!({
+                        "Name": {"title": [{"text": {"content": workspace.name()}}]},
+                        "External ID": {"rich_text": [{"text": {"content": workspace.id().to_string()}}]},
+                        "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
+                    }),
+                }).map_err(api_client_error)?;
+
+                continue;
+            };
+
+            if workspace.name() != page.properties.name
+                || workspace.location().unwrap_or_default() != page.properties.location
+            {
+                self.api_client
+                    .update_database_entry(UpdateDatabaseEntryParameters {
+                        entry_id: &page.page_id,
+                        properties: serde_json::json!({
+                            "Name": {"title": [{"text": {"content": workspace.name()}}]},
+                            "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
+                        }),
+                    })
+                    .map_err(api_client_error)?;
+            }
+        }
+
         Ok(())
     }
 }
