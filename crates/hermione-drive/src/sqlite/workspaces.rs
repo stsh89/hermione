@@ -1,3 +1,4 @@
+use super::OptionalValue;
 use rusqlite::{named_params, params, Connection, OptionalExtension, Result};
 use uuid::Bytes;
 
@@ -15,32 +16,11 @@ pub struct ListWorkspacesQueryOptions<'a> {
     pub offset: u32,
 }
 
-pub enum OptionalValue<T> {
-    Null,
-    Value(T),
-}
-
 pub struct UpdateWorkspaceQueryOptions {
     pub id: Bytes,
     pub last_access_time: Option<OptionalValue<i64>>,
     pub location: Option<OptionalValue<String>>,
     pub name: Option<String>,
-}
-
-impl<T> OptionalValue<T> {
-    pub fn from_option(value: Option<T>) -> Self {
-        match value {
-            None => OptionalValue::Null,
-            Some(value) => OptionalValue::Value(value),
-        }
-    }
-
-    fn into_option(self) -> Option<T> {
-        match self {
-            OptionalValue::Null => None,
-            OptionalValue::Value(value) => Some(value),
-        }
-    }
 }
 
 impl UpdateWorkspaceQueryOptions {
@@ -195,8 +175,8 @@ pub fn update_workspace(conn: &Connection, options: UpdateWorkspaceQueryOptions)
     let skip_last_access_time_update = last_access_time.is_none();
     let skip_location_update = location.is_none();
 
-    let last_access_time = last_access_time.and_then(|optional| optional.into_option());
-    let location = location.and_then(|optional| optional.into_option());
+    let last_access_time: Option<i64> = last_access_time.and_then(Into::into);
+    let location: Option<String> = location.and_then(Into::into);
 
     conn.prepare(
         "UPDATE workspaces

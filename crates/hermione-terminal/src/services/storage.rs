@@ -425,7 +425,7 @@ impl UpdateWorkspace for Storage<'_> {
             UpdateWorkspaceQueryOptions {
                 id: id.into_bytes(),
                 last_access_time: None,
-                location: Some(OptionalValue::from_option(location)),
+                location: Some(location.into()),
                 name: Some(name.to_string()),
             },
         )
