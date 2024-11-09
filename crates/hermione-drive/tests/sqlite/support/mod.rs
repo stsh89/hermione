@@ -1,7 +1,9 @@
 mod fixtures;
 
 pub use fixtures::*;
+use hermione_drive::sqlite::{CommandRecord, WorkspaceRecord};
 use rusqlite::{params, Connection, Result};
+use uuid::Bytes;
 
 #[derive(Debug, PartialEq)]
 pub struct ColumnInfo {
@@ -18,6 +20,40 @@ pub fn count_workspaces(conn: &Connection) -> Result<usize> {
         .query_row([], |row| row.get(0))?;
 
     Ok(count)
+}
+
+pub fn query_workspace(conn: &Connection, id: &Bytes) -> Result<WorkspaceRecord> {
+    conn.prepare("SELECT id, last_access_time, location, name FROM workspaces WHERE id = ?1")?
+        .query_row(params![id], |row| {
+            Ok(WorkspaceRecord {
+                id: row.get(0)?,
+                last_access_time: row.get(1)?,
+                location: row.get(2)?,
+                name: row.get(3)?,
+            })
+        })
+}
+
+pub fn query_command(conn: &Connection, id: &Bytes) -> Result<CommandRecord> {
+    conn.prepare(
+        "SELECT
+            id,
+            last_execute_time,
+            name,
+            program,
+            workspace_id
+        FROM commands
+        WHERE id = ?1",
+    )?
+    .query_row(params![id], |row| {
+        Ok(CommandRecord {
+            id: row.get(0)?,
+            last_execute_time: row.get(1)?,
+            name: row.get(2)?,
+            program: row.get(3)?,
+            workspace_id: row.get(4)?,
+        })
+    })
 }
 
 pub fn query_table_schema(connection: &Connection, table_name: &str) -> Result<Vec<ColumnInfo>> {

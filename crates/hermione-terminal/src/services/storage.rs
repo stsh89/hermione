@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use hermione_drive::sqlite::{
     self, BackupCredentialsRecord, CommandRecord, ListCommandsQuery, ListWorkspacesQueryOptions,
-    OptionalValue, UpdateWorkspaceQueryOptions, WorkspaceRecord,
+    OptionalValue, UpdateCommandQueryOptions, UpdateWorkspaceQueryOptions, WorkspaceRecord,
 };
 use hermione_nexus::{
     definitions::{
@@ -346,10 +346,14 @@ impl SaveBackupCredentials for Storage<'_> {
 
 impl TrackCommandExecuteTime for Storage<'_> {
     fn track_command_execute_time(&self, id: &CommandId) -> Result<()> {
-        sqlite::refresh_command_execute_time(
+        sqlite::update_command(
             self.conn,
-            id.as_bytes(),
-            Utc::now().timestamp_micros(),
+            UpdateCommandQueryOptions {
+                id: id.into_bytes(),
+                last_execute_time: Some(OptionalValue::Value(timestamp_micros())),
+                name: None,
+                program: None,
+            },
         )
         .map_err(internal_error)?;
 
@@ -359,13 +363,11 @@ impl TrackCommandExecuteTime for Storage<'_> {
 
 impl TrackWorkspaceAccessTime for Storage<'_> {
     fn track_workspace_access_time(&self, id: &WorkspaceId) -> Result<()> {
-        let timestamp = Utc::now().timestamp_micros();
-
         sqlite::update_workspace(
             self.conn,
             UpdateWorkspaceQueryOptions {
                 id: id.into_bytes(),
-                last_access_time: Some(OptionalValue::Value(timestamp)),
+                last_access_time: Some(OptionalValue::Value(timestamp_micros())),
                 location: None,
                 name: None,
             },
@@ -380,16 +382,13 @@ impl UpdateCommand for Storage<'_> {
     fn update_command(&self, parameters: EditCommandParameters) -> Result<()> {
         let EditCommandParameters { id, name, program } = parameters;
 
-        let record = sqlite::find_command(self.conn, id.as_bytes())
-            .map_err(internal_error)?
-            .ok_or(Error::NotFound(format!("Command {}", Uuid::nil().braced())))?;
-
         sqlite::update_command(
             self.conn,
-            CommandRecord {
-                name: name.to_string(),
-                program: program.to_string(),
-                ..record
+            UpdateCommandQueryOptions {
+                id: id.into_bytes(),
+                last_execute_time: None,
+                name: Some(name.to_string()),
+                program: Some(program.to_string()),
             },
         )
         .map_err(internal_error)?;
@@ -433,4 +432,8 @@ impl UpdateWorkspace for Storage<'_> {
 
         Ok(())
     }
+}
+
+fn timestamp_micros() -> i64 {
+    Utc::now().timestamp_micros()
 }
