@@ -338,7 +338,15 @@ impl SaveBackupCredentials for Storage<'_> {
             },
         };
 
-        sqlite::insert_backup_credentials(self.conn, record).map_err(internal_error)?;
+        let found =
+            sqlite::find_backup_credentials(self.conn, &record.id).map_err(internal_error)?;
+
+        if found.is_some() {
+            sqlite::update_backup_credentials(self.conn, record)
+        } else {
+            sqlite::insert_backup_credentials(self.conn, record)
+        }
+        .map_err(internal_error)?;
 
         Ok(())
     }
