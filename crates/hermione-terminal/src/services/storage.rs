@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use hermione_drive::sqlite::{
     self, BackupCredentialsRecord, CommandRecord, ListCommandsQuery, ListWorkspacesQueryOptions,
-    WorkspaceRecord,
+    OptionalValue, UpdateWorkspaceQueryOptions, WorkspaceRecord,
 };
 use hermione_nexus::{
     definitions::{
@@ -359,10 +359,16 @@ impl TrackCommandExecuteTime for Storage<'_> {
 
 impl TrackWorkspaceAccessTime for Storage<'_> {
     fn track_workspace_access_time(&self, id: &WorkspaceId) -> Result<()> {
-        sqlite::update_workspace_access_time(
+        let timestamp = Utc::now().timestamp_micros();
+
+        sqlite::update_workspace(
             self.conn,
-            id.as_bytes(),
-            Utc::now().timestamp_micros(),
+            UpdateWorkspaceQueryOptions {
+                id: id.into_bytes(),
+                last_access_time: Some(OptionalValue::Value(timestamp)),
+                location: None,
+                name: None,
+            },
         )
         .map_err(internal_error)?;
 
@@ -412,19 +418,15 @@ impl UpdateWorkspace for Storage<'_> {
     fn update_workspace(&self, parameters: EditWorkspaceParameters) -> Result<()> {
         let EditWorkspaceParameters { id, location, name } = parameters;
 
-        let record = sqlite::find_workspace(self.conn, id.as_bytes())
-            .map_err(internal_error)?
-            .ok_or(Error::NotFound(format!(
-                "Workspace {}",
-                Uuid::nil().braced()
-            )))?;
+        let location = location.map(ToString::to_string);
 
         sqlite::update_workspace(
             self.conn,
-            WorkspaceRecord {
-                location: location.map(ToString::to_string),
-                name: name.to_string(),
-                ..record
+            UpdateWorkspaceQueryOptions {
+                id: id.into_bytes(),
+                last_access_time: None,
+                location: Some(OptionalValue::from_option(location)),
+                name: Some(name.to_string()),
             },
         )
         .map_err(internal_error)?;

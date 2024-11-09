@@ -15,6 +15,40 @@ pub struct ListWorkspacesQueryOptions<'a> {
     pub offset: u32,
 }
 
+pub enum OptionalValue<T> {
+    Null,
+    Value(T),
+}
+
+pub struct UpdateWorkspaceQueryOptions {
+    pub id: Bytes,
+    pub last_access_time: Option<OptionalValue<i64>>,
+    pub location: Option<OptionalValue<String>>,
+    pub name: Option<String>,
+}
+
+impl<T> OptionalValue<T> {
+    pub fn from_option(value: Option<T>) -> Self {
+        match value {
+            None => OptionalValue::Null,
+            Some(value) => OptionalValue::Value(value),
+        }
+    }
+
+    fn into_option(self) -> Option<T> {
+        match self {
+            OptionalValue::Null => None,
+            OptionalValue::Value(value) => Some(value),
+        }
+    }
+}
+
+impl UpdateWorkspaceQueryOptions {
+    pub fn is_empty(&self) -> bool {
+        self.last_access_time.is_none() && self.location.is_none() && self.name.is_none()
+    }
+}
+
 pub fn create_workspaces_table_if_not_exists(conn: &Connection) -> Result<()> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS workspaces (
@@ -146,31 +180,44 @@ pub fn restore_workspaces(conn: &Connection, records: Vec<WorkspaceRecord>) -> R
     Ok(())
 }
 
-pub fn update_workspace(conn: &Connection, record: WorkspaceRecord) -> Result<usize> {
-    let WorkspaceRecord {
+pub fn update_workspace(conn: &Connection, options: UpdateWorkspaceQueryOptions) -> Result<usize> {
+    if options.is_empty() {
+        return Ok(0);
+    }
+
+    let UpdateWorkspaceQueryOptions {
         id,
         last_access_time,
         location,
         name,
-    } = record;
+    } = options;
+
+    let skip_last_access_time_update = last_access_time.is_none();
+    let skip_location_update = location.is_none();
+
+    let last_access_time = last_access_time.and_then(|optional| optional.into_option());
+    let location = location.and_then(|optional| optional.into_option());
 
     conn.prepare(
         "UPDATE workspaces
         SET
-            last_access_time = :last_access_time,
-            location = :location,
-            name = :name
+            last_access_time = CASE
+                WHEN :skip_last_access_time_update THEN last_access_time
+                ELSE :last_access_time
+            END,
+            location = CASE
+                WHEN :skip_location_update THEN location
+                ELSE :location
+            END,
+            name = COALESCE(:name, name)
         WHERE id = :id",
     )?
     .execute(named_params![
         ":id": id,
+        ":skip_last_access_time_update": skip_last_access_time_update,
+        ":skip_location_update": skip_location_update,
         ":last_access_time": last_access_time,
         ":location": location,
         ":name": name
     ])
-}
-
-pub fn update_workspace_access_time(conn: &Connection, id: &Bytes, time: i64) -> Result<usize> {
-    conn.prepare("UPDATE workspaces SET last_access_time = :time WHERE id = :id")?
-        .execute(named_params! {":id": id, ":time": time})
 }

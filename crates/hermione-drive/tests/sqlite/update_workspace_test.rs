@@ -1,9 +1,6 @@
-use chrono::Utc;
-use hermione_drive::sqlite::{self, WorkspaceRecord};
-use rusqlite::{Connection, Result};
-use uuid::Uuid;
-
 use crate::support::{workspace_record_fixture, WorkspaceRecordFixtureParameters};
+use hermione_drive::sqlite::{self, OptionalValue, UpdateWorkspaceQueryOptions, WorkspaceRecord};
+use rusqlite::{Connection, Result};
 
 struct UpdateWorkspaceTestContext {
     conn: Connection,
@@ -20,7 +17,7 @@ where
     let workspace = workspace_record_fixture(WorkspaceRecordFixtureParameters {
         name: Some("Workspace 1".to_string()),
         location: Some("Location 1".to_string()),
-        last_access_time: Utc::now().timestamp_nanos_opt(),
+        last_access_time: Some(10),
         ..Default::default()
     });
 
@@ -36,20 +33,25 @@ fn it_updates_workspace_name() -> Result<()> {
 
         assert_eq!(workspace.name, "Workspace 1");
 
-        let update = WorkspaceRecord {
-            name: "Workspace 2".to_string(),
-            ..workspace
-        };
-
-        let count = sqlite::update_workspace(&conn, update)?;
+        let count = sqlite::update_workspace(
+            &conn,
+            UpdateWorkspaceQueryOptions {
+                id: workspace.id,
+                last_access_time: None,
+                location: None,
+                name: Some("Spaceship".to_string()),
+            },
+        )?;
 
         assert_eq!(count, 1);
 
-        let Some(updated) = sqlite::find_workspace(&conn, &workspace.id)? else {
+        let Some(workspace) = sqlite::find_workspace(&conn, &workspace.id)? else {
             unreachable!("Workspace should be found")
         };
 
-        assert_eq!(updated.name, "Workspace 2");
+        assert_eq!(workspace.name, "Spaceship");
+        assert_eq!(workspace.location.as_deref(), Some("Location 1"));
+        assert_eq!(workspace.last_access_time, Some(10));
 
         Ok(())
     })
@@ -62,73 +64,151 @@ fn it_updates_workspace_location() -> Result<()> {
 
         assert_eq!(workspace.location.as_deref(), Some("Location 1"));
 
-        let update = WorkspaceRecord {
-            location: Some("Location 2".to_string()),
-            ..workspace
-        };
-
-        let count = sqlite::update_workspace(&conn, update)?;
+        let count = sqlite::update_workspace(
+            &conn,
+            UpdateWorkspaceQueryOptions {
+                id: workspace.id,
+                last_access_time: None,
+                location: Some(OptionalValue::Value("/home/ironman".to_string())),
+                name: None,
+            },
+        )?;
 
         assert_eq!(count, 1);
 
-        let Some(updated) = sqlite::find_workspace(&conn, &workspace.id)? else {
+        let Some(workspace) = sqlite::find_workspace(&conn, &workspace.id)? else {
             unreachable!("Workspace should be found")
         };
 
-        assert_eq!(updated.location.as_deref(), Some("Location 2"));
+        assert_eq!(workspace.name, "Workspace 1");
+        assert_eq!(workspace.location.as_deref(), Some("/home/ironman"));
+        assert_eq!(workspace.last_access_time, Some(10));
 
         Ok(())
     })
 }
 
 #[test]
-fn it_updates_workspace_last_access_time() -> Result<()> {
+fn it_updates_workspace_location_with_none() -> Result<()> {
     with_context(|ctx| {
         let UpdateWorkspaceTestContext { conn, workspace } = ctx;
 
-        let update = WorkspaceRecord {
-            last_access_time: workspace.last_access_time.map(|time| time + 1),
-            ..workspace
-        };
+        assert_eq!(workspace.location.as_deref(), Some("Location 1"));
 
-        let count = sqlite::update_workspace(&conn, update)?;
+        let count = sqlite::update_workspace(
+            &conn,
+            UpdateWorkspaceQueryOptions {
+                id: workspace.id,
+                last_access_time: None,
+                location: Some(OptionalValue::Null),
+                name: None,
+            },
+        )?;
 
         assert_eq!(count, 1);
 
-        let Some(updated) = sqlite::find_workspace(&conn, &workspace.id)? else {
+        let Some(workspace) = sqlite::find_workspace(&conn, &workspace.id)? else {
             unreachable!("Workspace should be found")
         };
 
-        assert_eq!(
-            updated.last_access_time.unwrap(),
-            workspace.last_access_time.unwrap() + 1
-        );
+        assert_eq!(workspace.name, "Workspace 1");
+        assert_eq!(workspace.location, None);
+        assert_eq!(workspace.last_access_time, Some(10));
 
         Ok(())
     })
 }
 
 #[test]
-fn it_does_not_update_workspace() -> Result<()> {
+fn it_updates_last_access_time() -> Result<()> {
     with_context(|ctx| {
         let UpdateWorkspaceTestContext { conn, workspace } = ctx;
 
-        let update = WorkspaceRecord {
-            id: Uuid::nil().into_bytes(),
-            ..workspace
+        assert_eq!(workspace.last_access_time, Some(10));
+
+        let count = sqlite::update_workspace(
+            &conn,
+            UpdateWorkspaceQueryOptions {
+                id: workspace.id,
+                last_access_time: Some(OptionalValue::Value(20)),
+                location: None,
+                name: None,
+            },
+        )?;
+
+        assert_eq!(count, 1);
+
+        let Some(workspace) = sqlite::find_workspace(&conn, &workspace.id)? else {
+            unreachable!("Workspace should be found")
         };
 
-        let count = sqlite::update_workspace(&conn, update)?;
+        assert_eq!(workspace.name, "Workspace 1");
+        assert_eq!(workspace.location.as_deref(), Some("Location 1"));
+        assert_eq!(workspace.last_access_time, Some(20));
+
+        Ok(())
+    })
+}
+
+#[test]
+fn it_updates_last_access_time_with_none() -> Result<()> {
+    with_context(|ctx| {
+        let UpdateWorkspaceTestContext { conn, workspace } = ctx;
+
+        assert_eq!(workspace.last_access_time, Some(10));
+
+        let count = sqlite::update_workspace(
+            &conn,
+            UpdateWorkspaceQueryOptions {
+                id: workspace.id,
+                last_access_time: Some(OptionalValue::Null),
+                location: None,
+                name: None,
+            },
+        )?;
+
+        assert_eq!(count, 1);
+
+        let Some(workspace) = sqlite::find_workspace(&conn, &workspace.id)? else {
+            unreachable!("Workspace should be found")
+        };
+
+        assert_eq!(workspace.name, "Workspace 1");
+        assert_eq!(workspace.location.as_deref(), Some("Location 1"));
+        assert_eq!(workspace.last_access_time, None);
+
+        Ok(())
+    })
+}
+
+#[test]
+fn it_does_not_update_workspace_when_nothing_changed() -> Result<()> {
+    with_context(|ctx| {
+        let UpdateWorkspaceTestContext { conn, workspace } = ctx;
+
+        assert_eq!(workspace.name, "Workspace 1");
+        assert_eq!(workspace.location.as_deref(), Some("Location 1"));
+        assert_eq!(workspace.last_access_time, Some(10));
+
+        let count = sqlite::update_workspace(
+            &conn,
+            UpdateWorkspaceQueryOptions {
+                id: workspace.id,
+                last_access_time: None,
+                location: None,
+                name: None,
+            },
+        )?;
 
         assert_eq!(count, 0);
 
-        let Some(updated) = sqlite::find_workspace(&conn, &workspace.id)? else {
+        let Some(workspace) = sqlite::find_workspace(&conn, &workspace.id)? else {
             unreachable!("Workspace should be found")
         };
 
-        assert_eq!(updated.name, "Workspace 1");
-        assert_eq!(updated.location.as_deref(), Some("Location 1"));
-        assert_eq!(updated.last_access_time, workspace.last_access_time);
+        assert_eq!(workspace.name, "Workspace 1");
+        assert_eq!(workspace.location.as_deref(), Some("Location 1"));
+        assert_eq!(workspace.last_access_time, Some(10));
 
         Ok(())
     })
