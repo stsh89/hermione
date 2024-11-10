@@ -38,6 +38,10 @@ fn api_client_error(error: ureq::Error) -> Error {
     Error::Backup(eyre::Error::new(error))
 }
 
+fn verification_error(error: ureq::Error) -> Error {
+    Error::BackupCredentialsVerification(eyre::Error::new(error))
+}
+
 impl NotionBackup {
     pub fn new(parameters: NotionBackupParameters) -> Result<Self> {
         let NotionBackupParameters {
@@ -306,7 +310,8 @@ impl VerifyBackupCredentials for NotionBackup {
         let response = self
             .api_client
             .get_database_properties(database_id)
-            .map_err(api_client_error)?;
+            .map_err(verification_error)?;
+
         let properties = get_database_properties(response)?;
 
         if !verify_commands_database_properties(properties) {
@@ -317,7 +322,8 @@ impl VerifyBackupCredentials for NotionBackup {
         let response = self
             .api_client
             .get_database_properties(database_id)
-            .map_err(api_client_error)?;
+            .map_err(verification_error)?;
+
         let properties = get_database_properties(response)?;
 
         if !verify_workspaces_database_properties(properties) {

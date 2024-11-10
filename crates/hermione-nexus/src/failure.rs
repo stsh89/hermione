@@ -3,6 +3,9 @@ pub enum Error {
     #[error("Backup failure: {0}")]
     Backup(#[source] eyre::Error),
 
+    #[error("Failed to verify backup credentials: {0}")]
+    BackupCredentialsVerification(#[source] eyre::Error),
+
     #[error("Clipboard failure: {0}")]
     Clipboard(#[source] eyre::Error),
 
