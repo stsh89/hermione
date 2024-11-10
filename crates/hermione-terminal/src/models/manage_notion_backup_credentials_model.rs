@@ -9,7 +9,7 @@ use crate::{
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
-    widgets::{Clear, Paragraph},
+    widgets::{Block, Borders, Clear, Paragraph, Wrap},
     Frame,
 };
 
@@ -66,8 +66,10 @@ impl Model for ManageNotionBackupCredentialsModel {
         );
 
         if let Some(error_message) = &self.error_message {
-            //TODO: render error message
-            let paragraph = Paragraph::new(error_message.as_str());
+            let block = Block::default().borders(Borders::all()).themed(self.theme);
+            let paragraph = Paragraph::new(error_message.as_str())
+                .wrap(Wrap { trim: false })
+                .block(block);
 
             let area = popup_area(main_area, 60, 20);
             frame.render_widget(Clear, area);
