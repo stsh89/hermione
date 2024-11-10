@@ -7,7 +7,11 @@ use crate::{
     SaveNotionBackupCredentialsParams,
 };
 use hermione_tui::{EventHandler, Model};
-use ratatui::{layout::{Constraint, Flex, Layout, Rect}, widgets::{Clear, Paragraph}, Frame};
+use ratatui::{
+    layout::{Constraint, Flex, Layout, Rect},
+    widgets::{Clear, Paragraph},
+    Frame,
+};
 
 pub struct ManageNotionBackupCredentialsModel {
     status_bar: StatusBar,
@@ -84,7 +88,11 @@ impl ManageNotionBackupCredentialsModel {
     }
 
     pub fn new(params: ManageNotionBackupCredentialsModelParameters) -> Self {
-        let ManageNotionBackupCredentialsModelParameters { credentials, theme, error_message } = params;
+        let ManageNotionBackupCredentialsModelParameters {
+            credentials,
+            theme,
+            error_message,
+        } = params;
 
         let status_bar = StatusBar::builder()
             .operation("Manage Notion backup credentials")
