@@ -1,17 +1,14 @@
 use crate::{
     forms::{NotionBackupCredentialsForm, NotionBackupCredentialsFormParameters},
     layouts::WideLayout,
+    screen::Popup,
     themes::{Theme, Themed},
-    widgets::{StatusBar, StatusBarWidget},
+    widgets::{Notice, StatusBar, StatusBarWidget},
     BackupCredentialsRoute, Message, NotionBackupCredentialsPresenter, Result, Route,
     SaveNotionBackupCredentialsParams,
 };
 use hermione_tui::{EventHandler, Model};
-use ratatui::{
-    layout::{Constraint, Flex, Layout, Rect},
-    widgets::{Block, Borders, Clear, Paragraph, Wrap},
-    Frame,
-};
+use ratatui::{widgets::Clear, Frame};
 
 pub struct ManageNotionBackupCredentialsModel {
     status_bar: StatusBar,
@@ -66,14 +63,11 @@ impl Model for ManageNotionBackupCredentialsModel {
         );
 
         if let Some(error_message) = &self.error_message {
-            let block = Block::default().borders(Borders::all()).themed(self.theme);
-            let paragraph = Paragraph::new(error_message.as_str())
-                .wrap(Wrap { trim: false })
-                .block(block);
+            let notice = Notice::error(error_message).themed(self.theme);
+            let popup = Popup::new(main_area).area(60, 20);
 
-            let area = popup_area(main_area, 60, 20);
-            frame.render_widget(Clear, area);
-            frame.render_widget(paragraph, area);
+            frame.render_widget(Clear, popup);
+            frame.render_widget(notice, popup);
         }
     }
 }
@@ -152,12 +146,4 @@ impl ManageNotionBackupCredentialsModel {
             .into(),
         );
     }
-}
-
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
 }

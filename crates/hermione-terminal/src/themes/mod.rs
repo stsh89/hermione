@@ -1,4 +1,7 @@
-use crate::{widgets::StatusBarWidget, widgets::TextInputWidget, Result};
+use crate::{
+    widgets::{Notice, StatusBarWidget, TextInputWidget},
+    Result,
+};
 use ratatui::{
     style::{Color, Style},
     widgets::{Block, List},
@@ -15,6 +18,8 @@ pub struct Theme {
     foreground_color: Color,
     highlight_color: Color,
     input_color: Color,
+    notice_background_color: Color,
+    error_border_color: Color,
     status_bar_background_color: Color,
     status_bar_foreground_color: Color,
 }
@@ -25,6 +30,8 @@ struct JsonTheme {
     foreground_color: String,
     highlight_color: String,
     input_color: String,
+    notice_background_color: String,
+    error_border_color: String,
     status_bar_background_color: String,
     status_bar_foreground_color: String,
 }
@@ -38,6 +45,8 @@ impl Theme {
             foreground_color: theme.foreground_color.try_from_hex()?,
             highlight_color: theme.highlight_color.try_from_hex()?,
             input_color: theme.input_color.try_from_hex()?,
+            error_border_color: theme.error_border_color.try_from_hex()?,
+            notice_background_color: theme.notice_background_color.try_from_hex()?,
             status_bar_background_color: theme.status_bar_background_color.try_from_hex()?,
             status_bar_foreground_color: theme.status_bar_foreground_color.try_from_hex()?,
         })
@@ -72,6 +81,13 @@ impl Themed for List<'_> {
     fn themed(self, theme: Theme) -> Self {
         self.highlight_style(theme.highlight_color)
             .highlight_symbol("➤ ")
+    }
+}
+
+impl Themed for Notice<'_> {
+    fn themed(self, theme: Theme) -> Self {
+        self.set_border_style(theme.error_border_color.into())
+            .set_background_color(theme.notice_background_color)
     }
 }
 
