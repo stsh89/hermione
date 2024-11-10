@@ -7,18 +7,20 @@ use crate::{
     SaveNotionBackupCredentialsParams,
 };
 use hermione_tui::{EventHandler, Model};
-use ratatui::Frame;
+use ratatui::{layout::{Constraint, Flex, Layout, Rect}, widgets::{Clear, Paragraph}, Frame};
 
 pub struct ManageNotionBackupCredentialsModel {
     status_bar: StatusBar,
     redirect: Option<Route>,
     form: NotionBackupCredentialsForm,
     theme: Theme,
+    error_message: Option<String>,
 }
 
 pub struct ManageNotionBackupCredentialsModelParameters {
     pub theme: Theme,
     pub credentials: Option<NotionBackupCredentialsPresenter>,
+    pub error_message: Option<String>,
 }
 
 impl Model for ManageNotionBackupCredentialsModel {
@@ -35,7 +37,7 @@ impl Model for ManageNotionBackupCredentialsModel {
 
     fn update(&mut self, message: Message) -> Result<Option<Message>> {
         match message {
-            Message::Cancel => self.back(),
+            Message::Cancel => self.cancel(),
             Message::DeleteAllChars => self.delete_all_chars(),
             Message::DeleteChar => self.delete_char(),
             Message::EnterChar(c) => self.enter_char(c),
@@ -58,16 +60,31 @@ impl Model for ManageNotionBackupCredentialsModel {
             StatusBarWidget::new(&self.status_bar).themed(self.theme),
             status_bar_area,
         );
+
+        if let Some(error_message) = &self.error_message {
+            //TODO: render error message
+            let paragraph = Paragraph::new(error_message.as_str());
+
+            let area = popup_area(main_area, 60, 20);
+            frame.render_widget(Clear, area);
+            frame.render_widget(paragraph, area);
+        }
     }
 }
 
 impl ManageNotionBackupCredentialsModel {
-    fn back(&mut self) {
+    fn cancel(&mut self) {
+        if self.error_message.is_some() {
+            self.error_message = None;
+
+            return;
+        }
+
         self.redirect = Some(Route::BackupCredentials(BackupCredentialsRoute::List));
     }
 
     pub fn new(params: ManageNotionBackupCredentialsModelParameters) -> Self {
-        let ManageNotionBackupCredentialsModelParameters { credentials, theme } = params;
+        let ManageNotionBackupCredentialsModelParameters { credentials, theme, error_message } = params;
 
         let status_bar = StatusBar::builder()
             .operation("Manage Notion backup credentials")
@@ -81,6 +98,7 @@ impl ManageNotionBackupCredentialsModel {
             redirect: None,
             status_bar,
             theme,
+            error_message,
         }
     }
 
@@ -124,4 +142,12 @@ impl ManageNotionBackupCredentialsModel {
             .into(),
         );
     }
+}
+
+fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+    area
 }

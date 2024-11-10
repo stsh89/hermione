@@ -88,6 +88,7 @@ impl TerminalRouter {
                     ManageNotionBackupCredentialsModelParameters {
                         theme: self.theme,
                         credentials,
+                        error_message: None,
                     },
                 );
 
@@ -100,23 +101,40 @@ impl TerminalRouter {
                     workspaces_database_id,
                 } = parameters;
 
-                self.coordinator
+                match self.coordinator
                     .save_backup_credentials(BackupCredentialsPresenter::Notion(
                         NotionBackupCredentialsPresenter {
-                            api_key,
-                            commands_database_id,
-                            workspaces_database_id,
+                            api_key: api_key.clone(),
+                            commands_database_id: commands_database_id.clone(),
+                            workspaces_database_id: workspaces_database_id.clone(),
                         },
-                    ))?;
+                    )) {
+                        Ok(()) => {
+                            let backup_credentials_kinds = self.coordinator.list_backup_credentials()?;
 
-                let backup_credentials_kinds = self.coordinator.list_backup_credentials()?;
+                            let model = ListBackupCredentialsModel::new(ListBackupCredentialsModelParameters {
+                                backup_credentials_kinds,
+                                theme: self.theme,
+                            });
 
-                let model = ListBackupCredentialsModel::new(ListBackupCredentialsModelParameters {
-                    backup_credentials_kinds,
-                    theme: self.theme,
-                });
+                            Ok(Some(Box::new(model)))
+                        },
+                        Err(error) => {
+                            let model = ManageNotionBackupCredentialsModel::new(
+                                ManageNotionBackupCredentialsModelParameters {
+                                    theme: self.theme,
+                                    credentials: Some(NotionBackupCredentialsPresenter {
+                                        api_key,
+                                        workspaces_database_id,
+                                        commands_database_id,
+                                    }),
+                                    error_message: Some(error.to_string()),
+                                },
+                            );
 
-                Ok(Some(Box::new(model)))
+                            Ok(Some(Box::new(model)))
+                        }
+                    }
             }
             BackupCredentialsRoute::DeleteBackupCredentials(params) => {
                 let DeleteBackupCredentialsParams { kind } = params;
