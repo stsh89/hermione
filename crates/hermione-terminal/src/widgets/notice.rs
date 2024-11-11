@@ -10,6 +10,7 @@ pub struct Notice<'a> {
     message: &'a str,
     border_style: Style,
     background_color: Color,
+    foreground_color: Color,
 }
 
 pub enum NoticeKind {
@@ -31,6 +32,7 @@ impl<'a> Notice<'a> {
             message,
             border_style: Style::default(),
             background_color: Color::default(),
+            foreground_color: Color::default(),
         }
     }
 
@@ -44,6 +46,11 @@ impl<'a> Notice<'a> {
 
     pub fn set_background_color(mut self, color: Color) -> Self {
         self.background_color = color;
+        self
+    }
+
+    pub fn set_foreground_color(mut self, color: Color) -> Self {
+        self.foreground_color = color;
         self
     }
 }

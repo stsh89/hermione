@@ -109,36 +109,6 @@ where
 }
 
 impl Input {
-    pub fn new(value: String) -> Self {
-        let mut input = Self::default();
-
-        for c in value.chars() {
-            input.enter_char(c);
-        }
-
-        input
-    }
-
-    pub fn character_index(&self) -> usize {
-        self.character_index
-    }
-
-    pub fn move_cursor_left(&mut self) {
-        let cursor_moved_left = self.character_index.saturating_sub(1);
-        self.character_index = self.clamp_cursor(cursor_moved_left);
-    }
-
-    pub fn move_cursor_right(&mut self) {
-        let cursor_moved_right = self.character_index.saturating_add(1);
-        self.character_index = self.clamp_cursor(cursor_moved_right);
-    }
-
-    pub fn enter_char(&mut self, new_char: char) {
-        let index = self.byte_index();
-        self.value.insert(index, new_char);
-        self.move_cursor_right();
-    }
-
     /// Returns the byte index based on the character position.
     ///
     /// Since each character in a string can be contain multiple bytes, it's necessary to calculate
@@ -149,6 +119,14 @@ impl Input {
             .map(|(i, _)| i)
             .nth(self.character_index)
             .unwrap_or(self.value.len())
+    }
+
+    pub fn character_index(&self) -> usize {
+        self.character_index
+    }
+
+    fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
+        new_cursor_pos.clamp(0, self.value.chars().count())
     }
 
     pub fn delete_char(&mut self) {
@@ -178,8 +156,30 @@ impl Input {
         self.character_index = 0;
     }
 
-    fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
-        new_cursor_pos.clamp(0, self.value.chars().count())
+    pub fn enter_char(&mut self, new_char: char) {
+        let index = self.byte_index();
+        self.value.insert(index, new_char);
+        self.move_cursor_right();
+    }
+
+    pub fn move_cursor_left(&mut self) {
+        let cursor_moved_left = self.character_index.saturating_sub(1);
+        self.character_index = self.clamp_cursor(cursor_moved_left);
+    }
+
+    pub fn move_cursor_right(&mut self) {
+        let cursor_moved_right = self.character_index.saturating_add(1);
+        self.character_index = self.clamp_cursor(cursor_moved_right);
+    }
+
+    pub fn new(value: String) -> Self {
+        let mut input = Self::default();
+
+        for c in value.chars() {
+            input.enter_char(c);
+        }
+
+        input
     }
 
     pub fn render<W>(&self, frame: &mut Frame, area: Rect, widget: W)
@@ -192,6 +192,10 @@ impl Input {
             area.x + self.character_index() as u16 + 1,
             area.y + 1,
         ));
+    }
+
+    pub fn secret_value(&self) -> String {
+        "*".repeat(self.value.chars().count())
     }
 
     pub fn value(&self) -> &str {

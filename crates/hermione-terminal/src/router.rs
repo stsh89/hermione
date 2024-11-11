@@ -2,7 +2,7 @@ use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
     models::{
         ListBackupCredentialsModel, ListBackupCredentialsModelParameters,
-        ManageNotionBackupCredentialsModel, ManageNotionBackupCredentialsModelParameters,
+        NotionBackupCredentialsModel,
     },
     themes::Theme,
     BackupCredentialsPresenter, BackupCredentialsRoute, CommandsHandler,
@@ -84,13 +84,20 @@ impl TerminalRouter {
             BackupCredentialsRoute::ManageNotionBackupCredentials => {
                 let credentials = self.coordinator.find_notion_backup_credentials()?;
 
-                let model = ManageNotionBackupCredentialsModel::new(
-                    ManageNotionBackupCredentialsModelParameters {
-                        theme: self.theme,
-                        credentials,
-                        error_message: None,
-                    },
-                );
+                let mut model = NotionBackupCredentialsModel::default().theme(self.theme);
+
+                if let Some(credentials) = credentials {
+                    let NotionBackupCredentialsPresenter {
+                        api_key,
+                        commands_database_id,
+                        workspaces_database_id,
+                    } = credentials;
+
+                    model = model
+                        .api_key(api_key)
+                        .commands_database_id(commands_database_id)
+                        .workspaces_database_id(workspaces_database_id);
+                }
 
                 Ok(Some(Box::new(model)))
             }
@@ -123,17 +130,12 @@ impl TerminalRouter {
                         Ok(Some(Box::new(model)))
                     }
                     Err(error) => {
-                        let model = ManageNotionBackupCredentialsModel::new(
-                            ManageNotionBackupCredentialsModelParameters {
-                                theme: self.theme,
-                                credentials: Some(NotionBackupCredentialsPresenter {
-                                    api_key,
-                                    workspaces_database_id,
-                                    commands_database_id,
-                                }),
-                                error_message: Some(error.to_string()),
-                            },
-                        );
+                        let model = NotionBackupCredentialsModel::default()
+                            .theme(self.theme)
+                            .error_message(error.to_string())
+                            .api_key(api_key)
+                            .commands_database_id(commands_database_id)
+                            .workspaces_database_id(workspaces_database_id);
 
                         Ok(Some(Box::new(model)))
                     }

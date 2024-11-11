@@ -12,7 +12,7 @@ pub trait Themed {
     fn themed(self, theme: Theme) -> Self;
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Theme {
     pub background_color: Color,
     pub foreground_color: Color,
