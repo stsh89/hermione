@@ -68,6 +68,7 @@ impl<'a> Widget for Notice<'a> {
         let paragraph = Paragraph::new(self.message)
             .wrap(Wrap { trim: false })
             .bg(self.background_color)
+            .fg(self.foreground_color)
             .block(block);
 
         paragraph.render(area, buf)
