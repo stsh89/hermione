@@ -1,24 +1,26 @@
 use crate::{
     layouts::WideLayout,
     screen::Popup,
-    themes::{Theme, Themed},
-    widgets::{FormField, Notice, StatusBar, StatusBarWidget},
+    themes::Theme,
+    widgets::{FormField, Notice},
     BackupCredentialsRoute, Message, Result, Route, SaveNotionBackupCredentialsParams,
 };
 use hermione_tui::{EventHandler, Input, Model};
 use ratatui::{
     layout::{Constraint, Direction, Position, Rect},
-    widgets::Clear,
+    style::Stylize,
+    text::ToText,
+    widgets::{Clear, Paragraph},
     Frame,
 };
 
+#[derive(Default)]
 pub struct NotionBackupCredentialsModel {
     active_input: InputName,
     api_key: Input,
     commands_database_id: Input,
     error_message: Option<String>,
     redirect: Option<Route>,
-    status_bar: StatusBar,
     theme: Theme,
     workspaces_database_id: Input,
 }
@@ -85,6 +87,14 @@ impl NotionBackupCredentialsModel {
         }
     }
 
+    fn active_input_mut(&mut self) -> &mut Input {
+        match self.active_input {
+            InputName::ApiKey => &mut self.api_key,
+            InputName::CommandsDatabaseId => &mut self.commands_database_id,
+            InputName::WorkspacesDatabaseId => &mut self.workspaces_database_id,
+        }
+    }
+
     pub fn api_key(self, api_key: String) -> Self {
         Self {
             api_key: Input::new(api_key),
@@ -110,27 +120,15 @@ impl NotionBackupCredentialsModel {
     }
 
     fn delete_all_chars(&mut self) {
-        match self.active_input {
-            InputName::ApiKey => self.api_key.delete_all_chars(),
-            InputName::CommandsDatabaseId => self.commands_database_id.delete_all_chars(),
-            InputName::WorkspacesDatabaseId => self.workspaces_database_id.delete_all_chars(),
-        }
+        self.active_input_mut().delete_all_chars();
     }
 
     fn delete_char(&mut self) {
-        match self.active_input {
-            InputName::ApiKey => self.api_key.delete_char(),
-            InputName::CommandsDatabaseId => self.commands_database_id.delete_char(),
-            InputName::WorkspacesDatabaseId => self.workspaces_database_id.delete_char(),
-        }
+        self.active_input_mut().delete_char();
     }
 
     fn enter_char(&mut self, c: char) {
-        match self.active_input {
-            InputName::ApiKey => self.api_key.enter_char(c),
-            InputName::CommandsDatabaseId => self.commands_database_id.enter_char(c),
-            InputName::WorkspacesDatabaseId => self.workspaces_database_id.enter_char(c),
-        }
+        self.active_input_mut().enter_char(c);
     }
 
     pub fn error_message(self, error_message: String) -> Self {
@@ -149,19 +147,11 @@ impl NotionBackupCredentialsModel {
     }
 
     fn move_cursor_left(&mut self) {
-        match self.active_input {
-            InputName::ApiKey => self.api_key.move_cursor_left(),
-            InputName::CommandsDatabaseId => self.commands_database_id.move_cursor_left(),
-            InputName::WorkspacesDatabaseId => self.workspaces_database_id.move_cursor_left(),
-        }
+        self.active_input_mut().move_cursor_left();
     }
 
     fn move_cursor_right(&mut self) {
-        match self.active_input {
-            InputName::ApiKey => self.api_key.move_cursor_right(),
-            InputName::CommandsDatabaseId => self.commands_database_id.move_cursor_right(),
-            InputName::WorkspacesDatabaseId => self.workspaces_database_id.move_cursor_right(),
-        }
+        self.active_input_mut().move_cursor_right();
     }
 
     fn render_api_key(&self, frame: &mut Frame, area: Rect) {
@@ -223,11 +213,16 @@ impl NotionBackupCredentialsModel {
         frame.render_widget(field, area);
     }
 
-    fn render_status_bar(&mut self, frame: &mut Frame, area: Rect) {
-        frame.render_widget(
-            StatusBarWidget::new(&self.status_bar).themed(self.theme),
-            area,
-        );
+    fn render_status_bar(&self, frame: &mut Frame, area: Rect) {
+        let value = serde_json::json!({
+            "screen": "Notion backup credentials",
+        });
+
+        let paragraph = Paragraph::new(value.to_text())
+            .bg(self.theme.status_bar_background_color)
+            .fg(self.theme.status_bar_foreground_color);
+
+        frame.render_widget(paragraph, area);
     }
 
     fn set_cursor_position(&self, frame: &mut Frame, area: Rect) {
@@ -295,23 +290,4 @@ fn input_areas(main_area: Rect) -> [Rect; 3] {
             Constraint::Min(3),
         ])
         .areas(main_area)
-}
-
-impl Default for NotionBackupCredentialsModel {
-    fn default() -> Self {
-        let status_bar = StatusBar::builder()
-            .operation("Notion backup credentials")
-            .build();
-
-        Self {
-            active_input: Default::default(),
-            api_key: Default::default(),
-            commands_database_id: Default::default(),
-            error_message: Default::default(),
-            redirect: Default::default(),
-            status_bar,
-            theme: Default::default(),
-            workspaces_database_id: Default::default(),
-        }
-    }
 }

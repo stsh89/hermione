@@ -2,8 +2,7 @@ use crate::{
     coordinator::{DEFAULT_PAGE_SIZE, FIRST_PAGE},
     layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
-    themes::{Theme, Themed},
-    widgets::{StatusBar, StatusBarWidget},
+    themes::{Theme, HIGHLIGHT_SYMBOL},
     CommandPresenter, CopyCommandToClipboardParams, DeleteCommandParams, EditCommandParams, Error,
     ExecuteCommandParams, ListWorkspaceCommandsParams, ListWorkspacesParams, Message,
     NewWorkspaceCommandParams, OpenWindowsTerminalParams, PowerShellRoute, Result, Route,
@@ -11,12 +10,15 @@ use crate::{
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
-    widgets::{Block, Borders, List, ListState},
+    layout::Rect,
+    style::Stylize,
+    text::ToText,
+    widgets::{Block, Borders, List, ListState, Paragraph},
     Frame,
 };
 use std::num::NonZeroU32;
 
-pub struct ListWorkspaceCommandsModel {
+pub struct WorkspaceCommandsModel {
     workspace: WorkspacePresenter,
     commands: Vec<CommandPresenter>,
     redirect: Option<Route>,
@@ -30,7 +32,7 @@ pub struct ListWorkspaceCommandsModel {
     theme: Theme,
 }
 
-pub struct ListWorkspaceCommandsModelParameters {
+pub struct WorkspaceCommandsModelParameters {
     pub commands: Vec<CommandPresenter>,
     pub page_number: Option<NonZeroU32>,
     pub page_size: Option<NonZeroU32>,
@@ -55,7 +57,7 @@ impl PowerShellSettings {
     }
 }
 
-impl Model for ListWorkspaceCommandsModel {
+impl Model for WorkspaceCommandsModel {
     type Message = Message;
     type Route = Route;
 
@@ -93,20 +95,21 @@ impl Model for ListWorkspaceCommandsModel {
         let [main_area, status_bar_area] = WideLayout::new().areas(frame.area());
         let [list_area, input_area] = SearchListLayout::new().areas(main_area);
 
-        let block = Block::default().borders(Borders::all()).themed(self.theme);
-        let list = List::new(&self.commands).block(block).themed(self.theme);
+        let block = Block::default().borders(Borders::all());
+        let list = List::new(&self.commands)
+            .block(block)
+            .highlight_symbol(HIGHLIGHT_SYMBOL)
+            .bg(self.theme.background_color)
+            .fg(self.theme.foreground_color)
+            .highlight_style(self.theme.highlight_color);
 
         frame.render_stateful_widget(list, list_area, &mut self.commands_state);
         self.smart_input.render(frame, input_area);
-
-        frame.render_widget(
-            StatusBarWidget::new(&self.status_bar()).themed(self.theme),
-            status_bar_area,
-        );
+        self.render_status_bar(frame, status_bar_area);
     }
 }
 
-impl ListWorkspaceCommandsModel {
+impl WorkspaceCommandsModel {
     fn toggle_focus(&mut self) {
         self.smart_input.autocomplete();
     }
@@ -126,27 +129,6 @@ impl ListWorkspaceCommandsModel {
                 .into(),
             );
         }
-    }
-
-    fn status_bar(&self) -> StatusBar {
-        let mut builder = StatusBar::builder()
-            .operation("List commands")
-            .workspace(&self.workspace.name)
-            .page(self.page_number);
-
-        if let Some(command) = self.command() {
-            builder = builder.selector(&command.name);
-        }
-
-        if self.powershell_settings.no_exit {
-            builder = builder.pwsh("-NoExit");
-        }
-
-        if !self.search_query.is_empty() {
-            builder = builder.search(&self.search_query);
-        }
-
-        builder.build()
     }
 
     fn execute_command(&mut self) {
@@ -216,8 +198,8 @@ impl ListWorkspaceCommandsModel {
         self.smart_input.reset_input();
     }
 
-    pub fn new(parameters: ListWorkspaceCommandsModelParameters) -> Result<Self> {
-        let ListWorkspaceCommandsModelParameters {
+    pub fn new(parameters: WorkspaceCommandsModelParameters) -> Result<Self> {
+        let WorkspaceCommandsModelParameters {
             commands,
             page_number,
             page_size,
@@ -261,6 +243,30 @@ impl ListWorkspaceCommandsModel {
         }
 
         Ok(model)
+    }
+
+    fn render_status_bar(&self, frame: &mut Frame, area: Rect) {
+        let mut value = serde_json::json!({
+            "screen": "Commands",
+            "page": self.page_number,
+            "workspace": self.workspace.name,
+        });
+
+        if let Some(command) = self.command() {
+            value["command_name"] = command.name.clone().into();
+        }
+
+        if let Some(search_query) = self.smart_input.search() {
+            if !search_query.is_empty() {
+                value["search"] = search_query.into();
+            }
+        }
+
+        let paragraph = Paragraph::new(value.to_text())
+            .bg(self.theme.status_bar_background_color)
+            .fg(self.theme.status_bar_foreground_color);
+
+        frame.render_widget(paragraph, area);
     }
 
     fn select_next(&mut self) {

@@ -1,10 +1,6 @@
 use crate::{
     coordinator::ListCommandsWithinWorkspaceInput,
-    models::{
-        EditCommandModel, EditCommandModelParameters, ListWorkspaceCommandsModel,
-        ListWorkspaceCommandsModelParameters, NewWorkspaceCommandModel,
-        NewWorkspaceCommandModelParameters,
-    },
+    models::{CommandModel, WorkspaceCommandsModel, WorkspaceCommandsModelParameters},
     themes::Theme,
     CommandPresenter, Coordinator, CreateWorkspaceCommandParams, DeleteCommandParams,
     EditCommandParams, ListWorkspaceCommandsParams, NewWorkspaceCommandParams, Result,
@@ -46,23 +42,20 @@ impl<'a> CommandsHandler<'a> {
         self.coordinator.get_workspace(workspace_id)
     }
 
-    pub fn edit(self, parameters: EditCommandParams) -> Result<EditCommandModel> {
+    pub fn edit(self, parameters: EditCommandParams) -> Result<CommandModel> {
         let EditCommandParams { command_id } = parameters;
 
         let command = self.coordinator.get_command(command_id)?;
         let workspace = self.coordinator.get_workspace(command.workspace_id)?;
 
-        EditCommandModel::new(EditCommandModelParameters {
-            command,
-            workspace,
-            theme: self.theme,
-        })
+        let model = CommandModel::new(workspace)
+            .theme(self.theme)
+            .command(command);
+
+        Ok(model)
     }
 
-    pub fn list(
-        self,
-        parameters: ListWorkspaceCommandsParams,
-    ) -> Result<ListWorkspaceCommandsModel> {
+    pub fn list(self, parameters: ListWorkspaceCommandsParams) -> Result<WorkspaceCommandsModel> {
         let ListWorkspaceCommandsParams {
             page_number,
             page_size,
@@ -82,7 +75,7 @@ impl<'a> CommandsHandler<'a> {
                     page_size,
                 })?;
 
-        ListWorkspaceCommandsModel::new(ListWorkspaceCommandsModelParameters {
+        WorkspaceCommandsModel::new(WorkspaceCommandsModelParameters {
             commands,
             page_number,
             page_size,
@@ -93,24 +86,18 @@ impl<'a> CommandsHandler<'a> {
         })
     }
 
-    pub fn new_command(
-        self,
-        parameters: NewWorkspaceCommandParams,
-    ) -> Result<NewWorkspaceCommandModel> {
+    pub fn new_command(self, parameters: NewWorkspaceCommandParams) -> Result<CommandModel> {
         let NewWorkspaceCommandParams { workspace_id } = parameters;
 
         let workspace = self.coordinator.get_workspace(workspace_id)?;
 
-        NewWorkspaceCommandModel::new(NewWorkspaceCommandModelParameters {
-            workspace,
-            theme: self.theme,
-        })
+        Ok(CommandModel::new(workspace).theme(self.theme))
     }
 
     pub fn update(
         self,
         parameters: UpdateWorkspaceCommandParams,
-    ) -> Result<ListWorkspaceCommandsModel> {
+    ) -> Result<WorkspaceCommandsModel> {
         let UpdateWorkspaceCommandParams {
             command_id: id,
             workspace_id,
@@ -137,7 +124,7 @@ impl<'a> CommandsHandler<'a> {
                     workspace_id: command.workspace_id,
                 })?;
 
-        let model = ListWorkspaceCommandsModel::new(ListWorkspaceCommandsModelParameters {
+        let model = WorkspaceCommandsModel::new(WorkspaceCommandsModelParameters {
             commands,
             workspace,
             search_query: command.program,

@@ -1,9 +1,6 @@
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
-    models::{
-        EditWorkspaceModel, EditWorkspaceModelParameters, ListWorkspaceModelParameters,
-        ListWorkspacesModel, NewWorkspaceModel, NewWorkspaceModelParameters,
-    },
+    models::{WorkspaceModel, WorkspacesModel, WorkspacesModelParameters},
     themes::Theme,
     CreateWorkspaceParams, DeleteWorkspaceParams, EditWorkspaceParams, ListWorkspacesParams,
     Result, UpdateWorkspaceParams, WorkspacePresenter,
@@ -16,7 +13,7 @@ pub struct WorkspacesHandler<'a> {
 }
 
 impl<'a> WorkspacesHandler<'a> {
-    pub fn create(self, parameters: CreateWorkspaceParams) -> Result<ListWorkspacesModel> {
+    pub fn create(self, parameters: CreateWorkspaceParams) -> Result<WorkspacesModel> {
         let CreateWorkspaceParams { name, location } = parameters;
 
         self.coordinator.create_workspace(WorkspacePresenter {
@@ -31,7 +28,7 @@ impl<'a> WorkspacesHandler<'a> {
             page_size: None,
         })?;
 
-        let model = ListWorkspacesModel::new(ListWorkspaceModelParameters {
+        let model = WorkspacesModel::new(WorkspacesModelParameters {
             workspaces,
             search_query: name,
             page_number: None,
@@ -42,7 +39,7 @@ impl<'a> WorkspacesHandler<'a> {
         Ok(model)
     }
 
-    pub fn delete(self, parameters: DeleteWorkspaceParams) -> Result<ListWorkspacesModel> {
+    pub fn delete(self, parameters: DeleteWorkspaceParams) -> Result<WorkspacesModel> {
         let DeleteWorkspaceParams { id } = parameters;
 
         self.coordinator.delete_workspace(id)?;
@@ -53,7 +50,7 @@ impl<'a> WorkspacesHandler<'a> {
             page_size: None,
         })?;
 
-        let model = ListWorkspacesModel::new(ListWorkspaceModelParameters {
+        let model = WorkspacesModel::new(WorkspacesModelParameters {
             workspaces,
             search_query: String::new(),
             page_number: None,
@@ -64,18 +61,17 @@ impl<'a> WorkspacesHandler<'a> {
         Ok(model)
     }
 
-    pub fn edit(self, parameters: EditWorkspaceParams) -> Result<EditWorkspaceModel> {
+    pub fn edit(self, parameters: EditWorkspaceParams) -> Result<WorkspaceModel> {
         let EditWorkspaceParams { id } = parameters;
 
         let workspace = self.coordinator.get_workspace(id)?;
 
-        EditWorkspaceModel::new(EditWorkspaceModelParameters {
-            workspace,
-            theme: self.theme,
-        })
+        Ok(WorkspaceModel::default()
+            .workspace(workspace)
+            .theme(self.theme))
     }
 
-    pub fn list(self, parameters: ListWorkspacesParams) -> Result<ListWorkspacesModel> {
+    pub fn list(self, parameters: ListWorkspacesParams) -> Result<WorkspacesModel> {
         let ListWorkspacesParams {
             search_query,
             page_number,
@@ -88,7 +84,7 @@ impl<'a> WorkspacesHandler<'a> {
             page_size,
         })?;
 
-        ListWorkspacesModel::new(ListWorkspaceModelParameters {
+        WorkspacesModel::new(WorkspacesModelParameters {
             workspaces,
             search_query,
             page_number,
@@ -97,8 +93,8 @@ impl<'a> WorkspacesHandler<'a> {
         })
     }
 
-    pub fn new_workspace(self) -> Result<NewWorkspaceModel> {
-        NewWorkspaceModel::new(NewWorkspaceModelParameters { theme: self.theme })
+    pub fn new_workspace(self) -> Result<WorkspaceModel> {
+        Ok(WorkspaceModel::default().theme(self.theme))
     }
 
     pub fn update(&self, parameters: UpdateWorkspaceParams) -> Result<WorkspacePresenter> {

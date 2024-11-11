@@ -1,5 +1,4 @@
 mod coordinator;
-mod forms;
 mod handlers;
 mod layouts;
 mod message;

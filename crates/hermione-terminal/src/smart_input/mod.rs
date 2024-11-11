@@ -1,13 +1,11 @@
 mod preprocessors;
 
-use crate::{
-    themes::{Theme, Themed},
-    widgets::TextInputWidget,
-};
+use crate::themes::Theme;
 use hermione_tui::Input;
 use ratatui::{
     layout::Rect,
-    widgets::{Block, Borders},
+    style::Stylize,
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
@@ -136,11 +134,10 @@ impl SmartInput {
         let block = Block::default()
             .borders(Borders::ALL)
             .title("Console")
-            .themed(self.theme);
+            .bg(self.theme.background_color)
+            .fg(self.theme.input_color);
 
-        let paragraph = TextInputWidget::new(self.input.value())
-            .block(block)
-            .themed(self.theme);
+        let paragraph = Paragraph::new(self.input.value()).block(block);
 
         self.input.render(frame, area, paragraph);
     }

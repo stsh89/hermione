@@ -1,16 +1,8 @@
-use crate::{
-    widgets::{StatusBarWidget, TextInputWidget},
-    Result,
-};
-use ratatui::{
-    style::{Color, Style},
-    widgets::{Block, List},
-};
+use crate::Result;
+use ratatui::style::Color;
 use serde::Deserialize;
 
-pub trait Themed {
-    fn themed(self, theme: Theme) -> Self;
-}
+pub const HIGHLIGHT_SYMBOL: &str = "➤ ";
 
 #[derive(Clone, Copy, Default)]
 pub struct Theme {
@@ -64,38 +56,5 @@ impl TryFromHex for String {
             u8::from_str_radix(&self[3..5], 16)?,
             u8::from_str_radix(&self[5..7], 16)?,
         ))
-    }
-}
-
-impl Themed for Block<'_> {
-    fn themed(self, theme: Theme) -> Self {
-        self.style(
-            Style::default()
-                .bg(theme.background_color)
-                .fg(theme.foreground_color),
-        )
-    }
-}
-
-impl Themed for List<'_> {
-    fn themed(self, theme: Theme) -> Self {
-        self.highlight_style(theme.highlight_color)
-            .highlight_symbol("➤ ")
-    }
-}
-
-impl Themed for TextInputWidget<'_> {
-    fn themed(self, theme: Theme) -> Self {
-        self.style(Style::default().fg(theme.input_color))
-    }
-}
-
-impl Themed for StatusBarWidget<'_> {
-    fn themed(self, theme: Theme) -> Self {
-        self.style(
-            Style::default()
-                .bg(theme.status_bar_background_color)
-                .fg(theme.status_bar_foreground_color),
-        )
     }
 }

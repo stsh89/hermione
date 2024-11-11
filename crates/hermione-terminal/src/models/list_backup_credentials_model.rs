@@ -1,14 +1,16 @@
 use crate::{
     layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
-    themes::{Theme, Themed},
-    widgets::{StatusBar, StatusBarWidget},
+    themes::{Theme, HIGHLIGHT_SYMBOL},
     BackupCredentialsKind, BackupCredentialsRoute, DeleteBackupCredentialsParams, Error,
     ExportParams, ImportParams, ListWorkspacesParams, Message, Result, Route,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
-    widgets::{Block, Borders, List, ListState},
+    layout::Rect,
+    style::Stylize,
+    text::ToText,
+    widgets::{Block, Borders, List, ListState, Paragraph},
     Frame,
 };
 
@@ -64,18 +66,19 @@ impl Model for ListBackupCredentialsModel {
         let [main_area, status_bar_area] = WideLayout::new().areas(frame.area());
         let [list_area, input_area] = SearchListLayout::new().areas(main_area);
 
-        let block = Block::default().borders(Borders::all()).themed(self.theme);
+        let block = Block::default().borders(Borders::all());
+
         let list = List::new(&self.backup_credentials_kinds)
             .block(block)
-            .themed(self.theme);
+            .highlight_symbol(HIGHLIGHT_SYMBOL)
+            .bg(self.theme.background_color)
+            .fg(self.theme.foreground_color)
+            .highlight_style(self.theme.highlight_color);
 
         frame.render_stateful_widget(list, list_area, &mut self.backup_credentials_kinds_state);
         self.smart_input.render(frame, input_area);
 
-        frame.render_widget(
-            StatusBarWidget::new(&self.status_bar()).themed(self.theme),
-            status_bar_area,
-        );
+        self.render_status_bar(frame, status_bar_area);
     }
 }
 
@@ -145,6 +148,18 @@ impl ListBackupCredentialsModel {
         }
     }
 
+    fn render_status_bar(&self, frame: &mut Frame, area: Rect) {
+        let value = serde_json::json!({
+            "screen": "Backup credentials",
+        });
+
+        let paragraph = Paragraph::new(value.to_text())
+            .bg(self.theme.status_bar_background_color)
+            .fg(self.theme.status_bar_foreground_color);
+
+        frame.render_widget(paragraph, area);
+    }
+
     fn select_next(&mut self) {
         self.backup_credentials_kinds_state.select_next();
     }
@@ -155,12 +170,6 @@ impl ListBackupCredentialsModel {
 
     fn set_redirect(&mut self, route: Route) {
         self.redirect = Some(route);
-    }
-
-    fn status_bar(&self) -> StatusBar {
-        StatusBar::builder()
-            .operation("List backup credentials")
-            .build()
     }
 
     fn submit(&mut self) -> Result<()> {
