@@ -8,20 +8,20 @@ use crate::{
     SaveNotionBackupCredentialsParams,
 };
 use hermione_tui::{EventHandler, Model};
-use ratatui::{widgets::Clear, Frame};
+use ratatui::{layout::Rect, widgets::Clear, Frame};
 
 pub struct ManageNotionBackupCredentialsModel {
-    status_bar: StatusBar,
-    redirect: Option<Route>,
-    form: NotionBackupCredentialsForm,
-    theme: Theme,
     error_message: Option<String>,
+    form: NotionBackupCredentialsForm,
+    redirect: Option<Route>,
+    status_bar: StatusBar,
+    theme: Theme,
 }
 
 pub struct ManageNotionBackupCredentialsModelParameters {
-    pub theme: Theme,
     pub credentials: Option<NotionBackupCredentialsPresenter>,
     pub error_message: Option<String>,
+    pub theme: Theme,
 }
 
 impl Model for ManageNotionBackupCredentialsModel {
@@ -55,19 +55,11 @@ impl Model for ManageNotionBackupCredentialsModel {
     fn view(&mut self, frame: &mut Frame) {
         let [main_area, status_bar_area] = WideLayout::new().areas(frame.area());
 
-        self.form.render(frame, main_area);
+        self.redner_form(frame, main_area);
+        self.redner_status_bar(frame, status_bar_area);
 
-        frame.render_widget(
-            StatusBarWidget::new(&self.status_bar).themed(self.theme),
-            status_bar_area,
-        );
-
-        if let Some(error_message) = &self.error_message {
-            let notice = Notice::error(error_message).themed(self.theme);
-            let popup = Popup::new(main_area).area(60, 20);
-
-            frame.render_widget(Clear, popup);
-            frame.render_widget(notice, popup);
+        if let Some(message) = self.error_message.as_ref() {
+            self.render_error_message(frame, main_area, message);
         }
     }
 }
@@ -128,6 +120,28 @@ impl ManageNotionBackupCredentialsModel {
 
     fn move_cursor_right(&mut self) {
         self.form.move_cursor_right();
+    }
+
+    fn render_error_message(&self, frame: &mut Frame, area: Rect, message: &str) {
+        let notice = Notice::error(message)
+            .set_background_color(self.theme.popup_background_color)
+            .set_border_style(self.theme.danger_color);
+
+        let popup_area = Popup::new(area).wide_area();
+
+        frame.render_widget(Clear, popup_area);
+        frame.render_widget(notice, popup_area);
+    }
+
+    fn redner_form(&mut self, frame: &mut Frame, area: Rect) {
+        self.form.render(frame, area);
+    }
+
+    fn redner_status_bar(&mut self, frame: &mut Frame, area: Rect) {
+        frame.render_widget(
+            StatusBarWidget::new(&self.status_bar).themed(self.theme),
+            area,
+        );
     }
 
     fn submit(&mut self) {

@@ -1,5 +1,5 @@
 use crate::{
-    widgets::{Notice, StatusBarWidget, TextInputWidget},
+    widgets::{StatusBarWidget, TextInputWidget},
     Result,
 };
 use ratatui::{
@@ -14,24 +14,24 @@ pub trait Themed {
 
 #[derive(Clone, Copy)]
 pub struct Theme {
-    background_color: Color,
-    foreground_color: Color,
-    highlight_color: Color,
-    input_color: Color,
-    notice_background_color: Color,
-    error_border_color: Color,
-    status_bar_background_color: Color,
-    status_bar_foreground_color: Color,
+    pub background_color: Color,
+    pub foreground_color: Color,
+    pub highlight_color: Color,
+    pub input_color: Color,
+    pub popup_background_color: Color,
+    pub danger_color: Color,
+    pub status_bar_background_color: Color,
+    pub status_bar_foreground_color: Color,
 }
 
 #[derive(Deserialize)]
 struct JsonTheme {
     background_color: String,
+    danger_color: String,
     foreground_color: String,
     highlight_color: String,
     input_color: String,
-    notice_background_color: String,
-    error_border_color: String,
+    popup_background_color: String,
     status_bar_background_color: String,
     status_bar_foreground_color: String,
 }
@@ -42,11 +42,11 @@ impl Theme {
 
         Ok(Theme {
             background_color: theme.background_color.try_from_hex()?,
+            danger_color: theme.danger_color.try_from_hex()?,
             foreground_color: theme.foreground_color.try_from_hex()?,
             highlight_color: theme.highlight_color.try_from_hex()?,
             input_color: theme.input_color.try_from_hex()?,
-            error_border_color: theme.error_border_color.try_from_hex()?,
-            notice_background_color: theme.notice_background_color.try_from_hex()?,
+            popup_background_color: theme.popup_background_color.try_from_hex()?,
             status_bar_background_color: theme.status_bar_background_color.try_from_hex()?,
             status_bar_foreground_color: theme.status_bar_foreground_color.try_from_hex()?,
         })
@@ -81,13 +81,6 @@ impl Themed for List<'_> {
     fn themed(self, theme: Theme) -> Self {
         self.highlight_style(theme.highlight_color)
             .highlight_symbol("➤ ")
-    }
-}
-
-impl Themed for Notice<'_> {
-    fn themed(self, theme: Theme) -> Self {
-        self.set_border_style(theme.error_border_color.into())
-            .set_background_color(theme.notice_background_color)
     }
 }
 

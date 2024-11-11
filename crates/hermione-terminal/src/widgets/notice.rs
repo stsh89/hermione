@@ -34,8 +34,11 @@ impl<'a> Notice<'a> {
         }
     }
 
-    pub fn set_border_style(mut self, style: Style) -> Self {
-        self.border_style = style;
+    pub fn set_border_style<S>(mut self, style: S) -> Self
+    where
+        S: Into<Style>,
+    {
+        self.border_style = style.into();
         self
     }
 
