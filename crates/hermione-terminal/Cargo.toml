@@ -21,4 +21,3 @@ uuid = { workspace = true, features = ["v4"] }
 hermione-drive = { workspace = true }
 hermione-nexus = { workspace = true }
 hermione-tracing = { workspace = true }
-hermione-tui = { workspace = true }

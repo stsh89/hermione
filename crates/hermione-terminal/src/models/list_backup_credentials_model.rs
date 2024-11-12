@@ -3,10 +3,10 @@ use crate::{
     models::BackupProviderKind,
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, HIGHLIGHT_SYMBOL},
+    tui::{EventHandler, Model},
     BackupCredentialsRoute, DeleteBackupCredentialsParams, Error, ExportParams, ImportParams,
     ListWorkspacesParams, Message, Result, Route,
 };
-use hermione_tui::{EventHandler, Model};
 use ratatui::{
     layout::Rect,
     style::Stylize,

@@ -5,12 +5,12 @@ use crate::{
         NotionBackupCredentials, NotionBackupCredentialsModel,
     },
     themes::Theme,
+    tui::{BoxedModel, Router},
     BackupCredentialsRoute, CommandsHandler, DeleteBackupCredentialsParams, ExportParams,
     ImportParams, ListWorkspaceCommandsParams, ListWorkspacesParams, Message, PowerShellHandler,
     PowerShellRoute, Result, Route, SaveNotionBackupCredentialsParams, WorkspaceCommandsRoute,
     WorkspacesHandler, WorkspacesRoute,
 };
-use hermione_tui::{BoxedModel, Router};
 
 pub struct TerminalRouter {
     pub coordinator: Coordinator,

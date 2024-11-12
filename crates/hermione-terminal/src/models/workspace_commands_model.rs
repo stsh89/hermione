@@ -4,11 +4,11 @@ use crate::{
     layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, HIGHLIGHT_SYMBOL},
+    tui::{EventHandler, Model},
     CopyCommandToClipboardParams, DeleteCommandParams, EditCommandParams, Error,
     ExecuteCommandParams, ListWorkspaceCommandsParams, ListWorkspacesParams, Message,
     NewWorkspaceCommandParams, OpenWindowsTerminalParams, PowerShellRoute, Result, Route,
 };
-use hermione_tui::{EventHandler, Model};
 use ratatui::{
     layout::Rect,
     style::Stylize,

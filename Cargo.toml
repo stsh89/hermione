@@ -5,7 +5,6 @@ members = [
     "crates/hermione-nexus",
     "crates/hermione-terminal",
     "crates/hermione-tracing",
-    "crates/hermione-tui",
 ]
 
 [workspace.dependencies]
@@ -27,4 +26,3 @@ uuid = "1.10.0"
 hermione-drive = { path = "crates/hermione-drive"}
 hermione-nexus = { path = "crates/hermione-nexus" }
 hermione-tracing = { path = "crates/hermione-tracing" }
-hermione-tui = { path = "crates/hermione-tui" }

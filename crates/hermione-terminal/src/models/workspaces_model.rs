@@ -4,10 +4,10 @@ use crate::{
     layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, HIGHLIGHT_SYMBOL},
+    tui::{EventHandler, Model},
     BackupCredentialsRoute, DeleteWorkspaceParams, EditWorkspaceParams, Error,
     ListWorkspaceCommandsParams, ListWorkspacesParams, Message, Result, Route, WorkspacesRoute,
 };
-use hermione_tui::{EventHandler, Model};
 use ratatui::{
     layout::Rect,
     style::Stylize,

@@ -11,6 +11,7 @@ mod screen;
 mod services;
 mod smart_input;
 mod themes;
+mod tui;
 mod widgets;
 
 pub(crate) use handlers::*;
@@ -56,7 +57,7 @@ fn main() -> Result<()> {
 
     let _guard = tracer.init_non_blocking()?;
 
-    if let Err(err) = hermione_tui::run(router) {
+    if let Err(err) = tui::run(router) {
         tracing::error!(error = ?err);
         return Err(err);
     };

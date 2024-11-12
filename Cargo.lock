@@ -346,7 +346,6 @@ dependencies = [
  "hermione-drive",
  "hermione-nexus",
  "hermione-tracing",
- "hermione-tui",
  "ratatui",
  "rusqlite",
  "serde",
@@ -365,14 +364,6 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "hermione-tui"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ratatui",
 ]
 
 [[package]]

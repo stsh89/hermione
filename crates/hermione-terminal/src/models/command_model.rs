@@ -1,9 +1,12 @@
 use super::{Command, Workspace};
 use crate::{
-    layouts::WideLayout, themes::Theme, widgets::FormField, CreateWorkspaceCommandParams,
-    ListWorkspaceCommandsParams, Message, Result, Route, UpdateWorkspaceCommandParams,
+    layouts::WideLayout,
+    themes::Theme,
+    tui::{EventHandler, Input, Model},
+    widgets::FormField,
+    CreateWorkspaceCommandParams, ListWorkspaceCommandsParams, Message, Result, Route,
+    UpdateWorkspaceCommandParams,
 };
-use hermione_tui::{EventHandler, Input, Model};
 use ratatui::{
     layout::{Constraint, Direction, Position, Rect},
     style::Stylize,

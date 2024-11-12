@@ -1,7 +1,6 @@
 mod preprocessors;
 
-use crate::themes::Theme;
-use hermione_tui::Input;
+use crate::{themes::Theme, tui::Input};
 use ratatui::{
     layout::Rect,
     style::Stylize,
