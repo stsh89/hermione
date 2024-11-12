@@ -21,7 +21,6 @@ pub(crate) use routes::*;
 
 use coordinator::Coordinator;
 use hermione_drive::sqlite;
-use hermione_tracing::{NewTracerParameters, Tracer};
 use providers::powershell::PowerShellProcess;
 use router::TerminalRouter;
 use rusqlite::Connection;
@@ -31,6 +30,10 @@ use std::{
     process::Command,
 };
 use themes::Theme;
+use tracing_appender::{
+    non_blocking::WorkerGuard,
+    rolling::{RollingFileAppender, Rotation},
+};
 
 type Error = anyhow::Error;
 type Result<T> = anyhow::Result<T>;
@@ -50,12 +53,7 @@ fn main() -> Result<()> {
     };
 
     let router = TerminalRouter { coordinator, theme };
-
-    let tracer = Tracer::new(NewTracerParameters {
-        directory: &app_path,
-    });
-
-    let _guard = tracer.init_non_blocking()?;
+    let _guard = init_tracing(&app_path)?;
 
     if let Err(err) = tui::run(router) {
         tracing::error!(error = ?err);
@@ -97,6 +95,23 @@ fn development_path() -> Result<PathBuf> {
         .ok_or(anyhow::Error::msg(
             "Missing terminal app development directory",
         ))
+}
+
+fn init_tracing(directory: &Path) -> Result<WorkerGuard> {
+    let file_appender = RollingFileAppender::builder()
+        .max_log_files(3)
+        .filename_prefix("hermione-logs")
+        .rotation(Rotation::HOURLY)
+        .build(directory)?;
+
+    let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+
+    tracing_subscriber::fmt()
+        .json()
+        .with_writer(non_blocking)
+        .init();
+
+    Ok(guard)
 }
 
 fn user_path() -> Result<PathBuf> {

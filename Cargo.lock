@@ -345,25 +345,16 @@ dependencies = [
  "eyre",
  "hermione-drive",
  "hermione-nexus",
- "hermione-tracing",
  "ratatui",
  "rusqlite",
  "serde",
  "serde_json",
  "thiserror",
  "tracing",
- "ureq",
- "uuid",
-]
-
-[[package]]
-name = "hermione-tracing"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "ureq",
+ "uuid",
 ]
 
 [[package]]
