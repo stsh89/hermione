@@ -7,29 +7,6 @@ mod core {
 
 use ratatui::widgets::ListItem;
 
-#[derive(Clone)]
-pub enum BackupProviderKind {
-    Notion,
-}
-
-pub enum BackupCredentials {
-    Notion(NotionBackupCredentials),
-}
-
-pub struct NotionBackupCredentials {
-    pub api_key: String,
-    pub commands_database_id: String,
-    pub workspaces_database_id: String,
-}
-
-impl BackupProviderKind {
-    fn as_str(&self) -> &str {
-        match self {
-            BackupProviderKind::Notion => "Notion",
-        }
-    }
-}
-
 impl<'a> From<&BackupProviderKind> for ListItem<'a> {
     fn from(value: &BackupProviderKind) -> Self {
         ListItem::new(value.as_str().to_string())

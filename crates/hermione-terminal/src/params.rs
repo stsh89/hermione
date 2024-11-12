@@ -1,6 +1,5 @@
 use crate::{
-    coordinator::{DEFAULT_PAGE_SIZE, FIRST_PAGE},
-    models::BackupProviderKind,
+    coordinator::{BackupProviderKind, DEFAULT_PAGE_SIZE, FIRST_PAGE},
     BackupCredentialsRoute, Route, WorkspaceCommandsRoute, WorkspacesRoute,
 };
 use std::num::NonZeroU32;

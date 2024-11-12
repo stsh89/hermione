@@ -8,13 +8,6 @@ mod core {
 use ratatui::widgets::ListItem;
 use uuid::Uuid;
 
-pub struct Command {
-    pub workspace_id: Uuid,
-    pub id: Uuid,
-    pub name: String,
-    pub program: String,
-}
-
 impl<'a> From<&Command> for ListItem<'a> {
     fn from(command: &Command) -> Self {
         ListItem::new(command.program.clone())

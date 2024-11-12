@@ -1,8 +1,6 @@
 use crate::{
-    coordinator::ListCommandsWithinWorkspaceInput,
-    models::{
-        Command, CommandModel, Workspace, WorkspaceCommandsModel, WorkspaceCommandsModelParameters,
-    },
+    coordinator::{Command, ListCommandsWithinWorkspaceInput, Workspace},
+    models::{CommandModel, WorkspaceCommandsModel, WorkspaceCommandsModelParameters},
     themes::Theme,
     Coordinator, CreateWorkspaceCommandParams, DeleteCommandParams, EditCommandParams,
     ListWorkspaceCommandsParams, NewWorkspaceCommandParams, Result, UpdateWorkspaceCommandParams,

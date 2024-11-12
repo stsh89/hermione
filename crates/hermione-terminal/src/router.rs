@@ -1,8 +1,8 @@
 use crate::{
-    coordinator::{Coordinator, ListWorkspacesInput},
+    coordinator::{BackupCredentials, Coordinator, ListWorkspacesInput, NotionBackupCredentials},
     models::{
-        BackupCredentials, ListBackupCredentialsModel, ListBackupCredentialsModelParameters,
-        NotionBackupCredentials, NotionBackupCredentialsModel,
+        ListBackupCredentialsModel, ListBackupCredentialsModelParameters,
+        NotionBackupCredentialsModel,
     },
     themes::Theme,
     tui::{BoxedModel, Router},

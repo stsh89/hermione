@@ -1,6 +1,6 @@
 use crate::{
-    coordinator::{Coordinator, ListWorkspacesInput},
-    models::{Workspace, WorkspaceModel, WorkspacesModel, WorkspacesModelParameters},
+    coordinator::{Coordinator, ListWorkspacesInput, Workspace},
+    models::{WorkspaceModel, WorkspacesModel, WorkspacesModelParameters},
     themes::Theme,
     CreateWorkspaceParams, DeleteWorkspaceParams, EditWorkspaceParams, ListWorkspacesParams,
     Result, UpdateWorkspaceParams,

@@ -1,5 +1,4 @@
 use crate::{
-    models::{BackupCredentials, BackupProviderKind, Command, NotionBackupCredentials, Workspace},
     providers::powershell::{self, PowerShellParameters, PowerShellProcess},
     services::{Clipboard, NotionBackupBuilder, Storage, System},
     Result,
@@ -26,6 +25,34 @@ const DEFAULT_BACKUP_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(
 pub struct Coordinator {
     pub database_connection: Connection,
     pub powershell_process: PowerShellProcess,
+}
+
+pub struct Workspace {
+    pub id: Uuid,
+    pub location: String,
+    pub name: String,
+}
+
+pub struct Command {
+    pub workspace_id: Uuid,
+    pub id: Uuid,
+    pub name: String,
+    pub program: String,
+}
+
+#[derive(Clone)]
+pub enum BackupProviderKind {
+    Notion,
+}
+
+pub enum BackupCredentials {
+    Notion(NotionBackupCredentials),
+}
+
+pub struct NotionBackupCredentials {
+    pub api_key: String,
+    pub commands_database_id: String,
+    pub workspaces_database_id: String,
 }
 
 pub struct ExecuteCommandInput {
@@ -380,5 +407,133 @@ impl Coordinator {
         })?;
 
         Ok(workspace.into())
+    }
+}
+
+mod convert {
+    mod core {
+        pub use hermione_nexus::{
+            definitions::{
+                BackupCredentials, BackupProviderKind, Command, CommandParameters,
+                NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
+            },
+            Error, Result,
+        };
+    }
+    use super::{
+        BackupCredentials, BackupProviderKind, Command, NotionBackupCredentials, Workspace,
+    };
+
+    impl From<BackupProviderKind> for core::BackupProviderKind {
+        fn from(value: BackupProviderKind) -> Self {
+            match value {
+                BackupProviderKind::Notion => core::BackupProviderKind::Notion,
+            }
+        }
+    }
+
+    impl TryFrom<Command> for core::Command {
+        type Error = hermione_nexus::Error;
+
+        fn try_from(value: Command) -> hermione_nexus::Result<Self> {
+            let Command {
+                id,
+                name,
+                program,
+                workspace_id,
+            } = value;
+
+            let command = core::Command::new(core::CommandParameters {
+                id,
+                name,
+                last_execute_time: None,
+                program,
+                workspace_id: workspace_id.into(),
+            })?;
+
+            Ok(command)
+        }
+    }
+
+    impl TryFrom<BackupCredentials> for core::BackupCredentials {
+        type Error = core::Error;
+
+        fn try_from(value: BackupCredentials) -> core::Result<Self> {
+            let credentials = match value {
+                BackupCredentials::Notion(presenter) => {
+                    let NotionBackupCredentials {
+                        api_key,
+                        workspaces_database_id,
+                        commands_database_id,
+                    } = presenter;
+
+                    core::BackupCredentials::notion(core::NotionBackupCredentialsParameters {
+                        api_key,
+                        commands_database_id,
+                        workspaces_database_id,
+                    })
+                }
+            };
+
+            Ok(credentials)
+        }
+    }
+
+    impl TryFrom<Workspace> for core::Workspace {
+        type Error = core::Error;
+
+        fn try_from(value: Workspace) -> core::Result<Self> {
+            let Workspace { id, location, name } = value;
+
+            let workspace = core::Workspace::new(core::WorkspaceParameters {
+                id,
+                name,
+                location: Some(location),
+                last_access_time: None,
+            })?;
+
+            Ok(workspace)
+        }
+    }
+
+    impl From<core::BackupCredentials> for BackupProviderKind {
+        fn from(value: core::BackupCredentials) -> Self {
+            match value {
+                core::BackupCredentials::Notion(_) => BackupProviderKind::Notion,
+            }
+        }
+    }
+
+    impl From<core::BackupCredentials> for NotionBackupCredentials {
+        fn from(value: core::BackupCredentials) -> Self {
+            match value {
+                core::BackupCredentials::Notion(credentials) => NotionBackupCredentials {
+                    api_key: credentials.api_key().to_string(),
+                    workspaces_database_id: credentials.workspaces_database_id().to_string(),
+                    commands_database_id: credentials.commands_database_id().to_string(),
+                },
+            }
+        }
+    }
+
+    impl From<core::Command> for Command {
+        fn from(command: core::Command) -> Self {
+            Self {
+                id: **command.id(),
+                name: command.name().to_string(),
+                program: command.program().to_string(),
+                workspace_id: **command.workspace_id(),
+            }
+        }
+    }
+
+    impl From<core::Workspace> for Workspace {
+        fn from(workspace: core::Workspace) -> Self {
+            Self {
+                id: **workspace.id(),
+                location: workspace.location().unwrap_or_default().into(),
+                name: workspace.name().to_string(),
+            }
+        }
     }
 }
