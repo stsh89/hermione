@@ -1,7 +1,7 @@
+use super::{Command, Workspace};
 use crate::{
-    layouts::WideLayout, themes::Theme, widgets::FormField, CommandPresenter,
-    CreateWorkspaceCommandParams, ListWorkspaceCommandsParams, Message, Result, Route,
-    UpdateWorkspaceCommandParams, WorkspacePresenter,
+    layouts::WideLayout, themes::Theme, widgets::FormField, CreateWorkspaceCommandParams,
+    ListWorkspaceCommandsParams, Message, Result, Route, UpdateWorkspaceCommandParams,
 };
 use hermione_tui::{EventHandler, Input, Model};
 use ratatui::{
@@ -20,7 +20,7 @@ pub struct CommandModel {
     program: Input,
     redirect: Option<Route>,
     theme: Theme,
-    workspace: WorkspacePresenter,
+    workspace: Workspace,
 }
 
 #[derive(Default, PartialEq)]
@@ -126,8 +126,8 @@ impl CommandModel {
         self.active_input_mut().move_cursor_right();
     }
 
-    pub fn command(self, command: CommandPresenter) -> Self {
-        let CommandPresenter {
+    pub fn command(self, command: Command) -> Self {
+        let Command {
             workspace_id: _,
             id,
             name,
@@ -142,7 +142,7 @@ impl CommandModel {
         }
     }
 
-    pub fn new(workspace: WorkspacePresenter) -> Self {
+    pub fn new(workspace: Workspace) -> Self {
         Self {
             workspace,
             redirect: None,

@@ -1,10 +1,11 @@
 use crate::{
     coordinator::ListCommandsWithinWorkspaceInput,
-    models::{CommandModel, WorkspaceCommandsModel, WorkspaceCommandsModelParameters},
+    models::{
+        Command, CommandModel, Workspace, WorkspaceCommandsModel, WorkspaceCommandsModelParameters,
+    },
     themes::Theme,
-    CommandPresenter, Coordinator, CreateWorkspaceCommandParams, DeleteCommandParams,
-    EditCommandParams, ListWorkspaceCommandsParams, NewWorkspaceCommandParams, Result,
-    UpdateWorkspaceCommandParams, WorkspacePresenter,
+    Coordinator, CreateWorkspaceCommandParams, DeleteCommandParams, EditCommandParams,
+    ListWorkspaceCommandsParams, NewWorkspaceCommandParams, Result, UpdateWorkspaceCommandParams,
 };
 use uuid::Uuid;
 
@@ -14,14 +15,14 @@ pub struct CommandsHandler<'a> {
 }
 
 impl<'a> CommandsHandler<'a> {
-    pub fn create(&self, parameters: CreateWorkspaceCommandParams) -> Result<CommandPresenter> {
+    pub fn create(&self, parameters: CreateWorkspaceCommandParams) -> Result<Command> {
         let CreateWorkspaceCommandParams {
             workspace_id,
             name,
             program,
         } = parameters;
 
-        let command = CommandPresenter {
+        let command = Command {
             workspace_id,
             id: Uuid::nil(),
             name,
@@ -31,7 +32,7 @@ impl<'a> CommandsHandler<'a> {
         self.coordinator.create_command(command)
     }
 
-    pub fn delete(&self, parameters: DeleteCommandParams) -> Result<WorkspacePresenter> {
+    pub fn delete(&self, parameters: DeleteCommandParams) -> Result<Workspace> {
         let DeleteCommandParams {
             command_id,
             workspace_id,
@@ -105,7 +106,7 @@ impl<'a> CommandsHandler<'a> {
             program,
         } = parameters;
 
-        let command = CommandPresenter {
+        let command = Command {
             workspace_id,
             id,
             name,

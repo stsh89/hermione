@@ -1,6 +1,7 @@
+use super::Workspace;
 use crate::{
     layouts::WideLayout, themes::Theme, widgets::FormField, CreateWorkspaceParams,
-    ListWorkspacesParams, Message, Result, Route, UpdateWorkspaceParams, WorkspacePresenter,
+    ListWorkspacesParams, Message, Result, Route, UpdateWorkspaceParams,
 };
 use hermione_tui::{EventHandler, Input, Model};
 use ratatui::{
@@ -114,8 +115,8 @@ impl WorkspaceModel {
         self.active_input_mut().enter_char(c);
     }
 
-    pub fn workspace(self, workspace: WorkspacePresenter) -> Self {
-        let WorkspacePresenter { id, location, name } = workspace;
+    pub fn workspace(self, workspace: Workspace) -> Self {
+        let Workspace { id, location, name } = workspace;
 
         Self {
             name: Input::new(name),

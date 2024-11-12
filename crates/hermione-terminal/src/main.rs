@@ -4,7 +4,6 @@ mod layouts;
 mod message;
 mod models;
 mod params;
-mod presenters;
 mod providers;
 mod router;
 mod routes;
@@ -17,7 +16,6 @@ mod widgets;
 pub(crate) use handlers::*;
 pub(crate) use message::*;
 pub(crate) use params::*;
-pub(crate) use presenters::*;
 pub(crate) use routes::*;
 
 use coordinator::Coordinator;

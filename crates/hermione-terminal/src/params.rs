@@ -1,6 +1,7 @@
 use crate::{
     coordinator::{DEFAULT_PAGE_SIZE, FIRST_PAGE},
-    BackupCredentialsKind, BackupCredentialsRoute, Route, WorkspaceCommandsRoute, WorkspacesRoute,
+    models::BackupProviderKind,
+    BackupCredentialsRoute, Route, WorkspaceCommandsRoute, WorkspacesRoute,
 };
 use std::num::NonZeroU32;
 use uuid::Uuid;
@@ -17,7 +18,7 @@ pub struct CreateWorkspaceCommandParams {
 }
 
 pub struct DeleteBackupCredentialsParams {
-    pub kind: BackupCredentialsKind,
+    pub kind: BackupProviderKind,
 }
 
 pub struct DeleteCommandParams {
@@ -38,7 +39,7 @@ pub struct EditCommandParams {
 }
 
 pub struct ExportParams {
-    pub kind: BackupCredentialsKind,
+    pub kind: BackupProviderKind,
 }
 
 pub struct ExecuteCommandParams {
@@ -48,7 +49,7 @@ pub struct ExecuteCommandParams {
 }
 
 pub struct ImportParams {
-    pub kind: BackupCredentialsKind,
+    pub kind: BackupProviderKind,
 }
 
 pub struct ListWorkspacesParams {

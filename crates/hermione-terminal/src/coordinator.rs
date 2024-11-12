@@ -1,21 +1,18 @@
 use crate::{
+    models::{BackupCredentials, BackupProviderKind, Command, NotionBackupCredentials, Workspace},
     providers::powershell::{self, PowerShellParameters, PowerShellProcess},
     services::{Clipboard, NotionBackupBuilder, Storage, System},
-    BackupCredentialsKind, BackupCredentialsPresenter, CommandPresenter,
-    NotionBackupCredentialsPresenter, Result, WorkspacePresenter,
+    Result,
 };
-use hermione_nexus::{
-    definitions::BackupProviderKind,
-    operations::{
-        CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
-        CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
-        DeleteCommandOperation, DeleteWorkspaceOperation, ExecuteCommandOperation, ExportOperation,
-        GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation, ImportOperation,
-        ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
-        ListWorkspacesOperation, ListWorkspacesParameters, SaveBackupCredentialsOperation,
-        UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
-        UpdateWorkspaceParameters,
-    },
+use hermione_nexus::operations::{
+    CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
+    CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
+    DeleteCommandOperation, DeleteWorkspaceOperation, ExecuteCommandOperation, ExportOperation,
+    GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation, ImportOperation,
+    ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
+    ListWorkspacesOperation, ListWorkspacesParameters, SaveBackupCredentialsOperation,
+    UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
+    UpdateWorkspaceParameters,
 };
 use rusqlite::Connection;
 use std::num::NonZeroU32;
@@ -71,13 +68,13 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn create_command(&self, dto: CommandPresenter) -> Result<CommandPresenter> {
-        let CommandPresenter {
+    pub fn create_command(&self, command: Command) -> Result<Command> {
+        let Command {
             id: _,
             name,
             program,
             workspace_id,
-        } = dto;
+        } = command;
 
         let command = CreateCommandOperation {
             storage_provider: &self.storage(),
@@ -91,8 +88,8 @@ impl Coordinator {
         Ok(command.into())
     }
 
-    pub fn create_workspace(&self, dto: WorkspacePresenter) -> Result<WorkspacePresenter> {
-        let WorkspacePresenter {
+    pub fn create_workspace(&self, dto: Workspace) -> Result<Workspace> {
+        let Workspace {
             id: _,
             location,
             name,
@@ -109,7 +106,7 @@ impl Coordinator {
         Ok(workspace.into())
     }
 
-    pub fn delete_backup_credentials(&self, kind: BackupCredentialsKind) -> Result<()> {
+    pub fn delete_backup_credentials(&self, kind: BackupProviderKind) -> Result<()> {
         let storage = self.storage();
 
         DeleteBackupCredentialsOperation {
@@ -178,7 +175,7 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn export(&self, kind: BackupCredentialsKind) -> Result<()> {
+    pub fn export(&self, kind: BackupProviderKind) -> Result<()> {
         let storage = self.storage();
 
         ExportOperation {
@@ -195,14 +192,12 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn find_notion_backup_credentials(
-        &self,
-    ) -> Result<Option<NotionBackupCredentialsPresenter>> {
+    pub fn find_notion_backup_credentials(&self) -> Result<Option<NotionBackupCredentials>> {
         let kinds = self.list_backup_credentials()?;
 
         let notion_credential_kind = kinds
             .into_iter()
-            .find(|kind| matches!(kind, BackupCredentialsKind::Notion));
+            .find(|kind| matches!(kind, BackupProviderKind::Notion));
 
         if notion_credential_kind.is_none() {
             return Ok(None);
@@ -211,13 +206,13 @@ impl Coordinator {
         let credentials = GetBackupCredentialsOperation {
             provider: &self.storage(),
         }
-        .execute(&BackupProviderKind::Notion)?
+        .execute(&BackupProviderKind::Notion.into())?
         .into();
 
         Ok(Some(credentials))
     }
 
-    pub fn get_command(&self, id: Uuid) -> Result<CommandPresenter> {
+    pub fn get_command(&self, id: Uuid) -> Result<Command> {
         let command = GetCommandOperation {
             provider: &self.storage(),
         }
@@ -226,7 +221,7 @@ impl Coordinator {
         Ok(command.into())
     }
 
-    pub fn get_workspace(&self, id: Uuid) -> Result<WorkspacePresenter> {
+    pub fn get_workspace(&self, id: Uuid) -> Result<Workspace> {
         let workspace = GetWorkspaceOperation {
             provider: &self.storage(),
         }
@@ -235,7 +230,7 @@ impl Coordinator {
         Ok(workspace.into())
     }
 
-    pub fn import(&self, kind: BackupCredentialsKind) -> Result<()> {
+    pub fn import(&self, kind: BackupProviderKind) -> Result<()> {
         let storage = self.storage();
 
         ImportOperation {
@@ -252,7 +247,7 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn list_backup_credentials(&self) -> Result<Vec<BackupCredentialsKind>> {
+    pub fn list_backup_credentials(&self) -> Result<Vec<BackupProviderKind>> {
         let backup_credentials = ListBackupCredentialsOperation {
             provider: &self.storage(),
         }
@@ -264,7 +259,7 @@ impl Coordinator {
     pub fn list_workspace_commands(
         &self,
         parameters: ListCommandsWithinWorkspaceInput,
-    ) -> Result<Vec<CommandPresenter>> {
+    ) -> Result<Vec<Command>> {
         let ListCommandsWithinWorkspaceInput {
             page_number,
             page_size,
@@ -285,10 +280,7 @@ impl Coordinator {
         Ok(workspaces.into_iter().map(Into::into).collect())
     }
 
-    pub fn list_workspaces(
-        &self,
-        parameters: ListWorkspacesInput<'_>,
-    ) -> Result<Vec<WorkspacePresenter>> {
+    pub fn list_workspaces(&self, parameters: ListWorkspacesInput<'_>) -> Result<Vec<Workspace>> {
         let ListWorkspacesInput {
             name_contains,
             page_number,
@@ -328,7 +320,7 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn save_backup_credentials(&self, credentials: BackupCredentialsPresenter) -> Result<()> {
+    pub fn save_backup_credentials(&self, credentials: BackupCredentials) -> Result<()> {
         let credentials = credentials.try_into()?;
 
         SaveBackupCredentialsOperation {
@@ -349,8 +341,8 @@ impl Coordinator {
         }
     }
 
-    pub fn update_command(&self, data: CommandPresenter) -> Result<CommandPresenter> {
-        let CommandPresenter {
+    pub fn update_command(&self, data: Command) -> Result<Command> {
+        let Command {
             workspace_id: _,
             id,
             name,
@@ -372,8 +364,8 @@ impl Coordinator {
         Ok(command.into())
     }
 
-    pub fn update_workspace(&self, presenter: WorkspacePresenter) -> Result<WorkspacePresenter> {
-        let WorkspacePresenter { id, location, name } = presenter;
+    pub fn update_workspace(&self, presenter: Workspace) -> Result<Workspace> {
+        let Workspace { id, location, name } = presenter;
 
         let storage = self.storage();
 

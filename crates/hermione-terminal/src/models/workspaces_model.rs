@@ -1,11 +1,11 @@
+use super::Workspace;
 use crate::{
     coordinator::{DEFAULT_PAGE_SIZE, FIRST_PAGE},
     layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, HIGHLIGHT_SYMBOL},
     BackupCredentialsRoute, DeleteWorkspaceParams, EditWorkspaceParams, Error,
-    ListWorkspaceCommandsParams, ListWorkspacesParams, Message, Result, Route, WorkspacePresenter,
-    WorkspacesRoute,
+    ListWorkspaceCommandsParams, ListWorkspacesParams, Message, Result, Route, WorkspacesRoute,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -21,7 +21,7 @@ pub struct WorkspacesModel {
     is_running: bool,
     redirect: Option<Route>,
     workspaces_state: ListState,
-    workspaces: Vec<WorkspacePresenter>,
+    workspaces: Vec<Workspace>,
     page_number: NonZeroU32,
     page_size: NonZeroU32,
     smart_input: SmartInput,
@@ -30,7 +30,7 @@ pub struct WorkspacesModel {
 }
 
 pub struct WorkspacesModelParameters {
-    pub workspaces: Vec<WorkspacePresenter>,
+    pub workspaces: Vec<Workspace>,
     pub search_query: String,
     pub page_number: Option<NonZeroU32>,
     pub page_size: Option<NonZeroU32>,
@@ -271,7 +271,7 @@ impl WorkspacesModel {
         self.smart_input.move_cursor_right();
     }
 
-    fn workspace(&self) -> Option<&WorkspacePresenter> {
+    fn workspace(&self) -> Option<&Workspace> {
         self.workspaces_state
             .selected()
             .and_then(|i| self.workspaces.get(i))

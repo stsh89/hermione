@@ -1,13 +1,12 @@
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
     models::{
-        ListBackupCredentialsModel, ListBackupCredentialsModelParameters,
-        NotionBackupCredentialsModel,
+        BackupCredentials, ListBackupCredentialsModel, ListBackupCredentialsModelParameters,
+        NotionBackupCredentials, NotionBackupCredentialsModel,
     },
     themes::Theme,
-    BackupCredentialsPresenter, BackupCredentialsRoute, CommandsHandler,
-    DeleteBackupCredentialsParams, ExportParams, ImportParams, ListWorkspaceCommandsParams,
-    ListWorkspacesParams, Message, NotionBackupCredentialsPresenter, PowerShellHandler,
+    BackupCredentialsRoute, CommandsHandler, DeleteBackupCredentialsParams, ExportParams,
+    ImportParams, ListWorkspaceCommandsParams, ListWorkspacesParams, Message, PowerShellHandler,
     PowerShellRoute, Result, Route, SaveNotionBackupCredentialsParams, WorkspaceCommandsRoute,
     WorkspacesHandler, WorkspacesRoute,
 };
@@ -87,7 +86,7 @@ impl TerminalRouter {
                 let mut model = NotionBackupCredentialsModel::default().theme(self.theme);
 
                 if let Some(credentials) = credentials {
-                    let NotionBackupCredentialsPresenter {
+                    let NotionBackupCredentials {
                         api_key,
                         commands_database_id,
                         workspaces_database_id,
@@ -110,13 +109,11 @@ impl TerminalRouter {
 
                 match self
                     .coordinator
-                    .save_backup_credentials(BackupCredentialsPresenter::Notion(
-                        NotionBackupCredentialsPresenter {
-                            api_key: api_key.clone(),
-                            commands_database_id: commands_database_id.clone(),
-                            workspaces_database_id: workspaces_database_id.clone(),
-                        },
-                    )) {
+                    .save_backup_credentials(BackupCredentials::Notion(NotionBackupCredentials {
+                        api_key: api_key.clone(),
+                        commands_database_id: commands_database_id.clone(),
+                        workspaces_database_id: workspaces_database_id.clone(),
+                    })) {
                     Ok(()) => {
                         let backup_credentials_kinds =
                             self.coordinator.list_backup_credentials()?;

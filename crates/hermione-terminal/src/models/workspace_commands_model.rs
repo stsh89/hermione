@@ -1,12 +1,12 @@
+use super::{Command, Workspace};
 use crate::{
     coordinator::{DEFAULT_PAGE_SIZE, FIRST_PAGE},
     layouts::{SearchListLayout, WideLayout},
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, HIGHLIGHT_SYMBOL},
-    CommandPresenter, CopyCommandToClipboardParams, DeleteCommandParams, EditCommandParams, Error,
+    CopyCommandToClipboardParams, DeleteCommandParams, EditCommandParams, Error,
     ExecuteCommandParams, ListWorkspaceCommandsParams, ListWorkspacesParams, Message,
     NewWorkspaceCommandParams, OpenWindowsTerminalParams, PowerShellRoute, Result, Route,
-    WorkspacePresenter,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -19,8 +19,8 @@ use ratatui::{
 use std::num::NonZeroU32;
 
 pub struct WorkspaceCommandsModel {
-    workspace: WorkspacePresenter,
-    commands: Vec<CommandPresenter>,
+    workspace: Workspace,
+    commands: Vec<Command>,
     redirect: Option<Route>,
     commands_state: ListState,
     powershell_settings: PowerShellSettings,
@@ -33,12 +33,12 @@ pub struct WorkspaceCommandsModel {
 }
 
 pub struct WorkspaceCommandsModelParameters {
-    pub commands: Vec<CommandPresenter>,
+    pub commands: Vec<Command>,
     pub page_number: Option<NonZeroU32>,
     pub page_size: Option<NonZeroU32>,
     pub powershell_no_exit: bool,
     pub search_query: String,
-    pub workspace: WorkspacePresenter,
+    pub workspace: Workspace,
     pub theme: Theme,
 }
 
@@ -154,7 +154,7 @@ impl WorkspaceCommandsModel {
         self.is_running = false;
     }
 
-    fn command(&self) -> Option<&CommandPresenter> {
+    fn command(&self) -> Option<&Command> {
         self.commands_state
             .selected()
             .and_then(|index| self.commands.get(index))

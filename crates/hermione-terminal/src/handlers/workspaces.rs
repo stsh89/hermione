@@ -1,9 +1,9 @@
 use crate::{
     coordinator::{Coordinator, ListWorkspacesInput},
-    models::{WorkspaceModel, WorkspacesModel, WorkspacesModelParameters},
+    models::{Workspace, WorkspaceModel, WorkspacesModel, WorkspacesModelParameters},
     themes::Theme,
     CreateWorkspaceParams, DeleteWorkspaceParams, EditWorkspaceParams, ListWorkspacesParams,
-    Result, UpdateWorkspaceParams, WorkspacePresenter,
+    Result, UpdateWorkspaceParams,
 };
 use uuid::Uuid;
 
@@ -16,7 +16,7 @@ impl<'a> WorkspacesHandler<'a> {
     pub fn create(self, parameters: CreateWorkspaceParams) -> Result<WorkspacesModel> {
         let CreateWorkspaceParams { name, location } = parameters;
 
-        self.coordinator.create_workspace(WorkspacePresenter {
+        self.coordinator.create_workspace(Workspace {
             id: Uuid::nil(),
             location,
             name: name.clone(),
@@ -97,7 +97,7 @@ impl<'a> WorkspacesHandler<'a> {
         Ok(WorkspaceModel::default().theme(self.theme))
     }
 
-    pub fn update(&self, parameters: UpdateWorkspaceParams) -> Result<WorkspacePresenter> {
+    pub fn update(&self, parameters: UpdateWorkspaceParams) -> Result<Workspace> {
         let UpdateWorkspaceParams { id, name, location } = parameters;
 
         let mut workspace = self.coordinator.get_workspace(id)?;

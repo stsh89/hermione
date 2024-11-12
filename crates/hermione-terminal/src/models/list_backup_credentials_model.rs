@@ -1,9 +1,10 @@
 use crate::{
     layouts::{SearchListLayout, WideLayout},
+    models::BackupProviderKind,
     smart_input::{NewSmartInputParameters, SmartInput},
     themes::{Theme, HIGHLIGHT_SYMBOL},
-    BackupCredentialsKind, BackupCredentialsRoute, DeleteBackupCredentialsParams, Error,
-    ExportParams, ImportParams, ListWorkspacesParams, Message, Result, Route,
+    BackupCredentialsRoute, DeleteBackupCredentialsParams, Error, ExportParams, ImportParams,
+    ListWorkspacesParams, Message, Result, Route,
 };
 use hermione_tui::{EventHandler, Model};
 use ratatui::{
@@ -18,13 +19,13 @@ pub struct ListBackupCredentialsModel {
     is_running: bool,
     redirect: Option<Route>,
     smart_input: SmartInput,
-    backup_credentials_kinds: Vec<BackupCredentialsKind>,
+    backup_credentials_kinds: Vec<BackupProviderKind>,
     backup_credentials_kinds_state: ListState,
     theme: Theme,
 }
 
 pub struct ListBackupCredentialsModelParameters {
-    pub backup_credentials_kinds: Vec<BackupCredentialsKind>,
+    pub backup_credentials_kinds: Vec<BackupProviderKind>,
     pub theme: Theme,
 }
 
@@ -87,7 +88,7 @@ impl ListBackupCredentialsModel {
         self.smart_input.autocomplete();
     }
 
-    fn backup_credentials_kind(&self) -> Option<&BackupCredentialsKind> {
+    fn backup_credentials_kind(&self) -> Option<&BackupProviderKind> {
         self.backup_credentials_kinds_state
             .selected()
             .and_then(|index| self.backup_credentials_kinds.get(index))
