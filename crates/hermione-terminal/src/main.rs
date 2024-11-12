@@ -36,7 +36,7 @@ type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
     let app_path = app_path()?;
-    let theme = Theme::parse(include_str!("../themes/github_dark.json"))?;
+    let theme = serde_json::from_str::<Theme>(include_str!("../themes/github_dark.json"))?;
     let conn = Connection::open(app_path.join("hermione.db3"))?;
 
     sqlite::create_workspaces_table_if_not_exists(&conn)?;
