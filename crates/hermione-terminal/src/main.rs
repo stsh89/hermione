@@ -29,7 +29,6 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
-use themes::Theme;
 use tracing_appender::{
     non_blocking::WorkerGuard,
     rolling::{RollingFileAppender, Rotation},
@@ -40,7 +39,6 @@ type Result<T> = anyhow::Result<T>;
 
 fn main() -> Result<()> {
     let app_path = app_path()?;
-    let theme = serde_json::from_str::<Theme>(include_str!("../themes/github_dark.json"))?;
     let conn = Connection::open(app_path.join("hermione.db3"))?;
 
     sqlite::create_workspaces_table_if_not_exists(&conn)?;
@@ -52,7 +50,11 @@ fn main() -> Result<()> {
         powershell_process: PowerShellProcess::spawn()?,
     };
 
-    let router = TerminalRouter { coordinator, theme };
+    let router = TerminalRouter {
+        coordinator,
+        theme: themes::github_dark(),
+    };
+
     let _guard = init_tracing(&app_path)?;
 
     if let Err(err) = tui::run(router) {
