@@ -11,6 +11,7 @@ mod export_test;
 mod get_command_test;
 mod get_workspace_test;
 mod import_test;
+mod import_workspaces_test;
 mod list_backup_credentials_test;
 mod list_commands_test;
 mod list_workspaces_test;
