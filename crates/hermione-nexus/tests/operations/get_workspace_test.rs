@@ -1,4 +1,4 @@
-use crate::solutions::{workspace_fixture, InMemoryStorage};
+use crate::support::{workspace_fixture, InMemoryStorage};
 use hermione_nexus::{definitions::Workspace, operations::GetWorkspaceOperation, Error, Result};
 use uuid::Uuid;
 

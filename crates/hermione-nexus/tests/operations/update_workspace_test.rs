@@ -1,4 +1,4 @@
-use crate::solutions::{workspace_fixture, InMemoryStorage, WorkspaceFixtureParameters};
+use crate::support::{workspace_fixture, InMemoryStorage, WorkspaceFixtureParameters};
 use hermione_nexus::{
     definitions::Workspace,
     operations::{UpdateWorkspaceOperation, UpdateWorkspaceParameters},

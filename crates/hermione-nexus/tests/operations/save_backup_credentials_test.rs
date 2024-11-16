@@ -1,13 +1,13 @@
 use crate::solutions::{
     backup_credentials_fixture, BackupCredentialsFixtureParameters, InMemoryStorage,
-    MockBackupBuilder, MockStorageBackup, NotionBackupCredentialsFixtureParameters,
+    MockNotionBackupBuilder, MockNotionStorage, NotionBackupCredentialsFixtureParameters,
 };
 use hermione_nexus::{operations::SaveBackupCredentialsOperation, Error, Result};
 use std::marker::PhantomData;
 
 struct SaveBackupCredentialsOperationTestContext {
     storage: InMemoryStorage,
-    backup_builder: MockBackupBuilder,
+    backup_builder: MockNotionBackupBuilder,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
@@ -15,9 +15,9 @@ where
     T: FnOnce(SaveBackupCredentialsOperationTestContext) -> Result<()>,
 {
     let storage = InMemoryStorage::default();
-    let storage_backup = MockStorageBackup::default();
+    let storage_backup = MockNotionStorage::default();
     let backup_builder =
-        MockBackupBuilder::new(storage_backup.commands(), storage_backup.workspaces());
+        MockNotionBackupBuilder::new(storage_backup.commands(), storage_backup.workspaces());
 
     test_fn(SaveBackupCredentialsOperationTestContext {
         storage,

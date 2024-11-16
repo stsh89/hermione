@@ -1,4 +1,4 @@
-use crate::solutions::{
+use crate::support::{
     command_fixture, page_number, page_size, workspace_fixture, CommandFixtureParameters,
     InMemoryStorage,
 };

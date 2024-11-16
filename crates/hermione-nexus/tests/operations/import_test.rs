@@ -1,6 +1,6 @@
 use crate::solutions::{
-    backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorage, MockBackup,
-    MockBackupBuilder, MockBackupParameters, MockStorageBackup,
+    backup_credentials_fixture, command_fixture, workspace_fixture, InMemoryStorage, MockNotionBackup,
+    MockNotionBackupBuilder, MockNotionBackupParameters, MockNotionStorage,
 };
 use hermione_nexus::{
     definitions::{BackupCredentials, BackupProviderKind},
@@ -11,8 +11,8 @@ use std::marker::PhantomData;
 
 struct ImportOperationTestContext {
     storage: InMemoryStorage,
-    backup: MockBackup,
-    backup_builder: MockBackupBuilder,
+    backup: MockNotionBackup,
+    backup_builder: MockNotionBackupBuilder,
 }
 
 fn with_context<T>(test_fn: T) -> Result<()>
@@ -20,15 +20,15 @@ where
     T: FnOnce(ImportOperationTestContext) -> Result<()>,
 {
     let storage = InMemoryStorage::default();
-    let storage_backup = MockStorageBackup::default();
+    let storage_backup = MockNotionStorage::default();
 
     let credentials = backup_credentials_fixture(Default::default());
     storage.insert_backup_credentials(credentials.clone())?;
 
     let BackupCredentials::Notion(credentials) = credentials;
     let backup_builder =
-        MockBackupBuilder::new(storage_backup.commands(), storage_backup.workspaces());
-    let backup = MockBackup::new(MockBackupParameters {
+        MockNotionBackupBuilder::new(storage_backup.commands(), storage_backup.workspaces());
+    let backup = MockNotionBackup::new(MockNotionBackupParameters {
         credentials,
         workspaces: storage_backup.workspaces(),
         commands: storage_backup.commands(),

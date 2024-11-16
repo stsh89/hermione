@@ -46,9 +46,9 @@ pub enum InMemoryStorageError {
 
 #[derive(Default)]
 pub struct InMemoryStorage {
-    backup_credentials: RwLock<HashMap<String, BackupCredentials>>,
-    commands: RwLock<HashMap<Uuid, Command>>,
-    workspaces: RwLock<HashMap<Uuid, Workspace>>,
+    pub backup_credentials: RwLock<HashMap<String, BackupCredentials>>,
+    pub commands: RwLock<HashMap<Uuid, Command>>,
+    pub workspaces: RwLock<HashMap<Uuid, Workspace>>,
 }
 
 impl InMemoryStorage {

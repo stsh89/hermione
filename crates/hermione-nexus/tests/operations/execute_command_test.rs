@@ -1,4 +1,4 @@
-use crate::solutions::{
+use crate::support::{
     command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorage, MockSystem,
 };
 use hermione_nexus::{

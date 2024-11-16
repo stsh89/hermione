@@ -1,4 +1,4 @@
-use crate::solutions::{
+use crate::support::{
     page_number, page_size, workspace_fixture, InMemoryStorage, WorkspaceFixtureParameters,
 };
 use chrono::Utc;

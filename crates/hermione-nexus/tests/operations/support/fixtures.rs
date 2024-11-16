@@ -8,8 +8,6 @@ use hermione_nexus::{
 };
 use uuid::Uuid;
 
-use super::TEST_NOTION_API_KEY;
-
 pub enum BackupCredentialsFixtureParameters {
     Notion(NotionBackupCredentialsFixtureParameters),
 }
@@ -86,20 +84,4 @@ pub fn workspace_fixture(parameters: WorkspaceFixtureParameters) -> Result<Works
         location,
         name: name.unwrap_or("Test workspace".to_string()),
     })
-}
-
-impl Default for BackupCredentialsFixtureParameters {
-    fn default() -> Self {
-        Self::Notion(Default::default())
-    }
-}
-
-impl Default for NotionBackupCredentialsFixtureParameters {
-    fn default() -> Self {
-        NotionBackupCredentialsFixtureParameters {
-            api_key: Some(TEST_NOTION_API_KEY.to_string()),
-            workspaces_database_id: Some("test_workspaces_database_id".to_string()),
-            commands_database_id: Some("test_commands_database_id".to_string()),
-        }
-    }
 }

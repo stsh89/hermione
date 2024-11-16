@@ -328,6 +328,7 @@ dependencies = [
 name = "hermione-nexus"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
  "eyre",
  "thiserror",
