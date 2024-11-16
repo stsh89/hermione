@@ -45,9 +45,23 @@ pub fn get_workspace(storage: &InMemoryStorage, id: Uuid) -> Workspace {
 }
 
 pub fn insert_backup_credentials(storage: &InMemoryStorage, credentials: BackupCredentials) {
+    let id = match credentials {
+        BackupCredentials::Notion(_) => NOTION_CREDENTIALS_KEY.to_string(),
+    };
+
     storage
-        .insert_backup_credentials(credentials)
-        .expect("Should be able to insert backup credentials");
+        .backup_credentials
+        .write()
+        .expect("Should be able to insert backup credentials")
+        .insert(id, credentials);
+}
+
+pub fn insert_workspace(storage: &InMemoryStorage, workspace: Workspace) {
+    storage
+        .workspaces
+        .write()
+        .expect("Should be able to insert workspace")
+        .insert(**workspace.id(), workspace);
 }
 
 pub fn insert_notion_workspace(storage: &MockNotionStorage, workspace: MockNotionWorkspaceEntry) {

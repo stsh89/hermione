@@ -21,7 +21,7 @@ use std::{
 };
 use uuid::Uuid;
 
-const NOTION_CREDENTIALS_KEY: &str = "notion";
+pub const NOTION_CREDENTIALS_KEY: &str = "notion";
 
 #[derive(thiserror::Error, Debug)]
 pub enum InMemoryStorageError {

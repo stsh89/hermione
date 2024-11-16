@@ -2,8 +2,12 @@ use crate::support::{
     self, InMemoryStorage, MockNotionBackupBuilder, MockNotionStorage, MockNotionWorkspaceEntry,
 };
 use anyhow::Result;
+use chrono::Utc;
 use hermione_nexus::{
-    definitions::{BackupCredentials, BackupProviderKind, NotionBackupCredentialsParameters},
+    definitions::{
+        BackupCredentials, BackupProviderKind, NotionBackupCredentialsParameters, Workspace,
+        WorkspaceParameters,
+    },
     operations::{ImportWorkspacesOperation, ImportWorkspacesOperationParameters},
 };
 use std::rc::Rc;
@@ -72,6 +76,45 @@ fn it_restores_workspaces_from_notion() -> Result<()> {
 
         assert_eq!(workspace.name(), "Ironman");
         assert_eq!(workspace.location(), Some("/home/ironman"));
+        assert_eq!(workspace.last_access_time(), None);
+
+        Ok(())
+    })
+}
+
+#[test]
+fn it_updates_existing_workspaces_with_data_from_notion() -> Result<()> {
+    with_notion_background(|ctx| {
+        let ImportWorkspacesFromNotionBackground {
+            storage,
+            notion_storage,
+        } = ctx;
+
+        support::insert_workspace(
+            &storage,
+            Workspace::new(WorkspaceParameters {
+                id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa".parse()?,
+                last_access_time: Some(Utc::now()),
+                location: Some("/home/avenger".to_string()),
+                name: "Avenger".to_string(),
+            })?,
+        );
+
+        ImportWorkspacesOperation::new(ImportWorkspacesOperationParameters {
+            backup_credentials_provider: &storage,
+            upsert_workspaces_provider: &storage,
+            backup_provider_builder: &MockNotionBackupBuilder {
+                storage: Rc::new(notion_storage),
+            },
+        })
+        .execute(BackupProviderKind::Notion)?;
+
+        let workspace =
+            support::get_workspace(&storage, "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa".parse()?);
+
+        assert_eq!(workspace.name(), "Ironman");
+        assert_eq!(workspace.location(), Some("/home/ironman"));
+        assert_eq!(workspace.last_access_time(), None);
 
         Ok(())
     })
