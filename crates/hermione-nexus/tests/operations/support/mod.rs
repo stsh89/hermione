@@ -1,6 +1,5 @@
 mod backup;
 mod clipboard;
-mod notion_storage;
 mod storage;
 mod system;
 
@@ -10,14 +9,12 @@ use hermione_nexus::definitions::{
     WorkspaceParameters,
 };
 use serde_json::Value as Json;
+use uuid::Uuid;
 
 pub use backup::*;
 pub use clipboard::*;
-pub use notion_storage::*;
 pub use storage::*;
 pub use system::*;
-
-use uuid::Uuid;
 
 pub fn assert_command(command: &Command, parameters: Json) {
     let name = parameters["name"]
@@ -47,6 +44,34 @@ pub fn assert_command(command: &Command, parameters: Json) {
     assert_eq!(command.workspace_id().to_string(), workspace_id);
 }
 
+pub fn assert_notion_backup_credentials(backup_credentials: &BackupCredentials, parameters: Json) {
+    let api_key = parameters["api_key"].as_str().unwrap().to_string();
+
+    let commands_database_id = parameters["commands_database_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let workspaces_database_id = parameters["workspaces_database_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let BackupCredentials::Notion(backup_credentials) = backup_credentials;
+
+    assert_eq!(backup_credentials.api_key(), api_key);
+
+    assert_eq!(
+        backup_credentials.commands_database_id(),
+        commands_database_id
+    );
+
+    assert_eq!(
+        backup_credentials.workspaces_database_id(),
+        workspaces_database_id
+    );
+}
+
 pub fn assert_workspace(workspace: &Workspace, parameters: Json) {
     let location = parameters["location"].as_str();
 
@@ -66,6 +91,15 @@ pub fn assert_workspace(workspace: &Workspace, parameters: Json) {
     assert_eq!(workspace.last_access_time(), last_access_time.as_ref());
 }
 
+pub fn get_clipboard_content(clipboard: &MockClipboard) -> String {
+    clipboard
+        .content
+        .read()
+        .expect("Should be able to get clipboard content")
+        .clone()
+        .unwrap_or_default()
+}
+
 pub fn get_command(storage: &InMemoryStorage, id: Uuid) -> Command {
     storage
         .commands
@@ -74,6 +108,16 @@ pub fn get_command(storage: &InMemoryStorage, id: Uuid) -> Command {
         .get(&id)
         .cloned()
         .unwrap_or_else(|| panic!("Command {} should exist", id.braced()))
+}
+
+pub fn get_notion_backup_credentials(storage: &InMemoryStorage) -> BackupCredentials {
+    storage
+        .backup_credentials
+        .read()
+        .expect("Should be able to get Notion backup credentials")
+        .get(NOTION_CREDENTIALS_KEY)
+        .cloned()
+        .unwrap_or_else(|| panic!("Notion backup credentials should exist"))
 }
 
 pub fn get_workspace(storage: &InMemoryStorage, id: Uuid) -> Workspace {
@@ -222,4 +266,14 @@ pub fn insert_notion_workspace(storage: &MockNotionStorage, parameters: Json) {
         .write()
         .expect("Should be able to insert Notion workspace")
         .insert(external_id, entry);
+}
+
+pub fn list_backup_credentials(storage: &InMemoryStorage) -> Vec<BackupCredentials> {
+    storage
+        .backup_credentials
+        .read()
+        .expect("Should be able to list backup credentials")
+        .values()
+        .cloned()
+        .collect()
 }

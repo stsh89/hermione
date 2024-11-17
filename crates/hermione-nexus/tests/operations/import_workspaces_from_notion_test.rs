@@ -1,4 +1,4 @@
-use crate::support::{self, InMemoryStorage, MockNotionBackupBuilder, MockNotionStorage};
+use crate::support::{self, InMemoryStorage, MockNotionBuilder, MockNotionStorage};
 use anyhow::Result;
 use chrono::NaiveDateTime;
 use hermione_nexus::{
@@ -38,7 +38,7 @@ impl ImportWorkspacesFromNotionTestContext {
         ImportWorkspacesOperation::new(ImportWorkspacesOperationParameters {
             backup_credentials_provider: &self.storage,
             upsert_workspaces_provider: &self.storage,
-            backup_provider_builder: &MockNotionBackupBuilder {
+            backup_provider_builder: &MockNotionBuilder {
                 storage: self.notion_storage.clone(),
             },
         })

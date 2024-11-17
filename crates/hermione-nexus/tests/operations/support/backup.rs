@@ -1,6 +1,3 @@
-use std::rc::Rc;
-
-use super::{MockNotionCommandEntry, MockNotionStorage, MockNotionWorkspaceEntry};
 use eyre::eyre;
 use hermione_nexus::{
     definitions::{
@@ -13,21 +10,66 @@ use hermione_nexus::{
     },
     Error, Result,
 };
+use std::{collections::HashMap, rc::Rc, sync::RwLock};
 use uuid::Uuid;
 
 const DEFAULT_PAGE_SIZE: usize = 10;
 
-pub struct MockNotionBackupBuilder {
+#[derive(Clone)]
+pub struct MockNotionCommandEntry {
+    pub external_id: String,
+    pub name: String,
+    pub program: String,
+    pub workspace_id: String,
+}
+
+pub struct MockNotionStorage {
+    pub api_key: String,
+    pub commands_database_id: String,
+    pub workspaces_database_id: String,
+    pub commands: RwLock<HashMap<String, MockNotionCommandEntry>>,
+    pub workspaces: RwLock<HashMap<String, MockNotionWorkspaceEntry>>,
+}
+
+#[derive(Clone)]
+pub struct MockNotionWorkspaceEntry {
+    pub external_id: String,
+    pub name: String,
+    pub location: String,
+}
+
+impl MockNotionStorage {
+    pub fn empty() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for MockNotionStorage {
+    fn default() -> Self {
+        MockNotionStorage {
+            api_key: "test_api_key".to_string(),
+            commands_database_id: "test_commands_database_id".to_string(),
+            workspaces_database_id: "test_workspaces_database_id".to_string(),
+            commands: Default::default(),
+            workspaces: Default::default(),
+        }
+    }
+}
+
+pub struct MockNotionBuilder {
     pub storage: Rc<MockNotionStorage>,
 }
 
-pub struct MockNotionBackup {
+pub struct MockNotion {
     pub storage: Rc<MockNotionStorage>,
     pub credentials: NotionBackupCredentials,
 }
 
-impl MockNotionBackup {
+impl MockNotion {
     pub fn insert_command(&self, command: MockNotionCommandEntry) -> Result<()> {
+        self.verify_api_key()?;
+        self.verify_commands_database_id()?;
+
         let mut commands = self.storage.commands.write().map_err(|_err| {
             Error::Backup(eyre!(
                 "Commands blocked for writing, can't proceed with command {{{}}} backup",
@@ -41,6 +83,9 @@ impl MockNotionBackup {
     }
 
     pub fn insert_workspace(&self, workspace: MockNotionWorkspaceEntry) -> Result<()> {
+        self.verify_api_key()?;
+        self.verify_workspaces_database_id()?;
+
         let mut workspaces = self.storage.workspaces.write().map_err(|_err| {
             Error::Backup(eyre!(
                 "Workspaces blocked for writing, can't proceed with workspace {{{}}} backup",
@@ -54,6 +99,9 @@ impl MockNotionBackup {
     }
 
     pub fn list_commands(&self, index: usize) -> Result<Vec<Command>> {
+        self.verify_api_key()?;
+        self.verify_commands_database_id()?;
+
         let mut commands: Vec<MockNotionCommandEntry> = self
             .storage
             .commands
@@ -80,6 +128,9 @@ impl MockNotionBackup {
     }
 
     pub fn list_workspaces(&self, index: usize) -> Result<Vec<Workspace>> {
+        self.verify_api_key()?;
+        self.verify_workspaces_database_id()?;
+
         let mut workspaces: Vec<MockNotionWorkspaceEntry> = self
             .storage
             .workspaces
@@ -113,7 +164,7 @@ impl MockNotionBackup {
         Err(Error::Backup(eyre!("Invalid API key")))
     }
 
-    fn verify_workspace_database_id(&self) -> Result<()> {
+    fn verify_workspaces_database_id(&self) -> Result<()> {
         if self.credentials.workspaces_database_id() == self.storage.workspaces_database_id {
             return Ok(());
         }
@@ -121,7 +172,7 @@ impl MockNotionBackup {
         Err(Error::Backup(eyre!("Invalid workspaces database ID")))
     }
 
-    fn verify_command_database_id(&self) -> Result<()> {
+    fn verify_commands_database_id(&self) -> Result<()> {
         if self.credentials.commands_database_id() == self.storage.commands_database_id {
             return Ok(());
         }
@@ -130,11 +181,11 @@ impl MockNotionBackup {
     }
 }
 
-impl MockNotionBackupBuilder {
-    pub fn build(&self, credentials: BackupCredentials) -> MockNotionBackup {
+impl MockNotionBuilder {
+    pub fn build(&self, credentials: BackupCredentials) -> MockNotion {
         let BackupCredentials::Notion(credentials) = credentials;
 
-        MockNotionBackup {
+        MockNotion {
             storage: self.storage.clone(),
             credentials,
         }
@@ -149,15 +200,15 @@ fn index_from_str(page_id: Option<&str>) -> Result<usize> {
         .map_err(|_err| Error::Backup(eyre!("Invalid requested page ID: {}", page_id)))
 }
 
-impl BackupServiceBuilder<MockNotionBackup> for MockNotionBackupBuilder {
-    fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<MockNotionBackup> {
+impl BackupServiceBuilder<MockNotion> for MockNotionBuilder {
+    fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<MockNotion> {
         Ok(self.build(credentials.clone()))
     }
 }
 
-impl BackupService for MockNotionBackup {}
+impl BackupService for MockNotion {}
 
-impl ListCommandsBackup for MockNotionBackup {
+impl ListCommandsBackup for MockNotion {
     fn list_commands_backup(
         &self,
         page_id: Option<&str>,
@@ -173,14 +224,11 @@ impl ListCommandsBackup for MockNotionBackup {
     }
 }
 
-impl ListWorkspacesBackup for MockNotionBackup {
+impl ListWorkspacesBackup for MockNotion {
     fn list_workspaces_backup(
         &self,
         page_id: Option<&str>,
     ) -> Result<Option<(Vec<Workspace>, Option<String>)>> {
-        self.verify_api_key()?;
-        self.verify_workspace_database_id()?;
-
         let index = index_from_str(page_id)?;
         let workspaces: Vec<Workspace> = self.list_workspaces(index)?;
 
@@ -192,7 +240,7 @@ impl ListWorkspacesBackup for MockNotionBackup {
     }
 }
 
-impl UpsertCommandsBackup for MockNotionBackup {
+impl UpsertCommandsBackup for MockNotion {
     fn upsert_commands_backup(&self, commands: Vec<Command>) -> hermione_nexus::Result<()> {
         for command in commands {
             self.insert_command(command.into())?;
@@ -202,7 +250,7 @@ impl UpsertCommandsBackup for MockNotionBackup {
     }
 }
 
-impl UpsertWorkspacesBackup for MockNotionBackup {
+impl UpsertWorkspacesBackup for MockNotion {
     fn upsert_workspaces_backup(&self, workspaces: Vec<Workspace>) -> hermione_nexus::Result<()> {
         for workspace in workspaces {
             self.insert_workspace(workspace.into())?;
@@ -212,11 +260,11 @@ impl UpsertWorkspacesBackup for MockNotionBackup {
     }
 }
 
-impl VerifyBackupCredentials for MockNotionBackup {
+impl VerifyBackupCredentials for MockNotion {
     fn verify_backup_credentials(&self) -> Result<bool> {
         self.verify_api_key()?;
-        self.verify_command_database_id()?;
-        self.verify_workspace_database_id()?;
+        self.verify_commands_database_id()?;
+        self.verify_workspaces_database_id()?;
 
         Ok(true)
     }
@@ -250,24 +298,24 @@ impl TryFrom<MockNotionCommandEntry> for Command {
     type Error = Error;
 
     fn try_from(value: MockNotionCommandEntry) -> Result<Self> {
+        let id = value.external_id.parse().map_err(|_err| {
+            Error::Backup(eyre!("Invalid command ID: {{{}}}", value.external_id))
+        })?;
+
+        let workspace_id = value.workspace_id.parse::<Uuid>().map_err(|_err| {
+            Error::Backup(eyre!(
+                "Command {{{}}} has an invalid workspace ID: {{{}}}",
+                value.external_id,
+                value.workspace_id,
+            ))
+        })?;
+
         Command::new(CommandParameters {
-            id: value.external_id.parse().map_err(|_err| {
-                Error::Backup(eyre!("Invalid command ID: {{{}}}", value.external_id))
-            })?,
+            id,
             last_execute_time: None,
             name: value.name,
             program: value.program,
-            workspace_id: value
-                .workspace_id
-                .parse::<Uuid>()
-                .map_err(|_err| {
-                    Error::Backup(eyre!(
-                        "Command {{{}}} has an invalid workspace ID: {{{}}}",
-                        value.external_id,
-                        value.workspace_id,
-                    ))
-                })?
-                .into(),
+            workspace_id: workspace_id.into(),
         })
     }
 }
@@ -276,10 +324,12 @@ impl TryFrom<MockNotionWorkspaceEntry> for Workspace {
     type Error = Error;
 
     fn try_from(value: MockNotionWorkspaceEntry) -> Result<Self> {
+        let id = value.external_id.parse().map_err(|_err| {
+            Error::Backup(eyre!("Invalid workspace ID: {{{}}}", value.external_id))
+        })?;
+
         Workspace::new(WorkspaceParameters {
-            id: value.external_id.parse().map_err(|_err| {
-                Error::Backup(eyre!("Invalid workspace ID: {{{}}}", value.external_id))
-            })?,
+            id,
             name: value.name,
             location: Some(value.location),
             last_access_time: None,

@@ -1,56 +1,84 @@
-use crate::solutions::{backup_credentials_fixture, InMemoryStorage};
+use crate::support::{self, InMemoryStorage};
+use anyhow::Result;
 use hermione_nexus::{
-    definitions::BackupProviderKind, operations::DeleteBackupCredentialsOperation, Error, Result,
+    definitions::BackupProviderKind, operations::DeleteBackupCredentialsOperation, Error,
 };
+use serde_json::json;
 
-struct DeleteBackupCredentialsOperationTestContext {
+#[derive(Default)]
+struct DeleteBackupCredentialsTestContext {
     storage: InMemoryStorage,
+    error: Option<Error>,
 }
 
-fn with_context<T>(test_fn: T) -> Result<()>
-where
-    T: FnOnce(DeleteBackupCredentialsOperationTestContext) -> Result<()>,
-{
-    let storage = InMemoryStorage::default();
+impl DeleteBackupCredentialsTestContext {
+    fn assert_error_contains_message(&self, message: &str) {
+        assert_eq!(self.error.as_ref().unwrap().to_string(), message);
+    }
 
-    test_fn(DeleteBackupCredentialsOperationTestContext { storage })
+    fn assert_storage_backup_credentials_empty(&self) {
+        assert!(support::list_backup_credentials(&self.storage).is_empty());
+    }
+
+    fn delete_notion_backup_credentials(&self) -> Result<()> {
+        self.execute_operation(BackupProviderKind::Notion)?;
+
+        Ok(())
+    }
+
+    fn execute_operation(
+        &self,
+        backup_provider_kind: BackupProviderKind,
+    ) -> hermione_nexus::Result<()> {
+        DeleteBackupCredentialsOperation {
+            find_provider: &self.storage,
+            delete_provider: &self.storage,
+        }
+        .execute(&backup_provider_kind)
+    }
+
+    fn try_to_delete_notion_backup_credentials(&mut self) -> Result<()> {
+        let error = self
+            .execute_operation(BackupProviderKind::Notion)
+            .unwrap_err();
+
+        self.error = Some(error);
+
+        Ok(())
+    }
+
+    fn with_notion_background() -> Self {
+        let context = Self::default();
+
+        support::insert_notion_backup_credentials(
+            &context.storage,
+            json!({
+                "api_key": "test_api_key",
+                "commands_database_id": "test_commands_database_id",
+                "workspaces_database_id": "test_workspaces_database_id",
+            }),
+        );
+
+        context
+    }
 }
 
 #[test]
 fn it_deletes_backup_credentials() -> Result<()> {
-    with_context(|ctx| {
-        let DeleteBackupCredentialsOperationTestContext { storage } = ctx;
+    let context = DeleteBackupCredentialsTestContext::with_notion_background();
 
-        let credentials = backup_credentials_fixture(Default::default());
-        storage.insert_backup_credentials(credentials)?;
+    context.delete_notion_backup_credentials()?;
+    context.assert_storage_backup_credentials_empty();
 
-        assert_eq!(storage.count_backup_credentials()?, 1);
-
-        DeleteBackupCredentialsOperation {
-            find_provider: &storage,
-            delete_provider: &storage,
-        }
-        .execute(&BackupProviderKind::Notion)?;
-
-        assert_eq!(storage.count_backup_credentials()?, 0);
-
-        Ok(())
-    })
+    Ok(())
 }
 
 #[test]
 fn it_returns_not_found_error() -> Result<()> {
-    with_context(|ctx| {
-        let DeleteBackupCredentialsOperationTestContext { storage } = ctx;
+    let mut context = DeleteBackupCredentialsTestContext::default();
 
-        let result = DeleteBackupCredentialsOperation {
-            find_provider: &storage,
-            delete_provider: &storage,
-        }
-        .execute(&BackupProviderKind::Notion);
+    context.try_to_delete_notion_backup_credentials()?;
+    context.assert_error_contains_message("Backup credentials not found");
 
-        assert!(matches!(result, Err(Error::NotFound(_))));
-
-        Ok(())
-    })
+    Ok(())
 }

@@ -12,11 +12,11 @@ struct CopyCommandToClipboardTestContext {
 
 impl CopyCommandToClipboardTestContext {
     fn assert_clipbard_contains_program(&self, program: &str) {
-        assert_eq!(self.clipboard.content().unwrap().as_deref(), Some(program));
+        assert_eq!(support::get_clipboard_content(&self.clipboard), program);
     }
 
     fn assert_clipbard_is_empty(&self) {
-        assert_eq!(self.clipboard.content().unwrap(), None);
+        assert!(support::get_clipboard_content(&self.clipboard).is_empty());
     }
 
     fn assert_error_contains_message(&self, message: &str) {
