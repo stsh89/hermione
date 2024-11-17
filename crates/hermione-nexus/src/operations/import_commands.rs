@@ -1,3 +1,4 @@
+use super::GetBackupCredentialsOperation;
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
     services::{
@@ -7,7 +8,6 @@ use crate::{
     Result,
 };
 use std::marker::PhantomData;
-use super::GetBackupCredentialsOperation;
 
 pub struct ImportCommandsOperation<'a, BCP, UCP, BPB, BP>
 where
