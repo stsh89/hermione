@@ -1,86 +1,112 @@
-use crate::support::{
-    command_fixture, workspace_fixture, CommandFixtureParameters, InMemoryStorage, MockClipboard,
-};
-use hermione_nexus::{
-    definitions::Command, operations::CopyCommandToClipboardOperation, Error, Result,
-};
+use crate::support::{self, InMemoryStorage, MockClipboard};
+use hermione_nexus::{operations::CopyCommandToClipboardOperation, Error, Result};
+use serde_json::json;
+use serde_json::Value as Json;
 use uuid::Uuid;
 
-struct CopyCommandToClipboardOperationTestContext {
-    clipboard: MockClipboard,
-    command: Command,
+struct CopyCommandToClipboardTestContext {
     storage: InMemoryStorage,
+    clipboard: MockClipboard,
+    error: Option<Error>,
 }
 
-fn with_context<T>(test_fn: T) -> Result<()>
-where
-    T: FnOnce(CopyCommandToClipboardOperationTestContext) -> Result<()>,
-{
-    let storage = InMemoryStorage::default();
-    let clipboard = MockClipboard::default();
+impl CopyCommandToClipboardTestContext {
+    fn assert_clipbard_contains_program(&self, program: &str) {
+        assert_eq!(self.clipboard.content().unwrap().as_deref(), Some(program));
+    }
 
-    let workspace = workspace_fixture(Default::default())?;
-    let command = command_fixture(
-        &workspace,
-        CommandFixtureParameters {
-            program: Some("ping 1.1.1.1".to_string()),
-            ..Default::default()
-        },
-    )?;
+    fn assert_clipbard_is_empty(&self) {
+        assert_eq!(self.clipboard.content().unwrap(), None);
+    }
 
-    storage.insert_workspace(&workspace)?;
-    storage.insert_command(&command)?;
+    fn assert_error_contains_message(&self, message: &str) {
+        assert_eq!(self.error.as_ref().unwrap().to_string(), message);
+    }
 
-    test_fn(CopyCommandToClipboardOperationTestContext {
-        storage,
-        clipboard,
-        command,
-    })
+    fn copy_command_to_clipboard(&self, command_id: &str) -> Result<()> {
+        let id: Uuid = command_id.parse().unwrap();
+
+        CopyCommandToClipboardOperation {
+            storage_provider: &self.storage,
+            clipboard_provider: &self.clipboard,
+        }
+        .execute(&id.into())?;
+
+        Ok(())
+    }
+
+    fn try_to_copy_command_to_clipboard(&mut self, command_id: &str) -> Result<()> {
+        let id: Uuid = command_id.parse().unwrap();
+
+        let error = CopyCommandToClipboardOperation {
+            storage_provider: &self.storage,
+            clipboard_provider: &self.clipboard,
+        }
+        .execute(&id.into())
+        .unwrap_err();
+
+        self.error = Some(error);
+
+        Ok(())
+    }
+
+    fn with_background() -> Self {
+        let context = Self {
+            storage: InMemoryStorage::empty(),
+            clipboard: MockClipboard::empty(),
+            error: None,
+        };
+
+        storage_contains_workspace(
+            &context,
+            json!({
+                "id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
+                "name": "Ironman",
+                "location": "/home/ironman",
+            }),
+        );
+
+        storage_contains_command(
+            &context,
+            json!({
+                "id": "51280bfc-2eea-444a-8df9-a1e7158c2c6b",
+                "workspace_id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
+                "name": "Ping",
+                "program": "ping 1.1.1.1",
+            }),
+        );
+
+        context
+    }
+}
+
+fn storage_contains_workspace(context: &CopyCommandToClipboardTestContext, parameters: Json) {
+    support::insert_workspace(&context.storage, parameters);
+}
+
+fn storage_contains_command(context: &CopyCommandToClipboardTestContext, parameters: Json) {
+    support::insert_command(&context.storage, parameters);
 }
 
 #[test]
 fn it_copies_command_to_clipboard() -> Result<()> {
-    with_context(|ctx| {
-        let CopyCommandToClipboardOperationTestContext {
-            storage,
-            clipboard,
-            command,
-        } = ctx;
+    let context = CopyCommandToClipboardTestContext::with_background();
 
-        assert!(clipboard.content()?.is_none());
+    context.copy_command_to_clipboard("51280bfc-2eea-444a-8df9-a1e7158c2c6b")?;
+    context.assert_clipbard_contains_program("ping 1.1.1.1");
 
-        CopyCommandToClipboardOperation {
-            storage_provider: &storage,
-            clipboard_provider: &clipboard,
-        }
-        .execute(command.id())?;
-
-        assert_eq!(clipboard.content()?.as_deref(), Some("ping 1.1.1.1"));
-
-        Ok(())
-    })
+    Ok(())
 }
 
 #[test]
 fn it_returns_not_found_error() -> Result<()> {
-    with_context(|ctx| {
-        let CopyCommandToClipboardOperationTestContext {
-            storage,
-            clipboard,
-            command: _,
-        } = ctx;
+    let mut context = CopyCommandToClipboardTestContext::with_background();
 
-        clipboard.set_content("Get-ChildItem")?;
+    context.try_to_copy_command_to_clipboard("00000000-0000-0000-0000-000000000000")?;
 
-        let result = CopyCommandToClipboardOperation {
-            storage_provider: &storage,
-            clipboard_provider: &clipboard,
-        }
-        .execute(&Uuid::nil().into());
+    context.assert_clipbard_is_empty();
+    context
+        .assert_error_contains_message("Command {00000000-0000-0000-0000-000000000000} not found");
 
-        assert!(matches!(result, Err(Error::NotFound(_))));
-        assert_eq!(clipboard.content()?.as_deref(), Some("Get-ChildItem"));
-
-        Ok(())
-    })
+    Ok(())
 }

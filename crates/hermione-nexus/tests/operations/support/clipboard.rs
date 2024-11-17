@@ -22,6 +22,10 @@ impl MockClipboard {
         Ok(text.clone())
     }
 
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
     pub fn set_content(&self, text: &str) -> Result<(), MockClipboardError> {
         *self.content.write()? = Some(text.to_string());
 

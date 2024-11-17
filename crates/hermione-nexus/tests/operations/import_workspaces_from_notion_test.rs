@@ -9,12 +9,12 @@ use serde_json::json;
 use serde_json::Value as Json;
 use std::rc::Rc;
 
-struct TestContext {
+struct ImportWorkspacesFromNotionTestContext {
     storage: InMemoryStorage,
     notion_storage: Rc<MockNotionStorage>,
 }
 
-impl TestContext {
+impl ImportWorkspacesFromNotionTestContext {
     fn assert_storage_contains_workspace(&self, parameters: Json) {
         let id = parameters["id"].as_str().unwrap().parse().unwrap();
 
@@ -48,7 +48,7 @@ impl TestContext {
     }
 
     fn with_background() -> Self {
-        let ctx = TestContext {
+        let ctx = ImportWorkspacesFromNotionTestContext {
             storage: InMemoryStorage::empty(),
             notion_storage: Rc::new(MockNotionStorage::empty()),
         };
@@ -75,21 +75,27 @@ impl TestContext {
     }
 }
 
-fn storage_contains_valid_backup_credentials(ctx: &TestContext, parameters: Json) {
+fn storage_contains_valid_backup_credentials(
+    ctx: &ImportWorkspacesFromNotionTestContext,
+    parameters: Json,
+) {
     support::insert_notion_backup_credentials(&ctx.storage, parameters)
 }
 
-fn storage_contains_workspace(ctx: &TestContext, parameters: Json) {
+fn storage_contains_workspace(ctx: &ImportWorkspacesFromNotionTestContext, parameters: Json) {
     support::insert_workspace(&ctx.storage, parameters);
 }
 
-fn notion_storage_contains_workspace_entry(ctx: &TestContext, parameters: Json) {
+fn notion_storage_contains_workspace_entry(
+    ctx: &ImportWorkspacesFromNotionTestContext,
+    parameters: Json,
+) {
     support::insert_notion_workspace(&ctx.notion_storage, parameters);
 }
 
 #[test]
 fn it_restores_workspaces() -> Result<()> {
-    let context = TestContext::with_background();
+    let context = ImportWorkspacesFromNotionTestContext::with_background();
 
     context.import_workspaces_to_notion()?;
 
@@ -105,7 +111,7 @@ fn it_restores_workspaces() -> Result<()> {
 
 #[test]
 fn it_updates_existing_workspaces() -> Result<()> {
-    let context = TestContext::with_background();
+    let context = ImportWorkspacesFromNotionTestContext::with_background();
 
     storage_contains_workspace(
         &context,

@@ -7,7 +7,8 @@ mod system;
 
 use chrono::NaiveDateTime;
 use hermione_nexus::definitions::{
-    BackupCredentials, Command, NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
+    BackupCredentials, Command, CommandParameters, NotionBackupCredentialsParameters, Workspace,
+    WorkspaceParameters,
 };
 use serde_json::Value as Json;
 
@@ -116,6 +117,51 @@ pub fn insert_notion_backup_credentials(storage: &InMemoryStorage, parameters: J
         .insert(NOTION_CREDENTIALS_KEY.to_string(), credentials);
 }
 
+pub fn insert_command(storage: &InMemoryStorage, parameters: Json) {
+    let id = parameters["id"]
+        .as_str()
+        .expect("Insert command parameters should have `id` key")
+        .parse()
+        .expect("Insert command parameters should have valid `id` value");
+
+    let last_execute_time = parameters["last_execute_time"].as_str().map(|value| {
+        NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S")
+            .expect("Insert command parameters should have valid `last_execute_time` value")
+            .and_utc()
+    });
+
+    let name = parameters["name"]
+        .as_str()
+        .map(ToString::to_string)
+        .unwrap_or_default();
+
+    let program = parameters["program"]
+        .as_str()
+        .map(ToString::to_string)
+        .unwrap_or_default();
+
+    let workspace_id: Uuid = parameters["workspace_id"]
+        .as_str()
+        .expect("Insert command parameters should have `workspace_id` key")
+        .parse()
+        .expect("Insert command parameters should have valid `workspace_id` value");
+
+    let command = Command::new(CommandParameters {
+        id,
+        name,
+        program,
+        last_execute_time,
+        workspace_id: workspace_id.into(),
+    })
+    .expect("Command should be valid");
+
+    storage
+        .commands
+        .write()
+        .expect("Should be able to insert command")
+        .insert(**command.id(), command);
+}
+
 pub fn insert_workspace(storage: &InMemoryStorage, parameters: Json) {
     let id = parameters["id"]
         .as_str()
@@ -133,6 +179,7 @@ pub fn insert_workspace(storage: &InMemoryStorage, parameters: Json) {
         .as_str()
         .map(ToString::to_string)
         .unwrap_or_default();
+
     let location = parameters["location"].as_str().map(ToString::to_string);
 
     let workspace = Workspace::new(WorkspaceParameters {
