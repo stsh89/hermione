@@ -31,16 +31,31 @@ pub fn get_workspace(storage: &InMemoryStorage, id: Uuid) -> Workspace {
 }
 
 pub fn insert_notion_backup_credentials(storage: &InMemoryStorage, parameters: Json) {
+    let api_key = parameters["api_key"]
+        .as_str()
+        .expect("Insert Notion credentials parameters should have `api_key` key")
+        .to_string();
+
+    let commands_database_id = parameters["commands_database_id"]
+        .as_str()
+        .expect("Insert Notion credentials parameters should have `commands_database_id` key")
+        .to_string();
+
+    let workspaces_database_id = parameters["workspaces_database_id"]
+        .as_str()
+        .expect("Insert Notion credentials parameters should have `workspaces_database_id` key")
+        .to_string();
+
     let credentials = BackupCredentials::notion(NotionBackupCredentialsParameters {
-        api_key: parameters["api_key"].to_string(),
-        commands_database_id: parameters["commands_database_id"].to_string(),
-        workspaces_database_id: parameters["workspaces_database_id"].to_string(),
+        api_key,
+        commands_database_id,
+        workspaces_database_id,
     });
 
     storage
         .backup_credentials
         .write()
-        .expect("Should be able to insert backup credentials")
+        .expect("Should be able to insert Notion backup credentials")
         .insert(NOTION_CREDENTIALS_KEY.to_string(), credentials);
 }
 

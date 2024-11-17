@@ -104,6 +104,30 @@ impl MockNotionBackup {
 
         Ok(workspaces)
     }
+
+    fn verify_api_key(&self) -> Result<()> {
+        if self.credentials.api_key() == self.storage.api_key {
+            return Ok(());
+        }
+
+        Err(Error::Backup(eyre!("Invalid API key")))
+    }
+
+    fn verify_workspace_database_id(&self) -> Result<()> {
+        if self.credentials.workspaces_database_id() == self.storage.workspaces_database_id {
+            return Ok(());
+        }
+
+        Err(Error::Backup(eyre!("Invalid workspaces database ID")))
+    }
+
+    fn verify_command_database_id(&self) -> Result<()> {
+        if self.credentials.commands_database_id() == self.storage.commands_database_id {
+            return Ok(());
+        }
+
+        Err(Error::Backup(eyre!("Invalid commands database ID")))
+    }
 }
 
 impl MockNotionBackupBuilder {
@@ -154,6 +178,9 @@ impl ListWorkspacesBackup for MockNotionBackup {
         &self,
         page_id: Option<&str>,
     ) -> Result<Option<(Vec<Workspace>, Option<String>)>> {
+        self.verify_api_key()?;
+        self.verify_workspace_database_id()?;
+
         let index = index_from_str(page_id)?;
         let workspaces: Vec<Workspace> = self.list_workspaces(index)?;
 
@@ -187,23 +214,9 @@ impl UpsertWorkspacesBackup for MockNotionBackup {
 
 impl VerifyBackupCredentials for MockNotionBackup {
     fn verify_backup_credentials(&self) -> Result<bool> {
-        if self.credentials.api_key() != self.storage.api_key {
-            return Err(Error::Backup(eyre!(
-                "Failed to verify backup credentials: invalid API key"
-            )));
-        }
-
-        if self.credentials.commands_database_id() != self.storage.commands_database_id {
-            return Err(Error::Backup(eyre!(
-                "Failed to verify backup credentials: invalid commands database ID"
-            )));
-        }
-
-        if self.credentials.workspaces_database_id() != self.storage.workspaces_database_id {
-            return Err(Error::Backup(eyre!(
-                "Failed to verify backup credentials: invalid workspaces database ID"
-            )));
-        }
+        self.verify_api_key()?;
+        self.verify_command_database_id()?;
+        self.verify_workspace_database_id()?;
 
         Ok(true)
     }
