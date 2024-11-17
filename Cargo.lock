@@ -331,6 +331,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "eyre",
+ "serde_json",
  "thiserror",
  "tracing",
  "uuid",

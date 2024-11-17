@@ -82,6 +82,10 @@ impl InMemoryStorage {
         Ok(workspaces.len())
     }
 
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
     fn get_backup_credentials(
         &self,
         kind: &str,

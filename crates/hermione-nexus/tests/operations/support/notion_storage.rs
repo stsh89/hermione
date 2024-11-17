@@ -23,6 +23,12 @@ pub struct MockNotionWorkspaceEntry {
     pub location: String,
 }
 
+impl MockNotionStorage {
+    pub fn empty() -> Self {
+        Self::default()
+    }
+}
+
 impl Default for MockNotionStorage {
     fn default() -> Self {
         MockNotionStorage {
