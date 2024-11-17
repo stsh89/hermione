@@ -1,4 +1,5 @@
 use chrono::Utc;
+use eyre::eyre;
 use hermione_nexus::{
     definitions::{
         BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters, Workspace,
@@ -12,37 +13,12 @@ use hermione_nexus::{
         NewWorkspaceParameters, SaveBackupCredentials, StorageService, TrackCommandExecuteTime,
         TrackWorkspaceAccessTime, UpdateCommand, UpdateWorkspace, UpsertCommands, UpsertWorkspaces,
     },
-    Error,
+    Error, Result,
 };
-use std::{
-    collections::HashMap,
-    num::NonZeroU32,
-    sync::{PoisonError, RwLock},
-};
+use std::{collections::HashMap, sync::RwLock};
 use uuid::Uuid;
 
 pub const NOTION_CREDENTIALS_KEY: &str = "notion";
-
-#[derive(thiserror::Error, Debug)]
-pub enum InMemoryStorageError {
-    #[error("Data integrity error: {0}")]
-    DataItegrity(String),
-
-    #[error("Invalid page number: {0}")]
-    InvalidPageNumber(u32),
-
-    #[error("Invalid page size: {0}")]
-    InvalidPageSize(u32),
-
-    #[error("Memory access error: {0}")]
-    MemoryAccess(String),
-
-    #[error("{entry_name} entry with ID {entry_id} is missing")]
-    MissingEntry {
-        entry_name: &'static str,
-        entry_id: Uuid,
-    },
-}
 
 #[derive(Default)]
 pub struct InMemoryStorage {
@@ -52,66 +28,83 @@ pub struct InMemoryStorage {
 }
 
 impl InMemoryStorage {
-    pub fn backup_credentials(&self) -> Result<Vec<BackupCredentials>, InMemoryStorageError> {
-        let credentials = self.backup_credentials.read()?;
+    pub fn list_backup_credentials(&self) -> Result<Vec<BackupCredentials>> {
+        let credentials = self.backup_credentials.read()
+            .map_err(|_err| Error::Storage(eyre!("Backup credentials blocked for reading, can't proceed with backup credentials listing")))?;
 
         Ok(credentials.values().cloned().collect())
     }
 
-    pub fn commands(&self) -> Result<Vec<Command>, InMemoryStorageError> {
-        let commands = self.commands.read()?;
+    pub fn list_commands(&self) -> Result<Vec<Command>> {
+        let commands = self.commands.read().map_err(|_err| {
+            Error::Storage(eyre!(
+                "Commands blocked for reading, can't proceed with commands listing"
+            ))
+        })?;
 
         Ok(commands.values().cloned().collect())
-    }
-
-    pub fn count_backup_credentials(&self) -> Result<usize, InMemoryStorageError> {
-        let count = self.backup_credentials.read()?.len();
-
-        Ok(count)
-    }
-
-    pub fn count_commands(&self) -> Result<usize, InMemoryStorageError> {
-        let commands = self.commands.read()?;
-
-        Ok(commands.len())
-    }
-
-    pub fn count_workspaces(&self) -> Result<usize, InMemoryStorageError> {
-        let workspaces = self.workspaces.read()?;
-
-        Ok(workspaces.len())
     }
 
     pub fn empty() -> Self {
         Self::default()
     }
 
-    fn get_backup_credentials(
-        &self,
-        kind: &str,
-    ) -> Result<Option<BackupCredentials>, InMemoryStorageError> {
-        let credentials = self.backup_credentials.read()?.get(kind).cloned();
+    fn get_backup_credentials(&self, kind: &str) -> Result<Option<BackupCredentials>> {
+        let credentials = self
+            .backup_credentials
+            .read()
+            .map_err(|_err| {
+                Error::Storage(eyre!(
+                    "Backup credentials blocked for reading, can't get {} backup credentials",
+                    kind
+                ))
+            })?
+            .get(kind)
+            .cloned();
 
         Ok(credentials)
     }
 
-    pub fn get_command(&self, id: &Uuid) -> Result<Option<Command>, InMemoryStorageError> {
-        let command = self.commands.read()?.get(id).cloned();
+    pub fn get_command(&self, id: &Uuid) -> Result<Option<Command>> {
+        let command = self
+            .commands
+            .read()
+            .map_err(|_err| {
+                Error::Storage(eyre!(
+                    "Commands blocked for reading, can't get command {}",
+                    id.braced()
+                ))
+            })?
+            .get(id)
+            .cloned();
 
         Ok(command)
     }
 
-    pub fn get_workspace(&self, id: &Uuid) -> Result<Option<Workspace>, InMemoryStorageError> {
-        let workspace = self.workspaces.read()?.get(id).cloned();
+    pub fn get_workspace(&self, id: &Uuid) -> Result<Option<Workspace>> {
+        let workspace = self
+            .workspaces
+            .read()
+            .map_err(|_err| {
+                Error::Storage(eyre!(
+                    "Workspaces blocked for reading, can't get workspace {}",
+                    id.braced()
+                ))
+            })?
+            .get(id)
+            .cloned();
 
         Ok(workspace)
     }
 
-    pub fn insert_backup_credentials(
-        &self,
-        credentials: BackupCredentials,
-    ) -> Result<(), InMemoryStorageError> {
-        let mut collection = self.backup_credentials.write()?;
+    pub fn insert_backup_credentials(&self, credentials: BackupCredentials) -> Result<()> {
+        let mut collection = self.backup_credentials.write()
+            .map_err(|_err| {
+                Error::Storage(eyre!(
+                    "Backup credentials blocked for writing, can't proceed with backup credentials insert"
+                ))
+            })
+        ?;
 
         let key = match &credentials {
             BackupCredentials::Notion(_) => NOTION_CREDENTIALS_KEY.to_string(),
@@ -122,67 +115,83 @@ impl InMemoryStorage {
         Ok(())
     }
 
-    pub fn insert_command(&self, command: &Command) -> Result<(), InMemoryStorageError> {
-        let mut commands = self.commands.write()?;
-
-        if self.get_workspace(command.workspace_id())?.is_none() {
-            return Err(InMemoryStorageError::DataItegrity(
-                "Attempt to add command to non-existent workspace".to_string(),
-            ));
-        }
+    pub fn insert_command(&self, command: &Command) -> Result<()> {
+        let mut commands = self.commands.write().map_err(|_err| {
+            Error::Storage(eyre!(
+                "Commands blocked for writing, can't proceed with command insert",
+            ))
+        })?;
 
         commands.insert(**command.id(), command.clone());
 
         Ok(())
     }
 
-    pub fn insert_workspace(&self, workspace: &Workspace) -> Result<(), InMemoryStorageError> {
-        let mut workspaces = self.workspaces.write()?;
+    pub fn insert_workspace(&self, workspace: &Workspace) -> Result<()> {
+        let mut workspaces = self.workspaces.write().map_err(|_err| {
+            Error::Storage(eyre!(
+                "Workspaces blocked for writing, can't proceed with workspace insert"
+            ))
+        })?;
 
         workspaces.insert(**workspace.id(), workspace.clone());
 
         Ok(())
     }
 
-    fn remove_backup_credentials(&self, kind: &str) -> Result<(), InMemoryStorageError> {
-        let mut credentials = self.backup_credentials.write()?;
+    fn remove_backup_credentials(&self, kind: &str) -> Result<()> {
+        let mut credentials = self.backup_credentials.write().map_err(|_err| {
+            Error::Storage(eyre!(
+                "Backup credentials blocked for writing, can't remove {} backup credentials",
+                kind
+            ))
+        })?;
 
         credentials.remove(kind);
 
         Ok(())
     }
 
-    fn remove_command(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
-        let mut commands = self.commands.write()?;
+    fn remove_command(&self, id: &Uuid) -> Result<()> {
+        let mut commands = self.commands.write().map_err(|_err| {
+            Error::Storage(eyre!(
+                "Commands blocked for writing, can't remove command {}",
+                id.braced()
+            ))
+        })?;
 
         commands.remove(id);
 
         Ok(())
     }
 
-    fn remove_workspace_commands(
-        &self,
-        workspace_id: &WorkspaceId,
-    ) -> Result<(), InMemoryStorageError> {
-        let mut commands = self.commands.write()?;
+    fn remove_workspace_commands(&self, workspace_id: &WorkspaceId) -> Result<()> {
+        let mut commands = self.commands.write().map_err(|_err| {
+            Error::Storage(eyre!(
+                "Commands blocked for writing, can't remove commands from workspace {}",
+                **workspace_id
+            ))
+        })?;
 
         commands.retain(|_id, command| command.workspace_id() != workspace_id);
 
         Ok(())
     }
 
-    fn remove_workspace(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
-        let mut workspace = self
-            .workspaces
-            .write()
-            .map_err(Into::<InMemoryStorageError>::into)?;
+    fn remove_workspace(&self, id: &Uuid) -> Result<()> {
+        let mut workspace = self.workspaces.write().map_err(|_err| {
+            Error::Storage(eyre!(
+                "Workspaces blocked for writing, can't remove workspace {}",
+                id.braced()
+            ))
+        })?;
 
         workspace.remove(id);
 
         Ok(())
     }
 
-    fn set_command_execute_time(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
+    fn set_command_execute_time(&self, id: &Uuid) -> Result<()> {
         let command = self.get_command(id)?;
 
         let Some(mut command) = command else {
@@ -196,7 +205,7 @@ impl InMemoryStorage {
         Ok(())
     }
 
-    fn set_workspace_access_time(&self, id: &Uuid) -> Result<(), InMemoryStorageError> {
+    fn set_workspace_access_time(&self, id: &Uuid) -> Result<()> {
         let workspace = self.get_workspace(id)?;
 
         let Some(mut workspace) = workspace else {
@@ -210,37 +219,21 @@ impl InMemoryStorage {
         Ok(())
     }
 
-    pub fn workspaces(&self) -> Result<Vec<Workspace>, InMemoryStorageError> {
-        let workspaces = self.workspaces.read()?;
+    pub fn list_workspaces(&self) -> Result<Vec<Workspace>> {
+        let workspaces = self.workspaces.read().map_err(|_err| {
+            Error::Storage(eyre!(
+                "Workspaces blocked for reading, can't proceed with workspaces listing"
+            ))
+        })?;
 
         Ok(workspaces.values().cloned().collect())
-    }
-}
-
-pub fn page_size(size: u32) -> Result<NonZeroU32, InMemoryStorageError> {
-    NonZeroU32::new(size).ok_or(InMemoryStorageError::InvalidPageSize(size))
-}
-
-pub fn page_number(size: u32) -> Result<NonZeroU32, InMemoryStorageError> {
-    NonZeroU32::new(size).ok_or(InMemoryStorageError::InvalidPageNumber(size))
-}
-
-impl<T> From<PoisonError<T>> for InMemoryStorageError {
-    fn from(err: PoisonError<T>) -> Self {
-        Self::MemoryAccess(err.to_string())
-    }
-}
-
-impl From<InMemoryStorageError> for Error {
-    fn from(err: InMemoryStorageError) -> Self {
-        Self::Storage(eyre::Error::new(err))
     }
 }
 
 impl StorageService for InMemoryStorage {}
 
 impl CreateCommand for InMemoryStorage {
-    fn create_command(&self, parameters: NewCommandParameters) -> Result<Command, Error> {
+    fn create_command(&self, parameters: NewCommandParameters) -> Result<Command> {
         let NewCommandParameters {
             name,
             program,
@@ -262,7 +255,7 @@ impl CreateCommand for InMemoryStorage {
 }
 
 impl CreateWorkspace for InMemoryStorage {
-    fn create_workspace(&self, parameters: NewWorkspaceParameters) -> Result<Workspace, Error> {
+    fn create_workspace(&self, parameters: NewWorkspaceParameters) -> Result<Workspace> {
         let NewWorkspaceParameters { name, location } = parameters;
 
         let workspace = Workspace::new(WorkspaceParameters {
@@ -279,7 +272,7 @@ impl CreateWorkspace for InMemoryStorage {
 }
 
 impl DeleteBackupCredentials for InMemoryStorage {
-    fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> hermione_nexus::Result<()> {
+    fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> Result<()> {
         let key = match kind {
             BackupProviderKind::Notion => NOTION_CREDENTIALS_KEY,
             BackupProviderKind::Unknown => return Ok(()),
@@ -292,7 +285,7 @@ impl DeleteBackupCredentials for InMemoryStorage {
 }
 
 impl DeleteCommand for InMemoryStorage {
-    fn delete_command(&self, id: &CommandId) -> hermione_nexus::Result<()> {
+    fn delete_command(&self, id: &CommandId) -> Result<()> {
         self.remove_command(id)?;
 
         Ok(())
@@ -300,7 +293,7 @@ impl DeleteCommand for InMemoryStorage {
 }
 
 impl DeleteWorkspaceCommands for InMemoryStorage {
-    fn delete_workspace_commands(&self, id: &WorkspaceId) -> hermione_nexus::Result<()> {
+    fn delete_workspace_commands(&self, id: &WorkspaceId) -> Result<()> {
         self.remove_workspace_commands(id)?;
 
         Ok(())
@@ -308,7 +301,7 @@ impl DeleteWorkspaceCommands for InMemoryStorage {
 }
 
 impl DeleteWorkspace for InMemoryStorage {
-    fn delete_workspace(&self, id: &WorkspaceId) -> hermione_nexus::Result<()> {
+    fn delete_workspace(&self, id: &WorkspaceId) -> Result<()> {
         self.remove_workspace(id)?;
 
         Ok(())
@@ -319,7 +312,7 @@ impl FindBackupCredentials for InMemoryStorage {
     fn find_backup_credentials(
         &self,
         kind: &BackupProviderKind,
-    ) -> Result<Option<BackupCredentials>, Error> {
+    ) -> Result<Option<BackupCredentials>> {
         let key = match kind {
             BackupProviderKind::Notion => NOTION_CREDENTIALS_KEY,
             BackupProviderKind::Unknown => return Ok(None),
@@ -332,7 +325,7 @@ impl FindBackupCredentials for InMemoryStorage {
 }
 
 impl FindCommand for InMemoryStorage {
-    fn find_command(&self, id: &CommandId) -> Result<Option<Command>, Error> {
+    fn find_command(&self, id: &CommandId) -> Result<Option<Command>> {
         let command = self.get_command(id)?;
 
         Ok(command)
@@ -340,7 +333,7 @@ impl FindCommand for InMemoryStorage {
 }
 
 impl FindWorkspace for InMemoryStorage {
-    fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>, Error> {
+    fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>> {
         let workspaces = self.get_workspace(id)?;
 
         Ok(workspaces)
@@ -348,15 +341,15 @@ impl FindWorkspace for InMemoryStorage {
 }
 
 impl ListBackupCredentials for InMemoryStorage {
-    fn list_backup_credentials(&self) -> Result<Vec<BackupCredentials>, Error> {
-        let credentials = self.backup_credentials()?;
+    fn list_backup_credentials(&self) -> Result<Vec<BackupCredentials>> {
+        let credentials = self.list_backup_credentials()?;
 
         Ok(credentials)
     }
 }
 
 impl ListCommands for InMemoryStorage {
-    fn list_commands(&self, parameters: FilterCommandsParameters) -> Result<Vec<Command>, Error> {
+    fn list_commands(&self, parameters: FilterCommandsParameters) -> Result<Vec<Command>> {
         let FilterCommandsParameters {
             program_contains,
             page_number,
@@ -365,7 +358,7 @@ impl ListCommands for InMemoryStorage {
         } = parameters;
 
         let mut commands = self
-            .commands()?
+            .list_commands()?
             .into_iter()
             .filter(|command| {
                 let contains_program = if let Some(program_contains) = program_contains {
@@ -396,10 +389,7 @@ impl ListCommands for InMemoryStorage {
 }
 
 impl ListWorkspaces for InMemoryStorage {
-    fn list_workspaces(
-        &self,
-        parameters: FilterWorkspacesParameters,
-    ) -> Result<Vec<Workspace>, Error> {
+    fn list_workspaces(&self, parameters: FilterWorkspacesParameters) -> Result<Vec<Workspace>> {
         let FilterWorkspacesParameters {
             name_contains,
             page_number,
@@ -407,7 +397,7 @@ impl ListWorkspaces for InMemoryStorage {
         } = parameters;
 
         let mut workspaces = self
-            .workspaces()?
+            .list_workspaces()?
             .into_iter()
             .filter(|workspace| {
                 if let Some(name_contains) = name_contains {
@@ -430,7 +420,7 @@ impl ListWorkspaces for InMemoryStorage {
 }
 
 impl SaveBackupCredentials for InMemoryStorage {
-    fn save_backup_credentials(&self, credentials: &BackupCredentials) -> Result<(), Error> {
+    fn save_backup_credentials(&self, credentials: &BackupCredentials) -> Result<()> {
         self.insert_backup_credentials(credentials.clone())?;
 
         Ok(())
@@ -438,7 +428,7 @@ impl SaveBackupCredentials for InMemoryStorage {
 }
 
 impl TrackCommandExecuteTime for InMemoryStorage {
-    fn track_command_execute_time(&self, id: &CommandId) -> Result<(), Error> {
+    fn track_command_execute_time(&self, id: &CommandId) -> Result<()> {
         self.set_command_execute_time(id)?;
 
         Ok(())
@@ -446,7 +436,7 @@ impl TrackCommandExecuteTime for InMemoryStorage {
 }
 
 impl TrackWorkspaceAccessTime for InMemoryStorage {
-    fn track_workspace_access_time(&self, id: &WorkspaceId) -> Result<(), Error> {
+    fn track_workspace_access_time(&self, id: &WorkspaceId) -> Result<()> {
         self.set_workspace_access_time(id)?;
 
         Ok(())
@@ -454,7 +444,7 @@ impl TrackWorkspaceAccessTime for InMemoryStorage {
 }
 
 impl UpdateCommand for InMemoryStorage {
-    fn update_command(&self, parameters: EditCommandParameters) -> Result<(), Error> {
+    fn update_command(&self, parameters: EditCommandParameters) -> Result<()> {
         let EditCommandParameters { id, name, program } = parameters;
 
         let mut command = self
@@ -471,7 +461,7 @@ impl UpdateCommand for InMemoryStorage {
 }
 
 impl UpsertCommands for InMemoryStorage {
-    fn upsert_commands(&self, commands: Vec<Command>) -> Result<(), Error> {
+    fn upsert_commands(&self, commands: Vec<Command>) -> Result<()> {
         for command in commands {
             self.insert_command(&command)?;
         }
@@ -481,7 +471,7 @@ impl UpsertCommands for InMemoryStorage {
 }
 
 impl UpdateWorkspace for InMemoryStorage {
-    fn update_workspace(&self, parameters: EditWorkspaceParameters) -> Result<(), Error> {
+    fn update_workspace(&self, parameters: EditWorkspaceParameters) -> Result<()> {
         let EditWorkspaceParameters { id, location, name } = parameters;
 
         let mut workspace = self
@@ -498,7 +488,7 @@ impl UpdateWorkspace for InMemoryStorage {
 }
 
 impl UpsertWorkspaces for InMemoryStorage {
-    fn upsert_workspaces(&self, workspaces: Vec<Workspace>) -> Result<(), Error> {
+    fn upsert_workspaces(&self, workspaces: Vec<Workspace>) -> Result<()> {
         for workspace in workspaces {
             self.insert_workspace(&workspace)?;
         }

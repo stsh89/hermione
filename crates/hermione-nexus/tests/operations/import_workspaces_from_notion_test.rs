@@ -1,6 +1,5 @@
 use crate::support::{self, InMemoryStorage, MockNotionBuilder, MockNotionStorage};
 use anyhow::Result;
-use chrono::NaiveDateTime;
 use hermione_nexus::{
     definitions::BackupProviderKind,
     operations::{ImportWorkspacesOperation, ImportWorkspacesOperationParameters},
@@ -17,21 +16,9 @@ struct ImportWorkspacesFromNotionTestContext {
 impl ImportWorkspacesFromNotionTestContext {
     fn assert_storage_contains_workspace(&self, parameters: Json) {
         let id = parameters["id"].as_str().unwrap().parse().unwrap();
-
-        let last_access_time = parameters["last_access_time"].as_str().map(|value| {
-            NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S")
-                .unwrap()
-                .and_utc()
-        });
-
-        let name = parameters["name"].as_str().unwrap_or_default();
-        let location = parameters["location"].as_str();
-
         let workspace = support::get_workspace(&self.storage, id);
 
-        assert_eq!(workspace.name(), name);
-        assert_eq!(workspace.location(), location);
-        assert_eq!(workspace.last_access_time(), last_access_time.as_ref());
+        support::assert_workspace(&workspace, parameters);
     }
 
     fn import_workspaces_to_notion(&self) -> Result<()> {
@@ -62,7 +49,7 @@ impl ImportWorkspacesFromNotionTestContext {
             }),
         );
 
-        storage_contains_valid_backup_credentials(
+        storage_contains_valid_notion_backup_credentials(
             &ctx,
             json!({
                 "api_key": "test_api_key",
@@ -75,7 +62,7 @@ impl ImportWorkspacesFromNotionTestContext {
     }
 }
 
-fn storage_contains_valid_backup_credentials(
+fn storage_contains_valid_notion_backup_credentials(
     ctx: &ImportWorkspacesFromNotionTestContext,
     parameters: Json,
 ) {

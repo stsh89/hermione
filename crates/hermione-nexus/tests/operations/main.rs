@@ -11,6 +11,7 @@ mod delete_backup_credentials_test;
 // mod get_command_test;
 // mod get_workspace_test;
 // mod import_test;
+mod import_commands_from_notion_test;
 mod import_workspaces_from_notion_test;
 // mod list_backup_credentials_test;
 // mod list_commands_test;

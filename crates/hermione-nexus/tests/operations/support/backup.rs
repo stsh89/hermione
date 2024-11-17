@@ -108,7 +108,7 @@ impl MockNotion {
             .read()
             .map_err(|_err| {
                 Error::Backup(eyre!(
-                    "Commands blocked for reading, can't proceed with command listing"
+                    "Commands blocked for reading, can't proceed with commands listing"
                 ))
             })?
             .values()

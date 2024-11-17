@@ -1,40 +1,39 @@
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
     services::{
-        BackupService, BackupServiceBuilder, FindBackupCredentials, ListWorkspacesBackup,
-        StorageService, UpsertWorkspaces,
+        BackupService, BackupServiceBuilder, FindBackupCredentials, ListCommandsBackup,
+        StorageService, UpsertCommands,
     },
     Result,
 };
 use std::marker::PhantomData;
-
 use super::GetBackupCredentialsOperation;
 
-pub struct ImportWorkspacesOperation<'a, BCP, UWP, BPB, BP>
+pub struct ImportCommandsOperation<'a, BCP, UCP, BPB, BP>
 where
     BCP: StorageService,
-    UWP: StorageService,
+    UCP: StorageService,
     BPB: BackupServiceBuilder<BP>,
     BP: BackupService,
 {
     backup_credentials_provider: &'a BCP,
-    upsert_workspaces_provider: &'a UWP,
+    upsert_commands_provider: &'a UCP,
     backup_provider_builder: &'a BPB,
     backup_provider: PhantomData<BP>,
 }
 
-pub struct ImportWorkspacesOperationParameters<'a, BCP, IUWP, BPB> {
+pub struct ImportCommandsOperationParameters<'a, BCP, UCP, BPB> {
     pub backup_credentials_provider: &'a BCP,
-    pub upsert_workspaces_provider: &'a IUWP,
+    pub upsert_commands_provider: &'a UCP,
     pub backup_provider_builder: &'a BPB,
 }
 
-impl<'a, BCP, UWP, BPB, BP> ImportWorkspacesOperation<'a, BCP, UWP, BPB, BP>
+impl<'a, BCP, UCP, BPB, BP> ImportCommandsOperation<'a, BCP, UCP, BPB, BP>
 where
     BCP: FindBackupCredentials,
-    UWP: UpsertWorkspaces,
+    UCP: UpsertCommands,
     BPB: BackupServiceBuilder<BP>,
-    BP: ListWorkspacesBackup,
+    BP: ListCommandsBackup,
 {
     fn build_backup_provider(&self, credentials: BackupCredentials) -> Result<BP> {
         self.backup_provider_builder
@@ -42,12 +41,12 @@ where
     }
 
     pub fn execute(&self, backup_provider_kind: BackupProviderKind) -> Result<()> {
-        tracing::info!(operation = "Import workspaces");
+        tracing::info!(operation = "Import commands");
 
         let credentials = self.get_backup_credentials(backup_provider_kind)?;
         let backup_provider = self.build_backup_provider(credentials)?;
 
-        self.import_workspaces(backup_provider)?;
+        self.import_commands(backup_provider)?;
 
         Ok(())
     }
@@ -62,14 +61,13 @@ where
         .execute(&backup_provider_kind)
     }
 
-    fn import_workspaces(&self, backup_provider: BP) -> Result<()> {
+    fn import_commands(&self, backup_provider: BP) -> Result<()> {
         let mut page_id = None;
 
-        while let Some((workspaces, next_page_id)) =
-            backup_provider.list_workspaces_backup(page_id.as_deref())?
+        while let Some((commands, next_page_id)) =
+            backup_provider.list_commands_backup(page_id.as_deref())?
         {
-            self.upsert_workspaces_provider
-                .upsert_workspaces(workspaces)?;
+            self.upsert_commands_provider.upsert_commands(commands)?;
 
             if next_page_id.is_none() {
                 break;
@@ -81,16 +79,16 @@ where
         Ok(())
     }
 
-    pub fn new(parameters: ImportWorkspacesOperationParameters<'a, BCP, UWP, BPB>) -> Self {
-        let ImportWorkspacesOperationParameters {
+    pub fn new(parameters: ImportCommandsOperationParameters<'a, BCP, UCP, BPB>) -> Self {
+        let ImportCommandsOperationParameters {
             backup_credentials_provider,
-            upsert_workspaces_provider,
+            upsert_commands_provider,
             backup_provider_builder,
         } = parameters;
 
-        ImportWorkspacesOperation {
+        ImportCommandsOperation {
             backup_credentials_provider,
-            upsert_workspaces_provider,
+            upsert_commands_provider,
             backup_provider_builder,
             backup_provider: PhantomData,
         }

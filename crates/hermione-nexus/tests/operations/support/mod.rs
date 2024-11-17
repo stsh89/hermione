@@ -239,10 +239,45 @@ pub fn insert_workspace(storage: &InMemoryStorage, parameters: Json) {
         .insert(**workspace.id(), workspace);
 }
 
+pub fn insert_notion_command(storage: &MockNotionStorage, parameters: Json) {
+    let external_id = parameters["external_id"]
+        .as_str()
+        .expect("Insert Notion command parameters should have `external_id` key")
+        .to_string();
+
+    let name = parameters["name"]
+        .as_str()
+        .expect("Insert Notion command parameters should have `name` key")
+        .to_string();
+
+    let program = parameters["program"]
+        .as_str()
+        .expect("Insert Notion command parameters should have `program` key")
+        .to_string();
+
+    let workspace_id = parameters["workspace_id"]
+        .as_str()
+        .expect("Insert Notion command parameters should have `workspace_id` key")
+        .to_string();
+
+    let entry = MockNotionCommandEntry {
+        external_id: external_id.clone(),
+        name,
+        program,
+        workspace_id,
+    };
+
+    storage
+        .commands
+        .write()
+        .expect("Should be able to insert Notion command")
+        .insert(external_id, entry);
+}
+
 pub fn insert_notion_workspace(storage: &MockNotionStorage, parameters: Json) {
     let external_id = parameters["external_id"]
         .as_str()
-        .expect("Insert notion workspace parameters should have `external_id` key")
+        .expect("Insert Notion workspace parameters should have `external_id` key")
         .to_string();
 
     let name = parameters["name"]
