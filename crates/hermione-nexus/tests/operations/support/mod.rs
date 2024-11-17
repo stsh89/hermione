@@ -1,6 +1,5 @@
 mod backup;
 mod clipboard;
-mod fixtures;
 mod notion_storage;
 mod storage;
 mod system;
@@ -14,7 +13,6 @@ use serde_json::Value as Json;
 
 pub use backup::*;
 pub use clipboard::*;
-pub use fixtures::*;
 pub use notion_storage::*;
 pub use storage::*;
 pub use system::*;
