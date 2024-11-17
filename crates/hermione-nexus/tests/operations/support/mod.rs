@@ -7,7 +7,7 @@ mod system;
 
 use chrono::NaiveDateTime;
 use hermione_nexus::definitions::{
-    BackupCredentials, NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
+    BackupCredentials, Command, NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
 };
 use serde_json::Value as Json;
 
@@ -19,6 +19,63 @@ pub use storage::*;
 pub use system::*;
 
 use uuid::Uuid;
+
+pub fn assert_command(command: &Command, parameters: Json) {
+    let name = parameters["name"]
+        .as_str()
+        .expect("Assert command parameters should have `name` key")
+        .to_string();
+
+    let program = parameters["program"]
+        .as_str()
+        .expect("Assert command parameters should have `program` key")
+        .to_string();
+
+    let last_execute_time = parameters["last_execute_time"].as_str().map(|value| {
+        NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S")
+            .expect("Assert command parameters should have valid `last_execute_time` value")
+            .and_utc()
+    });
+
+    let workspace_id = parameters["workspace_id"]
+        .as_str()
+        .expect("Assert command parameters should have `workspace_id` key")
+        .to_string();
+
+    assert_eq!(command.name(), name);
+    assert_eq!(command.program(), program);
+    assert_eq!(command.last_execute_time(), last_execute_time.as_ref());
+    assert_eq!(command.workspace_id().to_string(), workspace_id);
+}
+
+pub fn assert_workspace(workspace: &Workspace, parameters: Json) {
+    let location = parameters["location"].as_str();
+
+    let name = parameters["name"]
+        .as_str()
+        .expect("Assert workspace parameters should have `name` key")
+        .to_string();
+
+    let last_access_time = parameters["last_access_time"].as_str().map(|value| {
+        NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S")
+            .expect("Assert workspace parameters should have valid `last_access_time` value")
+            .and_utc()
+    });
+
+    assert_eq!(workspace.name(), name);
+    assert_eq!(workspace.location(), location);
+    assert_eq!(workspace.last_access_time(), last_access_time.as_ref());
+}
+
+pub fn get_command(storage: &InMemoryStorage, id: Uuid) -> Command {
+    storage
+        .commands
+        .read()
+        .expect("Should be able to get command")
+        .get(&id)
+        .cloned()
+        .unwrap_or_else(|| panic!("Command {} should exist", id.braced()))
+}
 
 pub fn get_workspace(storage: &InMemoryStorage, id: Uuid) -> Workspace {
     storage

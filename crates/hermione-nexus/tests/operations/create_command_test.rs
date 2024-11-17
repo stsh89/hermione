@@ -1,49 +1,99 @@
-use crate::support::{workspace_fixture, InMemoryStorage};
+use crate::support::{self, InMemoryStorage};
+use anyhow::Result;
 use hermione_nexus::{
-    definitions::Workspace,
+    definitions::Command,
     operations::{CreateCommandOperation, CreateCommandParameters},
-    Result,
 };
+use serde_json::{json, Value as Json};
+use uuid::Uuid;
 
-struct CreateCommandOperationTestContext {
+struct TestContext {
     storage: InMemoryStorage,
-    workspace: Workspace,
+    command: Option<Command>,
 }
 
-fn with_context<T>(test_fn: T) -> Result<()>
-where
-    T: FnOnce(CreateCommandOperationTestContext) -> Result<()>,
-{
-    let storage = InMemoryStorage::default();
-    let workspace = workspace_fixture(Default::default())?;
+impl TestContext {
+    fn assert_returned_command(&self, parameters: Json) {
+        let command = self.command();
 
-    storage.insert_workspace(&workspace)?;
+        support::assert_command(command, parameters);
+    }
 
-    test_fn(CreateCommandOperationTestContext { storage, workspace })
+    fn assert_storage_contains_command(&self, parameters: Json) {
+        let command = self.command();
+        let command = support::get_command(&self.storage, **command.id());
+
+        support::assert_command(&command, parameters);
+    }
+
+    fn command(&self) -> &Command {
+        self.command.as_ref().unwrap()
+    }
+
+    fn create_command(&mut self, parameters: Json) -> Result<()> {
+        let name = parameters["name"].as_str().unwrap();
+        let program = parameters["program"].as_str().unwrap();
+        let workspace_id = parameters["workspace_id"].as_str().unwrap();
+
+        let command = CreateCommandOperation {
+            storage_provider: &self.storage,
+        }
+        .execute(CreateCommandParameters {
+            name: name.to_string(),
+            program: program.to_string(),
+            workspace_id: workspace_id.parse::<Uuid>().unwrap().into(),
+        })?;
+
+        self.command = Some(command);
+
+        Ok(())
+    }
+
+    fn with_background() -> TestContext {
+        let context = TestContext {
+            storage: InMemoryStorage::default(),
+            command: None,
+        };
+
+        storage_contains_workspace(
+            &context,
+            json!({
+                "id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
+                "name": "Ironman",
+            }),
+        );
+
+        context
+    }
+}
+
+fn storage_contains_workspace(context: &TestContext, parameters: Json) {
+    support::insert_workspace(&context.storage, parameters);
 }
 
 #[test]
 fn it_creates_command() -> Result<()> {
-    with_context(|ctx| {
-        let CreateCommandOperationTestContext { storage, workspace } = ctx;
+    let mut context = TestContext::with_background();
 
-        assert_eq!(storage.count_commands()?, 0);
+    context.create_command(json!({
+        "name": "Ping",
+        "program": "ping 1.1.1.1",
+        "workspace_id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
+    }))?;
 
-        let command = CreateCommandOperation {
-            storage_provider: &storage,
-        }
-        .execute(CreateCommandParameters {
-            name: "Test command".to_string(),
-            program: "ping 1.1.1.1".to_string(),
-            workspace_id: workspace.id().clone(),
-        })?;
+    context.assert_returned_command(json!({
+        "name": "Ping",
+        "program": "ping 1.1.1.1",
+        "last_execute_time": null,
+        "workspace_id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+    }));
 
-        assert_eq!(storage.count_commands()?, 1);
-        assert_eq!(command.name(), "Test command");
-        assert_eq!(command.program(), "ping 1.1.1.1");
-        assert_eq!(command.last_execute_time(), None);
-        assert_eq!(command.workspace_id(), workspace.id());
+    context.assert_storage_contains_command(json!({
+        "name": "Ping",
+        "program": "ping 1.1.1.1",
+        "last_execute_time": null,
+        "workspace_id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+    }));
 
-        Ok(())
-    })
+    Ok(())
 }
