@@ -1,9 +1,7 @@
 use hermione_drive::notion::{
     self, external_ids_filter, verify_commands_database_properties,
-    verify_workspaces_database_properties, CreateDatabaseEntryParameters, NotionApiClient,
-    NotionApiClientError, NotionApiClientParameters, NotionCommandProperties,
-    NotionWorkspaceProperties, QueryDatabaseParameters, QueryDatabaseResponse,
-    UpdateDatabaseEntryParameters,
+    verify_workspaces_database_properties, NotionCommandProperties, NotionWorkspaceProperties,
+    QueryDatabaseResponse,
 };
 use hermione_nexus::{
     definitions::{
@@ -15,6 +13,10 @@ use hermione_nexus::{
         UpsertCommandsBackup, UpsertWorkspacesBackup, VerifyBackupCredentials,
     },
     Error, Result,
+};
+use rust_notion_sync::{
+    CreateDatabaseEntryParameters, NotionApiClient, NotionApiClientError,
+    NotionApiClientParameters, QueryDatabaseParameters, UpdateDatabaseEntryParameters,
 };
 use std::num::NonZeroU32;
 use uuid::Uuid;
@@ -88,7 +90,7 @@ impl ListCommandsBackup for NotionBackup {
         &self,
         page_id: Option<&str>,
     ) -> Result<Option<(Vec<Command>, Option<String>)>> {
-        let response = notion::query_database(
+        let response = rust_notion_sync::query_database(
             &self.api_client,
             QueryDatabaseParameters {
                 database_id: &self.commands_database_id,
@@ -134,7 +136,7 @@ impl ListWorkspacesBackup for NotionBackup {
         &self,
         page_id: Option<&str>,
     ) -> Result<Option<(Vec<Workspace>, Option<String>)>> {
-        let response = notion::query_database(
+        let response = rust_notion_sync::query_database(
             &self.api_client,
             QueryDatabaseParameters {
                 database_id: &self.workspaces_database_id,
@@ -185,7 +187,7 @@ impl UpsertCommandsBackup for NotionBackup {
 
         let filter = external_ids_filter(external_ids);
 
-        let response = notion::query_database(
+        let response = rust_notion_sync::query_database(
             &self.api_client,
             QueryDatabaseParameters {
                 database_id: &self.commands_database_id,
@@ -206,7 +208,7 @@ impl UpsertCommandsBackup for NotionBackup {
                 .find(|p| p.properties.external_id == command.id().to_string());
 
             let Some(page) = page else {
-                notion::create_database_entry(&self.api_client, CreateDatabaseEntryParameters {
+                rust_notion_sync::create_database_entry(&self.api_client, CreateDatabaseEntryParameters {
                     database_id: &self.commands_database_id,
                     properties: serde_json::json!({
                         "Name": {"title": [{"text": {"content": command.name()}}]},
@@ -222,7 +224,7 @@ impl UpsertCommandsBackup for NotionBackup {
             if command.name() != page.properties.name
                 || command.program() != page.properties.program
             {
-                notion::update_database_entry(
+                rust_notion_sync::update_database_entry(
                     &self.api_client,
                     UpdateDatabaseEntryParameters {
                         entry_id: &page.page_id,
@@ -254,7 +256,7 @@ impl UpsertWorkspacesBackup for NotionBackup {
 
         let filter = external_ids_filter(external_ids);
 
-        let response = notion::query_database(
+        let response = rust_notion_sync::query_database(
             &self.api_client,
             QueryDatabaseParameters {
                 database_id: &self.workspaces_database_id,
@@ -275,7 +277,7 @@ impl UpsertWorkspacesBackup for NotionBackup {
                 .find(|p| p.properties.external_id == workspace.id().to_string());
 
             let Some(page) = page else {
-                notion::create_database_entry(&self.api_client, CreateDatabaseEntryParameters {
+                rust_notion_sync::create_database_entry(&self.api_client, CreateDatabaseEntryParameters {
                     database_id:  &self.workspaces_database_id,
                     properties: serde_json::json!({
                         "Name": {"title": [{"text": {"content": workspace.name()}}]},
@@ -290,7 +292,7 @@ impl UpsertWorkspacesBackup for NotionBackup {
             if workspace.name() != page.properties.name
                 || workspace.location().unwrap_or_default() != page.properties.location
             {
-                notion::update_database_entry(
+                rust_notion_sync::update_database_entry(
                     &self.api_client,
                     UpdateDatabaseEntryParameters {
                         entry_id: &page.page_id,
@@ -310,9 +312,11 @@ impl UpsertWorkspacesBackup for NotionBackup {
 
 impl VerifyBackupCredentials for NotionBackup {
     fn verify_backup_credentials(&self) -> Result<bool> {
-        let response =
-            notion::query_database_properties(&self.api_client, &self.commands_database_id)
-                .map_err(verification_error)?;
+        let response = rust_notion_sync::query_database_properties(
+            &self.api_client,
+            &self.commands_database_id,
+        )
+        .map_err(verification_error)?;
 
         let properties = notion::get_database_properties(response)?;
 
@@ -320,9 +324,11 @@ impl VerifyBackupCredentials for NotionBackup {
             return Ok(false);
         }
 
-        let response =
-            notion::query_database_properties(&self.api_client, &self.workspaces_database_id)
-                .map_err(verification_error)?;
+        let response = rust_notion_sync::query_database_properties(
+            &self.api_client,
+            &self.workspaces_database_id,
+        )
+        .map_err(verification_error)?;
 
         let properties = notion::get_database_properties(response)?;
 

@@ -18,5 +18,4 @@ uuid = { workspace = true }
 [dev-dependencies]
 anyhow = { workspace = true }
 chrono = { workspace = true }
-httpmock = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
