@@ -10,10 +10,13 @@ name = "hermione_drive"
 rusqlite = { workspace = true, features = ["array", "bundled"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+thiserror = { workspace = true }
 tracing = { workspace = true }
 ureq = { workspace = true, features = ["json"] }
 uuid = { workspace = true }
 
 [dev-dependencies]
+anyhow = { workspace = true }
 chrono = { workspace = true }
+httpmock = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }

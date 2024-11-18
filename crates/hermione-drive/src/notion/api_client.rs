@@ -1,14 +1,25 @@
 use serde_json::Value;
 use std::num::NonZeroU32;
-use ureq::{Agent, AgentBuilder, Error, Response};
+use ureq::{Agent, AgentBuilder, Request, Response};
 
-type Result<T> = std::result::Result<T, Error>;
+pub type NotionApiClientResult<T> = std::result::Result<T, NotionApiClientError>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum NotionApiClientError {
+    #[error("Notion API request rate limited for {0} seconds")]
+    RateLimit(u64),
+
+    #[error("Notion API request failed with status code {0}")]
+    Status(u16),
+
+    #[error("Notion API request failure: {0}")]
+    Transport(String),
+}
 
 const NOTION_BASE_URL: &str = "https://api.notion.com/v1";
-const DEFAULT_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(100) };
 
 pub struct NotionApiClient {
-    agent: Agent,
+    inner: Agent,
     base_url_override: Option<String>,
     api_key: String,
 }
@@ -36,85 +47,8 @@ pub struct UpdateDatabaseEntryParameters<'a> {
 }
 
 impl NotionApiClient {
-    #[allow(clippy::result_large_err)]
-    pub fn create_database_entry(
-        &self,
-        parameters: CreateDatabaseEntryParameters,
-    ) -> Result<Response> {
-        let CreateDatabaseEntryParameters {
-            database_id,
-            properties,
-        } = parameters;
-
-        let base_url = self.base_url_override.as_deref().unwrap_or(NOTION_BASE_URL);
-        let path = format!("{}/pages", base_url);
-
-        let body = serde_json::json!({
-            "parent": { "database_id": database_id },
-            "properties": properties,
-        });
-
-        self.agent
-            .post(&path)
-            .set("Content-Type", "application/json")
-            .set("Notion-Version", "2022-06-28")
-            .set("Authorization", &format!("Bearer {}", self.api_key))
-            .send_json(body)
-    }
-
-    #[allow(clippy::result_large_err)]
-    pub fn get_database_properties(&self, database_id: &str) -> Result<Response> {
-        let base_url = self.base_url_override.as_deref().unwrap_or(NOTION_BASE_URL);
-        let path = format!("{}/databases/{}", base_url, database_id);
-
-        self.agent
-            .get(&path)
-            .set("Content-Type", "application/json")
-            .set("Notion-Version", "2022-06-28")
-            .set("Authorization", &format!("Bearer {}", self.api_key))
-            .call()
-    }
-
-    #[allow(clippy::result_large_err)]
-    pub fn query_database(&self, parameters: QueryDatabaseParameters) -> Result<Response> {
-        let QueryDatabaseParameters {
-            database_id,
-            start_cursor,
-            page_size,
-            filter,
-        } = parameters;
-
-        let page_size = page_size.unwrap_or(DEFAULT_PAGE_SIZE).get();
-
-        tracing::info!(
-            message = "Query Notion database",
-            database_id = database_id,
-            page_size = page_size,
-            start_cursor = start_cursor
-        );
-
-        let base_url = self.base_url_override.as_deref().unwrap_or(NOTION_BASE_URL);
-        let path = format!("{}/databases/{}/query", base_url, database_id);
-
-        let mut body = serde_json::json!({
-            "page_size": page_size,
-        });
-
-        if let Some(start_cursor) = start_cursor {
-            body["start_cursor"] = start_cursor.into();
-        }
-
-        if let Some(filter) = filter {
-            body["filter"] = filter;
-        }
-
-        // TODO: process 429 error properly
-        self.agent
-            .post(&path)
-            .set("Content-Type", "application/json")
-            .set("Notion-Version", "2022-06-28")
-            .set("Authorization", &format!("Bearer {}", self.api_key))
-            .send_json(serde_json::json!(body))
+    fn base_url(&self) -> &str {
+        self.base_url_override.as_deref().unwrap_or(NOTION_BASE_URL)
     }
 
     pub fn new(parameters: NotionApiClientParameters) -> Self {
@@ -123,37 +57,339 @@ impl NotionApiClient {
             base_url_override,
         } = parameters;
 
-        let agent = AgentBuilder::new().build();
+        let inner = AgentBuilder::new().build();
 
         Self {
             api_key,
-            agent,
+            inner,
             base_url_override,
         }
     }
+}
 
-    #[allow(clippy::result_large_err)]
-    pub fn update_database_entry(
-        &self,
-        parameters: UpdateDatabaseEntryParameters,
-    ) -> Result<Response> {
-        let UpdateDatabaseEntryParameters {
-            entry_id,
-            properties,
-        } = parameters;
+pub fn create_database_entry(
+    client: &NotionApiClient,
+    parameters: CreateDatabaseEntryParameters,
+) -> NotionApiClientResult<Response> {
+    let CreateDatabaseEntryParameters {
+        database_id,
+        properties,
+    } = parameters;
 
-        let base_url = self.base_url_override.as_deref().unwrap_or(NOTION_BASE_URL);
-        let path = format!("{}/pages/{}", base_url, entry_id);
+    let path = format!("{}/pages", client.base_url());
 
-        let body = serde_json::json!({
-            "properties": properties,
+    let body = serde_json::json!({
+        "parent": { "database_id": database_id },
+        "properties": properties,
+    });
+
+    let request = client.inner.post(&path);
+    let request = set_default_headers(request);
+    let request = set_authorization_header(request, &client.api_key);
+
+    request.send_json(body).map_err(api_client_error)
+}
+
+pub fn query_database_properties(
+    client: &NotionApiClient,
+    database_id: &str,
+) -> NotionApiClientResult<Response> {
+    let path = format!("{}/databases/{}", client.base_url(), database_id);
+
+    let request = client.inner.get(&path);
+    let request = set_default_headers(request);
+    let request = set_authorization_header(request, &client.api_key);
+
+    request.call().map_err(api_client_error)
+}
+
+pub fn query_database(
+    client: &NotionApiClient,
+    parameters: QueryDatabaseParameters,
+) -> NotionApiClientResult<Response> {
+    let QueryDatabaseParameters {
+        database_id,
+        start_cursor,
+        page_size,
+        filter,
+    } = parameters;
+
+    let page_size = page_size
+        .unwrap_or(unsafe { NonZeroU32::new_unchecked(100) })
+        .get();
+
+    tracing::info!(
+        message = "Query Notion database",
+        database_id = database_id,
+        page_size = page_size,
+        start_cursor = start_cursor
+    );
+
+    let path = format!("{}/databases/{}/query", client.base_url(), database_id);
+    let mut body = serde_json::json!({"page_size": page_size});
+
+    if let Some(start_cursor) = start_cursor {
+        body["start_cursor"] = start_cursor.into();
+    }
+
+    if let Some(filter) = filter {
+        body["filter"] = filter;
+    }
+
+    let request = client.inner.post(&path);
+    let request = set_default_headers(request);
+    let request = set_authorization_header(request, &client.api_key);
+
+    request
+        .send_json(serde_json::json!(body))
+        .map_err(api_client_error)
+}
+
+pub fn send_with_retries<F>(f: F) -> NotionApiClientResult<Response>
+where
+    F: Fn() -> NotionApiClientResult<Response>,
+{
+    let max_retries = 3;
+    let mut retries = 0;
+
+    loop {
+        let result = f();
+
+        if result.is_ok() {
+            return result;
+        }
+
+        match result.unwrap_err() {
+            NotionApiClientError::RateLimit(seconds) => {
+                if retries == max_retries {
+                    tracing::error!(
+                        "Returning Notion API client error after {} retries",
+                        max_retries
+                    );
+
+                    return Err(NotionApiClientError::Status(429));
+                }
+
+                retries += 1;
+
+                std::thread::sleep(std::time::Duration::from_secs(seconds));
+            }
+            err => return Err(err),
+        }
+    }
+}
+
+pub fn update_database_entry(
+    client: &NotionApiClient,
+    parameters: UpdateDatabaseEntryParameters,
+) -> NotionApiClientResult<Response> {
+    let UpdateDatabaseEntryParameters {
+        entry_id,
+        properties,
+    } = parameters;
+
+    let path = format!("{}/pages/{}", client.base_url(), entry_id);
+    let body = serde_json::json!({"properties": properties});
+
+    let request = client.inner.patch(&path);
+    let request = set_default_headers(request);
+    let request = set_authorization_header(request, &client.api_key);
+
+    request.send_json(body).map_err(api_client_error)
+}
+
+fn api_client_error(err: ureq::Error) -> NotionApiClientError {
+    match err {
+        ureq::Error::Transport(err) => NotionApiClientError::Transport(err.to_string()),
+        ureq::Error::Status(429, response) => {
+            let retry_after = response.header("Retry-After").unwrap_or_else(|| {
+                tracing::warn!(
+                    "Notion API response returned 429 status code without Retry-After header"
+                );
+
+                "1"
+            });
+
+            let seconds = retry_after.parse::<u64>().unwrap_or_else (|_value| {
+                tracing::warn!("Notion API response returned 429 status code with invalid Retry-After header: {}", retry_after);
+
+                1
+            });
+
+            tracing::warn!("Notion API request rate limited for {} seconds", seconds);
+
+            NotionApiClientError::RateLimit(seconds)
+        }
+        ureq::Error::Status(code, _) => NotionApiClientError::Status(code),
+    }
+}
+
+fn set_authorization_header(request: Request, api_key: &str) -> Request {
+    request.set("Authorization", &format!("Bearer {}", api_key))
+}
+
+fn set_default_headers(request: Request) -> Request {
+    request
+        .set("Content-Type", "application/json")
+        .set("Notion-Version", "2022-06-28")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Result;
+    use httpmock::{
+        Method::{GET, PATCH, POST},
+        MockServer,
+    };
+    use serde_json::json;
+
+    #[test]
+    fn test_create_database_entry_returns_status_200() -> Result<()> {
+        let mock_notion_server = MockServer::start();
+        let base_url = mock_notion_server.base_url();
+        let database_id = "test_database_id";
+        let properties = json!({
+            "Name": {"title": [{"text": {"content": "Tuscan Kale"}}]}
         });
 
-        self.agent
-            .patch(&path)
-            .set("Content-Type", "application/json")
-            .set("Notion-Version", "2022-06-28")
-            .set("Authorization", &format!("Bearer {}", self.api_key))
-            .send_json(body)
+        let mock = mock_notion_server.mock(|when, then| {
+            when.path("/pages")
+                .method(POST)
+                .header("Authorization", "Bearer test_api_key")
+                .header("Content-Type", "application/json")
+                .header("Notion-Version", "2022-06-28")
+                .json_body(json!({
+                    "parent": {
+                        "database_id": database_id
+                    },
+                    "properties": properties
+                }));
+
+            then.status(200);
+        });
+
+        let client = NotionApiClient::new(NotionApiClientParameters {
+            base_url_override: Some(base_url),
+            api_key: "test_api_key".to_string(),
+        });
+
+        let result = create_database_entry(
+            &client,
+            CreateDatabaseEntryParameters {
+                database_id,
+                properties,
+            },
+        );
+
+        mock.assert();
+        assert_eq!(result?.status(), 200);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_database_properties_returns_status_200() -> Result<()> {
+        let mock_notion_server = MockServer::start();
+        let base_url = mock_notion_server.base_url();
+        let database_id = "test_database_id";
+
+        let mock = mock_notion_server.mock(|when, then| {
+            when.path("/databases/test_database_id")
+                .method(GET)
+                .header("Authorization", "Bearer test_api_key")
+                .header("Content-Type", "application/json")
+                .header("Notion-Version", "2022-06-28");
+
+            then.status(200);
+        });
+
+        let client = NotionApiClient::new(NotionApiClientParameters {
+            base_url_override: Some(base_url),
+            api_key: "test_api_key".to_string(),
+        });
+
+        let result = query_database_properties(&client, database_id);
+
+        mock.assert();
+        assert_eq!(result?.status(), 200);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_query_database_returns_status_200() -> Result<()> {
+        let mock_notion_server = MockServer::start();
+        let base_url = mock_notion_server.base_url();
+        let database_id = "test_database_id";
+
+        let mock = mock_notion_server.mock(|when, then| {
+            when.path("/databases/test_database_id/query")
+                .method(POST)
+                .header("Authorization", "Bearer test_api_key")
+                .header("Content-Type", "application/json")
+                .header("Notion-Version", "2022-06-28");
+
+            then.status(200);
+        });
+
+        let client = NotionApiClient::new(NotionApiClientParameters {
+            base_url_override: Some(base_url),
+            api_key: "test_api_key".to_string(),
+        });
+
+        let result = query_database(
+            &client,
+            QueryDatabaseParameters {
+                database_id,
+                page_size: None,
+                start_cursor: None,
+                filter: None,
+            },
+        );
+
+        mock.assert();
+        assert_eq!(result?.status(), 200);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_update_database_entry_returns_status_200() -> Result<()> {
+        let mock_notion_server = MockServer::start();
+        let base_url = mock_notion_server.base_url();
+        let entry_id = "test_entry_id";
+        let properties = json!({
+            "Name": {"title": [{"text": {"content": "Tuscan Kale"}}]}
+        });
+
+        let mock = mock_notion_server.mock(|when, then| {
+            when.path("/pages/test_entry_id")
+                .method(PATCH)
+                .header("Authorization", "Bearer test_api_key")
+                .header("Content-Type", "application/json")
+                .header("Notion-Version", "2022-06-28")
+                .json_body(json!({"properties": properties}));
+
+            then.status(200);
+        });
+
+        let client = NotionApiClient::new(NotionApiClientParameters {
+            base_url_override: Some(base_url),
+            api_key: "test_api_key".to_string(),
+        });
+
+        let result = update_database_entry(
+            &client,
+            UpdateDatabaseEntryParameters {
+                entry_id,
+                properties,
+            },
+        );
+
+        mock.assert();
+        assert_eq!(result?.status(), 200);
+
+        Ok(())
     }
 }
