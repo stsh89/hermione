@@ -727,7 +727,7 @@ dependencies = [
 [[package]]
 name = "rust-notion-sync"
 version = "0.1.0"
-source = "git+https://github.com/stsh89/rust-notion-sync.git?rev=e31ee4970683bd4e67b2fc4a1026ca2063856359#e31ee4970683bd4e67b2fc4a1026ca2063856359"
+source = "git+https://github.com/stsh89/rust-notion-sync.git?rev=5ea96131bb2ec0dde927091d35fb808761805751#5ea96131bb2ec0dde927091d35fb808761805751"
 dependencies = [
  "serde_json",
  "thiserror 2.0.3",
