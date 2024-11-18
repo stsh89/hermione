@@ -15,7 +15,7 @@ use hermione_nexus::{
     Error, Result,
 };
 use rust_notion_sync::{
-    Client, CreateDatabaseEntryParameters, ClientParameters, QueryDatabaseParameters,
+    Client, ClientParameters, CreateDatabaseEntryParameters, QueryDatabaseParameters,
     UpdateDatabaseEntryParameters,
 };
 use std::num::NonZeroU32;
