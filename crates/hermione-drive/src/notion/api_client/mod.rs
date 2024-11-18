@@ -1,52 +1,20 @@
-use serde_json::Value;
+mod failure;
+mod headers;
+mod parameters;
+
+use headers::{SetAuthorizationHeader, SetDefaultHeaders};
 use std::{num::NonZeroU32, thread, time::Duration};
-use ureq::{Agent, AgentBuilder, Request, Response};
+use ureq::{Agent, AgentBuilder, Response};
+
+pub use failure::Error as NotionApiClientError;
+pub use parameters::*;
 
 pub type NotionApiClientResult<T> = std::result::Result<T, NotionApiClientError>;
-
-#[derive(Debug, thiserror::Error)]
-pub enum NotionApiClientError {
-    #[error("Notion API request rate limited for {0:?}")]
-    RateLimit(Duration),
-
-    #[error("Notion API request failed with status code {0}")]
-    Status(u16),
-
-    #[error("Notion API request failure: {0}")]
-    Transport(String),
-}
 
 pub struct NotionApiClient {
     inner: Agent,
     base_url: String,
     api_key: String,
-}
-
-pub struct NotionApiClientParameters {
-    pub base_url_override: Option<String>,
-    pub api_key: String,
-}
-
-#[derive(Default)]
-pub struct RetryParameters<F> {
-    sleep_override: Option<F>,
-}
-
-pub struct QueryDatabaseParameters<'a> {
-    pub database_id: &'a str,
-    pub start_cursor: Option<&'a str>,
-    pub page_size: Option<NonZeroU32>,
-    pub filter: Option<Value>,
-}
-
-pub struct CreateDatabaseEntryParameters<'a> {
-    pub database_id: &'a str,
-    pub properties: Value,
-}
-
-pub struct UpdateDatabaseEntryParameters<'a> {
-    pub entry_id: &'a str,
-    pub properties: Value,
 }
 
 impl NotionApiClient {
@@ -83,11 +51,13 @@ pub fn create_database_entry(
         "properties": properties,
     });
 
-    let request = client.inner.post(&path);
-    let request = set_default_headers(request);
-    let request = set_authorization_header(request, &client.api_key);
-
-    request.send_json(body).map_err(api_client_error)
+    client
+        .inner
+        .post(&path)
+        .set_default_headers()
+        .set_authorization_header(&client.api_key)
+        .send_json(body)
+        .map_err(api_client_error)
 }
 
 pub fn query_database_properties(
@@ -96,11 +66,13 @@ pub fn query_database_properties(
 ) -> NotionApiClientResult<Response> {
     let path = format!("{}/databases/{}", &client.base_url, database_id);
 
-    let request = client.inner.get(&path);
-    let request = set_default_headers(request);
-    let request = set_authorization_header(request, &client.api_key);
-
-    request.call().map_err(api_client_error)
+    client
+        .inner
+        .get(&path)
+        .set_default_headers()
+        .set_authorization_header(&client.api_key)
+        .call()
+        .map_err(api_client_error)
 }
 
 pub fn query_database(
@@ -136,11 +108,13 @@ pub fn query_database(
         body["filter"] = filter;
     }
 
-    let request = client.inner.post(&path);
-    let request = set_default_headers(request);
-    let request = set_authorization_header(request, &client.api_key);
-
-    request.send_json(body).map_err(api_client_error)
+    client
+        .inner
+        .post(&path)
+        .set_default_headers()
+        .set_authorization_header(&client.api_key)
+        .send_json(body)
+        .map_err(api_client_error)
 }
 
 pub fn send_with_retries<F, S>(
@@ -151,7 +125,9 @@ where
     F: Fn() -> NotionApiClientResult<Response>,
     S: Fn(Duration),
 {
-    let RetryParameters { sleep_override } = parameters;
+    let RetryParameters {
+        custom_sleep: sleep_override,
+    } = parameters;
 
     let max_retries = 3;
     let mut retries = 0;
@@ -207,13 +183,19 @@ pub fn update_database_entry(
     let path = format!("{}/pages/{}", &client.base_url, entry_id);
     let body = serde_json::json!({"properties": properties});
 
-    let request = client.inner.patch(&path);
-    let request = set_default_headers(request);
-    let request = set_authorization_header(request, &client.api_key);
-
-    request.send_json(body).map_err(api_client_error)
+    client
+        .inner
+        .patch(&path)
+        .set_default_headers()
+        .set_authorization_header(&client.api_key)
+        .send_json(body)
+        .map_err(api_client_error)
 }
 
+// Integrations should accommodate variable rate limits by handling HTTP 429 responses
+// and respecting the Retry-After response header value,
+// which is set as an integer number of seconds (in decimal).
+// See more for details https://developers.notion.com/reference/request-limits
 fn api_client_error(err: ureq::Error) -> NotionApiClientError {
     match err {
         ureq::Error::Transport(err) => NotionApiClientError::Transport(err.to_string()),
@@ -226,10 +208,6 @@ fn api_client_error(err: ureq::Error) -> NotionApiClientError {
                 "1.0"
             });
 
-            // Integrations should accommodate variable rate limits by handling HTTP 429 responses
-            // and respecting the Retry-After response header value,
-            // which is set as an integer number of seconds (in decimal).
-            // See more for details https://developers.notion.com/reference/request-limits
             let seconds = retry_after.parse::<f64>().unwrap_or_else (|_value| {
                 tracing::warn!("Notion API response returned 429 status code with invalid Retry-After header: {}", retry_after);
 
@@ -243,16 +221,6 @@ fn api_client_error(err: ureq::Error) -> NotionApiClientError {
         }
         ureq::Error::Status(code, _) => NotionApiClientError::Status(code),
     }
-}
-
-fn set_authorization_header(request: Request, api_key: &str) -> Request {
-    request.set("Authorization", &format!("Bearer {}", api_key))
-}
-
-fn set_default_headers(request: Request) -> Request {
-    request
-        .set("Content-Type", "application/json")
-        .set("Notion-Version", "2022-06-28")
 }
 
 #[cfg(test)]
