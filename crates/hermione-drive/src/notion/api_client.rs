@@ -16,11 +16,9 @@ pub enum NotionApiClientError {
     Transport(String),
 }
 
-const BASE_URL: &str = "https://api.notion.com/v1";
-
 pub struct NotionApiClient {
     inner: Agent,
-    base_url_override: Option<String>,
+    base_url: String,
     api_key: String,
 }
 
@@ -52,10 +50,6 @@ pub struct UpdateDatabaseEntryParameters<'a> {
 }
 
 impl NotionApiClient {
-    fn base_url(&self) -> &str {
-        self.base_url_override.as_deref().unwrap_or(BASE_URL)
-    }
-
     pub fn new(parameters: NotionApiClientParameters) -> Self {
         let NotionApiClientParameters {
             api_key,
@@ -63,11 +57,12 @@ impl NotionApiClient {
         } = parameters;
 
         let inner = AgentBuilder::new().build();
+        let base_url = base_url_override.unwrap_or_else(|| "https://api.notion.com/v1".to_string());
 
         Self {
             api_key,
             inner,
-            base_url_override,
+            base_url,
         }
     }
 }
@@ -81,7 +76,7 @@ pub fn create_database_entry(
         properties,
     } = parameters;
 
-    let path = format!("{}/pages", client.base_url());
+    let path = format!("{}/pages", &client.base_url);
 
     let body = serde_json::json!({
         "parent": { "database_id": database_id },
@@ -99,7 +94,7 @@ pub fn query_database_properties(
     client: &NotionApiClient,
     database_id: &str,
 ) -> NotionApiClientResult<Response> {
-    let path = format!("{}/databases/{}", client.base_url(), database_id);
+    let path = format!("{}/databases/{}", &client.base_url, database_id);
 
     let request = client.inner.get(&path);
     let request = set_default_headers(request);
@@ -130,7 +125,7 @@ pub fn query_database(
         start_cursor = start_cursor
     );
 
-    let path = format!("{}/databases/{}/query", client.base_url(), database_id);
+    let path = format!("{}/databases/{}/query", &client.base_url, database_id);
     let mut body = serde_json::json!({"page_size": page_size});
 
     if let Some(start_cursor) = start_cursor {
@@ -211,7 +206,7 @@ pub fn update_database_entry(
         properties,
     } = parameters;
 
-    let path = format!("{}/pages/{}", client.base_url(), entry_id);
+    let path = format!("{}/pages/{}", &client.base_url, entry_id);
     let body = serde_json::json!({"properties": properties});
 
     let request = client.inner.patch(&path);
