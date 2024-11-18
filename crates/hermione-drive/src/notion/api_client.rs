@@ -1,5 +1,5 @@
 use serde_json::Value;
-use std::num::NonZeroU32;
+use std::{num::NonZeroU32, thread, time::Duration};
 use ureq::{Agent, AgentBuilder, Request, Response};
 
 pub type NotionApiClientResult<T> = std::result::Result<T, NotionApiClientError>;
@@ -7,7 +7,7 @@ pub type NotionApiClientResult<T> = std::result::Result<T, NotionApiClientError>
 #[derive(Debug, thiserror::Error)]
 pub enum NotionApiClientError {
     #[error("Notion API request rate limited for {0} seconds")]
-    RateLimit(u64),
+    RateLimit(f64),
 
     #[error("Notion API request failed with status code {0}")]
     Status(u16),
@@ -27,6 +27,11 @@ pub struct NotionApiClient {
 pub struct NotionApiClientParameters {
     pub base_url_override: Option<String>,
     pub api_key: String,
+}
+
+#[derive(Default)]
+pub struct RetryParameters<F> {
+    sleep_override: Option<F>,
 }
 
 pub struct QueryDatabaseParameters<'a> {
@@ -145,10 +150,16 @@ pub fn query_database(
         .map_err(api_client_error)
 }
 
-pub fn send_with_retries<F>(f: F) -> NotionApiClientResult<Response>
+pub fn send_with_retries<F, S>(
+    parameters: RetryParameters<S>,
+    f: F,
+) -> NotionApiClientResult<Response>
 where
     F: Fn() -> NotionApiClientResult<Response>,
+    S: Fn(Duration),
 {
+    let RetryParameters { sleep_override } = parameters;
+
     let max_retries = 3;
     let mut retries = 0;
 
@@ -159,22 +170,36 @@ where
             return result;
         }
 
+        if retries == max_retries {
+            tracing::error!(
+                "Stoping to retry Notion API request after {} retries",
+                max_retries
+            );
+
+            return result;
+        }
+
+        retries += 1;
+
         match result.unwrap_err() {
             NotionApiClientError::RateLimit(seconds) => {
-                if retries == max_retries {
-                    tracing::error!(
-                        "Returning Notion API client error after {} retries",
-                        max_retries
-                    );
+                let duration = Duration::from_secs_f64(seconds);
 
-                    return Err(NotionApiClientError::Status(429));
-                }
+                tracing::warn!(
+                    "Sleeping for {} seconds before retrying Notion API request",
+                    seconds
+                );
 
-                retries += 1;
-
-                std::thread::sleep(std::time::Duration::from_secs(seconds));
+                match &sleep_override {
+                    Some(sleep) => sleep(duration),
+                    None => thread::sleep(duration),
+                };
             }
-            err => return Err(err),
+            err => {
+                tracing::warn!("Not retryable Notion API request error: {}", err);
+
+                return Err(err);
+            }
         }
     }
 }
@@ -210,10 +235,10 @@ fn api_client_error(err: ureq::Error) -> NotionApiClientError {
                 "1"
             });
 
-            let seconds = retry_after.parse::<u64>().unwrap_or_else (|_value| {
+            let seconds = retry_after.parse::<f64>().unwrap_or_else (|_value| {
                 tracing::warn!("Notion API response returned 429 status code with invalid Retry-After header: {}", retry_after);
 
-                1
+                1.0
             });
 
             tracing::warn!("Notion API request rate limited for {} seconds", seconds);
