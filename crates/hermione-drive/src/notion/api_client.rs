@@ -140,9 +140,7 @@ pub fn query_database(
     let request = set_default_headers(request);
     let request = set_authorization_header(request, &client.api_key);
 
-    request
-        .send_json(body)
-        .map_err(api_client_error)
+    request.send_json(body).map_err(api_client_error)
 }
 
 pub fn send_with_retries<F, S>(
