@@ -16,7 +16,7 @@ pub enum NotionApiClientError {
     Transport(String),
 }
 
-const NOTION_BASE_URL: &str = "https://api.notion.com/v1";
+const BASE_URL: &str = "https://api.notion.com/v1";
 
 pub struct NotionApiClient {
     inner: Agent,
@@ -53,7 +53,7 @@ pub struct UpdateDatabaseEntryParameters<'a> {
 
 impl NotionApiClient {
     fn base_url(&self) -> &str {
-        self.base_url_override.as_deref().unwrap_or(NOTION_BASE_URL)
+        self.base_url_override.as_deref().unwrap_or(BASE_URL)
     }
 
     pub fn new(parameters: NotionApiClientParameters) -> Self {
