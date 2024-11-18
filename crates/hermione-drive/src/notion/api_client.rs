@@ -230,7 +230,7 @@ fn api_client_error(err: ureq::Error) -> NotionApiClientError {
                     "Notion API response returned 429 status code without Retry-After header"
                 );
 
-                "1"
+                "1.0"
             });
 
             // Integrations should accommodate variable rate limits by handling HTTP 429 responses
