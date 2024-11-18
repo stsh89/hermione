@@ -186,8 +186,8 @@ where
                 let duration = Duration::from_secs_f64(seconds);
 
                 tracing::warn!(
-                    "Sleeping for {} seconds before retrying Notion API request",
-                    seconds
+                    "Sleeping for {:?} seconds before retrying Notion API request",
+                    duration
                 );
 
                 match &sleep_override {
