@@ -16,8 +16,7 @@ impl SetAuthorizationHeader for Request {
 
 impl SetDefaultHeaders for Request {
     fn set_default_headers(self) -> Request {
-        self
-            .set("Content-Type", "application/json")
+        self.set("Content-Type", "application/json")
             .set("Notion-Version", "2022-06-28")
     }
 }
