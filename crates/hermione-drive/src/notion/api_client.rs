@@ -6,8 +6,8 @@ pub type NotionApiClientResult<T> = std::result::Result<T, NotionApiClientError>
 
 #[derive(Debug, thiserror::Error)]
 pub enum NotionApiClientError {
-    #[error("Notion API request rate limited for {0} seconds")]
-    RateLimit(f64),
+    #[error("Notion API request rate limited for {0:?}")]
+    RateLimit(Duration),
 
     #[error("Notion API request failed with status code {0}")]
     Status(u16),
@@ -182,11 +182,9 @@ where
         retries += 1;
 
         match result.unwrap_err() {
-            NotionApiClientError::RateLimit(seconds) => {
-                let duration = Duration::from_secs_f64(seconds);
-
+            NotionApiClientError::RateLimit(duration) => {
                 tracing::warn!(
-                    "Sleeping for {:?} seconds before retrying Notion API request",
+                    "Sleeping for {:?} before retrying Notion API request",
                     duration
                 );
 
@@ -235,15 +233,20 @@ fn api_client_error(err: ureq::Error) -> NotionApiClientError {
                 "1"
             });
 
+            // Integrations should accommodate variable rate limits by handling HTTP 429 responses
+            // and respecting the Retry-After response header value,
+            // which is set as an integer number of seconds (in decimal).
+            // See more for details https://developers.notion.com/reference/request-limits
             let seconds = retry_after.parse::<f64>().unwrap_or_else (|_value| {
                 tracing::warn!("Notion API response returned 429 status code with invalid Retry-After header: {}", retry_after);
 
                 1.0
             });
 
-            tracing::warn!("Notion API request rate limited for {} seconds", seconds);
+            let duration = Duration::from_secs_f64(seconds);
+            tracing::warn!("Notion API request rate limited for {:?}", duration);
 
-            NotionApiClientError::RateLimit(seconds)
+            NotionApiClientError::RateLimit(duration)
         }
         ureq::Error::Status(code, _) => NotionApiClientError::Status(code),
     }
