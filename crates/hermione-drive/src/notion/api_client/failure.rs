@@ -22,7 +22,7 @@ mod tests {
 
         assert_eq!(
             err.to_string(),
-            "Notion API request failure. Please retry in 230m"
+            "Notion API request failure. Please retry in 230ms"
         )
     }
 
