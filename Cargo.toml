@@ -13,7 +13,7 @@ dirs = "5.0.1"
 eyre = "0.6.12"
 ratatui = "0.29.0"
 rusqlite = "0.32.1"
-rust-notion-sync = { git = "https://github.com/stsh89/rust-notion-sync.git", rev = "5ea96131bb2ec0dde927091d35fb808761805751" }
+rust-notion-sync = { git = "https://github.com/stsh89/rust-notion-sync.git", rev = "4126fd5d229fced91ed88d4e2b5835f642af9bff" }
 serde = "1.0.210"
 serde_json = "1.0.133"
 thiserror = "1.0.63"
