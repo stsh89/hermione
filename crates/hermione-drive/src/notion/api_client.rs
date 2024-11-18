@@ -141,7 +141,7 @@ pub fn query_database(
     let request = set_authorization_header(request, &client.api_key);
 
     request
-        .send_json(serde_json::json!(body))
+        .send_json(body)
         .map_err(api_client_error)
 }
 
