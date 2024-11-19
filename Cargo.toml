@@ -13,8 +13,7 @@ dirs = "5.0.1"
 eyre = "0.6.12"
 ratatui = "0.29.0"
 rusqlite = "0.32.1"
-# rusty-notion = { git = "https://github.com/stsh89/rusty-notion.git", rev = "e4a9bf13bcaaef95a7354f115bc6afc7be97a90d" }
-rusty-notion = { path = "../rusty-notion" }
+rusty-notion = { git = "https://github.com/stsh89/rusty-notion.git", rev = "e4a9bf13bcaaef95a7354f115bc6afc7be97a90d" }
 serde = "1.0.210"
 serde_json = "1.0.133"
 thiserror = "1.0.63"

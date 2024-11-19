@@ -780,6 +780,7 @@ checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
 [[package]]
 name = "rusty-notion"
 version = "0.1.0"
+source = "git+https://github.com/stsh89/rusty-notion.git?rev=e4a9bf13bcaaef95a7354f115bc6afc7be97a90d#e4a9bf13bcaaef95a7354f115bc6afc7be97a90d"
 dependencies = [
  "serde_json",
  "thiserror 2.0.3",
