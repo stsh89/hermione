@@ -1,5 +1,5 @@
 use chrono::Utc;
-use hermione_drive::sqlite::{self, ListWorkspacesQueryOptions};
+use hermione_drive::providers::sqlite::{self, ListWorkspacesQueryOptions};
 use rusqlite::{Connection, Result};
 
 use crate::support::{workspace_record_fixture, WorkspaceRecordFixtureParameters};

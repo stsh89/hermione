@@ -1,8 +1,3 @@
-use hermione_drive::notion::{
-    self, external_ids_filter, verify_commands_database_properties,
-    verify_workspaces_database_properties, NotionCommandProperties, NotionWorkspaceProperties,
-    QueryDatabaseResponse,
-};
 use hermione_nexus::{
     definitions::{
         BackupCredentials, Command, CommandParameters, NotionBackupCredentials, Workspace,
@@ -18,8 +13,15 @@ use rusty_notion::api::{
     self, Client, ClientParameters, CreateDatabaseEntryParameters, QueryDatabaseParameters,
     UpdateDatabaseEntryParameters,
 };
-use std::num::NonZeroU32;
+use std::{num::NonZeroU32, thread};
+use ureq::Response;
 use uuid::Uuid;
+
+use crate::providers::notion::{
+    self, external_ids_filter, verify_commands_database_properties,
+    verify_workspaces_database_properties, NotionCommandProperties, NotionWorkspaceProperties,
+    QueryDatabaseResponse,
+};
 
 pub struct NotionBackup {
     client: Client,
@@ -90,16 +92,19 @@ impl ListCommandsBackup for NotionBackup {
         &self,
         page_id: Option<&str>,
     ) -> Result<Option<(Vec<Command>, Option<String>)>> {
-        let response = api::query_database(
-            &self.client,
-            QueryDatabaseParameters {
-                database_id: &self.commands_database_id,
-                start_cursor: page_id,
-                page_size: Some(self.page_size),
-                filter: None,
-            },
-        )
-        .map_err(api_client_error)?;
+        let query_database = || {
+            api::query_database(
+                &self.client,
+                QueryDatabaseParameters {
+                    database_id: &self.commands_database_id,
+                    start_cursor: page_id,
+                    page_size: Some(self.page_size),
+                    filter: None,
+                },
+            )
+        };
+
+        let response = send_with_retries(query_database)?;
 
         let database_query_response: QueryDatabaseResponse<NotionCommandProperties> =
             notion::query_datrabase_response(response)?;
@@ -332,4 +337,8 @@ impl VerifyBackupCredentials for NotionBackup {
 
         Ok(true)
     }
+}
+
+fn send_with_retries(f: impl Fn() -> api::Result<Response>) -> Result<Response> {
+    api::send_with_retries(f, thread::sleep).map_err(api_client_error)
 }

@@ -317,7 +317,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "eyre",
+ "hermione-nexus",
  "rusqlite",
+ "rusty-notion",
  "serde",
  "serde_json",
  "thiserror 1.0.63",
@@ -351,7 +354,6 @@ dependencies = [
  "hermione-nexus",
  "ratatui",
  "rusqlite",
- "rusty-notion",
  "serde",
  "serde_json",
  "thiserror 1.0.63",
@@ -778,7 +780,6 @@ checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
 [[package]]
 name = "rusty-notion"
 version = "0.1.0"
-source = "git+https://github.com/stsh89/rusty-notion.git?rev=c6ae273467bf9853a6d943b68597489019302c6f#c6ae273467bf9853a6d943b68597489019302c6f"
 dependencies = [
  "serde_json",
  "thiserror 2.0.3",

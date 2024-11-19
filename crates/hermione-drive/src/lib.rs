@@ -1,2 +1,2 @@
-pub mod notion;
-pub mod sqlite;
+pub mod providers;
+pub mod services;

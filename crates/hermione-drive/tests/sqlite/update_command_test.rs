@@ -1,7 +1,7 @@
 use crate::support::{
     self, command_record_fixture, workspace_record_fixture, CommandRecordFixtureParameters,
 };
-use hermione_drive::sqlite::{self, CommandRecord, OptionalValue};
+use hermione_drive::providers::sqlite::{self, CommandRecord, OptionalValue};
 use rusqlite::{Connection, Result};
 
 struct UpdateCommandTestContext {

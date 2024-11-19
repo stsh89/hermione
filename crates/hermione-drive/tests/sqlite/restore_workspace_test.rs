@@ -1,7 +1,7 @@
 use crate::support::{
     count_workspaces, workspace_record_fixture, WorkspaceRecordFixtureParameters,
 };
-use hermione_drive::sqlite::{self, ListWorkspacesQueryOptions, WorkspaceRecord};
+use hermione_drive::providers::sqlite::{self, ListWorkspacesQueryOptions, WorkspaceRecord};
 use rusqlite::{Connection, Result};
 
 struct RestoreWorkspacesTestContest {

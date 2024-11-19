@@ -4,11 +4,9 @@ mod layouts;
 mod message;
 mod models;
 mod params;
-mod providers;
 mod router;
 mod routes;
 mod screen;
-mod services;
 mod smart_input;
 mod themes;
 mod tui;
@@ -20,8 +18,7 @@ pub(crate) use params::*;
 pub(crate) use routes::*;
 
 use coordinator::Coordinator;
-use hermione_drive::sqlite;
-use providers::powershell::PowerShellProcess;
+use hermione_drive::providers::{powershell::PowerShellProcess, sqlite};
 use router::TerminalRouter;
 use rusqlite::Connection;
 use std::{
