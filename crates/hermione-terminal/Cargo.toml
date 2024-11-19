@@ -11,7 +11,7 @@ dirs = { workspace = true }
 eyre = { workspace = true }
 ratatui = { workspace = true, features = ["serde"] }
 rusqlite = { workspace = true }
-rust-notion-sync = { workspace = true }
+rusty-notion = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

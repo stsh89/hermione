@@ -351,7 +351,7 @@ dependencies = [
  "hermione-nexus",
  "ratatui",
  "rusqlite",
- "rust-notion-sync",
+ "rusty-notion",
  "serde",
  "serde_json",
  "thiserror 1.0.63",
@@ -725,17 +725,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-notion-sync"
-version = "0.1.0"
-source = "git+https://github.com/stsh89/rusty-notion.git?rev=4126fd5d229fced91ed88d4e2b5835f642af9bff#4126fd5d229fced91ed88d4e2b5835f642af9bff"
-dependencies = [
- "serde_json",
- "thiserror 2.0.3",
- "tracing",
- "ureq",
-]
-
-[[package]]
 name = "rustix"
 version = "0.38.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -785,6 +774,17 @@ name = "rustversion"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
+
+[[package]]
+name = "rusty-notion"
+version = "0.1.0"
+source = "git+https://github.com/stsh89/rusty-notion.git?rev=c6ae273467bf9853a6d943b68597489019302c6f#c6ae273467bf9853a6d943b68597489019302c6f"
+dependencies = [
+ "serde_json",
+ "thiserror 2.0.3",
+ "tracing",
+ "ureq",
+]
 
 [[package]]
 name = "ryu"
