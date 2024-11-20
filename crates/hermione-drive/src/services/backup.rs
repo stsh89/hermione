@@ -10,7 +10,7 @@ use hermione_nexus::{
     Error, Result,
 };
 use rusty_notion::api::{
-    self, Client, ClientParameters, CreateDatabaseEntryParameters, QueryDatabaseParameters,
+    self, Client, CreateDatabaseEntryParameters, QueryDatabaseParameters,
     UpdateDatabaseEntryParameters,
 };
 use std::{num::NonZeroU32, thread};
@@ -54,10 +54,7 @@ impl NotionBackup {
             page_size,
         } = parameters;
 
-        let api_client = Client::new(ClientParameters {
-            api_key: credentials.api_key().to_string(),
-            base_url_override: None,
-        });
+        let api_client = Client::new(credentials.api_key().to_string());
 
         Ok(Self {
             client: api_client,
