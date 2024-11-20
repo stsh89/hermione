@@ -1,5 +1,5 @@
 use crate::support::{workspace_record_fixture, WorkspaceRecordFixtureParameters};
-use hermione_drive::providers::sqlite::{self, WorkspaceRecord};
+use hermione_internals::sqlite::{self, WorkspaceRecord};
 use rusqlite::{Connection, Result};
 use uuid::Uuid;
 

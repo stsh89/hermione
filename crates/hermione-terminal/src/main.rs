@@ -18,7 +18,7 @@ pub(crate) use params::*;
 pub(crate) use routes::*;
 
 use coordinator::Coordinator;
-use hermione_drive::providers::{powershell::PowerShellProcess, sqlite};
+use hermione_drive::providers::powershell::PowerShellProcess;
 use router::TerminalRouter;
 use rusqlite::Connection;
 use std::{
@@ -38,9 +38,9 @@ fn main() -> Result<()> {
     let app_path = app_path()?;
     let conn = Connection::open(app_path.join("hermione.db3"))?;
 
-    sqlite::create_workspaces_table_if_not_exists(&conn)?;
-    sqlite::create_commands_table_if_not_exists(&conn)?;
-    sqlite::create_backup_credentials_table_if_not_exists(&conn)?;
+    hermione_internals::sqlite::create_workspaces_table_if_not_exists(&conn)?;
+    hermione_internals::sqlite::create_commands_table_if_not_exists(&conn)?;
+    hermione_internals::sqlite::create_backup_credentials_table_if_not_exists(&conn)?;
 
     let coordinator = Coordinator {
         database_connection: conn,

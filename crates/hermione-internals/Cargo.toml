@@ -1,0 +1,11 @@
+[package]
+name = "hermione-internals"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rusqlite = { workspace = true, features = ["bundled"] }
+uuid = { workspace = true }
+
+[dev-dependencies]
+chrono = { workspace = true }

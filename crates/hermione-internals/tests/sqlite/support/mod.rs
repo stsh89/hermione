@@ -1,7 +1,7 @@
 mod fixtures;
 
 pub use fixtures::*;
-use hermione_drive::providers::sqlite::{CommandRecord, WorkspaceRecord};
+use hermione_internals::sqlite::{CommandRecord, WorkspaceRecord};
 use rusqlite::{params, Connection, Result};
 use uuid::Bytes;
 

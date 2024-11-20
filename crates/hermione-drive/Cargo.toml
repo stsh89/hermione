@@ -19,6 +19,7 @@ ureq = { workspace = true, features = ["json"] }
 uuid = { workspace = true }
 
 hermione-nexus = { workspace = true }
+hermione-internals = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }

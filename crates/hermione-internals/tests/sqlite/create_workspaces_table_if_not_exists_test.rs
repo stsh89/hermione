@@ -1,5 +1,5 @@
 use crate::support::{expected_workspaces_table_schema, query_table_schema};
-use hermione_drive::providers::sqlite;
+use hermione_internals::sqlite;
 use rusqlite::{Connection, Result};
 
 #[test]

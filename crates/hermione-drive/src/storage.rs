@@ -1,8 +1,8 @@
-use crate::providers::sqlite::{
+use chrono::{DateTime, Utc};
+use hermione_internals::sqlite::{
     self, BackupCredentialsRecord, CommandRecord, ListCommandsQuery, ListWorkspacesQueryOptions,
     OptionalValue, UpdateCommandQueryOptions, UpdateWorkspaceQueryOptions, WorkspaceRecord,
 };
-use chrono::{DateTime, Utc};
 use hermione_nexus::{
     definitions::{
         BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters,

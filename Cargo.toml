@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/hermione-drive",
+    "crates/hermione-internals",
     "crates/hermione-nexus",
     "crates/hermione-terminal",
 ]
@@ -25,3 +26,4 @@ uuid = "1.10.0"
 
 hermione-drive = { path = "crates/hermione-drive"}
 hermione-nexus = { path = "crates/hermione-nexus" }
+hermione-internals = { path = "crates/hermione-internals" }

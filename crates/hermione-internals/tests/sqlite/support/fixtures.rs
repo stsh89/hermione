@@ -1,4 +1,4 @@
-use hermione_drive::providers::sqlite::{CommandRecord, WorkspaceRecord};
+use hermione_internals::sqlite::{CommandRecord, WorkspaceRecord};
 use uuid::{Bytes, Uuid};
 
 #[derive(Default)]
