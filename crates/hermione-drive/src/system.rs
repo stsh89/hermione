@@ -1,4 +1,4 @@
-use crate::providers::powershell::{self, PowerShellParameters, PowerShellProcess};
+use hermione_internals::powershell::{self, PowerShellParameters, PowerShellProcess};
 use hermione_nexus::{
     services::{ExecuteProgram, SystemService},
     Result,
@@ -21,8 +21,6 @@ impl ExecuteProgram for System<'_> {
                 no_exit: self.no_exit,
                 working_directory: self.working_directory,
             }),
-        )?;
-
-        Ok(())
+        )
     }
 }

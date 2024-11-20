@@ -1,9 +1,6 @@
 use crate::Result;
-use hermione_drive::{
-    providers::powershell::{self, PowerShellParameters, PowerShellProcess},
-    services::{Clipboard, NotionBackupBuilder, System},
-    Storage,
-};
+use hermione_drive::{Clipboard, NotionBackupBuilder, Storage, System};
+use hermione_internals::powershell::{self, PowerShellParameters, PowerShellProcess};
 use hermione_nexus::operations::{
     CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
     CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,

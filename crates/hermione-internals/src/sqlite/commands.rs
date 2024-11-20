@@ -1,6 +1,8 @@
 use super::OptionalValue;
+use chrono::DateTime;
+use hermione_nexus::definitions::{Command, CommandParameters};
 use rusqlite::{named_params, params, Connection, OptionalExtension, Result};
-use uuid::Bytes;
+use uuid::{Bytes, Uuid};
 
 #[derive(Clone)]
 pub struct CommandRecord {
@@ -226,4 +228,45 @@ pub fn update_command(conn: &Connection, options: UpdateCommandQueryOptions) -> 
         ":name": name,
         ":program": program
     ])
+}
+
+impl From<Command> for CommandRecord {
+    fn from(value: Command) -> Self {
+        let last_execute_time = value
+            .last_execute_time()
+            .map(|date_time| date_time.timestamp_micros());
+
+        CommandRecord {
+            id: value.id().into_bytes(),
+            last_execute_time,
+            name: value.name().to_string(),
+            program: value.program().to_string(),
+            workspace_id: value.workspace_id().into_bytes(),
+        }
+    }
+}
+
+impl TryFrom<CommandRecord> for Command {
+    type Error = hermione_nexus::Error;
+
+    fn try_from(value: CommandRecord) -> hermione_nexus::Result<Self> {
+        let CommandRecord {
+            id,
+            last_execute_time,
+            name,
+            program,
+            workspace_id,
+        } = value;
+
+        let last_execute_time = last_execute_time.and_then(DateTime::from_timestamp_micros);
+        let id = Uuid::from_bytes(id);
+
+        Command::new(CommandParameters {
+            id,
+            last_execute_time,
+            name,
+            program,
+            workspace_id: Uuid::from_bytes(workspace_id).into(),
+        })
+    }
 }

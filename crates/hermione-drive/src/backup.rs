@@ -17,7 +17,7 @@ use std::{num::NonZeroU32, thread};
 use ureq::Response;
 use uuid::Uuid;
 
-use crate::providers::notion::{
+use hermione_internals::notion::{
     self, external_ids_filter, verify_commands_database_properties,
     verify_workspaces_database_properties, NotionCommandProperties, NotionWorkspaceProperties,
     QueryDatabaseResponse,

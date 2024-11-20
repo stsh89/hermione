@@ -1,3 +1,4 @@
+use hermione_nexus::Result;
 use std::{
     io,
     process::{Child, Command, Stdio},
@@ -40,7 +41,7 @@ impl PowerShellProcess {
     }
 }
 
-pub fn copy_to_clipboard(conn: &PowerShellProcess, text: &str) -> io::Result<()> {
+pub fn copy_to_clipboard(conn: &PowerShellProcess, text: &str) -> Result<()> {
     let text = copy_to_clipboard_command_text(text);
 
     execute(conn, &text)
@@ -49,7 +50,7 @@ pub fn copy_to_clipboard(conn: &PowerShellProcess, text: &str) -> io::Result<()>
 pub fn open_windows_terminal(
     conn: &PowerShellProcess,
     parameters: Option<PowerShellParameters>,
-) -> io::Result<()> {
+) -> Result<()> {
     let text = open_windows_termina_command_text(parameters);
 
     execute(conn, &text)
@@ -89,7 +90,7 @@ fn open_windows_termina_command_text(parameters: Option<PowerShellParameters>) -
     cmd.join(" ")
 }
 
-fn execute(conn: &PowerShellProcess, program: &str) -> io::Result<()> {
+fn execute(conn: &PowerShellProcess, program: &str) -> Result<()> {
     let mut child = conn
         .child
         .write()
@@ -100,5 +101,7 @@ fn execute(conn: &PowerShellProcess, program: &str) -> io::Result<()> {
     ))?;
 
     use io::Write;
-    writeln!(stdin, "{}", &program)
+    writeln!(stdin, "{}", &program)?;
+
+    Ok(())
 }

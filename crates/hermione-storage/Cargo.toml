@@ -14,7 +14,7 @@ extensions = []
 chrono = { workspace = true }
 dirs = { workspace = true }
 eyre = { workspace = true }
-rusqlite = { workspace = true, features = ["array", "bundled"] }
+rusqlite = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }

@@ -18,7 +18,7 @@ pub(crate) use params::*;
 pub(crate) use routes::*;
 
 use coordinator::Coordinator;
-use hermione_drive::providers::powershell::PowerShellProcess;
+use hermione_internals::powershell::PowerShellProcess;
 use router::TerminalRouter;
 use rusqlite::Connection;
 use std::{

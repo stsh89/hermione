@@ -1,6 +1,8 @@
 use super::OptionalValue;
+use chrono::DateTime;
+use hermione_nexus::definitions::{Workspace, WorkspaceParameters};
 use rusqlite::{named_params, params, Connection, OptionalExtension, Result};
-use uuid::Bytes;
+use uuid::{Bytes, Uuid};
 
 #[derive(Clone)]
 pub struct WorkspaceRecord {
@@ -200,4 +202,42 @@ pub fn update_workspace(conn: &Connection, options: UpdateWorkspaceQueryOptions)
         ":location": location,
         ":name": name
     ])
+}
+
+impl From<Workspace> for WorkspaceRecord {
+    fn from(value: Workspace) -> Self {
+        let last_access_time = value
+            .last_access_time()
+            .map(|date_time| date_time.timestamp_micros());
+
+        WorkspaceRecord {
+            id: value.id().into_bytes(),
+            last_access_time,
+            location: value.location().map(ToString::to_string),
+            name: value.name().to_string(),
+        }
+    }
+}
+
+impl TryFrom<WorkspaceRecord> for Workspace {
+    type Error = hermione_nexus::Error;
+
+    fn try_from(value: WorkspaceRecord) -> hermione_nexus::Result<Self> {
+        let WorkspaceRecord {
+            id,
+            last_access_time,
+            location,
+            name,
+        } = value;
+
+        let id = Uuid::from_bytes(id);
+        let last_access_time = last_access_time.and_then(DateTime::from_timestamp_micros);
+
+        Workspace::new(WorkspaceParameters {
+            id,
+            last_access_time,
+            location,
+            name,
+        })
+    }
 }

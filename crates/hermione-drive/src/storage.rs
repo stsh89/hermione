@@ -1,12 +1,11 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use hermione_internals::sqlite::{
     self, BackupCredentialsRecord, CommandRecord, ListCommandsQuery, ListWorkspacesQueryOptions,
     OptionalValue, UpdateCommandQueryOptions, UpdateWorkspaceQueryOptions, WorkspaceRecord,
 };
 use hermione_nexus::{
     definitions::{
-        BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters,
-        NotionBackupCredentialsParameters, Workspace, WorkspaceId, WorkspaceParameters,
+        BackupCredentials, BackupProviderKind, Command, CommandId, Workspace, WorkspaceId,
     },
     services::{
         CreateCommand, CreateWorkspace, DeleteBackupCredentials, DeleteCommand, DeleteWorkspace,
@@ -19,10 +18,7 @@ use hermione_nexus::{
     Error, Result,
 };
 use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-const NOTION_BACKUP_CREDENTIALS_ID: &str = "Notion";
 
 pub struct Storage<'a> {
     pub conn: &'a Connection,
@@ -30,117 +26,6 @@ pub struct Storage<'a> {
 
 fn internal_error(err: rusqlite::Error) -> Error {
     Error::Storage(eyre::Error::new(err))
-}
-
-#[derive(Serialize, Deserialize)]
-struct NotionBackupSecrets {
-    api_key: String,
-    commands_database_id: String,
-    workspaces_database_id: String,
-}
-
-enum BackupCredentialsId {
-    Notion,
-}
-
-fn backup_credentials_from_record(record: BackupCredentialsRecord) -> Result<BackupCredentials> {
-    let BackupCredentialsRecord { id, secrets } = record;
-
-    match BackupCredentialsId::try_from(id.as_str())? {
-        BackupCredentialsId::Notion => {
-            let secrets: NotionBackupSecrets = serde_json::from_str(&secrets)
-                .map_err(|err| Error::Storage(eyre::Error::new(err)))?;
-
-            let NotionBackupSecrets {
-                api_key,
-                commands_database_id,
-                workspaces_database_id,
-            } = secrets;
-
-            Ok(BackupCredentials::notion(
-                NotionBackupCredentialsParameters {
-                    api_key,
-                    commands_database_id,
-                    workspaces_database_id,
-                },
-            ))
-        }
-    }
-}
-
-fn command_to_record(command: Command) -> CommandRecord {
-    CommandRecord {
-        id: command.id().into_bytes(),
-        last_execute_time: command
-            .last_execute_time()
-            .map(|date_time| date_time.timestamp_micros()),
-        name: command.name().to_string(),
-        program: command.program().to_string(),
-        workspace_id: command.workspace_id().into_bytes(),
-    }
-}
-
-fn workspace_to_record(workspace: Workspace) -> WorkspaceRecord {
-    WorkspaceRecord {
-        id: workspace.id().into_bytes(),
-        last_access_time: workspace
-            .last_access_time()
-            .map(|date_time| date_time.timestamp_micros()),
-        location: workspace.location().map(ToString::to_string),
-        name: workspace.name().to_string(),
-    }
-}
-
-fn command_from_record(record: CommandRecord) -> Result<Command> {
-    let CommandRecord {
-        id,
-        last_execute_time,
-        name,
-        program,
-        workspace_id,
-    } = record;
-
-    Command::new(CommandParameters {
-        id: Uuid::from_bytes(id),
-        last_execute_time: last_execute_time.and_then(DateTime::from_timestamp_micros),
-        name,
-        program,
-        workspace_id: Uuid::from_bytes(workspace_id).into(),
-    })
-}
-
-fn workspace_from_record(record: WorkspaceRecord) -> Result<Workspace> {
-    let WorkspaceRecord {
-        id,
-        last_access_time,
-        location,
-        name,
-    } = record;
-
-    Workspace::new(WorkspaceParameters {
-        id: Uuid::from_bytes(id),
-        last_access_time: last_access_time.and_then(DateTime::from_timestamp_micros),
-        location,
-        name,
-    })
-}
-
-impl TryFrom<&str> for BackupCredentialsId {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self> {
-        let id = match value {
-            NOTION_BACKUP_CREDENTIALS_ID => BackupCredentialsId::Notion,
-            _ => {
-                return Err(Error::Storage(eyre::Error::msg(format!(
-                    "Unexpected backup credentials id: {}",
-                    value
-                ))))
-            }
-        };
-
-        Ok(id)
-    }
 }
 
 impl StorageService for Storage<'_> {}
@@ -161,7 +46,7 @@ impl CreateCommand for Storage<'_> {
             workspace_id: workspace_id.into_bytes(),
         };
 
-        let command = command_from_record(record.clone())?;
+        let command = record.clone().try_into()?;
 
         sqlite::insert_command(self.conn, record).map_err(internal_error)?;
 
@@ -180,7 +65,7 @@ impl CreateWorkspace for Storage<'_> {
             name,
         };
 
-        let workspace = workspace_from_record(record.clone())?;
+        let workspace = record.clone().try_into()?;
 
         sqlite::insert_workspace(self.conn, record).map_err(internal_error)?;
 
@@ -190,12 +75,7 @@ impl CreateWorkspace for Storage<'_> {
 
 impl DeleteBackupCredentials for Storage<'_> {
     fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> Result<()> {
-        let id = match kind {
-            BackupProviderKind::Notion => NOTION_BACKUP_CREDENTIALS_ID,
-            BackupProviderKind::Unknown => return Ok(()),
-        };
-
-        sqlite::delete_backup_credentials(self.conn, id).map_err(internal_error)?;
+        sqlite::delete_backup_credentials(self.conn, kind).map_err(internal_error)?;
 
         Ok(())
     }
@@ -230,40 +110,37 @@ impl FindBackupCredentials for Storage<'_> {
         &self,
         kind: &BackupProviderKind,
     ) -> Result<Option<BackupCredentials>> {
-        let id = match kind {
-            BackupProviderKind::Notion => NOTION_BACKUP_CREDENTIALS_ID,
-            BackupProviderKind::Unknown => return Ok(None),
-        };
-
-        let record = sqlite::find_backup_credentials(self.conn, id).map_err(internal_error)?;
-
-        record.map(backup_credentials_from_record).transpose()
+        sqlite::find_backup_credentials(self.conn, kind)
+            .map_err(internal_error)?
+            .map(TryFrom::try_from)
+            .transpose()
     }
 }
 
 impl FindCommand for Storage<'_> {
     fn find_command(&self, id: &CommandId) -> Result<Option<Command>> {
-        let record = sqlite::find_command(self.conn, id.as_bytes()).map_err(internal_error)?;
-
-        record.map(command_from_record).transpose()
+        sqlite::find_command(self.conn, id.as_bytes())
+            .map_err(internal_error)?
+            .map(TryFrom::try_from)
+            .transpose()
     }
 }
 
 impl FindWorkspace for Storage<'_> {
     fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>> {
-        let record = sqlite::find_workspace(self.conn, id.as_bytes()).map_err(internal_error)?;
-
-        record.map(workspace_from_record).transpose()
+        sqlite::find_workspace(self.conn, id.as_bytes())
+            .map_err(internal_error)?
+            .map(TryFrom::try_from)
+            .transpose()
     }
 }
 
 impl ListBackupCredentials for Storage<'_> {
     fn list_backup_credentials(&self) -> Result<Vec<BackupCredentials>> {
-        let records = sqlite::list_backup_credentials(self.conn).map_err(internal_error)?;
-
-        records
+        sqlite::list_backup_credentials(self.conn)
+            .map_err(internal_error)?
             .into_iter()
-            .map(backup_credentials_from_record)
+            .map(TryFrom::try_from)
             .collect::<Result<Vec<_>>>()
     }
 }
@@ -277,7 +154,7 @@ impl ListCommands for Storage<'_> {
             workspace_id,
         } = parameters;
 
-        let records = sqlite::list_commands(
+        sqlite::list_commands(
             self.conn,
             ListCommandsQuery {
                 program_contains: program_contains.unwrap_or_default(),
@@ -286,12 +163,10 @@ impl ListCommands for Storage<'_> {
                 limit: page_size,
             },
         )
-        .map_err(internal_error)?;
-
-        records
-            .into_iter()
-            .map(command_from_record)
-            .collect::<Result<Vec<_>>>()
+        .map_err(internal_error)?
+        .into_iter()
+        .map(TryFrom::try_from)
+        .collect::<Result<Vec<_>>>()
     }
 }
 
@@ -303,7 +178,7 @@ impl ListWorkspaces for Storage<'_> {
             page_size,
         } = parameters;
 
-        let records = sqlite::list_workspaces(
+        sqlite::list_workspaces(
             self.conn,
             ListWorkspacesQueryOptions {
                 name_contains: name_contains.unwrap_or_default(),
@@ -311,35 +186,22 @@ impl ListWorkspaces for Storage<'_> {
                 offset: page_number,
             },
         )
-        .map_err(internal_error)?;
-
-        records
-            .into_iter()
-            .map(workspace_from_record)
-            .collect::<Result<Vec<_>>>()
+        .map_err(internal_error)?
+        .into_iter()
+        .map(TryFrom::try_from)
+        .collect::<Result<Vec<_>>>()
     }
 }
 
 impl SaveBackupCredentials for Storage<'_> {
     fn save_backup_credentials(&self, credentials: &BackupCredentials) -> Result<()> {
-        let record = match credentials {
-            BackupCredentials::Notion(notion_backup_credentials) => BackupCredentialsRecord {
-                id: NOTION_BACKUP_CREDENTIALS_ID.to_string(),
-                secrets: serde_json::to_string(&NotionBackupSecrets {
-                    api_key: notion_backup_credentials.api_key().to_string(),
-                    commands_database_id: notion_backup_credentials
-                        .commands_database_id()
-                        .to_string(),
-                    workspaces_database_id: notion_backup_credentials
-                        .workspaces_database_id()
-                        .to_string(),
-                })
-                .map_err(|err| Error::Storage(eyre::Error::new(err)))?,
-            },
+        let kind = match credentials {
+            BackupCredentials::Notion(_) => BackupProviderKind::Notion,
         };
 
-        let found =
-            sqlite::find_backup_credentials(self.conn, &record.id).map_err(internal_error)?;
+        let record: BackupCredentialsRecord = credentials.try_into()?;
+
+        let found = sqlite::find_backup_credentials(self.conn, &kind).map_err(internal_error)?;
 
         if found.is_some() {
             sqlite::update_backup_credentials(self.conn, record)
@@ -407,7 +269,7 @@ impl UpdateCommand for Storage<'_> {
 
 impl UpsertCommands for Storage<'_> {
     fn upsert_commands(&self, commands: Vec<Command>) -> Result<()> {
-        let records = commands.into_iter().map(command_to_record).collect();
+        let records = commands.into_iter().map(From::from).collect();
 
         sqlite::restore_commands(self.conn, records).map_err(internal_error)
     }
@@ -415,7 +277,7 @@ impl UpsertCommands for Storage<'_> {
 
 impl UpsertWorkspaces for Storage<'_> {
     fn upsert_workspaces(&self, workspaces: Vec<Workspace>) -> Result<()> {
-        let records = workspaces.into_iter().map(workspace_to_record).collect();
+        let records = workspaces.into_iter().map(From::from).collect();
 
         sqlite::restore_workspaces(self.conn, records).map_err(internal_error)
     }

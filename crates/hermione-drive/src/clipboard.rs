@@ -1,4 +1,4 @@
-use crate::providers::powershell::{self, PowerShellProcess};
+use hermione_internals::powershell::{self, PowerShellProcess};
 use hermione_nexus::{
     services::{ClipboardService, CopyCommandToClipboard},
     Result,
@@ -12,8 +12,6 @@ impl ClipboardService for Clipboard<'_> {}
 
 impl CopyCommandToClipboard for Clipboard<'_> {
     fn copy_command_to_clipboard(&self, text: &str) -> Result<()> {
-        powershell::copy_to_clipboard(self.process, text)?;
-
-        Ok(())
+        powershell::copy_to_clipboard(self.process, text)
     }
 }

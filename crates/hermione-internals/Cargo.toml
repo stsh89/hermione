@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rusqlite = { workspace = true, features = ["bundled"] }
-uuid = { workspace = true }
-
-[dev-dependencies]
 chrono = { workspace = true }
+hermione-nexus = { workspace = true }
+rusqlite = { workspace = true }
+uuid = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+eyre = { workspace = true }
+serde_json = { workspace = true }
+ureq = { workspace = true }

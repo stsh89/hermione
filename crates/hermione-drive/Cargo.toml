@@ -9,7 +9,7 @@ name = "hermione_drive"
 [dependencies]
 chrono = { workspace = true }
 eyre = { workspace = true }
-rusqlite = { workspace = true, features = ["array", "bundled"] }
+rusqlite = { workspace = true }
 rusty-notion = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

@@ -335,7 +335,12 @@ name = "hermione-internals"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "eyre",
+ "hermione-nexus",
  "rusqlite",
+ "serde",
+ "serde_json",
+ "ureq",
  "uuid",
 ]
 

@@ -1,8 +1,25 @@
+use hermione_nexus::definitions::{
+    BackupCredentials, BackupProviderKind, NotionBackupCredentialsParameters,
+};
 use rusqlite::{named_params, params, Connection, OptionalExtension, Result};
+use serde::{Deserialize, Serialize};
+
+const NOTION_BACKUP_CREDENTIALS_ID: &str = "Notion";
 
 pub struct BackupCredentialsRecord {
     pub id: String,
     pub secrets: String,
+}
+
+enum BackupCredentialsId {
+    Notion,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct NotionBackupSecrets {
+    pub api_key: String,
+    pub commands_database_id: String,
+    pub workspaces_database_id: String,
 }
 
 pub fn create_backup_credentials_table_if_not_exists(conn: &Connection) -> Result<()> {
@@ -19,8 +36,13 @@ pub fn create_backup_credentials_table_if_not_exists(conn: &Connection) -> Resul
 
 pub fn find_backup_credentials(
     conn: &Connection,
-    id: &str,
+    kind: &BackupProviderKind,
 ) -> Result<Option<BackupCredentialsRecord>> {
+    let id = match kind {
+        BackupProviderKind::Notion => NOTION_BACKUP_CREDENTIALS_ID,
+        BackupProviderKind::Unknown => return Ok(None),
+    };
+
     conn.prepare(
         "SELECT
             id,
@@ -37,7 +59,12 @@ pub fn find_backup_credentials(
     .optional()
 }
 
-pub fn delete_backup_credentials(conn: &Connection, id: &str) -> Result<usize> {
+pub fn delete_backup_credentials(conn: &Connection, kind: &BackupProviderKind) -> Result<usize> {
+    let id = match kind {
+        BackupProviderKind::Notion => NOTION_BACKUP_CREDENTIALS_ID,
+        BackupProviderKind::Unknown => return Ok(0),
+    };
+
     conn.prepare("DELETE FROM backup_credentials WHERE id = ?1")?
         .execute(params![id])
 }
@@ -97,4 +124,81 @@ pub fn update_backup_credentials(
         ":id": id,
         ":secrets": secrets
     ])
+}
+
+impl TryFrom<&str> for BackupCredentialsId {
+    type Error = hermione_nexus::Error;
+
+    fn try_from(value: &str) -> hermione_nexus::Result<Self> {
+        let id = match value {
+            NOTION_BACKUP_CREDENTIALS_ID => BackupCredentialsId::Notion,
+            _ => {
+                return Err(hermione_nexus::Error::Storage(eyre::Error::msg(format!(
+                    "Unexpected backup credentials id: {}",
+                    value
+                ))))
+            }
+        };
+
+        Ok(id)
+    }
+}
+
+impl TryFrom<&BackupCredentials> for BackupCredentialsRecord {
+    type Error = hermione_nexus::Error;
+
+    fn try_from(value: &BackupCredentials) -> hermione_nexus::Result<Self> {
+        match value {
+            BackupCredentials::Notion(notion_backup_credentials) => Ok(BackupCredentialsRecord {
+                id: NOTION_BACKUP_CREDENTIALS_ID.to_string(),
+                secrets: serde_json::to_string(&NotionBackupSecrets {
+                    api_key: notion_backup_credentials.api_key().to_string(),
+                    commands_database_id: notion_backup_credentials
+                        .commands_database_id()
+                        .to_string(),
+                    workspaces_database_id: notion_backup_credentials
+                        .workspaces_database_id()
+                        .to_string(),
+                })
+                .map_err(|err| hermione_nexus::Error::Storage(eyre::Error::new(err)))?,
+            }),
+        }
+    }
+}
+
+impl TryFrom<BackupCredentials> for BackupCredentialsRecord {
+    type Error = hermione_nexus::Error;
+
+    fn try_from(value: BackupCredentials) -> hermione_nexus::Result<Self> {
+        TryFrom::try_from(&value)
+    }
+}
+
+impl TryFrom<BackupCredentialsRecord> for BackupCredentials {
+    type Error = hermione_nexus::Error;
+
+    fn try_from(value: BackupCredentialsRecord) -> hermione_nexus::Result<Self> {
+        let BackupCredentialsRecord { id, secrets } = value;
+
+        match BackupCredentialsId::try_from(id.as_str())? {
+            BackupCredentialsId::Notion => {
+                let secrets: NotionBackupSecrets = serde_json::from_str(&secrets)
+                    .map_err(|err| hermione_nexus::Error::Storage(eyre::Error::new(err)))?;
+
+                let NotionBackupSecrets {
+                    api_key,
+                    commands_database_id,
+                    workspaces_database_id,
+                } = secrets;
+
+                Ok(BackupCredentials::notion(
+                    NotionBackupCredentialsParameters {
+                        api_key,
+                        commands_database_id,
+                        workspaces_database_id,
+                    },
+                ))
+            }
+        }
+    }
 }
