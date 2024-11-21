@@ -7,6 +7,7 @@ edition = "2021"
 name = "hermione_drive"
 
 [dependencies]
+anyhow = { workspace = true }
 chrono = { workspace = true }
 eyre = { workspace = true }
 rusqlite = { workspace = true }
@@ -15,8 +16,10 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+tracing-appender = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["json"] }
 ureq = { workspace = true, features = ["json"] }
-uuid = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
 
 hermione-nexus = { workspace = true }
 hermione-internals = { workspace = true }

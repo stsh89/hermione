@@ -1,6 +1,8 @@
 use crate::Result;
-use hermione_drive::{Clipboard, NotionBackupBuilder, Storage, System};
-use hermione_internals::powershell::{self, PowerShellParameters, PowerShellProcess};
+use hermione_drive::{
+    Clipboard, NotionBackupBuilder, NotionBackupBuilderParameters, ServiceFactory, Storage, System,
+    SystemParameters,
+};
 use hermione_nexus::operations::{
     CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
     CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
@@ -11,7 +13,6 @@ use hermione_nexus::operations::{
     UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
     UpdateWorkspaceParameters,
 };
-use rusqlite::Connection;
 use std::num::NonZeroU32;
 use uuid::Uuid;
 
@@ -21,8 +22,7 @@ pub const DEFAULT_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(43)
 const DEFAULT_BACKUP_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(100) };
 
 pub struct Coordinator {
-    pub database_connection: Connection,
-    pub powershell_process: PowerShellProcess,
+    pub service_factory: ServiceFactory,
 }
 
 pub struct Workspace {
@@ -77,10 +77,15 @@ pub struct OpenWindowsTerminalInput<'a> {
 }
 
 impl Coordinator {
+    fn notion_backup_builder(&self) -> NotionBackupBuilder {
+        self.service_factory
+            .notion_backup_builder(NotionBackupBuilderParameters {
+                page_size: DEFAULT_BACKUP_PAGE_SIZE,
+            })
+    }
+
     fn clipboard(&self) -> Clipboard {
-        Clipboard {
-            process: &self.powershell_process,
-        }
+        self.service_factory.clipboard()
     }
 
     pub fn copy_command_to_clipboard(&self, id: Uuid) -> Result<()> {
@@ -184,14 +189,14 @@ impl Coordinator {
         };
 
         let storage = self.storage();
+        let system = self.system(SystemParameters {
+            no_exit,
+            working_directory,
+        });
 
         ExecuteCommandOperation {
             find_command_provider: &storage,
-            system_provider: &System {
-                process: &self.powershell_process,
-                no_exit,
-                working_directory,
-            },
+            system_provider: &system,
             track_command_provider: &storage,
             track_workspace_provider: &storage,
         }
@@ -202,14 +207,13 @@ impl Coordinator {
 
     pub fn export(&self, kind: BackupProviderKind) -> Result<()> {
         let storage = self.storage();
+        let backup_provider = self.notion_backup_builder();
 
         ExportOperation {
             backup_credentials_provider: &storage,
             list_commands_provider: &storage,
             list_workspaces_provider: &storage,
-            backup_provider_builder: &NotionBackupBuilder {
-                page_size: DEFAULT_BACKUP_PAGE_SIZE,
-            },
+            backup_provider_builder: &backup_provider,
             backup_provider: std::marker::PhantomData,
         }
         .execute(&kind.into())?;
@@ -257,14 +261,13 @@ impl Coordinator {
 
     pub fn import(&self, kind: BackupProviderKind) -> Result<()> {
         let storage = self.storage();
+        let backup_builder = self.notion_backup_builder();
 
         ImportOperation {
             backup_credentials_provider: &storage,
             upsert_commands_provider: &storage,
             upsert_workspaces_provider: &storage,
-            backup_provider_builder: &NotionBackupBuilder {
-                page_size: DEFAULT_BACKUP_PAGE_SIZE,
-            },
+            backup_provider_builder: &backup_builder,
             backup_provider: std::marker::PhantomData,
         }
         .execute(&kind.into())?;
@@ -326,33 +329,33 @@ impl Coordinator {
 
     pub fn open_windows_terminal(&self, parameters: OpenWindowsTerminalInput) -> Result<()> {
         let OpenWindowsTerminalInput { working_directory } = parameters;
+        tracing::warn!("Open Windows terminal: {}", working_directory);
 
-        let working_directory = if working_directory.is_empty() {
-            None
-        } else {
-            Some(working_directory)
-        };
+        // let working_directory = if working_directory.is_empty() {
+        //     None
+        // } else {
+        //     Some(working_directory)
+        // };
 
-        powershell::open_windows_terminal(
-            &self.powershell_process,
-            Some(PowerShellParameters {
-                command: None,
-                no_exit: false,
-                working_directory,
-            }),
-        )?;
+        // powershell::open_windows_terminal(
+        //     &self.powershell_process,
+        //     Some(PowerShellParameters {
+        //         command: None,
+        //         no_exit: false,
+        //         working_directory,
+        //     }),
+        // )?;
 
         Ok(())
     }
 
     pub fn save_backup_credentials(&self, credentials: BackupCredentials) -> Result<()> {
         let credentials = credentials.try_into()?;
+        let backup_provider = self.notion_backup_builder();
 
         SaveBackupCredentialsOperation {
             save_provider: &self.storage(),
-            backup_provider_builder: &NotionBackupBuilder {
-                page_size: DEFAULT_BACKUP_PAGE_SIZE,
-            },
+            backup_provider_builder: &backup_provider,
             backup_provider: std::marker::PhantomData,
         }
         .execute(&credentials)?;
@@ -361,9 +364,11 @@ impl Coordinator {
     }
 
     fn storage(&self) -> Storage {
-        Storage {
-            conn: &self.database_connection,
-        }
+        self.service_factory.storage()
+    }
+
+    fn system<'a>(&'a self, paramters: SystemParameters<'a>) -> System {
+        self.service_factory.system(paramters)
     }
 
     pub fn update_command(&self, data: Command) -> Result<Command> {

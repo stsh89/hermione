@@ -326,6 +326,8 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.63",
  "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
  "ureq",
  "uuid",
 ]
@@ -335,11 +337,13 @@ name = "hermione-internals"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "dirs",
  "eyre",
  "hermione-nexus",
  "rusqlite",
  "serde",
  "serde_json",
+ "thiserror 1.0.63",
  "ureq",
  "uuid",
 ]
@@ -362,21 +366,12 @@ name = "hermione-terminal"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "chrono",
- "dirs",
- "eyre",
  "hermione-drive",
- "hermione-internals",
  "hermione-nexus",
  "ratatui",
- "rusqlite",
  "serde",
  "serde_json",
- "thiserror 1.0.63",
  "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "ureq",
  "uuid",
 ]
 

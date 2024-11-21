@@ -5,10 +5,13 @@ edition = "2021"
 
 [dependencies]
 chrono = { workspace = true }
-hermione-nexus = { workspace = true }
-rusqlite = { workspace = true }
-uuid = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
 eyre = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 ureq = { workspace = true }
+uuid = { workspace = true }
+dirs = { workspace = true }
+thiserror = { workspace = true }
+
+hermione-nexus = { workspace = true }
