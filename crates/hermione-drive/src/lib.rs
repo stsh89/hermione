@@ -10,7 +10,7 @@ pub use system::*;
 
 use hermione_internals::{file_system::AppLocation, powershell::PowerShellProcess, sqlite};
 use rusqlite::Connection;
-use std::{num::NonZeroU32, path::Path};
+use std::path::Path;
 use tracing_appender::{
     non_blocking::WorkerGuard,
     rolling::{RollingFileAppender, Rotation},
@@ -21,42 +21,22 @@ pub struct Engine {
     pub logs_worker_guard: WorkerGuard,
 }
 
-pub struct NotionBackupBuilderParameters {
-    pub page_size: NonZeroU32,
-}
-
 pub struct ServiceFactory {
     powershell: PowerShellProcess,
     conn: Connection,
 }
 
-pub struct SystemParameters<'a> {
-    pub no_exit: bool,
-    pub working_directory: Option<&'a str>,
-}
-
 impl ServiceFactory {
     pub fn clipboard(&self) -> Clipboard {
-        Clipboard {
-            process: &self.powershell,
-        }
+        Clipboard::new(&self.powershell)
     }
 
-    pub fn system<'a>(&'a self, parameters: SystemParameters<'a>) -> System {
-        let SystemParameters {
-            no_exit,
-            working_directory,
-        } = parameters;
-
-        System {
-            process: &self.powershell,
-            no_exit,
-            working_directory,
-        }
+    pub fn system(&self) -> System {
+        System::new(&self.powershell)
     }
 
     pub fn storage(&self) -> Storage {
-        Storage { conn: &self.conn }
+        Storage::new(&self.conn)
     }
 }
 

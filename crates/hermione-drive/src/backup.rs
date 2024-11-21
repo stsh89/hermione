@@ -32,9 +32,9 @@ pub struct NotionBackup {
     workspaces_database_id: String,
 }
 
-pub struct NotionBackupParameters {
-    pub credentials: NotionBackupCredentials,
-    pub page_size: NonZeroU32,
+struct NotionBackupParameters {
+    credentials: NotionBackupCredentials,
+    page_size: NonZeroU32,
 }
 
 #[derive(Default)]
@@ -51,7 +51,7 @@ fn verification_error(error: api::Error) -> Error {
 }
 
 impl NotionBackup {
-    pub fn new(parameters: NotionBackupParameters) -> Result<Self> {
+    fn new(parameters: NotionBackupParameters) -> Result<Self> {
         let NotionBackupParameters {
             credentials,
             page_size,

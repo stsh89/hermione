@@ -5,9 +5,31 @@ use hermione_nexus::{
 };
 
 pub struct System<'a> {
-    pub process: &'a PowerShellProcess,
-    pub no_exit: bool,
-    pub working_directory: Option<&'a str>,
+    process: &'a PowerShellProcess,
+    no_exit: bool,
+    working_directory: Option<&'a str>,
+}
+
+impl<'a> System<'a> {
+    pub fn new(process: &'a PowerShellProcess) -> Self {
+        System {
+            process,
+            no_exit: true,
+            working_directory: None,
+        }
+    }
+
+    pub fn set_no_exit(&mut self, no_exit: bool) {
+        self.no_exit = no_exit;
+    }
+
+    pub fn set_workking_directory(&mut self, working_directory: &'a str) {
+        self.working_directory = Some(working_directory);
+    }
+
+    pub fn unset_working_directory(&mut self) {
+        self.working_directory = None;
+    }
 }
 
 impl SystemService for System<'_> {}

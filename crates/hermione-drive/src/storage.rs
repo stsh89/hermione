@@ -21,7 +21,13 @@ use rusqlite::Connection;
 use uuid::Uuid;
 
 pub struct Storage<'a> {
-    pub conn: &'a Connection,
+    conn: &'a Connection,
+}
+
+impl<'a> Storage<'a> {
+    pub fn new(conn: &'a Connection) -> Self {
+        Self { conn }
+    }
 }
 
 fn internal_error(err: rusqlite::Error) -> Error {

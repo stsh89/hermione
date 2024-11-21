@@ -5,7 +5,13 @@ use hermione_nexus::{
 };
 
 pub struct Clipboard<'a> {
-    pub process: &'a PowerShellProcess,
+    process: &'a PowerShellProcess,
+}
+
+impl<'a> Clipboard<'a> {
+    pub fn new(process: &'a PowerShellProcess) -> Self {
+        Clipboard { process }
+    }
 }
 
 impl ClipboardService for Clipboard<'_> {}
