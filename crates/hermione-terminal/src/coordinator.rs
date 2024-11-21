@@ -1,7 +1,6 @@
 use crate::Result;
 use hermione_drive::{
-    Clipboard, NotionBackupBuilder, NotionBackupBuilderParameters, ServiceFactory, Storage, System,
-    SystemParameters,
+    Clipboard, NotionBackupBuilder, ServiceFactory, Storage, System, SystemParameters,
 };
 use hermione_nexus::operations::{
     CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
@@ -18,8 +17,6 @@ use uuid::Uuid;
 
 pub const FIRST_PAGE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1) };
 pub const DEFAULT_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(43) };
-
-const DEFAULT_BACKUP_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(100) };
 
 pub struct Coordinator {
     pub service_factory: ServiceFactory,
@@ -78,10 +75,7 @@ pub struct OpenWindowsTerminalInput<'a> {
 
 impl Coordinator {
     fn notion_backup_builder(&self) -> NotionBackupBuilder {
-        self.service_factory
-            .notion_backup_builder(NotionBackupBuilderParameters {
-                page_size: DEFAULT_BACKUP_PAGE_SIZE,
-            })
+        NotionBackupBuilder::default()
     }
 
     fn clipboard(&self) -> Clipboard {

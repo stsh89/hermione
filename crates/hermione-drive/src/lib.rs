@@ -42,15 +42,6 @@ impl ServiceFactory {
         }
     }
 
-    pub fn notion_backup_builder(
-        &self,
-        parameters: NotionBackupBuilderParameters,
-    ) -> NotionBackupBuilder {
-        let NotionBackupBuilderParameters { page_size } = parameters;
-
-        NotionBackupBuilder { page_size }
-    }
-
     pub fn system<'a>(&'a self, parameters: SystemParameters<'a>) -> System {
         let SystemParameters {
             no_exit,

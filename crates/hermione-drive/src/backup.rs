@@ -17,6 +17,8 @@ use std::{num::NonZeroU32, thread};
 use ureq::Response;
 use uuid::Uuid;
 
+const DEFAULT_BACKUP_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(100) };
+
 use hermione_internals::notion::{
     self, external_ids_filter, verify_commands_database_properties,
     verify_workspaces_database_properties, NotionCommandProperties, NotionWorkspaceProperties,
@@ -35,8 +37,9 @@ pub struct NotionBackupParameters {
     pub page_size: NonZeroU32,
 }
 
+#[derive(Default)]
 pub struct NotionBackupBuilder {
-    pub page_size: NonZeroU32,
+    pub page_size: Option<NonZeroU32>,
 }
 
 fn api_client_error(error: api::Error) -> Error {
@@ -68,10 +71,11 @@ impl NotionBackup {
 impl NotionBackupBuilder {
     pub fn build(&self, credentials: BackupCredentials) -> Result<NotionBackup> {
         let BackupCredentials::Notion(credentials) = credentials;
+        let page_size = self.page_size.unwrap_or(DEFAULT_BACKUP_PAGE_SIZE);
 
         NotionBackup::new(NotionBackupParameters {
             credentials,
-            page_size: self.page_size,
+            page_size,
         })
     }
 }
