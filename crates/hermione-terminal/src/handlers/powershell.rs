@@ -1,5 +1,5 @@
 use crate::{
-    coordinator::{Coordinator, ExecuteCommandInput, OpenWindowsTerminalInput},
+    coordinator::{Coordinator, ExecuteCommandInput},
     CopyCommandToClipboardParams, ExecuteCommandParams, OpenWindowsTerminalParams, Result,
 };
 
@@ -33,12 +33,9 @@ impl<'a> PowerShellHandler<'a> {
     }
 
     pub fn open_windows_terminal(self, params: OpenWindowsTerminalParams) -> Result<()> {
-        let OpenWindowsTerminalParams { working_directory } = params;
+        let OpenWindowsTerminalParams { workspace_id } = params;
 
-        self.coordinator
-            .open_windows_terminal(OpenWindowsTerminalInput {
-                working_directory: &working_directory,
-            })?;
+        self.coordinator.open_windows_terminal(workspace_id)?;
 
         Ok(())
     }

@@ -1,6 +1,6 @@
 use hermione_internals::powershell::{self, PowerShellParameters, PowerShellProcess};
 use hermione_nexus::{
-    services::{ExecuteProgram, SystemService},
+    services::{ExecuteProgram, SetLocation, SystemService},
     Result,
 };
 
@@ -42,6 +42,19 @@ impl ExecuteProgram for System<'_> {
                 command: Some(program),
                 no_exit: self.no_exit,
                 working_directory: self.working_directory,
+            }),
+        )
+    }
+}
+
+impl SetLocation for System<'_> {
+    fn set_location(&self, location: Option<&str>) -> Result<()> {
+        powershell::open_windows_terminal(
+            self.process,
+            Some(PowerShellParameters {
+                command: None,
+                no_exit: self.no_exit,
+                working_directory: location,
             }),
         )
     }

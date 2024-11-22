@@ -8,7 +8,7 @@ use hermione_nexus::operations::{
     ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
     ListWorkspacesOperation, ListWorkspacesParameters, SaveBackupCredentialsOperation,
     UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
-    UpdateWorkspaceParameters,
+    UpdateWorkspaceParameters, VisitWorkspaceLocationOperation,
 };
 use std::num::NonZeroU32;
 use uuid::Uuid;
@@ -65,10 +65,6 @@ pub struct ListCommandsWithinWorkspaceInput<'a> {
     pub page_size: Option<NonZeroU32>,
     pub program_contains: &'a str,
     pub workspace_id: Uuid,
-}
-
-pub struct OpenWindowsTerminalInput<'a> {
-    pub working_directory: &'a str,
 }
 
 impl Coordinator {
@@ -316,24 +312,12 @@ impl Coordinator {
         Ok(workspaces.into_iter().map(Into::into).collect())
     }
 
-    pub fn open_windows_terminal(&self, parameters: OpenWindowsTerminalInput) -> Result<()> {
-        let OpenWindowsTerminalInput { working_directory } = parameters;
-        tracing::warn!("Open Windows terminal: {}", working_directory);
-
-        // let working_directory = if working_directory.is_empty() {
-        //     None
-        // } else {
-        //     Some(working_directory)
-        // };
-
-        // powershell::open_windows_terminal(
-        //     &self.powershell_process,
-        //     Some(PowerShellParameters {
-        //         command: None,
-        //         no_exit: false,
-        //         working_directory,
-        //     }),
-        // )?;
+    pub fn open_windows_terminal(&self, workspace_id: Uuid) -> Result<()> {
+        VisitWorkspaceLocationOperation {
+            find_workspace: &self.storage(),
+            system_provider: &self.system(true, None),
+        }
+        .execute(&workspace_id.into())?;
 
         Ok(())
     }

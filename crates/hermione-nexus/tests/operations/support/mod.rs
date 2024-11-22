@@ -120,6 +120,14 @@ pub fn get_notion_backup_credentials(storage: &InMemoryStorage) -> BackupCredent
         .unwrap_or_else(|| panic!("Notion backup credentials should exist"))
 }
 
+pub fn get_system_location(system: &MockSystem) -> Option<String> {
+    system
+        .location
+        .read()
+        .expect("Should be able to access system location")
+        .clone()
+}
+
 pub fn get_workspace(storage: &InMemoryStorage, id: Uuid) -> Workspace {
     storage
         .workspaces

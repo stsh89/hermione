@@ -74,7 +74,7 @@ pub struct CopyCommandToClipboardParams {
 }
 
 pub struct OpenWindowsTerminalParams {
-    pub working_directory: String,
+    pub workspace_id: Uuid,
 }
 
 pub struct SaveNotionBackupCredentialsParams {

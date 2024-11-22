@@ -168,7 +168,7 @@ impl WorkspaceCommandsModel {
 
     fn open_windows_terminal_parameters(&self) -> OpenWindowsTerminalParams {
         OpenWindowsTerminalParams {
-            working_directory: self.workspace.location.clone(),
+            workspace_id: self.workspace.id,
         }
     }
 
