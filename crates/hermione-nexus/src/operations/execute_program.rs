@@ -1,26 +1,46 @@
 use crate::{
-    services::{ExecuteProgram, SystemService},
+    definitions::WorkspaceId,
+    services::{
+        FindWorkspace, InvokeCommand, InvokeCommandParameters, StorageService, SystemService,
+    },
     Result,
 };
 
-pub struct ExecuteProgramOperation<'a, S>
+use super::GetWorkspaceOperation;
+
+pub struct ExecuteProgramOperation<'a, FW, S>
 where
+    FW: StorageService,
     S: SystemService,
 {
     pub system: &'a S,
+    pub find_workspace: &'a FW,
 }
 
 pub struct ExecuteProgramParameters<'a> {
     pub program: &'a str,
+    pub workspace_id: WorkspaceId,
 }
 
-impl<'a, S> ExecuteProgramOperation<'a, S>
+impl<'a, FW, S> ExecuteProgramOperation<'a, FW, S>
 where
-    S: ExecuteProgram,
+    FW: FindWorkspace,
+    S: InvokeCommand,
 {
     pub fn execute(&self, parameters: ExecuteProgramParameters) -> Result<()> {
-        let ExecuteProgramParameters { program } = parameters;
+        let ExecuteProgramParameters {
+            program,
+            workspace_id,
+        } = parameters;
 
-        self.system.execute_program(program)
+        let workspace = GetWorkspaceOperation {
+            provider: self.find_workspace,
+        }
+        .execute(&workspace_id)?;
+
+        self.system.invoke_command(InvokeCommandParameters {
+            command: program,
+            location: workspace.location(),
+        })
     }
 }

@@ -4,8 +4,8 @@ use crate::{
     themes::Theme,
     tui::{EventHandler, Input, Model},
     widgets::FormField,
-    CreateWorkspaceCommandParams, ListWorkspaceCommandsParams, Message, Result, Route,
-    UpdateWorkspaceCommandParams,
+    CreateWorkspaceCommandParams, ExecuteProgramParams, ListWorkspaceCommandsParams, Message,
+    Result, Route, UpdateWorkspaceCommandParams,
 };
 use ratatui::{
     layout::{Constraint, Direction, Position, Rect},
@@ -55,7 +55,8 @@ impl Model for CommandModel {
             Message::MoveCusorLeft => self.move_cursor_left(),
             Message::MoveCusorRight => self.move_cursor_right(),
             Message::Submit => self.submit(),
-            Message::ExecuteCommand | Message::SelectNext | Message::SelectPrevious => {}
+            Message::ExecuteCommand => self.execute_program(),
+            Message::SelectNext | Message::SelectPrevious => {}
         }
 
         Ok(None)
@@ -119,6 +120,16 @@ impl CommandModel {
 
     fn enter_char(&mut self, c: char) {
         self.active_input_mut().enter_char(c);
+    }
+
+    fn execute_program(&mut self) {
+        self.set_redirect(
+            ExecuteProgramParams {
+                workspace_id: self.workspace.id,
+                program: self.program.value().to_string(),
+            }
+            .into(),
+        )
     }
 
     fn move_cursor_left(&mut self) {

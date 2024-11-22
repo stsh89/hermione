@@ -1,6 +1,7 @@
 use crate::{
-    coordinator::{Coordinator, ExecuteCommandInput},
-    CopyCommandToClipboardParams, ExecuteCommandParams, OpenWindowsTerminalParams, Result,
+    coordinator::{Coordinator, ExecuteCommandInput, ExecuteProgramInput},
+    CopyCommandToClipboardParams, ExecuteCommandParams, ExecuteProgramParams,
+    OpenWindowsTerminalParams, Result,
 };
 
 pub struct PowerShellHandler<'a> {
@@ -18,15 +19,27 @@ impl<'a> PowerShellHandler<'a> {
 
     pub fn execute_command(self, params: ExecuteCommandParams) -> Result<()> {
         let ExecuteCommandParams {
-            workspace_id,
             command_id,
             powershell_no_exit: no_exit,
         } = params;
 
         self.coordinator.execute_command(ExecuteCommandInput {
             command_id,
-            workspace_id,
             no_exit,
+        })?;
+
+        Ok(())
+    }
+
+    pub fn execute_program(self, params: ExecuteProgramParams) -> Result<()> {
+        let ExecuteProgramParams {
+            workspace_id,
+            program,
+        } = params;
+
+        self.coordinator.execute_program(ExecuteProgramInput {
+            workspace_id,
+            program,
         })?;
 
         Ok(())

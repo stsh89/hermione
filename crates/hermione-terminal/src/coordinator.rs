@@ -3,7 +3,8 @@ use hermione_drive::{Clipboard, NotionBackupBuilder, ServiceFactory, Storage, Sy
 use hermione_nexus::operations::{
     CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
     CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
-    DeleteCommandOperation, DeleteWorkspaceOperation, ExecuteCommandOperation, ExportOperation,
+    DeleteCommandOperation, DeleteWorkspaceOperation, ExecuteCommandOperation,
+    ExecuteProgramOperation, ExecuteProgramParameters, ExportOperation,
     GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation, ImportOperation,
     ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
     ListWorkspacesOperation, ListWorkspacesParameters, SaveBackupCredentialsOperation,
@@ -50,8 +51,12 @@ pub struct NotionBackupCredentials {
 
 pub struct ExecuteCommandInput {
     pub command_id: Uuid,
-    pub workspace_id: Uuid,
     pub no_exit: bool,
+}
+
+pub struct ExecuteProgramInput {
+    pub workspace_id: Uuid,
+    pub program: String,
 }
 
 pub struct ListWorkspacesInput<'a> {
@@ -164,28 +169,38 @@ impl Coordinator {
     pub fn execute_command(&self, input: ExecuteCommandInput) -> Result<()> {
         let ExecuteCommandInput {
             command_id,
-            workspace_id,
             no_exit,
         } = input;
 
-        let workspace = self.get_workspace(workspace_id)?;
-
-        let working_directory = if workspace.location.is_empty() {
-            None
-        } else {
-            Some(workspace.location.as_str())
-        };
-
         let storage = self.storage();
-        let system = self.system(no_exit, working_directory);
+        let system = self.system(no_exit);
 
         ExecuteCommandOperation {
             find_command_provider: &storage,
+            find_workspace_provider: &storage,
             system_provider: &system,
             track_command_provider: &storage,
             track_workspace_provider: &storage,
         }
         .execute(&command_id.into())?;
+
+        Ok(())
+    }
+
+    pub fn execute_program(&self, input: ExecuteProgramInput) -> Result<()> {
+        let ExecuteProgramInput {
+            workspace_id,
+            ref program,
+        } = input;
+
+        ExecuteProgramOperation {
+            system: &self.system(true),
+            find_workspace: &self.storage(),
+        }
+        .execute(ExecuteProgramParameters {
+            program,
+            workspace_id: workspace_id.into(),
+        })?;
 
         Ok(())
     }
@@ -315,7 +330,7 @@ impl Coordinator {
     pub fn open_windows_terminal(&self, workspace_id: Uuid) -> Result<()> {
         VisitWorkspaceLocationOperation {
             find_workspace: &self.storage(),
-            system_provider: &self.system(true, None),
+            system_provider: &self.system(true),
         }
         .execute(&workspace_id.into())?;
 
@@ -340,14 +355,10 @@ impl Coordinator {
         self.service_factory.storage()
     }
 
-    fn system<'a>(&'a self, no_exit: bool, working_directory: Option<&'a str>) -> System {
+    fn system(&self, no_exit: bool) -> System {
         let mut system = self.service_factory.system();
 
         system.set_no_exit(no_exit);
-
-        if let Some(directory) = working_directory {
-            system.set_workking_directory(directory);
-        }
 
         system
     }

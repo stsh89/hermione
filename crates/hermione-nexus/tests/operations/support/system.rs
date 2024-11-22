@@ -1,6 +1,6 @@
 use eyre::eyre;
 use hermione_nexus::{
-    services::{ExecuteProgram, SetLocation, SystemService},
+    services::{InvokeCommand, InvokeCommandParameters, SetLocation, SystemService},
     Error, Result,
 };
 use std::sync::{PoisonError, RwLock};
@@ -13,9 +13,15 @@ pub struct MockSystem {
 
 impl SystemService for MockSystem {}
 
-impl ExecuteProgram for MockSystem {
-    fn execute_program(&self, program: &str) -> Result<()> {
-        set_program(self, program)
+impl InvokeCommand for MockSystem {
+    fn invoke_command(&self, parameters: InvokeCommandParameters) -> Result<()> {
+        let InvokeCommandParameters { command, location } = parameters;
+
+        set_location(self, location).map_err(|err| {
+            Error::System(err.wrap_err("Failed to set location before program execution"))
+        })?;
+
+        set_program(self, command)
             .map_err(|err| Error::System(err.wrap_err("Failed to execute program")))
     }
 }

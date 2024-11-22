@@ -188,6 +188,11 @@ impl TerminalRouter {
 
                 Ok(None)
             }
+            PowerShellRoute::ExecuteProgram(parameters) => {
+                handler.execute_program(parameters)?;
+
+                Ok(None)
+            }
             PowerShellRoute::OpenWindowsTerminal(parameters) => {
                 handler.open_windows_terminal(parameters)?;
 

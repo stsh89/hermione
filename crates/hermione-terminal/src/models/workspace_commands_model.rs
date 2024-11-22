@@ -140,7 +140,6 @@ impl WorkspaceCommandsModel {
 
         let route = Route::Powershell(PowerShellRoute::ExecuteCommand(ExecuteCommandParams {
             command_id: command.id,
-            workspace_id: command.workspace_id,
             powershell_no_exit: self.powershell_settings.no_exit,
         }));
 

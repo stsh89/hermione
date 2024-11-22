@@ -43,8 +43,12 @@ pub struct ExportParams {
 
 pub struct ExecuteCommandParams {
     pub command_id: Uuid,
-    pub workspace_id: Uuid,
     pub powershell_no_exit: bool,
+}
+
+pub struct ExecuteProgramParams {
+    pub workspace_id: Uuid,
+    pub program: String,
 }
 
 pub struct ImportParams {
@@ -149,6 +153,12 @@ impl From<EditWorkspaceParams> for Route {
 impl From<ExportParams> for Route {
     fn from(value: ExportParams) -> Self {
         Self::BackupCredentials(BackupCredentialsRoute::Export(value))
+    }
+}
+
+impl From<ExecuteProgramParams> for Route {
+    fn from(value: ExecuteProgramParams) -> Self {
+        Self::Powershell(crate::PowerShellRoute::ExecuteProgram(value))
     }
 }
 

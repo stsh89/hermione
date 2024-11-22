@@ -1,7 +1,7 @@
 use crate::{
     CopyCommandToClipboardParams, CreateWorkspaceCommandParams, CreateWorkspaceParams,
     DeleteBackupCredentialsParams, DeleteCommandParams, DeleteWorkspaceParams, EditCommandParams,
-    EditWorkspaceParams, ExecuteCommandParams, ExportParams, ImportParams,
+    EditWorkspaceParams, ExecuteCommandParams, ExecuteProgramParams, ExportParams, ImportParams,
     ListWorkspaceCommandsParams, ListWorkspacesParams, NewWorkspaceCommandParams,
     OpenWindowsTerminalParams, SaveNotionBackupCredentialsParams, UpdateWorkspaceCommandParams,
     UpdateWorkspaceParams,
@@ -24,6 +24,7 @@ pub enum BackupCredentialsRoute {
 
 pub enum PowerShellRoute {
     ExecuteCommand(ExecuteCommandParams),
+    ExecuteProgram(ExecuteProgramParams),
     CopyToClipboard(CopyCommandToClipboardParams),
     OpenWindowsTerminal(OpenWindowsTerminalParams),
 }
