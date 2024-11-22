@@ -110,6 +110,14 @@ pub fn get_command(storage: &InMemoryStorage, id: Uuid) -> Command {
         .unwrap_or_else(|| panic!("Command {} should exist", id.braced()))
 }
 
+pub fn get_last_executed_command(system: &MockSystem) -> Option<String> {
+    system
+        .program
+        .read()
+        .expect("Should be able to get system program")
+        .clone()
+}
+
 pub fn get_notion_backup_credentials(storage: &InMemoryStorage) -> BackupCredentials {
     storage
         .backup_credentials
