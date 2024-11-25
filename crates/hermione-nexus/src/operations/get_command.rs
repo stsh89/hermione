@@ -20,6 +20,6 @@ where
 
         self.provider
             .find_command(id)?
-            .ok_or(Error::NotFound(format!("Command {}", id.braced())))
+            .ok_or(Error::CommandNotFound(**id))
     }
 }

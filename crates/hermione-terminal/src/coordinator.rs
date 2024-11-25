@@ -136,7 +136,7 @@ impl Coordinator {
             find_provider: &storage,
             delete_provider: &storage,
         }
-        .execute(&kind.into())?;
+        .execute(kind.into())?;
 
         Ok(())
     }
@@ -216,7 +216,7 @@ impl Coordinator {
             backup_provider_builder: &backup_provider,
             backup_provider: std::marker::PhantomData,
         }
-        .execute(&kind.into())?;
+        .execute(kind.into())?;
 
         Ok(())
     }
@@ -235,7 +235,7 @@ impl Coordinator {
         let credentials = GetBackupCredentialsOperation {
             provider: &self.storage(),
         }
-        .execute(&BackupProviderKind::Notion.into())?
+        .execute(BackupProviderKind::Notion.into())?
         .into();
 
         Ok(Some(credentials))
@@ -270,7 +270,7 @@ impl Coordinator {
             backup_provider_builder: &backup_builder,
             backup_provider: std::marker::PhantomData,
         }
-        .execute(&kind.into())?;
+        .execute(kind.into())?;
 
         Ok(())
     }

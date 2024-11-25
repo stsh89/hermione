@@ -272,7 +272,7 @@ impl CreateWorkspace for InMemoryStorage {
 }
 
 impl DeleteBackupCredentials for InMemoryStorage {
-    fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> Result<()> {
+    fn delete_backup_credentials(&self, kind: BackupProviderKind) -> Result<()> {
         let key = match kind {
             BackupProviderKind::Notion => NOTION_CREDENTIALS_KEY,
             BackupProviderKind::Unknown => return Ok(()),
@@ -311,7 +311,7 @@ impl DeleteWorkspace for InMemoryStorage {
 impl FindBackupCredentials for InMemoryStorage {
     fn find_backup_credentials(
         &self,
-        kind: &BackupProviderKind,
+        kind: BackupProviderKind,
     ) -> Result<Option<BackupCredentials>> {
         let key = match kind {
             BackupProviderKind::Notion => NOTION_CREDENTIALS_KEY,
@@ -447,9 +447,9 @@ impl UpdateCommand for InMemoryStorage {
     fn update_command(&self, parameters: EditCommandParameters) -> Result<()> {
         let EditCommandParameters { id, name, program } = parameters;
 
-        let mut command = self
-            .get_command(id)?
-            .ok_or_else(|| Error::NotFound(format!("Command with ID: {}", **id)))?;
+        let Some(mut command) = self.get_command(id)? else {
+            return Ok(());
+        };
 
         command.set_name(name.to_string());
         command.set_program(program.to_string());
@@ -474,9 +474,9 @@ impl UpdateWorkspace for InMemoryStorage {
     fn update_workspace(&self, parameters: EditWorkspaceParameters) -> Result<()> {
         let EditWorkspaceParameters { id, location, name } = parameters;
 
-        let mut workspace = self
-            .get_workspace(id)?
-            .ok_or_else(|| Error::NotFound(format!("Workspace with ID: {}", **id)))?;
+        let Some(mut workspace) = self.get_workspace(id)? else {
+            return Ok(());
+        };
 
         workspace.set_location(location.map(ToString::to_string));
         workspace.set_name(name.to_string());

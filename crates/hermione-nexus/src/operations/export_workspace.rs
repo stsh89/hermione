@@ -59,7 +59,7 @@ where
         GetBackupCredentialsOperation {
             provider: self.find_backup_credentials,
         }
-        .execute(&backup_provider_kind)
+        .execute(backup_provider_kind)
     }
 
     fn get_workspace(&self, id: WorkspaceId) -> Result<Workspace> {

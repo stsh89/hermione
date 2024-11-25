@@ -36,7 +36,7 @@ pub fn create_backup_credentials_table_if_not_exists(conn: &Connection) -> Resul
 
 pub fn find_backup_credentials(
     conn: &Connection,
-    kind: &BackupProviderKind,
+    kind: BackupProviderKind,
 ) -> Result<Option<BackupCredentialsRecord>> {
     let id = match kind {
         BackupProviderKind::Notion => NOTION_BACKUP_CREDENTIALS_ID,
@@ -59,7 +59,7 @@ pub fn find_backup_credentials(
     .optional()
 }
 
-pub fn delete_backup_credentials(conn: &Connection, kind: &BackupProviderKind) -> Result<usize> {
+pub fn delete_backup_credentials(conn: &Connection, kind: BackupProviderKind) -> Result<usize> {
     let id = match kind {
         BackupProviderKind::Notion => NOTION_BACKUP_CREDENTIALS_ID,
         BackupProviderKind::Unknown => return Ok(0),

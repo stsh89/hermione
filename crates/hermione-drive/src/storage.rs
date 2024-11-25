@@ -80,7 +80,7 @@ impl CreateWorkspace for Storage<'_> {
 }
 
 impl DeleteBackupCredentials for Storage<'_> {
-    fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> Result<()> {
+    fn delete_backup_credentials(&self, kind: BackupProviderKind) -> Result<()> {
         sqlite::delete_backup_credentials(self.conn, kind).map_err(internal_error)?;
 
         Ok(())
@@ -114,7 +114,7 @@ impl DeleteWorkspaceCommands for Storage<'_> {
 impl FindBackupCredentials for Storage<'_> {
     fn find_backup_credentials(
         &self,
-        kind: &BackupProviderKind,
+        kind: BackupProviderKind,
     ) -> Result<Option<BackupCredentials>> {
         sqlite::find_backup_credentials(self.conn, kind)
             .map_err(internal_error)?
@@ -207,7 +207,7 @@ impl SaveBackupCredentials for Storage<'_> {
 
         let record: BackupCredentialsRecord = credentials.try_into()?;
 
-        let found = sqlite::find_backup_credentials(self.conn, &kind).map_err(internal_error)?;
+        let found = sqlite::find_backup_credentials(self.conn, kind).map_err(internal_error)?;
 
         if found.is_some() {
             sqlite::update_backup_credentials(self.conn, record)

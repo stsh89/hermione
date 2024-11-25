@@ -16,7 +16,7 @@ pub trait CreateWorkspace: StorageService {
 }
 
 pub trait DeleteBackupCredentials: StorageService {
-    fn delete_backup_credentials(&self, kind: &BackupProviderKind) -> Result<()>;
+    fn delete_backup_credentials(&self, kind: BackupProviderKind) -> Result<()>;
 }
 
 pub trait DeleteCommand: StorageService {
@@ -34,7 +34,7 @@ pub trait DeleteWorkspace: StorageService {
 pub trait FindBackupCredentials: StorageService {
     fn find_backup_credentials(
         &self,
-        kind: &BackupProviderKind,
+        kind: BackupProviderKind,
     ) -> Result<Option<BackupCredentials>>;
 }
 

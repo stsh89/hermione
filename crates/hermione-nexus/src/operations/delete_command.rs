@@ -1,7 +1,8 @@
+use super::GetCommandOperation;
 use crate::{
-    definitions::CommandId,
+    definitions::{Command, CommandId},
     services::{DeleteCommand, FindCommand, StorageService},
-    Error, Result,
+    Result,
 };
 
 pub struct DeleteCommandOperation<'a, FCP, GCP>
@@ -21,10 +22,14 @@ where
     pub fn execute(&self, id: &CommandId) -> Result<()> {
         tracing::info!(operation = "Delete command");
 
-        if self.find_provider.find_command(id)?.is_none() {
-            return Err(Error::NotFound(format!("Command {}", id.braced())));
-        }
-
+        self.get_command(id)?;
         self.delete_provider.delete_command(id)
+    }
+
+    fn get_command(&self, id: &CommandId) -> Result<Command> {
+        GetCommandOperation {
+            provider: self.find_provider,
+        }
+        .execute(id)
     }
 }

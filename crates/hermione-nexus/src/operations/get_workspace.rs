@@ -20,6 +20,6 @@ where
 
         self.provider
             .find_workspace(id)?
-            .ok_or(Error::NotFound(format!("Workspace {}", id.braced())))
+            .ok_or(Error::WorkspaceNotFound(**id))
     }
 }

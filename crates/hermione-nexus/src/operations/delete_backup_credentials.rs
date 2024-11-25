@@ -1,8 +1,10 @@
 use crate::{
-    definitions::BackupProviderKind,
+    definitions::{BackupCredentials, BackupProviderKind},
     services::{DeleteBackupCredentials, FindBackupCredentials, StorageService},
-    Error, Result,
+    Result,
 };
+
+use super::GetBackupCredentialsOperation;
 
 pub struct DeleteBackupCredentialsOperation<'a, DBC, FBC>
 where
@@ -18,13 +20,17 @@ where
     DBC: DeleteBackupCredentials,
     FBC: FindBackupCredentials,
 {
-    pub fn execute(&self, kind: &BackupProviderKind) -> Result<()> {
+    pub fn execute(&self, kind: BackupProviderKind) -> Result<()> {
         tracing::info!(operation = "Delete backup credentials");
 
-        if self.find_provider.find_backup_credentials(kind)?.is_none() {
-            return Err(Error::NotFound("Backup credentials".to_string()));
-        }
-
+        self.get_backup_credentials(kind)?;
         self.delete_provider.delete_backup_credentials(kind)
+    }
+
+    fn get_backup_credentials(&self, kind: BackupProviderKind) -> Result<BackupCredentials> {
+        GetBackupCredentialsOperation {
+            provider: self.find_provider,
+        }
+        .execute(kind)
     }
 }

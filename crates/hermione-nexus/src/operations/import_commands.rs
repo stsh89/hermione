@@ -58,7 +58,7 @@ where
         GetBackupCredentialsOperation {
             provider: self.backup_credentials_provider,
         }
-        .execute(&backup_provider_kind)
+        .execute(backup_provider_kind)
     }
 
     fn import_commands(&self, backup_provider: BP) -> Result<()> {

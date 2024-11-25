@@ -74,7 +74,7 @@ where
         Ok(())
     }
 
-    pub fn execute(&self, kind: &BackupProviderKind) -> Result<()> {
+    pub fn execute(&self, kind: BackupProviderKind) -> Result<()> {
         tracing::info!(operation = "Import");
 
         let credentials = self.get_backup_credentials(kind)?;
@@ -86,7 +86,7 @@ where
         Ok(())
     }
 
-    fn get_backup_credentials(&self, kind: &BackupProviderKind) -> Result<BackupCredentials> {
+    fn get_backup_credentials(&self, kind: BackupProviderKind) -> Result<BackupCredentials> {
         GetBackupCredentialsOperation {
             provider: self.backup_credentials_provider,
         }
