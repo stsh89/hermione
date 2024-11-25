@@ -1,112 +1,75 @@
-use crate::support::{self, InMemoryStorage, MockClipboard};
-use hermione_nexus::{operations::CopyCommandToClipboardOperation, Error, Result};
-use serde_json::json;
-use serde_json::Value as Json;
-use uuid::Uuid;
+use crate::{
+    prelude::*,
+    support::{self, InMemoryStorage, MockClipboard},
+};
+use hermione_nexus::operations::CopyCommandToClipboardOperation;
 
-struct CopyCommandToClipboardTestContext {
-    storage: InMemoryStorage,
+#[derive(Default)]
+struct CopyCommandToClipboardTestCase {
     clipboard: MockClipboard,
-    error: Option<Error>,
+    operation: Operation<()>,
+    storage: InMemoryStorage,
 }
 
-impl CopyCommandToClipboardTestContext {
-    fn assert_clipbard_contains_program(&self, program: &str) {
-        assert_eq!(support::get_clipboard_content(&self.clipboard), program);
+impl TestCase for CopyCommandToClipboardTestCase {
+    fn setup(&mut self, parameters: Table) {
+        support::insert_workspace(
+            &self.storage,
+            parameters.get_table("storage").get_table("workspace"),
+        );
+
+        support::insert_command(
+            &self.storage,
+            parameters.get_table("storage").get_table("command"),
+        );
     }
 
-    fn assert_clipbard_is_empty(&self) {
-        assert!(support::get_clipboard_content(&self.clipboard).is_empty());
-    }
+    fn execute_operation(&mut self, parameters: Table) {
+        let command_id = parameters.get_uuid("command_id").into();
 
-    fn assert_error_contains_message(&self, message: &str) {
-        assert_eq!(self.error.as_ref().unwrap().to_string(), message);
-    }
-
-    fn copy_command_to_clipboard(&self, command_id: &str) -> Result<()> {
-        let id: Uuid = command_id.parse().unwrap();
-
-        CopyCommandToClipboardOperation {
+        let result = CopyCommandToClipboardOperation {
             storage_provider: &self.storage,
             clipboard_provider: &self.clipboard,
         }
-        .execute(&id.into())?;
+        .execute(&command_id);
 
-        Ok(())
+        self.operation.set_result(result);
     }
 
-    fn try_to_copy_command_to_clipboard(&mut self, command_id: &str) -> Result<()> {
-        let id: Uuid = command_id.parse().unwrap();
+    fn assert_operation_success(&self, parameters: Table) {
+        self.operation.assert_success();
 
-        let error = CopyCommandToClipboardOperation {
-            storage_provider: &self.storage,
-            clipboard_provider: &self.clipboard,
-        }
-        .execute(&id.into())
-        .unwrap_err();
+        let clipboard_table = parameters.get_table("clipboard");
+        let expected_clipboard_content = clipboard_table.get_text("content");
+        let got_clipboard_content = support::get_clipboard_content(&self.clipboard);
 
-        self.error = Some(error);
-
-        Ok(())
+        assert_eq!(got_clipboard_content, expected_clipboard_content);
     }
-
-    fn with_background() -> Self {
-        let context = Self {
-            storage: InMemoryStorage::empty(),
-            clipboard: MockClipboard::empty(),
-            error: None,
-        };
-
-        storage_contains_workspace(
-            &context,
-            json!({
-                "id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
-                "name": "Ironman",
-                "location": "/home/ironman",
-            }),
-        );
-
-        storage_contains_command(
-            &context,
-            json!({
-                "id": "51280bfc-2eea-444a-8df9-a1e7158c2c6b",
-                "workspace_id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
-                "name": "Ping",
-                "program": "ping 1.1.1.1",
-            }),
-        );
-
-        context
-    }
-}
-
-fn storage_contains_workspace(context: &CopyCommandToClipboardTestContext, parameters: Json) {
-    support::insert_workspace(&context.storage, parameters);
-}
-
-fn storage_contains_command(context: &CopyCommandToClipboardTestContext, parameters: Json) {
-    support::insert_command(&context.storage, parameters);
 }
 
 #[test]
-fn it_copies_command_to_clipboard() -> Result<()> {
-    let context = CopyCommandToClipboardTestContext::with_background();
+fn it_copies_command_to_clipboard() {
+    let mut test_case = CopyCommandToClipboardTestCase::default();
 
-    context.copy_command_to_clipboard("51280bfc-2eea-444a-8df9-a1e7158c2c6b")?;
-    context.assert_clipbard_contains_program("ping 1.1.1.1");
+    test_case.setup(table! {
+        [storage.workspace]
+        id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+        location = "/home/ironman"
+        name = "Ironman"
 
-    Ok(())
-}
+        [storage.command]
+        id = "51280bfc-2eea-444a-8df9-a1e7158c2c6b"
+        name = "Ping"
+        program = "ping 1.1.1.1"
+        workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+    });
 
-#[test]
-fn it_returns_not_found_error() -> Result<()> {
-    let mut context = CopyCommandToClipboardTestContext::with_background();
+    test_case.execute_operation(table! {
+        command_id = "51280bfc-2eea-444a-8df9-a1e7158c2c6b"
+    });
 
-    context.try_to_copy_command_to_clipboard("00000000-0000-0000-0000-000000000000")?;
-
-    context.assert_clipbard_is_empty();
-    context
-        .assert_error_contains_message("Command {00000000-0000-0000-0000-000000000000} not found");
-
-    Ok(())
+    test_case.assert_operation_success(table! {
+        [clipboard]
+        content = "ping 1.1.1.1"
+    });
 }

@@ -1,11 +1,10 @@
-use crate::support::{self, InMemoryStorage, MockNotionBuilder, MockNotionStorage};
+use crate::{table, support::{self, InMemoryStorage, MockNotionBuilder, MockNotionStorage}};
 use anyhow::Result;
 use hermione_nexus::{
     definitions::BackupProviderKind,
     operations::{ImportWorkspacesOperation, ImportWorkspacesOperationParameters},
 };
-use serde_json::json;
-use serde_json::Value as Json;
+use toml::Table;
 use std::rc::Rc;
 
 struct ImportWorkspacesFromNotionTestContext {
@@ -14,11 +13,11 @@ struct ImportWorkspacesFromNotionTestContext {
 }
 
 impl ImportWorkspacesFromNotionTestContext {
-    fn assert_storage_contains_workspace(&self, parameters: Json) {
-        let id = parameters["id"].as_str().unwrap().parse().unwrap();
+    fn assert_storage_contains_workspace(&self, table: Table) {
+        let id = table["id"].as_str().unwrap().parse().unwrap();
         let workspace = support::get_workspace(&self.storage, id);
 
-        support::assert_workspace(&workspace, parameters);
+        support::assert_workspace(&workspace, table);
     }
 
     fn import_workspaces_to_notion(&self) -> Result<()> {
@@ -34,71 +33,55 @@ impl ImportWorkspacesFromNotionTestContext {
         Ok(())
     }
 
-    fn with_background() -> Self {
+    fn prepare() -> Self {
+        Self::with_background(table! {
+            [workspace_backup_exists]
+            external_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+            name = "Ironman"
+            location = "/home/ironman"
+
+            [valid_notion_backup_credentials_exist]
+            api_key = "test_api_key"
+            commands_database_id = "test_commands_database_id"
+            workspaces_database_id = "test_workspaces_database_id"
+        })
+    }
+
+    fn with_background(table: Table) -> Self {
         let ctx = ImportWorkspacesFromNotionTestContext {
             storage: InMemoryStorage::empty(),
             notion_storage: Rc::new(MockNotionStorage::empty()),
         };
 
-        notion_storage_contains_workspace_entry(
-            &ctx,
-            json!({
-                "external_id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
-                "name": "Ironman",
-                "location": "/home/ironman"
-            }),
-        );
-
-        storage_contains_valid_notion_backup_credentials(
-            &ctx,
-            json!({
-                "api_key": "test_api_key",
-                "commands_database_id": "test_commands_database_id",
-                "workspaces_database_id": "test_workspaces_database_id"
-            }),
-        );
+        support::insert_notion_workspace(&ctx.notion_storage, &table["workspace_backup_exists"]);
+        support::insert_notion_backup_credentials(&ctx.storage, &table["valid_notion_backup_credentials_exist"]);
 
         ctx
     }
 }
 
-fn storage_contains_valid_notion_backup_credentials(
-    ctx: &ImportWorkspacesFromNotionTestContext,
-    parameters: Json,
-) {
-    support::insert_notion_backup_credentials(&ctx.storage, parameters)
-}
-
-fn storage_contains_workspace(ctx: &ImportWorkspacesFromNotionTestContext, parameters: Json) {
-    support::insert_workspace(&ctx.storage, parameters);
-}
-
-fn notion_storage_contains_workspace_entry(
-    ctx: &ImportWorkspacesFromNotionTestContext,
-    parameters: Json,
-) {
-    support::insert_notion_workspace(&ctx.notion_storage, parameters);
-}
+// fn storage_contains_workspace(ctx: &ImportWorkspacesFromNotionTestContext, parameters: Json) {
+//     support::insert_workspace(&ctx.storage, parameters);
+// }
 
 #[test]
 fn it_restores_workspaces() -> Result<()> {
-    let context = ImportWorkspacesFromNotionTestContext::with_background();
+    let context = ImportWorkspacesFromNotionTestContext::prepare();
 
     context.import_workspaces_to_notion()?;
 
-    context.assert_storage_contains_workspace(json!({
-        "id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
-        "name": "Ironman",
-        "location": "/home/ironman",
-        "last_access_time": null
-    }));
+    context.assert_storage_contains_workspace(table! {
+        id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+        name = "Ironman"
+        location = "/home/ironman"
+    });
 
     Ok(())
 }
 
 #[test]
 fn it_updates_existing_workspaces() -> Result<()> {
-    let context = ImportWorkspacesFromNotionTestContext::with_background();
+    let context = ImportWorkspacesFromNotionTestContext::prepare();
 
     storage_contains_workspace(
         &context,

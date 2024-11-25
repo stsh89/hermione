@@ -1,72 +1,59 @@
-use crate::support::{self, InMemoryStorage};
-use anyhow::Result;
+use crate::{
+    prelude::*,
+    support::{self, InMemoryStorage},
+};
 use hermione_nexus::{
     definitions::Workspace,
     operations::{CreateWorkspaceOperation, CreateWorkspaceParameters},
 };
-use serde_json::{json, Value as Json};
 
-struct TestContext {
+#[derive(Default)]
+struct CreateWorkspaceTestCase {
     storage: InMemoryStorage,
-    workspace: Option<Workspace>,
+    operation: Operation<Workspace>,
 }
 
-impl TestContext {
-    fn assert_returned_workspace(&self, parameters: Json) {
-        let workspace = self.workspace();
+impl TestCase for CreateWorkspaceTestCase {
+    fn assert_operation_success(&self, parameters: Table) {
+        self.operation.assert_success();
 
-        support::assert_workspace(workspace, parameters);
-    }
-
-    fn assert_storage_contains_workspace(&self, parameters: Json) {
-        let workspace = self.workspace();
+        let workspace = self.operation.result().as_ref().unwrap();
         let workspace = support::get_workspace(&self.storage, **workspace.id());
 
-        support::assert_workspace(&workspace, parameters);
+        support::assert_workspace(
+            &workspace,
+            parameters.get_table("storage").get_table("workspace"),
+        );
     }
 
-    fn create_workspace(&mut self, parameters: Json) -> Result<()> {
-        let name = parameters["name"].as_str().unwrap().to_string();
-        let location = parameters["location"].as_str().map(ToString::to_string);
+    fn execute_operation(&mut self, parameters: Table) {
+        let name = parameters.get_text("name");
+        let location = parameters.get_text("location");
 
-        let workspace = CreateWorkspaceOperation {
+        let result = CreateWorkspaceOperation {
             storage_provider: &self.storage,
         }
-        .execute(CreateWorkspaceParameters { name, location })?;
+        .execute(CreateWorkspaceParameters {
+            name: name.to_string(),
+            location: Some(location.to_string()),
+        });
 
-        self.workspace = Some(workspace);
-
-        Ok(())
-    }
-
-    fn workspace(&self) -> &Workspace {
-        self.workspace.as_ref().unwrap()
+        self.operation.set_result(result);
     }
 }
 
 #[test]
-fn it_creates_workspace() -> Result<()> {
-    let mut context = TestContext {
-        storage: InMemoryStorage::empty(),
-        workspace: None,
-    };
+fn it_creates_workspace() {
+    let mut test_case = CreateWorkspaceTestCase::default();
 
-    context.create_workspace(json!({
-        "name": "Ironman",
-        "location": "/home/ironman"
-    }))?;
+    test_case.execute_operation(table! {
+        name = "Ironman"
+        location = "/home/ironman"
+    });
 
-    context.assert_returned_workspace(json!({
-        "name": "Ironman",
-        "location": "/home/ironman",
-        "last_access_time": null
-    }));
-
-    context.assert_storage_contains_workspace(json!({
-        "name": "Ironman",
-        "location": "/home/ironman",
-        "last_access_time": null
-    }));
-
-    Ok(())
+    test_case.assert_operation_success(table! {
+        [storage.workspace]
+        name = "Ironman"
+        location = "/home/ironman"
+    });
 }

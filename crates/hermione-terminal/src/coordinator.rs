@@ -8,8 +8,8 @@ use hermione_nexus::operations::{
     GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation, ImportOperation,
     ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
     ListWorkspacesOperation, ListWorkspacesParameters, SaveBackupCredentialsOperation,
-    UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
-    UpdateWorkspaceParameters, VisitWorkspaceLocationOperation,
+    SaveBackupCredentialsOperationParameters, UpdateCommandOperation, UpdateCommandParameters,
+    UpdateWorkspaceOperation, UpdateWorkspaceParameters, VisitWorkspaceLocationOperation,
 };
 use std::num::NonZeroU32;
 use uuid::Uuid;
@@ -341,11 +341,10 @@ impl Coordinator {
         let credentials = credentials.try_into()?;
         let backup_provider = self.notion_backup_builder();
 
-        SaveBackupCredentialsOperation {
+        SaveBackupCredentialsOperation::new(SaveBackupCredentialsOperationParameters {
             save_provider: &self.storage(),
             backup_provider_builder: &backup_provider,
-            backup_provider: std::marker::PhantomData,
-        }
+        })
         .execute(&credentials)?;
 
         Ok(())

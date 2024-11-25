@@ -14,9 +14,14 @@ where
     BPB: BackupServiceBuilder<V>,
     V: BackupService,
 {
+    save_provider: &'a S,
+    backup_provider_builder: &'a BPB,
+    backup_provider: PhantomData<V>,
+}
+
+pub struct SaveBackupCredentialsOperationParameters<'a, S, BPB> {
     pub save_provider: &'a S,
     pub backup_provider_builder: &'a BPB,
-    pub backup_provider: PhantomData<V>,
 }
 
 impl<'a, S, BPB, V> SaveBackupCredentialsOperation<'a, S, BPB, V>
@@ -40,5 +45,18 @@ where
         }
 
         self.save_provider.save_backup_credentials(credentials)
+    }
+
+    pub fn new(parameters: SaveBackupCredentialsOperationParameters<'a, S, BPB>) -> Self {
+        let SaveBackupCredentialsOperationParameters {
+            save_provider,
+            backup_provider_builder,
+        } = parameters;
+
+        Self {
+            save_provider,
+            backup_provider_builder,
+            backup_provider: PhantomData,
+        }
     }
 }

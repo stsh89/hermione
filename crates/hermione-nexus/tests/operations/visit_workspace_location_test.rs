@@ -1,60 +1,68 @@
 use crate::{
+    prelude::*,
     support::{self, InMemoryStorage, MockSystem},
-    Result,
 };
 use hermione_nexus::operations::VisitWorkspaceLocationOperation;
-use serde_json::{json, Value as Json};
-use uuid::Uuid;
+use toml::Table;
 
 #[derive(Default)]
-struct VisitWorkspaceLocationTestContext {
+struct VisitWorkspaceLocationTestCase {
+    operation: Operation<()>,
     storage: InMemoryStorage,
     system: MockSystem,
 }
 
-impl VisitWorkspaceLocationTestContext {
-    fn assert_working_directory(&self, location: &str) {
-        let system_location = support::get_system_location(&self.system);
-
-        assert_eq!(system_location.as_deref(), Some(location));
+impl TestCase for VisitWorkspaceLocationTestCase {
+    fn setup(&mut self, parameters: Table) {
+        support::insert_workspace(
+            &self.storage,
+            parameters.get_table("storage").get_table("workspace"),
+        );
     }
 
-    fn visit_workspace_location(&self, workspace_id: &str) -> hermione_nexus::Result<()> {
-        let id: Uuid = workspace_id.parse().unwrap();
+    fn execute_operation(&mut self, parameters: Table) {
+        let workspace_id = parameters.get_uuid("workspace_id").into();
 
-        VisitWorkspaceLocationOperation {
+        let result = VisitWorkspaceLocationOperation {
             find_workspace: &self.storage,
             system_provider: &self.system,
         }
-        .execute(&id.into())
+        .execute(&workspace_id);
+
+        self.operation.set_result(result);
     }
 
-    fn with_background() -> Self {
-        let context = Self::default();
+    fn assert_operation_success(&self, parameters: Table) {
+        self.operation.assert_success();
 
-        storage_contains_workspace(
-            &context,
-            json!({
-                "id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
-                "name": "Ironman",
-                "location": "/home/ironman",
-            }),
+        let system_table = parameters.get_table("system");
+        let expected_system_location = system_table.get_text("location");
+        let current_system_location = support::get_system_location(&self.system);
+
+        assert_eq!(
+            current_system_location.as_deref(),
+            Some(expected_system_location)
         );
-
-        context
     }
-}
-
-fn storage_contains_workspace(context: &VisitWorkspaceLocationTestContext, parameters: Json) {
-    support::insert_workspace(&context.storage, parameters);
 }
 
 #[test]
-fn it_changes_working_directory() -> Result<()> {
-    let context = VisitWorkspaceLocationTestContext::with_background();
+fn it_changes_working_directory() {
+    let mut test_case = VisitWorkspaceLocationTestCase::default();
 
-    context.visit_workspace_location("9db9a48b-f075-4518-bdd5-ec9d9b05f4fa")?;
-    context.assert_working_directory("/home/ironman");
+    test_case.setup(table! {
+        [storage.workspace]
+        id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+        name = "Ironman"
+        location = "/home/ironman"
+    });
 
-    Ok(())
+    test_case.execute_operation(table! {
+        workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+    });
+
+    test_case.assert_operation_success(table! {
+        [system]
+        location = "/home/ironman"
+    });
 }

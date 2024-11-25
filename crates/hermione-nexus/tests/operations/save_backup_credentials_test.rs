@@ -1,117 +1,110 @@
-use crate::support::{self, InMemoryStorage, MockNotionBuilder, MockNotionStorage};
-use anyhow::Result;
+use crate::{
+    prelude::*,
+    support::{self, InMemoryStorage, MockNotionBuilder, MockNotionStorage},
+};
 use hermione_nexus::{
     definitions::{BackupCredentials, NotionBackupCredentialsParameters},
-    operations::SaveBackupCredentialsOperation,
-    Error,
+    operations::{SaveBackupCredentialsOperation, SaveBackupCredentialsOperationParameters},
 };
-use serde_json::{json, Value as Json};
-use std::{marker::PhantomData, rc::Rc};
+use std::rc::Rc;
 
 #[derive(Default)]
-struct SaveBackupCredentialsTestContext {
+struct SaveBackupCredentialsTestCase {
     storage: InMemoryStorage,
     notion_storage: Rc<MockNotionStorage>,
-    error: Option<Error>,
+    operation: Operation<()>,
 }
 
-impl SaveBackupCredentialsTestContext {
-    fn assert_storage_backup_credentials_empty(&self) {
-        assert!(support::list_backup_credentials(&self.storage).is_empty());
+impl TestCase for SaveBackupCredentialsTestCase {
+    fn assert_operation_failure(&self, parameters: Table) {
+        self.operation.assert_failure();
+
+        let error_message = self.operation.result().as_ref().unwrap_err().to_string();
+
+        assert_eq!(error_message, parameters.get_text("error_message"));
     }
 
-    fn assert_error_contains_message(&self, message: &str) {
-        assert_eq!(self.error.as_ref().unwrap().to_string(), message);
+    fn assert_operation_success(&self, parameters: Table) {
+        self.operation.assert_success();
+
+        let credentials_table = parameters
+            .get_table("storage")
+            .get_table("backup_credentials");
+        let backup_provider_kind = credentials_table.get_text("kind");
+
+        match backup_provider_kind {
+            "Notion" => {
+                let backup_credentials = support::get_notion_backup_credentials(&self.storage);
+
+                support::assert_notion_backup_credentials(&backup_credentials, credentials_table);
+            }
+            _ => unreachable!(),
+        };
     }
 
-    fn assert_storage_contains_notion_backup_credentials(&self, parameters: Json) {
-        let backup_credentials = support::get_notion_backup_credentials(&self.storage);
-
-        support::assert_notion_backup_credentials(&backup_credentials, parameters);
-    }
-
-    fn execute_operation(&self, parameters: Json) -> hermione_nexus::Result<()> {
-        let backup_provider_kind = parameters["backup_provider_kind"].as_str().unwrap();
+    fn execute_operation(&mut self, parameters: Table) {
+        let backup_provider_kind = parameters.get_text("kind");
 
         let backup_credentials = match backup_provider_kind {
-            "Notion" => BackupCredentials::notion(notion_backup_credentials_parameters(parameters)),
+            "Notion" => {
+                let api_key = parameters.get_text("api_key");
+                let commands_database_id = parameters.get_text("commands_database_id");
+                let workspaces_database_id = parameters.get_text("workspaces_database_id");
+
+                BackupCredentials::notion(NotionBackupCredentialsParameters {
+                    api_key: api_key.to_string(),
+                    commands_database_id: commands_database_id.to_string(),
+                    workspaces_database_id: workspaces_database_id.to_string(),
+                })
+            }
             _ => unreachable!(),
         };
 
-        SaveBackupCredentialsOperation {
-            save_provider: &self.storage,
-            backup_provider_builder: &MockNotionBuilder {
-                storage: self.notion_storage.clone(),
-            },
-            backup_provider: PhantomData,
-        }
-        .execute(&backup_credentials)
-    }
+        let result =
+            SaveBackupCredentialsOperation::new(SaveBackupCredentialsOperationParameters {
+                save_provider: &self.storage,
+                backup_provider_builder: &MockNotionBuilder {
+                    storage: self.notion_storage.clone(),
+                },
+            })
+            .execute(&backup_credentials);
 
-    fn save_notion_backup_credentials(&self, parameters: Json) -> Result<()> {
-        let mut parameters = parameters;
-        parameters["backup_provider_kind"] = "Notion".into();
-
-        self.execute_operation(parameters)?;
-
-        Ok(())
-    }
-
-    fn try_to_save_notion_backup_credentials(&mut self, parameters: Json) -> Result<()> {
-        let mut parameters = parameters;
-        parameters["backup_provider_kind"] = "Notion".into();
-
-        let error = self.execute_operation(parameters).unwrap_err();
-
-        self.error = Some(error);
-
-        Ok(())
-    }
-}
-
-fn notion_backup_credentials_parameters(json: Json) -> NotionBackupCredentialsParameters {
-    let api_key = json["api_key"].as_str().unwrap().to_string();
-    let commands_database_id = json["commands_database_id"].as_str().unwrap().to_string();
-    let workspaces_database_id = json["workspaces_database_id"].as_str().unwrap().to_string();
-
-    NotionBackupCredentialsParameters {
-        api_key,
-        commands_database_id,
-        workspaces_database_id,
+        self.operation.set_result(result);
     }
 }
 
 #[test]
-fn it_saves_notion_backup_credentials() -> Result<()> {
-    let context = SaveBackupCredentialsTestContext::default();
+fn it_saves_notion_backup_credentials() {
+    let mut test_case = SaveBackupCredentialsTestCase::default();
 
-    context.save_notion_backup_credentials(json!({
-        "api_key": "test_api_key",
-        "commands_database_id": "test_commands_database_id",
-        "workspaces_database_id": "test_workspaces_database_id",
-    }))?;
+    test_case.execute_operation(table! {
+        kind = "Notion"
+        api_key = "test_api_key"
+        commands_database_id = "test_commands_database_id"
+        workspaces_database_id = "test_workspaces_database_id"
+    });
 
-    context.assert_storage_contains_notion_backup_credentials(json!({
-        "api_key": "test_api_key",
-        "commands_database_id": "test_commands_database_id",
-        "workspaces_database_id": "test_workspaces_database_id",
-    }));
-
-    Ok(())
+    test_case.assert_operation_success(table! {
+        [storage.backup_credentials]
+        kind = "Notion"
+        api_key = "test_api_key"
+        commands_database_id = "test_commands_database_id"
+        workspaces_database_id = "test_workspaces_database_id"
+    });
 }
 
 #[test]
-fn it_returns_notion_api_key_verification_error() -> Result<()> {
-    let mut context = SaveBackupCredentialsTestContext::default();
+fn it_returns_verification_error_for_invalid_notion_backup_credentials() {
+    let mut context = SaveBackupCredentialsTestCase::default();
 
-    context.try_to_save_notion_backup_credentials(json!({
-        "api_key": "fake_api_key",
-        "commands_database_id": "test_commands_database_id",
-        "workspaces_database_id": "test_workspaces_database_id",
-    }))?;
+    context.execute_operation(table! {
+        kind = "Notion"
+        api_key = "fake_api_key"
+        commands_database_id = "test_commands_database_id"
+        workspaces_database_id = "test_workspaces_database_id"
+    });
 
-    context.assert_storage_backup_credentials_empty();
-    context.assert_error_contains_message("Backup failure: Invalid API key");
-
-    Ok(())
+    context.assert_operation_failure(table! {
+        error_message = "Backup failure: Invalid API key"
+    });
 }

@@ -1,15 +1,25 @@
-use crate::support::{command_fixture, workspace_fixture, InMemoryStorage};
+use crate::{prelude::*, support::{InMemoryStorage}};
 use hermione_nexus::{definitions::Workspace, operations::DeleteWorkspaceOperation, Error, Result};
 use uuid::Uuid;
 
-struct DeleteWorkspaceOperationTestContext {
+struct DeleteWorkspaceOperationTestCase {
     storage: InMemoryStorage,
     workspace: Workspace,
 }
 
+impl TestCase for DeleteWorkspaceOperationTestCase {
+    fn assert_operation_success(&self, parameters: Table) {
+        todo!()
+    }
+
+    fn execute_operation(&mut self, parameters: Table) {
+        todo!()
+    }
+}
+
 fn with_context<T>(test_fn: T) -> Result<()>
 where
-    T: FnOnce(DeleteWorkspaceOperationTestContext) -> Result<()>,
+    T: FnOnce(DeleteWorkspaceOperationTestCase) -> Result<()>,
 {
     let storage = InMemoryStorage::default();
 
@@ -19,13 +29,13 @@ where
     storage.insert_workspace(&workspace)?;
     storage.insert_command(&command)?;
 
-    test_fn(DeleteWorkspaceOperationTestContext { storage, workspace })
+    test_fn(DeleteWorkspaceOperationTestCase { storage, workspace })
 }
 
 #[test]
 fn it_deletes_workspace() -> Result<()> {
     with_context(|ctx| {
-        let DeleteWorkspaceOperationTestContext { storage, workspace } = ctx;
+        let DeleteWorkspaceOperationTestCase { storage, workspace } = ctx;
 
         assert_eq!(storage.count_workspaces()?, 1);
 
@@ -45,7 +55,7 @@ fn it_deletes_workspace() -> Result<()> {
 #[test]
 fn it_deletes_workspace_commands() -> Result<()> {
     with_context(|ctx| {
-        let DeleteWorkspaceOperationTestContext { storage, workspace } = ctx;
+        let DeleteWorkspaceOperationTestCase { storage, workspace } = ctx;
 
         assert_eq!(storage.count_commands()?, 1);
 
@@ -65,7 +75,7 @@ fn it_deletes_workspace_commands() -> Result<()> {
 #[test]
 fn it_returns_not_found_error() -> Result<()> {
     with_context(|ctx| {
-        let DeleteWorkspaceOperationTestContext {
+        let DeleteWorkspaceOperationTestCase {
             storage,
             workspace: _,
         } = ctx;

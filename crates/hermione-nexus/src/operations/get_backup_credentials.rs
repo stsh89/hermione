@@ -20,6 +20,6 @@ where
 
         self.provider
             .find_backup_credentials(kind)?
-            .ok_or(Error::NotFound("Backup credentials".to_string()))
+            .ok_or(Error::NotFound(format!("{} backup credentials", kind)))
     }
 }

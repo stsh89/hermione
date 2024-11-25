@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 pub enum BackupProviderKind {
     Notion,
     Unknown,
@@ -46,5 +48,14 @@ impl NotionBackupCredentials {
 
     pub fn workspaces_database_id(&self) -> &str {
         &self.workspaces_database_id
+    }
+}
+
+impl Display for BackupProviderKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BackupProviderKind::Notion => write!(f, "Notion"),
+            BackupProviderKind::Unknown => write!(f, "Unknown"),
+        }
     }
 }

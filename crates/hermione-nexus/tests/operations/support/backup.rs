@@ -28,11 +28,11 @@ pub struct MockNotionStorage {
     pub commands_database_id: String,
     pub workspaces_database_id: String,
     pub commands: RwLock<HashMap<String, MockNotionCommandEntry>>,
-    pub workspaces: RwLock<HashMap<String, MockNotionWorkspaceEntry>>,
+    pub workspaces: RwLock<HashMap<String, NotionWorkspace>>,
 }
 
 #[derive(Clone)]
-pub struct MockNotionWorkspaceEntry {
+pub struct NotionWorkspace {
     pub external_id: String,
     pub name: String,
     pub location: String,
@@ -82,7 +82,7 @@ impl MockNotion {
         Ok(())
     }
 
-    pub fn insert_workspace(&self, workspace: MockNotionWorkspaceEntry) -> Result<()> {
+    pub fn insert_workspace(&self, workspace: NotionWorkspace) -> Result<()> {
         self.verify_api_key()?;
         self.verify_workspaces_database_id()?;
 
@@ -131,7 +131,7 @@ impl MockNotion {
         self.verify_api_key()?;
         self.verify_workspaces_database_id()?;
 
-        let mut workspaces: Vec<MockNotionWorkspaceEntry> = self
+        let mut workspaces: Vec<NotionWorkspace> = self
             .storage
             .workspaces
             .read()
@@ -281,9 +281,9 @@ impl From<Command> for MockNotionCommandEntry {
     }
 }
 
-impl From<Workspace> for MockNotionWorkspaceEntry {
+impl From<Workspace> for NotionWorkspace {
     fn from(value: Workspace) -> Self {
-        MockNotionWorkspaceEntry {
+        NotionWorkspace {
             external_id: value.id().to_string(),
             name: value.name().to_string(),
             location: value
@@ -320,10 +320,10 @@ impl TryFrom<MockNotionCommandEntry> for Command {
     }
 }
 
-impl TryFrom<MockNotionWorkspaceEntry> for Workspace {
+impl TryFrom<NotionWorkspace> for Workspace {
     type Error = Error;
 
-    fn try_from(value: MockNotionWorkspaceEntry) -> Result<Self> {
+    fn try_from(value: NotionWorkspace) -> Result<Self> {
         let id = value.external_id.parse().map_err(|_err| {
             Error::Backup(eyre!("Invalid workspace ID: {{{}}}", value.external_id))
         })?;

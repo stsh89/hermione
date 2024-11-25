@@ -1,99 +1,76 @@
-use crate::support::{self, InMemoryStorage};
-use anyhow::Result;
+use crate::{
+    prelude::*,
+    support::{self, InMemoryStorage},
+};
 use hermione_nexus::{
     definitions::Command,
     operations::{CreateCommandOperation, CreateCommandParameters},
 };
-use serde_json::{json, Value as Json};
-use uuid::Uuid;
 
-struct TestContext {
+#[derive(Default)]
+struct CreateCommandTestCase {
     storage: InMemoryStorage,
-    command: Option<Command>,
+    operation: Operation<Command>,
 }
 
-impl TestContext {
-    fn assert_returned_command(&self, parameters: Json) {
-        let command = self.command();
+impl TestCase for CreateCommandTestCase {
+    fn assert_operation_success(&self, parameters: Table) {
+        self.operation.assert_success();
 
-        support::assert_command(command, parameters);
-    }
-
-    fn assert_storage_contains_command(&self, parameters: Json) {
-        let command = self.command();
+        let command = self.operation.result().as_ref().unwrap();
         let command = support::get_command(&self.storage, **command.id());
 
-        support::assert_command(&command, parameters);
+        support::assert_command(
+            &command,
+            parameters.get_table("storage").get_table("command"),
+        );
     }
 
-    fn command(&self) -> &Command {
-        self.command.as_ref().unwrap()
-    }
+    fn execute_operation(&mut self, parameters: Table) {
+        let name = parameters.get_text("name");
+        let program = parameters.get_text("program");
+        let workspace_id = parameters.get_uuid("workspace_id");
 
-    fn create_command(&mut self, parameters: Json) -> Result<()> {
-        let name = parameters["name"].as_str().unwrap();
-        let program = parameters["program"].as_str().unwrap();
-        let workspace_id = parameters["workspace_id"].as_str().unwrap();
-
-        let command = CreateCommandOperation {
+        let result = CreateCommandOperation {
             storage_provider: &self.storage,
         }
         .execute(CreateCommandParameters {
             name: name.to_string(),
             program: program.to_string(),
-            workspace_id: workspace_id.parse::<Uuid>().unwrap().into(),
-        })?;
+            workspace_id: workspace_id.into(),
+        });
 
-        self.command = Some(command);
-
-        Ok(())
+        self.operation.set_result(result);
     }
 
-    fn with_background() -> TestContext {
-        let context = TestContext {
-            storage: InMemoryStorage::default(),
-            command: None,
-        };
-
-        storage_contains_workspace(
-            &context,
-            json!({
-                "id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
-                "name": "Ironman",
-            }),
+    fn setup(&mut self, parameters: Table) {
+        support::insert_workspace(
+            &self.storage,
+            parameters.get_table("storage").get_table("workspace"),
         );
-
-        context
     }
-}
-
-fn storage_contains_workspace(context: &TestContext, parameters: Json) {
-    support::insert_workspace(&context.storage, parameters);
 }
 
 #[test]
-fn it_creates_command() -> Result<()> {
-    let mut context = TestContext::with_background();
+fn it_creates_command() {
+    let mut test_case = CreateCommandTestCase::default();
 
-    context.create_command(json!({
-        "name": "Ping",
-        "program": "ping 1.1.1.1",
-        "workspace_id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
-    }))?;
+    test_case.setup(table! {
+        [storage.workspace]
+        id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+        name = "Ironman"
+    });
 
-    context.assert_returned_command(json!({
-        "name": "Ping",
-        "program": "ping 1.1.1.1",
-        "last_execute_time": null,
-        "workspace_id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
-    }));
+    test_case.execute_operation(table! {
+        name = "Ping"
+        program = "ping 1.1.1.1"
+        workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+    });
 
-    context.assert_storage_contains_command(json!({
-        "name": "Ping",
-        "program": "ping 1.1.1.1",
-        "last_execute_time": null,
-        "workspace_id": "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
-    }));
-
-    Ok(())
+    test_case.assert_operation_success(table! {
+        [storage.command]
+        name = "Ping"
+        program = "ping 1.1.1.1"
+        workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+    });
 }
