@@ -68,7 +68,7 @@ pub mod prelude {
         pub fn assert_success(&self) {
             match self.result() {
                 Ok(_) => {}
-                Err(err) => panic!("{}", err.to_string()),
+                Err(err) => panic!("{}", err),
             }
         }
 
