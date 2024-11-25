@@ -1,10 +1,9 @@
+use super::GetBackupCredentialsOperation;
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
     services::{DeleteBackupCredentials, FindBackupCredentials, StorageService},
     Result,
 };
-
-use super::GetBackupCredentialsOperation;
 
 pub struct DeleteBackupCredentialsOperation<'a, DBC, FBC>
 where
