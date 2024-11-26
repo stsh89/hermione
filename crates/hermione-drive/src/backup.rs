@@ -1,3 +1,4 @@
+use eyre::Report;
 use hermione_nexus::{
     definitions::{
         BackupCredentials, Command, CommandParameters, NotionBackupCredentials, Workspace,
@@ -20,9 +21,8 @@ use uuid::Uuid;
 const DEFAULT_BACKUP_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(100) };
 
 use hermione_internals::notion::{
-    self, external_ids_filter, verify_commands_database_properties,
-    verify_workspaces_database_properties, NotionCommandProperties, NotionWorkspaceProperties,
-    QueryDatabaseResponse,
+    self, external_ids_filter, verify_commands_database_properties, NotionCommandProperties,
+    NotionWorkspaceProperties, QueryDatabaseResponse,
 };
 
 pub struct NotionBackup {
@@ -40,14 +40,6 @@ struct NotionBackupParameters {
 #[derive(Default)]
 pub struct NotionBackupBuilder {
     pub page_size: Option<NonZeroU32>,
-}
-
-fn api_client_error(error: api::Error) -> Error {
-    Error::Backup(eyre::Error::new(error))
-}
-
-fn verification_error(error: api::Error) -> Error {
-    Error::BackupCredentialsVerification(eyre::Error::new(error))
 }
 
 impl NotionBackup {
@@ -108,7 +100,13 @@ impl ListCommandsBackup for NotionBackup {
         let response = send_with_retries(query_database)?;
 
         let database_query_response: QueryDatabaseResponse<NotionCommandProperties> =
-            notion::query_datrabase_response(response)?;
+            notion::query_datrabase_response(response)
+                .map_err(|err| {
+                    err.wrap_err(
+                        "Could not process Notion API response. API: query commands database",
+                    )
+                })
+                .map_err(Error::backup_service_communication)?;
 
         let next_page_token = database_query_response.next_cursor;
 
@@ -116,15 +114,32 @@ impl ListCommandsBackup for NotionBackup {
             .database_pages
             .into_iter()
             .map(|page| {
-                let id = page.properties.external_id;
-                let workspace_id: Uuid = page.properties.workspace_id.parse().map_err(|_err| {
-                    Error::InvalidArgument(format!("Invalid workspace ID: {}", id))
-                })?;
+                let id = page
+                    .properties
+                    .external_id
+                    .parse()
+                    .map_err(|err| {
+                        Report::new(err).wrap_err(format!(
+                            "Invalid backup data. Could not parse command ID: {}",
+                            page.properties.external_id
+                        ))
+                    })
+                    .map_err(Error::backup_service_data_corruption)?;
+
+                let workspace_id: Uuid = page
+                    .properties
+                    .workspace_id
+                    .parse()
+                    .map_err(|err| {
+                        Report::new(err).wrap_err(format!(
+                            "Invalid backup data. Could not parse command's workspace ID: {}",
+                            page.properties.workspace_id
+                        ))
+                    })
+                    .map_err(Error::backup_service_data_corruption)?;
 
                 Command::new(CommandParameters {
-                    id: id.parse().map_err(|_err| {
-                        Error::InvalidArgument(format!("Invalid workspace ID: {}", id))
-                    })?,
+                    id,
                     last_execute_time: None,
                     program: page.properties.program,
                     name: page.properties.name,
@@ -142,19 +157,28 @@ impl ListWorkspacesBackup for NotionBackup {
         &self,
         page_id: Option<&str>,
     ) -> Result<Option<(Vec<Workspace>, Option<String>)>> {
-        let response = api::query_database(
-            &self.client,
-            QueryDatabaseParameters {
-                database_id: &self.workspaces_database_id,
-                start_cursor: page_id,
-                page_size: Some(self.page_size),
-                filter: None,
-            },
-        )
-        .map_err(api_client_error)?;
+        let query_database = || {
+            api::query_database(
+                &self.client,
+                QueryDatabaseParameters {
+                    database_id: &self.workspaces_database_id,
+                    start_cursor: page_id,
+                    page_size: Some(self.page_size),
+                    filter: None,
+                },
+            )
+        };
+
+        let response = send_with_retries(query_database)?;
 
         let database_query_response: QueryDatabaseResponse<NotionWorkspaceProperties> =
-            notion::query_datrabase_response(response)?;
+            notion::query_datrabase_response(response)
+                .map_err(|err| {
+                    err.wrap_err(
+                        "Could not process Notion API response. API: query workspaces database",
+                    )
+                })
+                .map_err(Error::backup_service_communication)?;
 
         let next_page_token = database_query_response.next_cursor;
 
@@ -162,12 +186,20 @@ impl ListWorkspacesBackup for NotionBackup {
             .database_pages
             .into_iter()
             .map(|page| {
-                let id = page.properties.external_id;
+                let id = page
+                    .properties
+                    .external_id
+                    .parse()
+                    .map_err(|err| {
+                        Report::new(err).wrap_err(format!(
+                            "Invalid backup data. Could not parse workspace ID: {}",
+                            page.properties.external_id
+                        ))
+                    })
+                    .map_err(Error::backup_service_data_corruption)?;
 
                 Workspace::new(WorkspaceParameters {
-                    id: id.parse().map_err(|_err| {
-                        Error::InvalidArgument(format!("Invalid workspace ID: {}", id))
-                    })?,
+                    id,
                     last_access_time: None,
                     location: Some(page.properties.location),
                     name: page.properties.name,
@@ -193,19 +225,28 @@ impl UpsertCommandsBackup for NotionBackup {
 
         let filter = external_ids_filter(external_ids);
 
-        let response = api::query_database(
-            &self.client,
-            QueryDatabaseParameters {
-                database_id: &self.commands_database_id,
-                start_cursor: None,
-                page_size: NonZeroU32::new(count as u32),
-                filter,
-            },
-        )
-        .map_err(api_client_error)?;
+        let query_database = || {
+            api::query_database(
+                &self.client,
+                QueryDatabaseParameters {
+                    database_id: &self.commands_database_id,
+                    start_cursor: None,
+                    page_size: NonZeroU32::new(count as u32),
+                    filter: filter.clone(),
+                },
+            )
+        };
+
+        let response = send_with_retries(query_database)?;
 
         let response: QueryDatabaseResponse<NotionCommandProperties> =
-            notion::query_datrabase_response(response)?;
+            notion::query_datrabase_response(response)
+                .map_err(|err| {
+                    err.wrap_err(
+                        "Could not process Notion API response. API: query commands database",
+                    )
+                })
+                .map_err(Error::backup_service_communication)?;
 
         for command in commands {
             let page = response
@@ -214,15 +255,22 @@ impl UpsertCommandsBackup for NotionBackup {
                 .find(|p| p.properties.external_id == command.id().to_string());
 
             let Some(page) = page else {
-                api::create_database_entry(&self.client, CreateDatabaseEntryParameters {
-                    database_id: &self.commands_database_id,
-                    properties: serde_json::json!({
-                        "Name": {"title": [{"text": {"content": command.name()}}]},
-                        "External ID": {"rich_text": [{"text": {"content": command.id().to_string()}}]},
-                        "Program": {"rich_text": [{"text": {"content": command.program()}}]},
-                        "Workspace ID": {"rich_text": [{"text": {"content": command.workspace_id().to_string()}}]}
-                    }),
-                }).map_err(api_client_error)?;
+                let api_call = || {
+                    api::create_database_entry(
+                        &self.client,
+                        CreateDatabaseEntryParameters {
+                            database_id: &self.commands_database_id,
+                            properties: serde_json::json!({
+                                "Name": {"title": [{"text": {"content": command.name()}}]},
+                                "External ID": {"rich_text": [{"text": {"content": command.id().to_string()}}]},
+                                "Program": {"rich_text": [{"text": {"content": command.program()}}]},
+                                "Workspace ID": {"rich_text": [{"text": {"content": command.workspace_id().to_string()}}]}
+                            }),
+                        },
+                    )
+                };
+
+                send_with_retries(api_call)?;
 
                 continue;
             };
@@ -230,17 +278,20 @@ impl UpsertCommandsBackup for NotionBackup {
             if command.name() != page.properties.name
                 || command.program() != page.properties.program
             {
-                api::update_database_entry(
-                    &self.client,
-                    UpdateDatabaseEntryParameters {
-                        entry_id: &page.page_id,
-                        properties: serde_json::json!({
-                            "Name": {"title": [{"text": {"content": command.name()}}]},
-                            "Program": {"rich_text": [{"text": {"content": command.program()}}]}
-                        }),
-                    },
-                )
-                .map_err(api_client_error)?;
+                let api_call = || {
+                    api::update_database_entry(
+                        &self.client,
+                        UpdateDatabaseEntryParameters {
+                            entry_id: &page.page_id,
+                            properties: serde_json::json!({
+                                "Name": {"title": [{"text": {"content": command.name()}}]},
+                                "Program": {"rich_text": [{"text": {"content": command.program()}}]}
+                            }),
+                        },
+                    )
+                };
+
+                send_with_retries(api_call)?;
             }
         }
 
@@ -262,19 +313,28 @@ impl UpsertWorkspacesBackup for NotionBackup {
 
         let filter = external_ids_filter(external_ids);
 
-        let response = api::query_database(
-            &self.client,
-            QueryDatabaseParameters {
-                database_id: &self.workspaces_database_id,
-                start_cursor: None,
-                page_size: NonZeroU32::new(count as u32),
-                filter,
-            },
-        )
-        .map_err(api_client_error)?;
+        let api_call = || {
+            api::query_database(
+                &self.client,
+                QueryDatabaseParameters {
+                    database_id: &self.workspaces_database_id,
+                    start_cursor: None,
+                    page_size: NonZeroU32::new(count as u32),
+                    filter: filter.clone(),
+                },
+            )
+        };
+
+        let response = send_with_retries(api_call)?;
 
         let response: QueryDatabaseResponse<NotionWorkspaceProperties> =
-            notion::query_datrabase_response(response)?;
+            notion::query_datrabase_response(response)
+                .map_err(|err| {
+                    err.wrap_err(
+                        "Could not process Notion API response. API: query workspaces database",
+                    )
+                })
+                .map_err(Error::backup_service_communication)?;
 
         for workspace in workspaces {
             let page = response
@@ -283,14 +343,21 @@ impl UpsertWorkspacesBackup for NotionBackup {
                 .find(|p| p.properties.external_id == workspace.id().to_string());
 
             let Some(page) = page else {
-                api::create_database_entry(&self.client, CreateDatabaseEntryParameters {
-                    database_id:  &self.workspaces_database_id,
-                    properties: serde_json::json!({
-                        "Name": {"title": [{"text": {"content": workspace.name()}}]},
-                        "External ID": {"rich_text": [{"text": {"content": workspace.id().to_string()}}]},
-                        "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
-                    }),
-                }).map_err(api_client_error)?;
+                let api_call = || {
+                    api::create_database_entry(
+                        &self.client,
+                        CreateDatabaseEntryParameters {
+                            database_id: &self.workspaces_database_id,
+                            properties: serde_json::json!({
+                                "Name": {"title": [{"text": {"content": workspace.name()}}]},
+                                "External ID": {"rich_text": [{"text": {"content": workspace.id().to_string()}}]},
+                                "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
+                            }),
+                        },
+                    )
+                };
+
+                send_with_retries(api_call)?;
 
                 continue;
             };
@@ -298,17 +365,20 @@ impl UpsertWorkspacesBackup for NotionBackup {
             if workspace.name() != page.properties.name
                 || workspace.location().unwrap_or_default() != page.properties.location
             {
-                api::update_database_entry(
-                    &self.client,
-                    UpdateDatabaseEntryParameters {
-                        entry_id: &page.page_id,
-                        properties: serde_json::json!({
-                            "Name": {"title": [{"text": {"content": workspace.name()}}]},
-                            "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
-                        }),
-                    },
-                )
-                .map_err(api_client_error)?;
+                let api_call = || {
+                    api::update_database_entry(
+                        &self.client,
+                        UpdateDatabaseEntryParameters {
+                            entry_id: &page.page_id,
+                            properties: serde_json::json!({
+                                "Name": {"title": [{"text": {"content": workspace.name()}}]},
+                                "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
+                            }),
+                        },
+                    )
+                };
+
+                send_with_retries(api_call)?;
             }
         }
 
@@ -317,29 +387,47 @@ impl UpsertWorkspacesBackup for NotionBackup {
 }
 
 impl VerifyBackupCredentials for NotionBackup {
-    fn verify_backup_credentials(&self) -> Result<bool> {
+    fn verify_backup_credentials(&self) -> Result<()> {
         let response = api::query_database_properties(&self.client, &self.commands_database_id)
-            .map_err(verification_error)?;
+            .map_err(|err| {
+                Report::new(err).wrap_err("Failed to get Notion commands database properties")
+            })
+            .map_err(Error::backup_service_communication)?;
 
-        let properties = notion::get_database_properties(response)?;
+        let properties = notion::get_database_properties(response)
+            .map_err(|err| {
+                err.wrap_err("Could not process Notion API response. API: query commands database")
+            })
+            .map_err(Error::backup_service_communication)?;
 
-        if !verify_commands_database_properties(properties) {
-            return Ok(false);
-        }
+        verify_commands_database_properties(properties)
+            .map_err(|err| err.wrap_err("Incorrect Notion commands database properties"))
+            .map_err(Error::backup_service_configuration)?;
 
         let response = api::query_database_properties(&self.client, &self.workspaces_database_id)
-            .map_err(verification_error)?;
+            .map_err(|err| {
+                Report::new(err).wrap_err("Failed to get Notion commands database properties")
+            })
+            .map_err(Error::backup_service_communication)?;
 
-        let properties = notion::get_database_properties(response)?;
+        let properties = notion::get_database_properties(response)
+            .map_err(|err| {
+                err.wrap_err(
+                    "Could not process Notion API response. API: query workspaces database",
+                )
+            })
+            .map_err(Error::backup_service_communication)?;
 
-        if !verify_workspaces_database_properties(properties) {
-            return Ok(false);
-        }
+        verify_commands_database_properties(properties)
+            .map_err(|err| err.wrap_err("Incorrect Notion workspace database properties"))
+            .map_err(Error::backup_service_configuration)?;
 
-        Ok(true)
+        Ok(())
     }
 }
 
 fn send_with_retries(f: impl Fn() -> api::Result<Response>) -> Result<Response> {
-    api::send_with_retries(f, thread::sleep).map_err(api_client_error)
+    api::send_with_retries(f, thread::sleep)
+        .map_err(|err| Report::new(err).wrap_err("Notion API request failure"))
+        .map_err(Error::backup_service_communication)
 }

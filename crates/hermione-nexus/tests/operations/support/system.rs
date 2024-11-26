@@ -18,18 +18,18 @@ impl InvokeCommand for MockSystem {
         let InvokeCommandParameters { command, location } = parameters;
 
         set_location(self, location).map_err(|err| {
-            Error::System(err.wrap_err("Failed to set location before program execution"))
+            Error::system(err.wrap_err("Failed to set location before program execution"))
         })?;
 
         set_program(self, command)
-            .map_err(|err| Error::System(err.wrap_err("Failed to execute program")))
+            .map_err(|err| Error::system(err.wrap_err("Failed to execute program")))
     }
 }
 
 impl SetLocation for MockSystem {
     fn set_location(&self, location: Option<&str>) -> Result<()> {
         set_location(self, location)
-            .map_err(|err| Error::System(err.wrap_err("Failed to set location")))
+            .map_err(|err| Error::system(err.wrap_err("Failed to set location")))
     }
 }
 

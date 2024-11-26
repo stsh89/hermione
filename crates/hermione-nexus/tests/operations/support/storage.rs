@@ -30,14 +30,14 @@ pub struct InMemoryStorage {
 impl InMemoryStorage {
     pub fn list_backup_credentials(&self) -> Result<Vec<BackupCredentials>> {
         let credentials = self.backup_credentials.read()
-            .map_err(|_err| Error::Storage(eyre!("Backup credentials blocked for reading, can't proceed with backup credentials listing")))?;
+            .map_err(|_err| Error::storage(eyre!("Backup credentials blocked for reading, can't proceed with backup credentials listing")))?;
 
         Ok(credentials.values().cloned().collect())
     }
 
     pub fn list_commands(&self) -> Result<Vec<Command>> {
         let commands = self.commands.read().map_err(|_err| {
-            Error::Storage(eyre!(
+            Error::storage(eyre!(
                 "Commands blocked for reading, can't proceed with commands listing"
             ))
         })?;
@@ -54,7 +54,7 @@ impl InMemoryStorage {
             .backup_credentials
             .read()
             .map_err(|_err| {
-                Error::Storage(eyre!(
+                Error::storage(eyre!(
                     "Backup credentials blocked for reading, can't get {} backup credentials",
                     kind
                 ))
@@ -70,7 +70,7 @@ impl InMemoryStorage {
             .commands
             .read()
             .map_err(|_err| {
-                Error::Storage(eyre!(
+                Error::storage(eyre!(
                     "Commands blocked for reading, can't get command {}",
                     id.braced()
                 ))
@@ -86,7 +86,7 @@ impl InMemoryStorage {
             .workspaces
             .read()
             .map_err(|_err| {
-                Error::Storage(eyre!(
+                Error::storage(eyre!(
                     "Workspaces blocked for reading, can't get workspace {}",
                     id.braced()
                 ))
@@ -100,7 +100,7 @@ impl InMemoryStorage {
     pub fn insert_backup_credentials(&self, credentials: BackupCredentials) -> Result<()> {
         let mut collection = self.backup_credentials.write()
             .map_err(|_err| {
-                Error::Storage(eyre!(
+                Error::storage(eyre!(
                     "Backup credentials blocked for writing, can't proceed with backup credentials insert"
                 ))
             })
@@ -117,7 +117,7 @@ impl InMemoryStorage {
 
     pub fn insert_command(&self, command: &Command) -> Result<()> {
         let mut commands = self.commands.write().map_err(|_err| {
-            Error::Storage(eyre!(
+            Error::storage(eyre!(
                 "Commands blocked for writing, can't proceed with command insert",
             ))
         })?;
@@ -129,7 +129,7 @@ impl InMemoryStorage {
 
     pub fn insert_workspace(&self, workspace: &Workspace) -> Result<()> {
         let mut workspaces = self.workspaces.write().map_err(|_err| {
-            Error::Storage(eyre!(
+            Error::storage(eyre!(
                 "Workspaces blocked for writing, can't proceed with workspace insert"
             ))
         })?;
@@ -141,7 +141,7 @@ impl InMemoryStorage {
 
     fn remove_backup_credentials(&self, kind: &str) -> Result<()> {
         let mut credentials = self.backup_credentials.write().map_err(|_err| {
-            Error::Storage(eyre!(
+            Error::storage(eyre!(
                 "Backup credentials blocked for writing, can't remove {} backup credentials",
                 kind
             ))
@@ -154,7 +154,7 @@ impl InMemoryStorage {
 
     fn remove_command(&self, id: &Uuid) -> Result<()> {
         let mut commands = self.commands.write().map_err(|_err| {
-            Error::Storage(eyre!(
+            Error::storage(eyre!(
                 "Commands blocked for writing, can't remove command {}",
                 id.braced()
             ))
@@ -167,7 +167,7 @@ impl InMemoryStorage {
 
     fn remove_workspace_commands(&self, workspace_id: &WorkspaceId) -> Result<()> {
         let mut commands = self.commands.write().map_err(|_err| {
-            Error::Storage(eyre!(
+            Error::storage(eyre!(
                 "Commands blocked for writing, can't remove commands from workspace {}",
                 **workspace_id
             ))
@@ -180,7 +180,7 @@ impl InMemoryStorage {
 
     fn remove_workspace(&self, id: &Uuid) -> Result<()> {
         let mut workspace = self.workspaces.write().map_err(|_err| {
-            Error::Storage(eyre!(
+            Error::storage(eyre!(
                 "Workspaces blocked for writing, can't remove workspace {}",
                 id.braced()
             ))
@@ -221,7 +221,7 @@ impl InMemoryStorage {
 
     pub fn list_workspaces(&self) -> Result<Vec<Workspace>> {
         let workspaces = self.workspaces.read().map_err(|_err| {
-            Error::Storage(eyre!(
+            Error::storage(eyre!(
                 "Workspaces blocked for reading, can't proceed with workspaces listing"
             ))
         })?;

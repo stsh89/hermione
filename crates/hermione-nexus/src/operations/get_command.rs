@@ -1,3 +1,5 @@
+use eyre::eyre;
+
 use crate::{
     definitions::{Command, CommandId},
     services::{FindCommand, StorageService},
@@ -20,6 +22,7 @@ where
 
         self.provider
             .find_command(id)?
-            .ok_or(Error::CommandNotFound(**id))
+            .ok_or(eyre!("Could not find command with ID: {}", **id))
+            .map_err(Error::not_found)
     }
 }

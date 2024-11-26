@@ -20,8 +20,9 @@ impl ClipboardService for MockClipboard {}
 
 impl CopyCommandToClipboard for MockClipboard {
     fn copy_command_to_clipboard(&self, text: &str) -> Result<()> {
-        set_clipboard_content(self, text)
-            .map_err(|err| Error::Clipboard(err.wrap_err("Can't copy command to clipboard")))?;
+        set_clipboard_content(self, text).map_err(|err| {
+            Error::unexpected(err.wrap_err("Could not copy command to clipboard"))
+        })?;
 
         Ok(())
     }

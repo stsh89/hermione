@@ -1,5 +1,7 @@
-use hermione_nexus::definitions::{
-    BackupCredentials, BackupProviderKind, NotionBackupCredentialsParameters,
+use eyre::eyre;
+use hermione_nexus::{
+    definitions::{BackupCredentials, BackupProviderKind, NotionBackupCredentialsParameters},
+    Error,
 };
 use rusqlite::{named_params, params, Connection, OptionalExtension, Result};
 use serde::{Deserialize, Serialize};
@@ -127,16 +129,16 @@ pub fn update_backup_credentials(
 }
 
 impl TryFrom<&str> for BackupCredentialsId {
-    type Error = hermione_nexus::Error;
+    type Error = Error;
 
     fn try_from(value: &str) -> hermione_nexus::Result<Self> {
         let id = match value {
             NOTION_BACKUP_CREDENTIALS_ID => BackupCredentialsId::Notion,
             _ => {
-                return Err(hermione_nexus::Error::Storage(eyre::Error::msg(format!(
-                    "Unexpected backup credentials id: {}",
-                    value
-                ))))
+                return Err(Error::storage(
+                    eyre!("Unexpected backup credentials id: {}", value)
+                        .wrap_err("Corrupted storage data"),
+                ));
             }
         };
 
@@ -160,7 +162,11 @@ impl TryFrom<&BackupCredentials> for BackupCredentialsRecord {
                         .workspaces_database_id()
                         .to_string(),
                 })
-                .map_err(|err| hermione_nexus::Error::Storage(eyre::Error::new(err)))?,
+                .map_err(|err| {
+                    eyre::Error::new(err)
+                        .wrap_err("Failed to convert backup credentials into internal format")
+                })
+                .map_err(Error::storage)?,
             }),
         }
     }
@@ -175,7 +181,7 @@ impl TryFrom<BackupCredentials> for BackupCredentialsRecord {
 }
 
 impl TryFrom<BackupCredentialsRecord> for BackupCredentials {
-    type Error = hermione_nexus::Error;
+    type Error = Error;
 
     fn try_from(value: BackupCredentialsRecord) -> hermione_nexus::Result<Self> {
         let BackupCredentialsRecord { id, secrets } = value;
@@ -183,7 +189,8 @@ impl TryFrom<BackupCredentialsRecord> for BackupCredentials {
         match BackupCredentialsId::try_from(id.as_str())? {
             BackupCredentialsId::Notion => {
                 let secrets: NotionBackupSecrets = serde_json::from_str(&secrets)
-                    .map_err(|err| hermione_nexus::Error::Storage(eyre::Error::new(err)))?;
+                    .map_err(|err| eyre::Error::new(err).wrap_err("Corrupted storage data"))
+                    .map_err(Error::storage)?;
 
                 let NotionBackupSecrets {
                     api_key,

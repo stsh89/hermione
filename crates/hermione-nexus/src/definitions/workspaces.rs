@@ -1,5 +1,6 @@
 use crate::{Error, Result};
 use chrono::{DateTime, Utc};
+use eyre::eyre;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -89,9 +90,7 @@ impl Workspace {
 impl WorkspaceId {
     fn new(value: Uuid) -> Result<Self> {
         if value.is_nil() {
-            return Err(Error::InvalidArgument(
-                "Workspace ID cannot be nil".to_string(),
-            ));
+            return Err(Error::invalid_argument(eyre!("Workspace ID cannot be nil")));
         }
 
         Ok(Self(value))

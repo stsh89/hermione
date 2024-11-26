@@ -105,6 +105,6 @@ fn it_returns_verification_error_for_invalid_notion_backup_credentials() {
     });
 
     context.assert_operation_failure(table! {
-        error_message = "Backup failure: Invalid API key"
+        error_message = "Invalid API key"
     });
 }

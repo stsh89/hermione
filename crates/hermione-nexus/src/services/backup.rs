@@ -30,5 +30,5 @@ pub trait UpsertWorkspacesBackup: BackupService {
 }
 
 pub trait VerifyBackupCredentials: BackupService {
-    fn verify_backup_credentials(&self) -> Result<bool>;
+    fn verify_backup_credentials(&self) -> Result<()>;
 }

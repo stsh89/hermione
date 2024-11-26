@@ -1,11 +1,9 @@
 mod de;
 
+use eyre::{eyre, Report, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{
-    io::{Error, Result},
-    str::FromStr,
-};
+use std::{fmt::Display, str::FromStr};
 use ureq::{serde::de::DeserializeOwned, Response};
 
 pub struct DatabaseProperty {
@@ -119,7 +117,9 @@ pub fn get_database_properties(response: Response) -> Result<Vec<DatabasePropert
     let properties = body["properties"].as_object();
 
     let Some(properties) = properties else {
-        return Err(Error::other("Missing Notion database properties"));
+        return Err(eyre!(
+            "Unexpected Notion response body. Missing field: properties"
+        ));
     };
 
     let properties = properties
@@ -139,16 +139,16 @@ pub fn query_datrabase_response<T>(response: Response) -> Result<QueryDatabaseRe
 where
     T: DeserializeOwned,
 {
-    response.into_json()
+    response.into_json().map_err(Report::new)
 }
 
-pub fn verify_commands_database_properties(properties: Vec<DatabaseProperty>) -> bool {
+pub fn verify_commands_database_properties(properties: Vec<DatabaseProperty>) -> Result<()> {
     let exptected_properties = commands_database_properties();
 
     verify_properties(exptected_properties, properties)
 }
 
-pub fn verify_workspaces_database_properties(properties: Vec<DatabaseProperty>) -> bool {
+pub fn verify_workspaces_database_properties(properties: Vec<DatabaseProperty>) -> Result<()> {
     let exptected_properties = workspaces_database_properties();
 
     verify_properties(exptected_properties, properties)
@@ -195,22 +195,27 @@ fn workspaces_database_properties() -> Vec<DatabaseProperty> {
 fn verify_properties(
     expected_properties: Vec<DatabaseProperty>,
     properties: Vec<DatabaseProperty>,
-) -> bool {
+) -> Result<()> {
     for property in expected_properties {
         if let Some(found) = properties.iter().find(|p| p.name == property.name) {
             if found.kind != property.kind {
-                return false;
+                return Err(eyre!(
+                    "Expected property {} to be of kind: {}, found: {}",
+                    property.name,
+                    property.kind,
+                    found.kind
+                ));
             }
         } else {
-            return false;
+            return Err(eyre!("Missing property: {}", property.name));
         };
     }
 
-    true
+    Ok(())
 }
 
 impl FromStr for DatabasePropertyKind {
-    type Err = Error;
+    type Err = Report;
 
     fn from_str(s: &str) -> Result<Self> {
         let kind = match s {
@@ -218,14 +223,20 @@ impl FromStr for DatabasePropertyKind {
             "rich_text" => Self::RichText,
             "title" => Self::Title,
             "last_edited_time" => Self::LastEditedTime,
-            _ => {
-                return Err(Error::other(format!(
-                    "Can't convert `{}` into database property kind",
-                    s
-                )))
-            }
+            _ => return Err(eyre!("Unexpected database property kind: {}", s)),
         };
 
         Ok(kind)
+    }
+}
+
+impl Display for DatabasePropertyKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::CreatedTime => "created_time",
+            Self::RichText => "rich_text",
+            Self::Title => "title",
+            Self::LastEditedTime => "last_edited_time",
+        })
     }
 }

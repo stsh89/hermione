@@ -3,6 +3,7 @@ use crate::{
     services::{FindWorkspace, StorageService},
     Error, Result,
 };
+use eyre::eyre;
 
 pub struct GetWorkspaceOperation<'a, SP>
 where
@@ -20,6 +21,7 @@ where
 
         self.provider
             .find_workspace(id)?
-            .ok_or(Error::WorkspaceNotFound(**id))
+            .ok_or(eyre!("Could not find workspace with ID: {}", **id))
+            .map_err(Error::not_found)
     }
 }

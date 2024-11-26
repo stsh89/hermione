@@ -31,7 +31,7 @@ impl<'a> Storage<'a> {
 }
 
 fn internal_error(err: rusqlite::Error) -> Error {
-    Error::Storage(eyre::Error::new(err))
+    Error::storage(eyre::Error::new(err))
 }
 
 impl StorageService for Storage<'_> {}

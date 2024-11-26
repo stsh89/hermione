@@ -1,69 +1,119 @@
-use uuid::Uuid;
+use eyre::Report;
 
-use crate::definitions::BackupProviderKind;
+#[derive(Debug, thiserror::Error)]
+#[error("{source}")]
+pub struct Error {
+    kind: ErrorKind,
+    source: Report,
+}
 
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("Backup failure: {0}")]
-    Backup(#[source] eyre::Error),
+#[derive(Debug)]
+enum ErrorKind {
+    BackupServiceComunication,
+    BackupServiceConfiguration,
+    InvalidArgument,
+    BackupServiceDataCorruption,
+    NotFound,
+    Storage,
+    System,
+    Unexpected,
+}
 
-    #[error("Could not find {0} backup credentials")]
-    BackupCredentialsNotFound(BackupProviderKind),
+impl Error {
+    pub fn backup_service_communication(source: Report) -> Self {
+        Self {
+            kind: ErrorKind::BackupServiceComunication,
+            source,
+        }
+    }
 
-    #[error("Could not find command with ID: {0}")]
-    CommandNotFound(Uuid),
+    pub fn backup_service_configuration(source: Report) -> Self {
+        Self {
+            kind: ErrorKind::BackupServiceConfiguration,
+            source,
+        }
+    }
 
-    #[error("Failed to verify backup credentials: {0}")]
-    BackupCredentialsVerification(#[source] eyre::Error),
+    pub fn backup_service_data_corruption(source: Report) -> Self {
+        Self {
+            kind: ErrorKind::BackupServiceDataCorruption,
+            source,
+        }
+    }
 
-    #[error("Clipboard failure: {0}")]
-    Clipboard(#[source] eyre::Error),
+    pub fn is_invalid_argument(&self) -> bool {
+        matches!(self.kind, ErrorKind::InvalidArgument)
+    }
 
-    #[error("Invalid argument: {0}")]
-    InvalidArgument(String),
+    pub fn is_invalid_backup_data(&self) -> bool {
+        matches!(self.kind, ErrorKind::BackupServiceDataCorruption)
+    }
 
-    #[error("IO error: {0}")]
-    IO(#[from] std::io::Error),
+    pub fn is_not_found(&self) -> bool {
+        matches!(self.kind, ErrorKind::NotFound)
+    }
 
-    #[error("Storage failure: {0}")]
-    Storage(#[source] eyre::Error),
+    pub fn is_storage(&self) -> bool {
+        matches!(self.kind, ErrorKind::Storage)
+    }
 
-    #[error("System failure: {0}")]
-    System(#[source] eyre::Error),
+    pub fn invalid_argument(source: Report) -> Self {
+        Self {
+            kind: ErrorKind::InvalidArgument,
+            source,
+        }
+    }
 
-    #[error("{0} verification failed")]
-    Verification(String),
+    pub fn not_found(source: Report) -> Self {
+        Self {
+            kind: ErrorKind::NotFound,
+            source,
+        }
+    }
 
-    #[error("Could not find workspace with ID: {0}")]
-    WorkspaceNotFound(Uuid),
+    pub fn storage(source: Report) -> Self {
+        Self {
+            kind: ErrorKind::Storage,
+            source,
+        }
+    }
+
+    pub fn system(source: Report) -> Self {
+        Self {
+            kind: ErrorKind::System,
+            source,
+        }
+    }
+
+    pub fn unexpected(source: Report) -> Self {
+        Self {
+            kind: ErrorKind::Unexpected,
+            source,
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Error;
-    use crate::definitions::BackupProviderKind;
+    use super::*;
+    use eyre::eyre;
     use uuid::Uuid;
 
     #[test]
-    fn test_backup_credentials_not_found() {
-        assert_eq!(
-            Error::BackupCredentialsNotFound(BackupProviderKind::Notion).to_string(),
-            "Could not find Notion backup credentials"
-        );
+    fn invalid_argument() {
+        let err = Error::invalid_argument(eyre!("Workspace ID cannot be nil"));
+
+        assert!(err.is_invalid_argument());
+        assert_eq!(err.to_string(), "Workspace ID cannot be nil");
     }
 
     #[test]
-    fn test_command_not_found() {
-        assert_eq!(
-            Error::CommandNotFound(Uuid::nil()).to_string(),
-            "Could not find command with ID: 00000000-0000-0000-0000-000000000000"
-        );
-    }
+    fn test_not_found() {
+        let err = Error::not_found(eyre!("Could not find workspace with ID: {}", Uuid::nil()));
 
-    #[test]
-    fn test_workspace_not_found() {
+        assert!(err.is_not_found());
         assert_eq!(
-            Error::WorkspaceNotFound(Uuid::nil()).to_string(),
+            err.to_string(),
             "Could not find workspace with ID: 00000000-0000-0000-0000-000000000000"
         );
     }

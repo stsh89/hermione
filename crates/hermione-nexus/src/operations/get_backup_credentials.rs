@@ -3,6 +3,7 @@ use crate::{
     services::{FindBackupCredentials, StorageService},
     Error, Result,
 };
+use eyre::eyre;
 
 pub struct GetBackupCredentialsOperation<'a, SP>
 where
@@ -20,6 +21,7 @@ where
 
         self.provider
             .find_backup_credentials(kind)?
-            .ok_or(Error::BackupCredentialsNotFound(kind))
+            .ok_or(eyre!("Could not find {} backup credentials", kind))
+            .map_err(Error::not_found)
     }
 }

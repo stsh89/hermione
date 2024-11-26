@@ -1,6 +1,7 @@
 use super::WorkspaceId;
 use crate::{Error, Result};
 use chrono::{DateTime, Utc};
+use eyre::eyre;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -88,9 +89,7 @@ impl Command {
 impl CommandId {
     fn new(value: Uuid) -> Result<Self> {
         if value.is_nil() {
-            return Err(Error::InvalidArgument(
-                "Command ID cannot be nil".to_string(),
-            ));
+            return Err(Error::invalid_argument(eyre!("Command ID cannot be nil")));
         }
 
         Ok(Self(value))

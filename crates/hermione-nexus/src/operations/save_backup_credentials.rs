@@ -4,7 +4,7 @@ use crate::{
         BackupService, BackupServiceBuilder, SaveBackupCredentials, StorageService,
         VerifyBackupCredentials,
     },
-    Error, Result,
+    Result,
 };
 use std::marker::PhantomData;
 
@@ -39,10 +39,7 @@ where
         tracing::info!(operation = "Save backup credentials");
 
         let backup_provider = self.build_backup_provider(credentials)?;
-
-        if !backup_provider.verify_backup_credentials()? {
-            return Err(Error::Verification("Backup credentials".to_string()));
-        }
+        backup_provider.verify_backup_credentials()?;
 
         self.save_provider.save_backup_credentials(credentials)
     }
