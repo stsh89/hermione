@@ -1,9 +1,7 @@
 use super::{GetBackupCredentialsOperation, GetWorkspaceOperation};
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind, Workspace, WorkspaceId},
-    services::{
-        BackupServiceBuilder, FindBackupCredentials, FindWorkspace, UpsertWorkspacesBackup,
-    },
+    services::{BackupServiceBuilder, BackupWorkspace, FindBackupCredentials, FindWorkspace},
     Result,
 };
 use std::marker::PhantomData;
@@ -31,7 +29,7 @@ where
     FBC: FindBackupCredentials,
     FW: FindWorkspace,
     BPB: BackupServiceBuilder<BP>,
-    BP: UpsertWorkspacesBackup,
+    BP: BackupWorkspace,
 {
     fn build_backup_provider(&self, credentials: BackupCredentials) -> Result<BP> {
         self.backup_provider_builder
@@ -48,8 +46,7 @@ where
         let workspace = self.get_workspace(workspace_id)?;
         let backup = self.build_backup_provider(credentials)?;
 
-        // TODO: add separate trait for upserting single workspace
-        backup.upsert_workspaces_backup(vec![workspace])
+        backup.backup_workspace(workspace)
     }
 
     fn get_backup_credentials(

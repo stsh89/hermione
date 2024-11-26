@@ -5,8 +5,8 @@ use hermione_nexus::{
         WorkspaceParameters,
     },
     services::{
-        BackupService, BackupServiceBuilder, ListCommandsBackup, ListWorkspacesBackup,
-        UpsertCommandsBackup, UpsertWorkspacesBackup, VerifyBackupCredentials,
+        BackupCommands, BackupService, BackupServiceBuilder, BackupWorkspace, BackupWorkspaces,
+        ListCommandsBackup, ListWorkspacesBackup, VerifyBackupCredentials,
     },
     Error, Result,
 };
@@ -246,8 +246,8 @@ impl ListWorkspacesBackup for MockNotion {
     }
 }
 
-impl UpsertCommandsBackup for MockNotion {
-    fn upsert_commands_backup(&self, commands: Vec<Command>) -> hermione_nexus::Result<()> {
+impl BackupCommands for MockNotion {
+    fn backup_commands(&self, commands: Vec<Command>) -> hermione_nexus::Result<()> {
         for command in commands {
             self.insert_command(command.into())?;
         }
@@ -256,13 +256,19 @@ impl UpsertCommandsBackup for MockNotion {
     }
 }
 
-impl UpsertWorkspacesBackup for MockNotion {
-    fn upsert_workspaces_backup(&self, workspaces: Vec<Workspace>) -> hermione_nexus::Result<()> {
+impl BackupWorkspaces for MockNotion {
+    fn backup_workspaces(&self, workspaces: Vec<Workspace>) -> hermione_nexus::Result<()> {
         for workspace in workspaces {
             self.insert_workspace(workspace.into())?;
         }
 
         Ok(())
+    }
+}
+
+impl BackupWorkspace for MockNotion {
+    fn backup_workspace(&self, workspace: Workspace) -> hermione_nexus::Result<()> {
+        self.insert_workspace(workspace.into())
     }
 }
 

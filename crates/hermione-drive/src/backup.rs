@@ -5,8 +5,8 @@ use hermione_nexus::{
         WorkspaceParameters,
     },
     services::{
-        BackupService, BackupServiceBuilder, ListCommandsBackup, ListWorkspacesBackup,
-        UpsertCommandsBackup, UpsertWorkspacesBackup, VerifyBackupCredentials,
+        BackupCommands, BackupService, BackupServiceBuilder, BackupWorkspaces, ListCommandsBackup,
+        ListWorkspacesBackup, VerifyBackupCredentials,
     },
     Error, Result,
 };
@@ -211,8 +211,8 @@ impl ListWorkspacesBackup for NotionBackup {
     }
 }
 
-impl UpsertCommandsBackup for NotionBackup {
-    fn upsert_commands_backup(&self, commands: Vec<Command>) -> Result<()> {
+impl BackupCommands for NotionBackup {
+    fn backup_commands(&self, commands: Vec<Command>) -> Result<()> {
         if commands.is_empty() {
             return Ok(());
         }
@@ -299,8 +299,8 @@ impl UpsertCommandsBackup for NotionBackup {
     }
 }
 
-impl UpsertWorkspacesBackup for NotionBackup {
-    fn upsert_workspaces_backup(&self, workspaces: Vec<Workspace>) -> Result<()> {
+impl BackupWorkspaces for NotionBackup {
+    fn backup_workspaces(&self, workspaces: Vec<Workspace>) -> Result<()> {
         if workspaces.is_empty() {
             return Ok(());
         }

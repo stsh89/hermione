@@ -21,12 +21,16 @@ pub trait ListWorkspacesBackup: BackupService {
     ) -> Result<Option<(Vec<Workspace>, Option<String>)>>;
 }
 
-pub trait UpsertCommandsBackup: BackupService {
-    fn upsert_commands_backup(&self, commands: Vec<Command>) -> Result<()>;
+pub trait BackupCommands: BackupService {
+    fn backup_commands(&self, commands: Vec<Command>) -> Result<()>;
 }
 
-pub trait UpsertWorkspacesBackup: BackupService {
-    fn upsert_workspaces_backup(&self, workspaces: Vec<Workspace>) -> Result<()>;
+pub trait BackupWorkspaces: BackupService {
+    fn backup_workspaces(&self, workspaces: Vec<Workspace>) -> Result<()>;
+}
+
+pub trait BackupWorkspace: BackupService {
+    fn backup_workspace(&self, workspace: Workspace) -> Result<()>;
 }
 
 pub trait VerifyBackupCredentials: BackupService {

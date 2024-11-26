@@ -2,9 +2,9 @@ use super::GetBackupCredentialsOperation;
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind, Command, Workspace},
     services::{
-        BackupService, BackupServiceBuilder, FilterCommandsParameters, FilterWorkspacesParameters,
-        FindBackupCredentials, ListCommands, ListWorkspaces, StorageService, UpsertCommandsBackup,
-        UpsertWorkspacesBackup,
+        BackupCommands, BackupService, BackupServiceBuilder, BackupWorkspaces,
+        FilterCommandsParameters, FilterWorkspacesParameters, FindBackupCredentials, ListCommands,
+        ListWorkspaces, StorageService,
     },
     Result,
 };
@@ -33,7 +33,7 @@ where
     LWP: ListWorkspaces,
     BCP: FindBackupCredentials,
     BPB: BackupServiceBuilder<BP>,
-    BP: UpsertCommandsBackup + UpsertWorkspacesBackup,
+    BP: BackupCommands + BackupWorkspaces,
 {
     fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<BP> {
         self.backup_provider_builder
@@ -50,7 +50,7 @@ where
                 break;
             }
 
-            backup_provider.upsert_commands_backup(commands)?;
+            backup_provider.backup_commands(commands)?;
             page_number += 1;
         }
 
@@ -67,7 +67,7 @@ where
                 break;
             }
 
-            backup_provider.upsert_workspaces_backup(workspaces)?;
+            backup_provider.backup_workspaces(workspaces)?;
             page_number += 1;
         }
 
