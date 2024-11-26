@@ -5,6 +5,7 @@ mod create_command_test;
 mod create_workspace_test;
 // mod delete_backup_credentials_test;
 // mod execute_program_test;
+mod export_command_test;
 mod export_workspace_test;
 // mod import_commands_from_notion_test;
 // mod import_workspaces_from_notion_test;

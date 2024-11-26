@@ -3,7 +3,6 @@ use std::fmt::Display;
 #[derive(Copy, Clone, Debug)]
 pub enum BackupProviderKind {
     Notion,
-    Unknown,
 }
 
 #[derive(Clone)]
@@ -56,7 +55,6 @@ impl Display for BackupProviderKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             BackupProviderKind::Notion => write!(f, "Notion"),
-            BackupProviderKind::Unknown => write!(f, "Unknown"),
         }
     }
 }

@@ -275,7 +275,6 @@ impl DeleteBackupCredentials for InMemoryStorage {
     fn delete_backup_credentials(&self, kind: BackupProviderKind) -> Result<()> {
         let key = match kind {
             BackupProviderKind::Notion => NOTION_CREDENTIALS_KEY,
-            BackupProviderKind::Unknown => return Ok(()),
         };
 
         self.remove_backup_credentials(key)?;
@@ -315,7 +314,6 @@ impl FindBackupCredentials for InMemoryStorage {
     ) -> Result<Option<BackupCredentials>> {
         let key = match kind {
             BackupProviderKind::Notion => NOTION_CREDENTIALS_KEY,
-            BackupProviderKind::Unknown => return Ok(None),
         };
 
         let credentials = self.get_backup_credentials(key)?;

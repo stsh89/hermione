@@ -5,8 +5,8 @@ use hermione_nexus::{
         WorkspaceParameters,
     },
     services::{
-        BackupCommands, BackupService, BackupServiceBuilder, BackupWorkspace, BackupWorkspaces,
-        ListCommandsBackup, ListWorkspacesBackup, VerifyBackupCredentials,
+        BackupCommand, BackupCommands, BackupService, BackupServiceBuilder, BackupWorkspace,
+        BackupWorkspaces, ListCommandsBackup, ListWorkspacesBackup, VerifyBackupCredentials,
     },
     Error, Result,
 };
@@ -15,20 +15,20 @@ use uuid::Uuid;
 
 const DEFAULT_PAGE_SIZE: usize = 10;
 
-#[derive(Clone)]
-pub struct MockNotionCommandEntry {
-    pub external_id: String,
-    pub name: String,
-    pub program: String,
-    pub workspace_id: String,
-}
-
 pub struct MockNotionStorage {
     pub api_key: String,
     pub commands_database_id: String,
     pub workspaces_database_id: String,
-    pub commands: RwLock<HashMap<String, MockNotionCommandEntry>>,
+    pub commands: RwLock<HashMap<String, NotionCommand>>,
     pub workspaces: RwLock<HashMap<String, NotionWorkspace>>,
+}
+
+#[derive(Clone)]
+pub struct NotionCommand {
+    pub external_id: String,
+    pub name: String,
+    pub program: String,
+    pub workspace_id: String,
 }
 
 #[derive(Clone)]
@@ -66,7 +66,7 @@ pub struct MockNotion {
 }
 
 impl MockNotion {
-    pub fn insert_command(&self, command: MockNotionCommandEntry) -> Result<()> {
+    pub fn insert_command(&self, command: NotionCommand) -> Result<()> {
         self.verify_api_key()?;
         self.verify_commands_database_id()?;
 
@@ -102,7 +102,7 @@ impl MockNotion {
         self.verify_api_key()?;
         self.verify_commands_database_id()?;
 
-        let mut commands: Vec<MockNotionCommandEntry> = self
+        let mut commands: Vec<NotionCommand> = self
             .storage
             .commands
             .read()
@@ -256,6 +256,12 @@ impl BackupCommands for MockNotion {
     }
 }
 
+impl BackupCommand for MockNotion {
+    fn backup_command(&self, command: Command) -> hermione_nexus::Result<()> {
+        self.insert_command(command.into())
+    }
+}
+
 impl BackupWorkspaces for MockNotion {
     fn backup_workspaces(&self, workspaces: Vec<Workspace>) -> hermione_nexus::Result<()> {
         for workspace in workspaces {
@@ -282,9 +288,9 @@ impl VerifyBackupCredentials for MockNotion {
     }
 }
 
-impl From<Command> for MockNotionCommandEntry {
+impl From<Command> for NotionCommand {
     fn from(value: Command) -> Self {
-        MockNotionCommandEntry {
+        NotionCommand {
             external_id: value.id().to_string(),
             name: value.name().to_string(),
             program: value.program().to_string(),
@@ -306,10 +312,10 @@ impl From<Workspace> for NotionWorkspace {
     }
 }
 
-impl TryFrom<MockNotionCommandEntry> for Command {
+impl TryFrom<NotionCommand> for Command {
     type Error = Error;
 
-    fn try_from(value: MockNotionCommandEntry) -> Result<Self> {
+    fn try_from(value: NotionCommand) -> Result<Self> {
         let id = value.external_id.parse().map_err(|_err| {
             Error::backup_service_data_corruption(eyre!(
                 "Invalid command ID: {{{}}}",

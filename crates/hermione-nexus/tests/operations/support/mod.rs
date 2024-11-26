@@ -10,8 +10,8 @@ pub use system::*;
 
 use crate::prelude::*;
 use hermione_nexus::definitions::{
-    BackupCredentials, Command, CommandParameters, NotionBackupCredentialsParameters, Workspace,
-    WorkspaceParameters,
+    BackupCredentials, BackupProviderKind, Command, CommandParameters,
+    NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
 };
 use uuid::Uuid;
 
@@ -41,6 +41,16 @@ pub fn assert_notion_backup_credentials(
     assert_eq!(credentials.workspaces_database_id(), workspaces_database_id);
 }
 
+pub fn assert_notion_command(notion_command: &NotionCommand, parameters: &Table) {
+    let name = parameters.get_text("name");
+    let program = parameters.get_text("program");
+    let workspace_id = parameters.get_text("workspace_id");
+
+    assert_eq!(&notion_command.name, name);
+    assert_eq!(&notion_command.program, program);
+    assert_eq!(&notion_command.workspace_id, workspace_id);
+}
+
 pub fn assert_notion_workspace(notion_workspace: &NotionWorkspace, parameters: &Table) {
     let location = parameters.get_text("location");
     let name = parameters.get_text("name");
@@ -57,6 +67,13 @@ pub fn assert_workspace(workspace: &Workspace, parameters: &Table) {
     assert_eq!(workspace.last_access_time(), last_access_time.as_ref());
     assert_eq!(workspace.location(), location);
     assert_eq!(workspace.name(), name);
+}
+
+pub fn get_backup_provider_kind(name: &str) -> BackupProviderKind {
+    match name {
+        "Notion" => BackupProviderKind::Notion,
+        name => panic!("Could not find backup provider with name: {}", name),
+    }
 }
 
 pub fn get_clipboard_content(clipboard: &MockClipboard) -> String {
@@ -96,8 +113,18 @@ pub fn get_notion_backup_credentials(storage: &InMemoryStorage) -> BackupCredent
         .unwrap_or_else(|| panic!("Notion backup credentials should exist"))
 }
 
-pub fn get_notion_workspace(storage: &MockNotionStorage, external_id: &str) -> NotionWorkspace {
-    storage
+pub fn get_notion_command(notion: &MockNotionStorage, external_id: &str) -> NotionCommand {
+    notion
+        .commands
+        .read()
+        .expect("Should be able to obtain read access to Notion commands")
+        .get(external_id)
+        .unwrap_or_else(|| panic!("Could not find Notion command with ID: {}", external_id))
+        .clone()
+}
+
+pub fn get_notion_workspace(notion: &MockNotionStorage, external_id: &str) -> NotionWorkspace {
+    notion
         .workspaces
         .read()
         .expect("Should be able to obtain read access to Notion workspaces")
@@ -192,7 +219,7 @@ pub fn insert_notion_command(storage: &MockNotionStorage, parameters: &Table) {
     let program = parameters.get_text("program");
     let workspace_id = parameters.get_text("workspace_id");
 
-    let entry = MockNotionCommandEntry {
+    let entry = NotionCommand {
         external_id: external_id.to_string(),
         name: name.to_string(),
         program: program.to_string(),

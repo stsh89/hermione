@@ -42,7 +42,6 @@ pub fn find_backup_credentials(
 ) -> Result<Option<BackupCredentialsRecord>> {
     let id = match kind {
         BackupProviderKind::Notion => NOTION_BACKUP_CREDENTIALS_ID,
-        BackupProviderKind::Unknown => return Ok(None),
     };
 
     conn.prepare(
@@ -64,7 +63,6 @@ pub fn find_backup_credentials(
 pub fn delete_backup_credentials(conn: &Connection, kind: BackupProviderKind) -> Result<usize> {
     let id = match kind {
         BackupProviderKind::Notion => NOTION_BACKUP_CREDENTIALS_ID,
-        BackupProviderKind::Unknown => return Ok(0),
     };
 
     conn.prepare("DELETE FROM backup_credentials WHERE id = ?1")?

@@ -21,6 +21,10 @@ pub trait ListWorkspacesBackup: BackupService {
     ) -> Result<Option<(Vec<Workspace>, Option<String>)>>;
 }
 
+pub trait BackupCommand: BackupService {
+    fn backup_command(&self, command: Command) -> Result<()>;
+}
+
 pub trait BackupCommands: BackupService {
     fn backup_commands(&self, commands: Vec<Command>) -> Result<()>;
 }
