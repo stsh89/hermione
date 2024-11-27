@@ -14,7 +14,7 @@ struct CreateWorkspaceTestCase {
 }
 
 impl TestCase for CreateWorkspaceTestCase {
-    fn assert_operation(&self, parameters: Table) {
+    fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
         let workspace = self.operation.result().as_ref().unwrap();
@@ -51,7 +51,7 @@ fn it_creates_workspace() {
         location = "/home/ironman"
     });
 
-    test_case.assert_operation(table! {
+    test_case.inspect_operation_results(table! {
         [storage.workspace]
         name = "Ironman"
         location = "/home/ironman"

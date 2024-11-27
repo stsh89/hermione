@@ -64,8 +64,8 @@ pub mod prelude {
     }
 
     pub trait TestCase {
-        fn assert_operation(&self, parameters: Table);
         fn execute_operation(&mut self, parameters: Table);
+        fn inspect_operation_results(&self, parameters: Table);
         fn setup(&mut self, _parameters: Table) {}
     }
 

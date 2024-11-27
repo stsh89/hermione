@@ -11,7 +11,7 @@ struct DeleteCommandTestCase {
 }
 
 impl TestCase for DeleteCommandTestCase {
-    fn assert_operation(&self, parameters: Table) {
+    fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
         let storage_table = parameters.get_table("storage");
@@ -66,7 +66,7 @@ fn it_deletes_command() {
         command_id = "51280bfc-2eea-444a-8df9-a1e7158c2c6b"
     });
 
-    test_case.assert_operation(table! {
+    test_case.inspect_operation_results(table! {
         [storage.commands]
         count = 0
     });

@@ -11,7 +11,7 @@ struct DeleteWorkspaceTestCase {
 }
 
 impl TestCase for DeleteWorkspaceTestCase {
-    fn assert_operation(&self, parameters: Table) {
+    fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
         let storage_table = parameters.get_table("storage");
@@ -69,7 +69,7 @@ fn it_deletes_workspace() {
         workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
     });
 
-    test_case.assert_operation(table! {
+    test_case.inspect_operation_results(table! {
         [storage.workspaces]
         count = 0
 

@@ -55,7 +55,7 @@ impl TestCase for ExportWorkspaceToNotionTestCase {
         self.operation.set_result(result);
     }
 
-    fn assert_operation(&self, parameters: Table) {
+    fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
         let backup_table = parameters.get_table("backup");
@@ -97,7 +97,7 @@ fn it_saves_workspace_into_notion_database() {
         workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
     });
 
-    test_case.assert_operation(table! {
+    test_case.inspect_operation_results(table! {
         [backup]
         provider_kind = "Notion"
 
