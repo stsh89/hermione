@@ -1,7 +1,7 @@
 use eyre::Report;
 
 #[derive(Debug, thiserror::Error)]
-#[error("{source:?}")]
+#[error("{source}")]
 pub struct Error {
     kind: ErrorKind,
     source: Report,
