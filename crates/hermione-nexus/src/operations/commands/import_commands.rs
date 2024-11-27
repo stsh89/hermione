@@ -1,6 +1,6 @@
-use super::GetBackupCredentialsOperation;
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
+    operations::GetBackupCredentialsOperation,
     services::{
         BackupCopies, BackupCopyParameters, BackupService, BackupServiceBuilder,
         FindBackupCredentials, GetCommandsBackupCopy, StorageService, UpsertCommands,

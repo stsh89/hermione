@@ -1,12 +1,11 @@
 use crate::{
     definitions::WorkspaceId,
+    operations::GetWorkspaceOperation,
     services::{
         FindWorkspace, InvokeCommand, InvokeCommandParameters, StorageService, SystemService,
     },
     Result,
 };
-
-use super::GetWorkspaceOperation;
 
 pub struct ExecuteProgramOperation<'a, FW, S>
 where

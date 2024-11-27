@@ -1,14 +1,12 @@
 use crate::{
     definitions::{Command, CommandId, Workspace, WorkspaceId},
-    operations::GetCommandOperation,
+    operations::{GetCommandOperation, GetWorkspaceOperation},
     services::{
         FindCommand, FindWorkspace, InvokeCommand, InvokeCommandParameters, StorageService,
         SystemService, TrackCommandExecuteTime, TrackWorkspaceAccessTime,
     },
     Result,
 };
-
-use super::GetWorkspaceOperation;
 
 pub struct ExecuteCommandOperation<'a, FCP, FWP, SP, TCP, TWP>
 where

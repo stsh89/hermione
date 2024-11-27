@@ -1,5 +1,6 @@
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
+    operations::GetBackupCredentialsOperation,
     services::{
         BackupCopies, BackupCopyParameters, BackupService, BackupServiceBuilder,
         FindBackupCredentials, GetWorkspacesBackupCopy, StorageService, UpsertWorkspaces,
@@ -7,8 +8,6 @@ use crate::{
     Result,
 };
 use std::marker::PhantomData;
-
-use super::GetBackupCredentialsOperation;
 
 pub struct ImportWorkspacesOperation<'a, BCP, UWP, BPB, BP>
 where
