@@ -1,10 +1,8 @@
 mod backup;
-mod clipboard;
 mod storage;
 mod system;
 
 pub use backup::*;
-pub use clipboard::*;
 pub use storage::*;
 pub use system::*;
 
@@ -76,9 +74,9 @@ pub fn get_backup_provider_kind(name: &str) -> BackupProviderKind {
     }
 }
 
-pub fn get_clipboard_content(clipboard: &MockClipboard) -> String {
-    clipboard
-        .content
+pub fn get_clipboard_content(system: &MockSystem) -> String {
+    system
+        .clipboard
         .read()
         .expect("Should be able to get clipboard content")
         .clone()

@@ -1,5 +1,4 @@
-use eyre::{eyre, Report};
-use hermione_nexus::{Error, Result};
+use eyre::{eyre, Error, Result};
 use std::{
     io,
     process::{Child, Command, Stdio},
@@ -95,24 +94,15 @@ fn execute(conn: &PowerShellProcess, program: &str) -> Result<()> {
     let mut child = conn
         .child
         .write()
-        .map_err(|err| Report::msg(err.to_string()).wrap_err("Could not access PowerShell process"))
-        .map_err(Error::unexpected)?;
+        .map_err(|err| err.to_string())
+        .map_err(Error::msg)?;
 
-    let stdin = child
-        .stdin
-        .as_mut()
-        .ok_or(eyre!(
-            "Could not access standard input stream of the PowerShell process",
-        ))
-        .map_err(Error::unexpected)?;
+    let stdin = child.stdin.as_mut().ok_or(eyre!(
+        "Could not access the handle for writing to the PowerShell's standard input",
+    ))?;
 
     use io::Write;
-    writeln!(stdin, "{}", &program)
-        .map_err(|err| {
-            Report::new(err)
-                .wrap_err("Could not write into standard input stream of the PowerShell process")
-        })
-        .map_err(Error::unexpected)?;
+    writeln!(stdin, "{}", &program).map_err(Error::new)?;
 
     Ok(())
 }

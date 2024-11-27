@@ -1,5 +1,7 @@
-use super::Result;
-use crate::definitions::{BackupCredentials, Command, Workspace};
+use crate::{
+    definitions::{BackupCredentials, Command, Workspace},
+    Result,
+};
 
 pub trait BackupService {}
 

@@ -1,12 +1,12 @@
 use crate::{
     prelude::*,
-    support::{self, InMemoryStorage, MockClipboard},
+    support::{self, InMemoryStorage, MockSystem},
 };
 use hermione_nexus::operations::CopyCommandToClipboardOperation;
 
 #[derive(Default)]
 struct CopyCommandToClipboardTestCase {
-    clipboard: MockClipboard,
+    system: MockSystem,
     operation: Operation<()>,
     storage: InMemoryStorage,
 }
@@ -29,7 +29,7 @@ impl TestCase for CopyCommandToClipboardTestCase {
 
         let result = CopyCommandToClipboardOperation {
             storage_provider: &self.storage,
-            clipboard_provider: &self.clipboard,
+            clipboard_provider: &self.system,
         }
         .execute(&command_id);
 
@@ -41,7 +41,7 @@ impl TestCase for CopyCommandToClipboardTestCase {
 
         let clipboard_table = parameters.get_table("clipboard");
         let expected_clipboard_content = clipboard_table.get_text("content");
-        let got_clipboard_content = support::get_clipboard_content(&self.clipboard);
+        let got_clipboard_content = support::get_clipboard_content(&self.system);
 
         assert_eq!(got_clipboard_content, expected_clipboard_content);
     }

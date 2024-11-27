@@ -106,7 +106,7 @@ impl ListCommandsBackup for NotionBackup {
                         "Could not process Notion API response. API: query commands database",
                     )
                 })
-                .map_err(Error::backup_service_communication)?;
+                .map_err(Error::backup)?;
 
         let next_page_token = database_query_response.next_cursor;
 
@@ -124,7 +124,7 @@ impl ListCommandsBackup for NotionBackup {
                             page.properties.external_id
                         ))
                     })
-                    .map_err(Error::backup_service_data_corruption)?;
+                    .map_err(Error::backup)?;
 
                 let workspace_id: Uuid = page
                     .properties
@@ -136,7 +136,7 @@ impl ListCommandsBackup for NotionBackup {
                             page.properties.workspace_id
                         ))
                     })
-                    .map_err(Error::backup_service_data_corruption)?;
+                    .map_err(Error::backup)?;
 
                 Command::new(CommandParameters {
                     id,
@@ -178,7 +178,7 @@ impl ListWorkspacesBackup for NotionBackup {
                         "Could not process Notion API response. API: query workspaces database",
                     )
                 })
-                .map_err(Error::backup_service_communication)?;
+                .map_err(Error::backup)?;
 
         let next_page_token = database_query_response.next_cursor;
 
@@ -196,7 +196,7 @@ impl ListWorkspacesBackup for NotionBackup {
                             page.properties.external_id
                         ))
                     })
-                    .map_err(Error::backup_service_data_corruption)?;
+                    .map_err(Error::backup)?;
 
                 Workspace::new(WorkspaceParameters {
                     id,
@@ -246,7 +246,7 @@ impl BackupCommands for NotionBackup {
                         "Could not process Notion API response. API: query commands database",
                     )
                 })
-                .map_err(Error::backup_service_communication)?;
+                .map_err(Error::backup)?;
 
         for command in commands {
             let page = response
@@ -334,7 +334,7 @@ impl BackupWorkspaces for NotionBackup {
                         "Could not process Notion API response. API: query workspaces database",
                     )
                 })
-                .map_err(Error::backup_service_communication)?;
+                .map_err(Error::backup)?;
 
         for workspace in workspaces {
             let page = response
@@ -392,23 +392,23 @@ impl VerifyBackupCredentials for NotionBackup {
             .map_err(|err| {
                 Report::new(err).wrap_err("Failed to get Notion commands database properties")
             })
-            .map_err(Error::backup_service_communication)?;
+            .map_err(Error::backup)?;
 
         let properties = notion::get_database_properties(response)
             .map_err(|err| {
                 err.wrap_err("Could not process Notion API response. API: query commands database")
             })
-            .map_err(Error::backup_service_communication)?;
+            .map_err(Error::backup)?;
 
         verify_commands_database_properties(properties)
             .map_err(|err| err.wrap_err("Incorrect Notion commands database properties"))
-            .map_err(Error::backup_service_configuration)?;
+            .map_err(Error::backup)?;
 
         let response = api::query_database_properties(&self.client, &self.workspaces_database_id)
             .map_err(|err| {
                 Report::new(err).wrap_err("Failed to get Notion commands database properties")
             })
-            .map_err(Error::backup_service_communication)?;
+            .map_err(Error::backup)?;
 
         let properties = notion::get_database_properties(response)
             .map_err(|err| {
@@ -416,11 +416,11 @@ impl VerifyBackupCredentials for NotionBackup {
                     "Could not process Notion API response. API: query workspaces database",
                 )
             })
-            .map_err(Error::backup_service_communication)?;
+            .map_err(Error::backup)?;
 
         verify_commands_database_properties(properties)
             .map_err(|err| err.wrap_err("Incorrect Notion workspace database properties"))
-            .map_err(Error::backup_service_configuration)?;
+            .map_err(Error::backup)?;
 
         Ok(())
     }
@@ -429,5 +429,5 @@ impl VerifyBackupCredentials for NotionBackup {
 fn send_with_retries(f: impl Fn() -> api::Result<Response>) -> Result<Response> {
     api::send_with_retries(f, thread::sleep)
         .map_err(|err| Report::new(err).wrap_err("Notion API request failure"))
-        .map_err(Error::backup_service_communication)
+        .map_err(Error::backup)
 }

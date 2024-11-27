@@ -1,10 +1,8 @@
 mod backup;
-mod clipboard;
 mod storage;
 mod system;
 
 pub use backup::*;
-pub use clipboard::*;
 pub use storage::*;
 pub use system::*;
 
@@ -27,10 +25,6 @@ pub struct ServiceFactory {
 }
 
 impl ServiceFactory {
-    pub fn clipboard(&self) -> Clipboard {
-        Clipboard::new(&self.powershell)
-    }
-
     pub fn system(&self) -> System {
         System::new(&self.powershell)
     }

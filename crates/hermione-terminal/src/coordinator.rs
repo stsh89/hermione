@@ -1,5 +1,5 @@
 use crate::Result;
-use hermione_drive::{Clipboard, NotionBackupBuilder, ServiceFactory, Storage, System};
+use hermione_drive::{NotionBackupBuilder, ServiceFactory, Storage, System};
 use hermione_nexus::operations::{
     CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
     CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
@@ -77,13 +77,9 @@ impl Coordinator {
         NotionBackupBuilder::default()
     }
 
-    fn clipboard(&self) -> Clipboard {
-        self.service_factory.clipboard()
-    }
-
     pub fn copy_command_to_clipboard(&self, id: Uuid) -> Result<()> {
         CopyCommandToClipboardOperation {
-            clipboard_provider: &self.clipboard(),
+            clipboard_provider: &self.system(),
             storage_provider: &self.storage(),
         }
         .execute(&id.into())?;
@@ -173,7 +169,9 @@ impl Coordinator {
         } = input;
 
         let storage = self.storage();
-        let system = self.system(no_exit);
+
+        let mut system = self.system();
+        system.set_no_exit(no_exit);
 
         ExecuteCommandOperation {
             find_command_provider: &storage,
@@ -193,8 +191,11 @@ impl Coordinator {
             ref program,
         } = input;
 
+        let mut system = self.system();
+        system.set_no_exit(true);
+
         ExecuteProgramOperation {
-            system: &self.system(true),
+            system: &system,
             find_workspace: &self.storage(),
         }
         .execute(ExecuteProgramParameters {
@@ -330,7 +331,7 @@ impl Coordinator {
     pub fn open_windows_terminal(&self, workspace_id: Uuid) -> Result<()> {
         VisitWorkspaceLocationOperation {
             find_workspace: &self.storage(),
-            system_provider: &self.system(true),
+            system_provider: &self.system(),
         }
         .execute(&workspace_id.into())?;
 
@@ -354,12 +355,8 @@ impl Coordinator {
         self.service_factory.storage()
     }
 
-    fn system(&self, no_exit: bool) -> System {
-        let mut system = self.service_factory.system();
-
-        system.set_no_exit(no_exit);
-
-        system
+    fn system(&self) -> System {
+        self.service_factory.system()
     }
 
     pub fn update_command(&self, data: Command) -> Result<Command> {

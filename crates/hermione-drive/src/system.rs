@@ -1,7 +1,9 @@
 use hermione_internals::powershell::{self, PowerShellParameters, PowerShellProcess};
 use hermione_nexus::{
-    services::{InvokeCommand, InvokeCommandParameters, SetLocation, SystemService},
-    Result,
+    services::{
+        InvokeCommand, InvokeCommandParameters, SetClipboardContent, SetLocation, SystemService,
+    },
+    Error, Result,
 };
 
 pub struct System<'a> {
@@ -39,6 +41,13 @@ impl InvokeCommand for System<'_> {
                 working_directory,
             }),
         )
+        .map_err(Error::system)
+    }
+}
+
+impl SetClipboardContent for System<'_> {
+    fn set_clipboard_content(&self, text: &str) -> Result<()> {
+        powershell::copy_to_clipboard(self.process, text).map_err(Error::system)
     }
 }
 
@@ -52,5 +61,6 @@ impl SetLocation for System<'_> {
                 working_directory,
             }),
         )
+        .map_err(Error::system)
     }
 }

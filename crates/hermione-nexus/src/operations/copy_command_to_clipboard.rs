@@ -1,13 +1,13 @@
 use crate::{
     definitions::{Command, CommandId},
     operations::GetCommandOperation,
-    services::{ClipboardService, CopyCommandToClipboard, FindCommand, StorageService},
+    services::{FindCommand, SetClipboardContent, StorageService, SystemService},
     Result,
 };
 
 pub struct CopyCommandToClipboardOperation<'a, SP, CP>
 where
-    CP: ClipboardService,
+    CP: SystemService,
     SP: StorageService,
 {
     pub clipboard_provider: &'a CP,
@@ -17,7 +17,7 @@ where
 impl<'a, FC, CCP> CopyCommandToClipboardOperation<'a, FC, CCP>
 where
     FC: FindCommand,
-    CCP: CopyCommandToClipboard,
+    CCP: SetClipboardContent,
 {
     pub fn execute(&self, id: &CommandId) -> Result<()> {
         tracing::info!(operation = "Copy command to clipboard");
@@ -25,7 +25,7 @@ where
         let command = self.get_command(id)?;
 
         self.clipboard_provider
-            .copy_command_to_clipboard(command.program())
+            .set_clipboard_content(command.program())
     }
 
     fn get_command(&self, id: &CommandId) -> Result<Command> {
