@@ -1,76 +1,76 @@
-use crate::support::{workspace_fixture, InMemoryStorage, WorkspaceFixtureParameters};
+use crate::{
+    prelude::*,
+    support::{self, InMemoryStorage},
+};
 use hermione_nexus::{
     definitions::Workspace,
     operations::{UpdateWorkspaceOperation, UpdateWorkspaceParameters},
-    Error, Result,
 };
-use uuid::Uuid;
 
-struct UpdateWorkspaceOperationTestContext {
+#[derive(Default)]
+struct UpdateWorkspaceTestCase {
     storage: InMemoryStorage,
-    workspace: Workspace,
+    operation: Operation<Workspace>,
 }
 
-fn with_context<T>(test_fn: T) -> Result<()>
-where
-    T: FnOnce(UpdateWorkspaceOperationTestContext) -> Result<()>,
-{
-    let storage = InMemoryStorage::default();
-    let workspace = workspace_fixture(WorkspaceFixtureParameters {
-        name: Some("Test workspace".to_string()),
-        ..Default::default()
-    })?;
+impl TestCase for UpdateWorkspaceTestCase {
+    fn assert_operation(&self, parameters: Table) {
+        self.operation.assert_is_success();
 
-    storage.insert_workspace(&workspace)?;
+        let workspace_table = parameters.get_table("storage").get_table("workspace");
+        let id = workspace_table.get_uuid("id");
+        let workspace = support::get_workspace(&self.storage, id);
 
-    test_fn(UpdateWorkspaceOperationTestContext { storage, workspace })
-}
+        support::assert_workspace(&workspace, workspace_table);
+    }
 
-#[test]
-fn it_updates_workspace() -> Result<()> {
-    with_context(|ctx| {
-        let UpdateWorkspaceOperationTestContext { storage, workspace } = ctx;
-
-        assert_eq!(workspace.name(), "Test workspace");
-        assert_eq!(workspace.location(), None);
-
-        let workspace = UpdateWorkspaceOperation {
-            find_workspace_provider: &storage,
-            update_workspace_provider: &storage,
-        }
-        .execute(UpdateWorkspaceParameters {
-            id: workspace.id(),
-            name: "Spaceship".to_string(),
-            location: Some("C:\\".to_string()),
-        })?;
-
-        assert_eq!(workspace.name(), "Spaceship");
-        assert_eq!(workspace.location(), Some("C:\\"));
-
-        Ok(())
-    })
-}
-
-#[test]
-fn it_returns_not_found_error() -> Result<()> {
-    with_context(|ctx| {
-        let UpdateWorkspaceOperationTestContext {
-            storage,
-            workspace: _,
-        } = ctx;
+    fn execute_operation(&mut self, parameters: Table) {
+        let workspace_id = parameters.get_uuid("workspace_id");
+        let name = parameters.get_text("name");
+        let location = parameters.get_text("location");
 
         let result = UpdateWorkspaceOperation {
-            find_workspace_provider: &storage,
-            update_workspace_provider: &storage,
+            find_workspace_provider: &self.storage,
+            update_workspace_provider: &self.storage,
         }
         .execute(UpdateWorkspaceParameters {
-            id: &Uuid::new_v4().into(),
-            name: "Spaceship".to_string(),
-            location: Some("C:\\".to_string()),
+            id: &workspace_id.into(),
+            location: Some(location.to_string()),
+            name: name.to_string(),
         });
 
-        assert!(matches!(result, Err(Error::NotFound(_))));
+        self.operation.set_result(result);
+    }
 
-        Ok(())
-    })
+    fn setup(&mut self, parameters: Table) {
+        support::insert_workspace(
+            &self.storage,
+            parameters.get_table("storage").get_table("workspace"),
+        );
+    }
+}
+
+#[test]
+fn it_updates_workspace() {
+    let mut test_case = UpdateWorkspaceTestCase::default();
+
+    test_case.setup(table! {
+        [storage.workspace]
+        id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+        location = "/home/ironman"
+        name = "Ironman"
+    });
+
+    test_case.execute_operation(table! {
+        workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+        location = "C:\\"
+        name = "Avenger"
+    });
+
+    test_case.assert_operation(table! {
+        [storage.workspace]
+        id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+        location = "C:\\"
+        name = "Avenger"
+    });
 }

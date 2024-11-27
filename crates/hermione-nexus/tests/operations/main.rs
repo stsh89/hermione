@@ -22,7 +22,7 @@ mod visit_workspace_location_test;
 // mod list_commands_test;
 // mod list_workspaces_test;
 // mod update_command_test;
-// mod update_workspace_test;
+mod update_workspace_test;
 
 pub mod prelude {
     pub use toml::{toml as table, Table};
