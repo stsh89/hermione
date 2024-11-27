@@ -32,8 +32,8 @@ impl TestCase for VisitWorkspaceLocationTestCase {
         self.operation.set_result(result);
     }
 
-    fn assert_operation_success(&self, parameters: Table) {
-        self.operation.assert_success();
+    fn assert_operation(&self, parameters: Table) {
+        self.operation.assert_is_success();
 
         let system_table = parameters.get_table("system");
         let expected_system_location = system_table.get_text("location");
@@ -61,7 +61,7 @@ fn it_changes_working_directory() {
         workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
     });
 
-    test_case.assert_operation_success(table! {
+    test_case.assert_operation(table! {
         [system]
         location = "/home/ironman"
     });

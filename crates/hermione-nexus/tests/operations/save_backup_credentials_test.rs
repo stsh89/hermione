@@ -16,8 +16,8 @@ struct SaveBackupCredentialsTestCase {
 }
 
 impl TestCase for SaveBackupCredentialsTestCase {
-    fn assert_operation_success(&self, parameters: Table) {
-        self.operation.assert_success();
+    fn assert_operation(&self, parameters: Table) {
+        self.operation.assert_is_success();
 
         let credentials_table = parameters
             .get_table("storage")
@@ -76,7 +76,7 @@ fn it_saves_notion_backup_credentials() {
         workspaces_database_id = "test_workspaces_database_id"
     });
 
-    test_case.assert_operation_success(table! {
+    test_case.assert_operation(table! {
         [storage.backup_credentials]
         backup_provider_kind = "Notion"
         api_key = "test_api_key"

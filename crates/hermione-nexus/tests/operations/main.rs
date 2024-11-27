@@ -27,11 +27,12 @@ mod visit_workspace_location_test;
 pub mod prelude {
     pub use toml::{toml as table, Table};
 
+    use hermione_nexus::Error;
     use chrono::{DateTime, NaiveDateTime, Utc};
     use uuid::Uuid;
 
     pub struct Operation<T> {
-        result: Option<hermione_nexus::Result<T>>,
+        result: Option<Result<T, Error>>,
     }
 
     pub trait GetDateTime {
@@ -59,31 +60,30 @@ pub mod prelude {
     }
 
     pub trait TestCase {
-        fn assert_operation_failure(&self, _parameters: Table) {}
-        fn assert_operation_success(&self, parameters: Table);
+        fn assert_operation(&self, parameters: Table);
         fn execute_operation(&mut self, parameters: Table);
         fn setup(&mut self, _parameters: Table) {}
     }
 
     impl<T> Operation<T> {
-        pub fn assert_success(&self) {
+        pub fn assert_is_success(&self) {
             match self.result() {
                 Ok(_) => {}
                 Err(err) => panic!("{}", err),
             }
         }
 
-        pub fn assert_failure(&self) {
-            assert!(self.result().is_err(), "Expected operation to fail");
+        pub fn assert_is_failure(&self) {
+            assert!(self.result().is_err());
         }
 
-        pub fn result(&self) -> &hermione_nexus::Result<T> {
+        pub fn result(&self) -> &Result<T, Error> {
             self.result
                 .as_ref()
                 .expect("Operation result should be present")
         }
 
-        pub fn set_result(&mut self, result: hermione_nexus::Result<T>) {
+        pub fn set_result(&mut self, result: Result<T, Error>) {
             self.result = Some(result);
         }
     }

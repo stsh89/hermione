@@ -14,8 +14,8 @@ struct CreateCommandTestCase {
 }
 
 impl TestCase for CreateCommandTestCase {
-    fn assert_operation_success(&self, parameters: Table) {
-        self.operation.assert_success();
+    fn assert_operation(&self, parameters: Table) {
+        self.operation.assert_is_success();
 
         let command = self.operation.result().as_ref().unwrap();
         let command = support::get_command(&self.storage, **command.id());
@@ -67,7 +67,7 @@ fn it_creates_command() {
         workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
     });
 
-    test_case.assert_operation_success(table! {
+    test_case.assert_operation(table! {
         [storage.command]
         name = "Ping"
         program = "ping 1.1.1.1"

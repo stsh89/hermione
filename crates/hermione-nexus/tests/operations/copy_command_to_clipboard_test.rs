@@ -36,8 +36,8 @@ impl TestCase for CopyCommandToClipboardTestCase {
         self.operation.set_result(result);
     }
 
-    fn assert_operation_success(&self, parameters: Table) {
-        self.operation.assert_success();
+    fn assert_operation(&self, parameters: Table) {
+        self.operation.assert_is_success();
 
         let clipboard_table = parameters.get_table("clipboard");
         let expected_clipboard_content = clipboard_table.get_text("content");
@@ -68,7 +68,7 @@ fn it_copies_command_to_clipboard() {
         command_id = "51280bfc-2eea-444a-8df9-a1e7158c2c6b"
     });
 
-    test_case.assert_operation_success(table! {
+    test_case.assert_operation(table! {
         [clipboard]
         content = "ping 1.1.1.1"
     });
