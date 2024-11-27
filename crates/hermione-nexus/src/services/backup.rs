@@ -3,24 +3,33 @@ use crate::{
     Result,
 };
 
+pub struct BackupCopyParameters<'a> {
+    pub page_token: Option<&'a str>,
+}
+
+pub struct BackupCopies<T> {
+    pub copies: Vec<T>,
+    pub next_page_token: Option<String>,
+}
+
 pub trait BackupService {}
 
 pub trait BackupServiceBuilder<T> {
     fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<T>;
 }
 
-pub trait ListCommandsBackup: BackupService {
-    fn list_commands_backup(
+pub trait GetCommandsBackupCopy: BackupService {
+    fn get_commands_backup_copy(
         &self,
-        page_id: Option<&str>,
-    ) -> Result<Option<(Vec<Command>, Option<String>)>>;
+        parameters: BackupCopyParameters,
+    ) -> Result<BackupCopies<Command>>;
 }
 
-pub trait ListWorkspacesBackup: BackupService {
-    fn list_workspaces_backup(
+pub trait GetWorkspacesBackupCopy: BackupService {
+    fn get_workspaces_backup_copy(
         &self,
-        page_id: Option<&str>,
-    ) -> Result<Option<(Vec<Workspace>, Option<String>)>>;
+        parameters: BackupCopyParameters,
+    ) -> Result<BackupCopies<Workspace>>;
 }
 
 pub trait BackupCommand: BackupService {

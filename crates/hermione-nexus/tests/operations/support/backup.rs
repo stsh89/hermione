@@ -5,8 +5,9 @@ use hermione_nexus::{
         WorkspaceParameters,
     },
     services::{
-        BackupCommand, BackupCommands, BackupService, BackupServiceBuilder, BackupWorkspace,
-        BackupWorkspaces, ListCommandsBackup, ListWorkspacesBackup, VerifyBackupCredentials,
+        BackupCommand, BackupCommands, BackupCopies, BackupCopyParameters, BackupService,
+        BackupServiceBuilder, BackupWorkspace, BackupWorkspaces, GetCommandsBackupCopy,
+        GetWorkspacesBackupCopy, VerifyBackupCredentials,
     },
     Error,
 };
@@ -212,35 +213,55 @@ impl BackupServiceBuilder<MockNotion> for MockNotionBuilder {
 
 impl BackupService for MockNotion {}
 
-impl ListCommandsBackup for MockNotion {
-    fn list_commands_backup(
+impl GetCommandsBackupCopy for MockNotion {
+    fn get_commands_backup_copy(
         &self,
-        page_id: Option<&str>,
-    ) -> Result<Option<(Vec<Command>, Option<String>)>, Error> {
-        let index: usize = index_from_str(page_id)?;
+        parameters: BackupCopyParameters,
+    ) -> Result<BackupCopies<Command>, Error> {
+        let BackupCopyParameters { page_token } = parameters;
+
+        let index: usize = index_from_str(page_token)?;
         let commands = self.list_commands(index).map_err(Error::backup)?;
 
         if commands.is_empty() {
-            return Ok(None);
+            return Ok(BackupCopies {
+                copies: vec![],
+                next_page_token: None,
+            });
         }
 
-        Ok(Some((commands, Some((index + 1).to_string()))))
+        let next_page_token = (index + 1).to_string();
+
+        Ok(BackupCopies {
+            copies: commands,
+            next_page_token: Some(next_page_token),
+        })
     }
 }
 
-impl ListWorkspacesBackup for MockNotion {
-    fn list_workspaces_backup(
+impl GetWorkspacesBackupCopy for MockNotion {
+    fn get_workspaces_backup_copy(
         &self,
-        page_id: Option<&str>,
-    ) -> Result<Option<(Vec<Workspace>, Option<String>)>, Error> {
-        let index = index_from_str(page_id)?;
+        parameters: BackupCopyParameters,
+    ) -> Result<BackupCopies<Workspace>, Error> {
+        let BackupCopyParameters { page_token } = parameters;
+
+        let index = index_from_str(page_token)?;
         let workspaces: Vec<Workspace> = self.list_workspaces(index).map_err(Error::backup)?;
 
         if workspaces.is_empty() {
-            return Ok(None);
+            return Ok(BackupCopies {
+                copies: vec![],
+                next_page_token: None,
+            });
         }
 
-        Ok(Some((workspaces, Some((index + 1).to_string()))))
+        let next_page_token = (index + 1).to_string();
+
+        Ok(BackupCopies {
+            copies: workspaces,
+            next_page_token: Some(next_page_token),
+        })
     }
 }
 

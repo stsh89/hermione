@@ -2,8 +2,9 @@ use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
     operations::GetBackupCredentialsOperation,
     services::{
-        BackupService, BackupServiceBuilder, FindBackupCredentials, ListCommandsBackup,
-        ListWorkspacesBackup, StorageService, UpsertCommands, UpsertWorkspaces,
+        BackupCopies, BackupCopyParameters, BackupService, BackupServiceBuilder,
+        FindBackupCredentials, GetCommandsBackupCopy, GetWorkspacesBackupCopy, StorageService,
+        UpsertCommands, UpsertWorkspaces,
     },
     Result,
 };
@@ -30,7 +31,7 @@ where
     UCP: UpsertCommands,
     UWP: UpsertWorkspaces,
     BPB: BackupServiceBuilder<BP>,
-    BP: ListCommandsBackup + ListWorkspacesBackup,
+    BP: GetCommandsBackupCopy + GetWorkspacesBackupCopy,
 {
     fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<BP> {
         self.backup_provider_builder
@@ -38,37 +39,51 @@ where
     }
 
     fn import_commands(&self, backup_provider: &BP) -> Result<()> {
-        let mut page_id = None;
+        let mut page_token = None;
 
-        while let Some((commands, next_page_id)) =
-            backup_provider.list_commands_backup(page_id.as_deref())?
-        {
-            self.upsert_commands_provider.upsert_commands(commands)?;
+        loop {
+            let backup = backup_provider.get_commands_backup_copy(BackupCopyParameters {
+                page_token: page_token.as_deref(),
+            })?;
 
-            if next_page_id.is_none() {
+            let BackupCopies {
+                copies: collection,
+                next_page_token,
+            } = backup;
+
+            self.upsert_commands_provider.upsert_commands(collection)?;
+
+            if next_page_token.is_none() {
                 break;
             }
 
-            page_id = next_page_id;
+            page_token = next_page_token;
         }
 
         Ok(())
     }
 
     fn import_workspaces(&self, backup_provider: &BP) -> Result<()> {
-        let mut page_id = None;
+        let mut page_token = None;
 
-        while let Some((workspaces, next_page_id)) =
-            backup_provider.list_workspaces_backup(page_id.as_deref())?
-        {
+        loop {
+            let backup = backup_provider.get_workspaces_backup_copy(BackupCopyParameters {
+                page_token: page_token.as_deref(),
+            })?;
+
+            let BackupCopies {
+                copies: collection,
+                next_page_token,
+            } = backup;
+
             self.upsert_workspaces_provider
-                .upsert_workspaces(workspaces)?;
+                .upsert_workspaces(collection)?;
 
-            if next_page_id.is_none() {
+            if next_page_token.is_none() {
                 break;
             }
 
-            page_id = next_page_id;
+            page_token = next_page_token;
         }
 
         Ok(())

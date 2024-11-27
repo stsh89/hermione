@@ -1,8 +1,8 @@
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind},
     services::{
-        BackupService, BackupServiceBuilder, FindBackupCredentials, ListWorkspacesBackup,
-        StorageService, UpsertWorkspaces,
+        BackupCopies, BackupCopyParameters, BackupService, BackupServiceBuilder,
+        FindBackupCredentials, GetWorkspacesBackupCopy, StorageService, UpsertWorkspaces,
     },
     Result,
 };
@@ -34,7 +34,7 @@ where
     BCP: FindBackupCredentials,
     UWP: UpsertWorkspaces,
     BPB: BackupServiceBuilder<BP>,
-    BP: ListWorkspacesBackup,
+    BP: GetWorkspacesBackupCopy,
 {
     fn build_backup_provider(&self, credentials: BackupCredentials) -> Result<BP> {
         self.backup_provider_builder
@@ -63,19 +63,26 @@ where
     }
 
     fn import_workspaces(&self, backup_provider: BP) -> Result<()> {
-        let mut page_id = None;
+        let mut page_token = None;
 
-        while let Some((workspaces, next_page_id)) =
-            backup_provider.list_workspaces_backup(page_id.as_deref())?
-        {
+        loop {
+            let backup = backup_provider.get_workspaces_backup_copy(BackupCopyParameters {
+                page_token: page_token.as_deref(),
+            })?;
+
+            let BackupCopies {
+                copies: collection,
+                next_page_token,
+            } = backup;
+
             self.upsert_workspaces_provider
-                .upsert_workspaces(workspaces)?;
+                .upsert_workspaces(collection)?;
 
-            if next_page_id.is_none() {
+            if next_page_token.is_none() {
                 break;
             }
 
-            page_id = next_page_id;
+            page_token = next_page_token;
         }
 
         Ok(())

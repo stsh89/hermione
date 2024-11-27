@@ -5,8 +5,8 @@ use hermione_nexus::{
         WorkspaceParameters,
     },
     services::{
-        BackupCommands, BackupService, BackupServiceBuilder, BackupWorkspaces, ListCommandsBackup,
-        ListWorkspacesBackup, VerifyBackupCredentials,
+        BackupCommands, BackupCopies, BackupCopyParameters, BackupService, BackupServiceBuilder,
+        BackupWorkspaces, GetCommandsBackupCopy, GetWorkspacesBackupCopy, VerifyBackupCredentials,
     },
     Error, Result,
 };
@@ -80,17 +80,19 @@ impl BackupServiceBuilder<NotionBackup> for NotionBackupBuilder {
 
 impl BackupService for NotionBackup {}
 
-impl ListCommandsBackup for NotionBackup {
-    fn list_commands_backup(
+impl GetCommandsBackupCopy for NotionBackup {
+    fn get_commands_backup_copy(
         &self,
-        page_id: Option<&str>,
-    ) -> Result<Option<(Vec<Command>, Option<String>)>> {
+        parameters: BackupCopyParameters,
+    ) -> Result<BackupCopies<Command>> {
+        let BackupCopyParameters { page_token } = parameters;
+
         let query_database = || {
             api::query_database(
                 &self.client,
                 QueryDatabaseParameters {
                     database_id: &self.commands_database_id,
-                    start_cursor: page_id,
+                    start_cursor: page_token,
                     page_size: Some(self.page_size),
                     filter: None,
                 },
@@ -148,21 +150,26 @@ impl ListCommandsBackup for NotionBackup {
             })
             .collect::<Result<Vec<Command>>>()?;
 
-        Ok(Some((commands, next_page_token)))
+        Ok(BackupCopies {
+            copies: commands,
+            next_page_token,
+        })
     }
 }
 
-impl ListWorkspacesBackup for NotionBackup {
-    fn list_workspaces_backup(
+impl GetWorkspacesBackupCopy for NotionBackup {
+    fn get_workspaces_backup_copy(
         &self,
-        page_id: Option<&str>,
-    ) -> Result<Option<(Vec<Workspace>, Option<String>)>> {
+        parameters: BackupCopyParameters,
+    ) -> Result<BackupCopies<Workspace>> {
+        let BackupCopyParameters { page_token } = parameters;
+
         let query_database = || {
             api::query_database(
                 &self.client,
                 QueryDatabaseParameters {
                     database_id: &self.workspaces_database_id,
-                    start_cursor: page_id,
+                    start_cursor: page_token,
                     page_size: Some(self.page_size),
                     filter: None,
                 },
@@ -207,7 +214,10 @@ impl ListWorkspacesBackup for NotionBackup {
             })
             .collect::<Result<Vec<Workspace>>>()?;
 
-        Ok(Some((workspaces, next_page_token)))
+        Ok(BackupCopies {
+            copies: workspaces,
+            next_page_token,
+        })
     }
 }
 
