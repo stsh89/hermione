@@ -25,6 +25,12 @@ pub fn assert_command(command: &Command, parameters: &Table) {
     assert_eq!(**command.workspace_id(), workspace_id);
 }
 
+pub fn assert_commands_count(storage: &InMemoryStorage, expected_count: usize) {
+    let count = count_commands(storage);
+
+    assert_eq!(count, expected_count);
+}
+
 pub fn assert_notion_backup_credentials(
     backup_credentials: &BackupCredentials,
     parameters: &Table,
@@ -65,6 +71,20 @@ pub fn assert_workspace(workspace: &Workspace, parameters: &Table) {
     assert_eq!(workspace.last_access_time(), last_access_time.as_ref());
     assert_eq!(workspace.location(), location);
     assert_eq!(workspace.name(), name);
+}
+
+pub fn assert_workspaces_count(storage: &InMemoryStorage, expected_count: usize) {
+    let count = count_workspaces(storage);
+
+    assert_eq!(count, expected_count);
+}
+
+pub fn count_commands(storage: &InMemoryStorage) -> usize {
+    storage.commands.read().unwrap().len()
+}
+
+pub fn count_workspaces(storage: &InMemoryStorage) -> usize {
+    storage.workspaces.read().unwrap().len()
 }
 
 pub fn get_backup_provider_kind(name: &str) -> BackupProviderKind {

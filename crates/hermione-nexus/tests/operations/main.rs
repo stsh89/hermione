@@ -9,10 +9,10 @@ mod export_command_test;
 mod export_workspace_test;
 // mod import_commands_from_notion_test;
 // mod import_workspaces_from_notion_test;
+mod delete_workspace_test;
+mod detele_command_test;
 mod save_backup_credentials_test;
 mod visit_workspace_location_test;
-// mod delete_workspace_test;
-// mod detele_command_test;
 // mod execute_command_test;
 // mod export_test;
 // mod get_command_test;
@@ -27,8 +27,8 @@ mod visit_workspace_location_test;
 pub mod prelude {
     pub use toml::{toml as table, Table};
 
-    use hermione_nexus::Error;
     use chrono::{DateTime, NaiveDateTime, Utc};
+    use hermione_nexus::Error;
     use uuid::Uuid;
 
     pub struct Operation<T> {
@@ -37,6 +37,10 @@ pub mod prelude {
 
     pub trait GetDateTime {
         fn get_date_time(&self, key: &str) -> DateTime<Utc>;
+    }
+
+    pub trait GetInteger {
+        fn get_integer(&self, key: &str) -> i64;
     }
 
     pub trait GetText {
@@ -92,6 +96,14 @@ pub mod prelude {
         fn get_date_time(&self, key: &str) -> DateTime<Utc> {
             self.maybe_get_date_time(key)
                 .unwrap_or_else(|| panic!("Table should have date time value for `{key}` key"))
+        }
+    }
+
+    impl GetInteger for Table {
+        fn get_integer(&self, key: &str) -> i64 {
+            self.get(key)
+                .and_then(|value| value.as_integer())
+                .unwrap_or_else(|| panic!("Table should have integer value for `{key}` key"))
         }
     }
 
