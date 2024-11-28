@@ -19,9 +19,12 @@ impl TestCase for UpdateWorkspaceTestCase {
 
         let workspace_table = parameters.get_table("storage").get_table("workspace");
         let id = workspace_table.get_uuid("id");
-        let workspace = support::get_workspace(&self.storage, id);
 
+        let workspace = support::get_workspace(&self.storage, id);
         support::assert_workspace(&workspace, workspace_table);
+
+        let workspace = self.operation.result().as_ref().unwrap();
+        support::assert_workspace(workspace, workspace_table);
     }
 
     fn execute_operation(&mut self, parameters: Table) {

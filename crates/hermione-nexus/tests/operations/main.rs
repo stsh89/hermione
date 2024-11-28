@@ -1,8 +1,9 @@
 pub mod support;
 
+mod workspaces;
+
 mod copy_command_to_clipboard_test;
 mod create_command_test;
-mod create_workspace_test;
 // mod delete_backup_credentials_test;
 // mod execute_program_test;
 mod export_command_test;
@@ -11,21 +12,16 @@ mod export_workspace_test;
 // mod import_workspaces_from_notion_test;
 mod delete_command_test;
 mod delete_commands_test;
-mod delete_workspace_test;
 mod export_commands_test;
 mod export_workspaces_test;
 mod save_backup_credentials_test;
-mod visit_workspace_location_test;
 // mod execute_command_test;
 // mod export_test;
 // mod get_command_test;
-// mod get_workspace_test;
 // mod import_test;
 // mod list_backup_credentials_test;
 // mod list_commands_test;
-// mod list_workspaces_test;
 // mod update_command_test;
-mod update_workspace_test;
 
 pub mod prelude {
     pub use toml::{toml as table, Table};
@@ -36,6 +32,10 @@ pub mod prelude {
 
     pub struct Operation<T> {
         result: Option<Result<T, Error>>,
+    }
+
+    pub trait GetArray {
+        fn get_array(&self, key: &str) -> Vec<&Table>;
     }
 
     pub trait GetDateTime {
@@ -56,6 +56,10 @@ pub mod prelude {
 
     pub trait GetUuid {
         fn get_uuid(&self, key: &str) -> Uuid;
+    }
+
+    pub trait MaybeGetInteger {
+        fn maybe_get_integer(&self, key: &str) -> Option<i64>;
     }
 
     pub trait MaybeGetTable {
@@ -99,6 +103,24 @@ pub mod prelude {
         }
     }
 
+    impl GetArray for Table {
+        fn get_array(&self, key: &str) -> Vec<&Table> {
+            let array_of_values = self
+                .get(key)
+                .and_then(|value| value.as_array())
+                .unwrap_or_else(|| panic!("Table should have array value for `{key}` key"));
+
+            array_of_values
+                .iter()
+                .map(|value| {
+                    value.as_table().unwrap_or_else(|| {
+                        panic!("Table should have table array values for `{key}` key")
+                    })
+                })
+                .collect()
+        }
+    }
+
     impl GetDateTime for Table {
         fn get_date_time(&self, key: &str) -> DateTime<Utc> {
             self.maybe_get_date_time(key)
@@ -108,8 +130,7 @@ pub mod prelude {
 
     impl GetInteger for Table {
         fn get_integer(&self, key: &str) -> i64 {
-            self.get(key)
-                .and_then(|value| value.as_integer())
+            self.maybe_get_integer(key)
                 .unwrap_or_else(|| panic!("Table should have integer value for `{key}` key"))
         }
     }
@@ -133,6 +154,12 @@ pub mod prelude {
             self.get_text(key).parse().unwrap_or_else(|_| {
                 panic!("Should be able to parse table key `{key}` as uuid value")
             })
+        }
+    }
+
+    impl MaybeGetInteger for Table {
+        fn maybe_get_integer(&self, key: &str) -> Option<i64> {
+            self.get(key).and_then(|value| value.as_integer())
         }
     }
 

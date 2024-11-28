@@ -1,13 +1,12 @@
+use crate::{
+    prelude::*,
+    support::{self, InMemoryStorage, MockNotionBuilder, MockNotionStorage},
+};
 use hermione_nexus::{
     definitions::BackupProviderKind,
     operations::{ExportCommandsOperation, ExportCommandsOperationParameters},
 };
 use std::rc::Rc;
-
-use crate::{
-    prelude::*,
-    support::{self, InMemoryStorage, MockNotionBuilder, MockNotionStorage},
-};
 
 #[derive(Default)]
 struct ExportCommandsTestCase {
@@ -71,7 +70,7 @@ impl TestCase for ExportCommandsTestCase {
 }
 
 #[test]
-fn it_sends_workspaces_to_notion() {
+fn it_sends_commands_to_notion() {
     let mut test_case = ExportCommandsTestCase::default();
 
     test_case.setup(table! {

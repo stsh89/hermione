@@ -321,8 +321,8 @@ impl Coordinator {
         }
         .execute(ListWorkspacesParameters {
             name_contains: Some(name_contains),
-            page_number: page_number.unwrap_or(FIRST_PAGE),
-            page_size: page_size.unwrap_or(DEFAULT_PAGE_SIZE),
+            page_number,
+            page_size,
         })?;
 
         Ok(workspaces.into_iter().map(Into::into).collect())
