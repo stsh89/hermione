@@ -1,19 +1,8 @@
 pub mod support;
 
+mod backup;
 mod commands;
 mod workspaces;
-
-// mod delete_backup_credentials_test;
-mod export_command_test;
-mod export_workspace_test;
-// mod import_commands_from_notion_test;
-// mod import_workspaces_from_notion_test;
-mod export_commands_test;
-mod export_workspaces_test;
-mod save_backup_credentials_test;
-// mod export_test;
-// mod import_test;
-// mod list_backup_credentials_test;
 
 pub mod prelude {
     pub use crate::support::table::*;

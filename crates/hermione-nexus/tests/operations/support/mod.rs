@@ -34,6 +34,12 @@ pub fn assert_command(command: &Command, parameters: &Table) {
     assert_eq!(**command.workspace_id(), workspace_id);
 }
 
+pub fn assert_backup_credentials_count(storage: &InMemoryStorage, expected_count: usize) {
+    let count = count_backup_credentials(storage);
+
+    assert_eq!(count, expected_count);
+}
+
 pub fn assert_commands_count(storage: &InMemoryStorage, expected_count: usize) {
     let count = count_commands(storage);
 
@@ -59,11 +65,14 @@ pub fn assert_notion_backup_credentials(
     let api_key = parameters.get_text("api_key");
     let commands_database_id = parameters.get_text("commands_database_id");
     let workspaces_database_id = parameters.get_text("workspaces_database_id");
-    let BackupCredentials::Notion(credentials) = backup_credentials;
 
-    assert_eq!(credentials.api_key(), api_key);
-    assert_eq!(credentials.commands_database_id(), commands_database_id);
-    assert_eq!(credentials.workspaces_database_id(), workspaces_database_id);
+    match backup_credentials {
+        BackupCredentials::Notion(credentials) => {
+            assert_eq!(credentials.api_key(), api_key);
+            assert_eq!(credentials.commands_database_id(), commands_database_id);
+            assert_eq!(credentials.workspaces_database_id(), workspaces_database_id);
+        }
+    }
 }
 
 pub fn assert_notion_command(notion_command: &NotionCommand, parameters: &Table) {
@@ -98,6 +107,14 @@ pub fn assert_workspaces_count(storage: &InMemoryStorage, expected_count: usize)
     let count = count_workspaces(storage);
 
     assert_eq!(count, expected_count);
+}
+
+pub fn count_backup_credentials(storage: &InMemoryStorage) -> usize {
+    storage
+        .backup_credentials
+        .read()
+        .expect("Should be able to get backup credentials")
+        .len()
 }
 
 pub fn count_commands(storage: &InMemoryStorage) -> usize {
