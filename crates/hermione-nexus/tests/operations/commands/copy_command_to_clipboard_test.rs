@@ -13,15 +13,10 @@ struct CopyCommandToClipboardTestCase {
 
 impl TestCase for CopyCommandToClipboardTestCase {
     fn setup(&mut self, parameters: Table) {
-        support::insert_workspace(
-            &self.storage,
-            parameters.get_table("storage").get_table("workspace"),
-        );
+        let storage_table = parameters.get_table("storage");
 
-        support::insert_command(
-            &self.storage,
-            parameters.get_table("storage").get_table("command"),
-        );
+        support::insert_workspace(&self.storage, storage_table.get_table("workspace"));
+        support::insert_command(&self.storage, storage_table.get_table("command"));
     }
 
     fn execute_operation(&mut self, parameters: Table) {
@@ -39,11 +34,10 @@ impl TestCase for CopyCommandToClipboardTestCase {
     fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
-        let clipboard_table = parameters.get_table("clipboard");
-        let expected_clipboard_content = clipboard_table.get_text("content");
-        let got_clipboard_content = support::get_clipboard_content(&self.system);
+        let system_table = parameters.get_table("system");
+        let expected_clipboard_content = system_table.get_text("clipboard");
 
-        assert_eq!(got_clipboard_content, expected_clipboard_content);
+        support::assert_clipboard_content(&self.system, expected_clipboard_content);
     }
 }
 
@@ -69,7 +63,7 @@ fn it_copies_command_to_clipboard() {
     });
 
     test_case.inspect_operation_results(table! {
-        [clipboard]
-        content = "ping 1.1.1.1"
+        [system]
+        clipboard = "ping 1.1.1.1"
     });
 }

@@ -37,7 +37,7 @@ impl TestCase for VisitWorkspaceLocationTestCase {
 
         let system_table = parameters.get_table("system");
         let expected_system_location = system_table.get_text("location");
-        let current_system_location = support::get_system_location(&self.system);
+        let current_system_location = support::get_file_system_location(&self.system);
 
         assert_eq!(
             current_system_location.as_deref(),

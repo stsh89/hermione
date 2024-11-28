@@ -19,8 +19,8 @@ impl TestCase for ExecuteProgramTestCase {
         let location = system_table.get_text("location");
         let program = system_table.get_text("last_executed_program");
 
-        support::assert_system_location(&self.system, Some(location));
-        support::assert_system_program(&self.system, Some(program));
+        support::assert_file_system_location(&self.system, location);
+        support::assert_last_executed_program(&self.system, program);
     }
 
     fn execute_operation(&mut self, parameters: Table) {

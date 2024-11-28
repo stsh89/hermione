@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::{DateTime, TimeDelta, Utc};
 use eyre::eyre;
 use hermione_nexus::{
     definitions::{
@@ -25,6 +25,7 @@ pub struct InMemoryStorage {
     pub backup_credentials: RwLock<HashMap<String, BackupCredentials>>,
     pub commands: RwLock<HashMap<Uuid, Command>>,
     pub workspaces: RwLock<HashMap<Uuid, Workspace>>,
+    pub now: RwLock<Option<DateTime<Utc>>>,
 }
 
 impl InMemoryStorage {
@@ -198,7 +199,8 @@ impl InMemoryStorage {
             return Ok(());
         };
 
-        command.set_execute_time(Utc::now());
+        let timestamp = now(self).map_err(Error::storage)?;
+        command.set_execute_time(timestamp);
 
         self.insert_command(&command)?;
 
@@ -212,7 +214,8 @@ impl InMemoryStorage {
             return Ok(());
         };
 
-        workspace.set_access_time(Utc::now());
+        let timestamp = now(self).map_err(Error::storage)?;
+        workspace.set_access_time(timestamp);
 
         self.insert_workspace(&workspace)?;
 
@@ -496,4 +499,15 @@ impl UpsertWorkspaces for InMemoryStorage {
 
         Ok(())
     }
+}
+
+fn now(storage: &InMemoryStorage) -> eyre::Result<DateTime<Utc>> {
+    let time = storage
+        .now
+        .read()
+        .map_err(|err| eyre::Error::msg(err.to_string()))?
+        .and_then(|t| t.checked_add_signed(TimeDelta::seconds(1)))
+        .unwrap_or_else(Utc::now);
+
+    Ok(time)
 }

@@ -5,6 +5,7 @@ mod storage;
 mod system;
 
 pub use backup::*;
+use chrono::{DateTime, Utc};
 pub use storage::*;
 pub use system::*;
 
@@ -14,6 +15,12 @@ use hermione_nexus::definitions::{
 };
 use table::{GetText, GetUuid, MaybeGetDateTime, MaybeGetText, Table};
 use uuid::Uuid;
+
+pub fn assert_clipboard_content(system: &MockSystem, expected_clipboard_content: &str) {
+    let content = get_clipboard_content(system);
+
+    assert_eq!(content.as_deref(), Some(expected_clipboard_content));
+}
 
 pub fn assert_command(command: &Command, parameters: &Table) {
     let name = parameters.get_text("name");
@@ -31,6 +38,18 @@ pub fn assert_commands_count(storage: &InMemoryStorage, expected_count: usize) {
     let count = count_commands(storage);
 
     assert_eq!(count, expected_count);
+}
+
+pub fn assert_file_system_location(system: &MockSystem, expected_location: &str) {
+    let location = get_file_system_location(system);
+
+    assert_eq!(location.as_deref(), Some(expected_location));
+}
+
+pub fn assert_last_executed_program(system: &MockSystem, expected_program: &str) {
+    let program = get_last_executed_program(system);
+
+    assert_eq!(program.as_deref(), Some(expected_program));
 }
 
 pub fn assert_notion_backup_credentials(
@@ -65,18 +84,6 @@ pub fn assert_notion_workspace(notion_workspace: &NotionWorkspace, parameters: &
     assert_eq!(&notion_workspace.name, name);
 }
 
-pub fn assert_system_location(system: &MockSystem, expected_location: Option<&str>) {
-    let location = get_system_location(system);
-
-    assert_eq!(location.as_deref(), expected_location);
-}
-
-pub fn assert_system_program(system: &MockSystem, expected_program: Option<&str>) {
-    let program = get_system_program(system);
-
-    assert_eq!(program.as_deref(), expected_program);
-}
-
 pub fn assert_workspace(workspace: &Workspace, parameters: &Table) {
     let last_access_time = parameters.maybe_get_date_time("last_access_time");
     let location = parameters.maybe_get_text("location");
@@ -108,13 +115,12 @@ pub fn get_backup_provider_kind(name: &str) -> BackupProviderKind {
     }
 }
 
-pub fn get_clipboard_content(system: &MockSystem) -> String {
+pub fn get_clipboard_content(system: &MockSystem) -> Option<String> {
     system
         .clipboard
         .read()
         .expect("Should be able to get clipboard content")
         .clone()
-        .unwrap_or_default()
 }
 
 pub fn get_command(storage: &InMemoryStorage, id: Uuid) -> Command {
@@ -157,7 +163,7 @@ pub fn get_notion_workspace(notion: &MockNotionStorage, external_id: &str) -> No
         .clone()
 }
 
-pub fn get_system_location(system: &MockSystem) -> Option<String> {
+pub fn get_file_system_location(system: &MockSystem) -> Option<String> {
     system
         .location
         .read()
@@ -165,7 +171,7 @@ pub fn get_system_location(system: &MockSystem) -> Option<String> {
         .clone()
 }
 
-pub fn get_system_program(system: &MockSystem) -> Option<String> {
+pub fn get_last_executed_program(system: &MockSystem) -> Option<String> {
     system
         .program
         .read()
@@ -181,24 +187,6 @@ pub fn get_workspace(storage: &InMemoryStorage, id: Uuid) -> Workspace {
         .get(&id)
         .cloned()
         .unwrap_or_else(|| panic!("Workspace {} should exist", id.braced()))
-}
-
-pub fn insert_notion_backup_credentials(storage: &InMemoryStorage, parameters: &Table) {
-    let api_key = parameters.get_text("api_key");
-    let commands_database_id = parameters.get_text("commands_database_id");
-    let workspaces_database_id = parameters.get_text("workspaces_database_id");
-
-    let credentials = BackupCredentials::notion(NotionBackupCredentialsParameters {
-        api_key: api_key.to_string(),
-        commands_database_id: commands_database_id.to_string(),
-        workspaces_database_id: workspaces_database_id.to_string(),
-    });
-
-    storage
-        .backup_credentials
-        .write()
-        .expect("Should be able to insert Notion backup credentials")
-        .insert(NOTION_CREDENTIALS_KEY.to_string(), credentials);
 }
 
 pub fn insert_command(storage: &InMemoryStorage, parameters: &Table) {
@@ -224,25 +212,22 @@ pub fn insert_command(storage: &InMemoryStorage, parameters: &Table) {
         .insert(**command.id(), command);
 }
 
-pub fn insert_workspace(storage: &InMemoryStorage, parameters: &Table) {
-    let id = parameters.get_uuid("id");
-    let last_access_time = parameters.maybe_get_date_time("last_access_time");
-    let name = parameters.get_text("name");
-    let location = parameters.maybe_get_text("location");
+pub fn insert_notion_backup_credentials(storage: &InMemoryStorage, parameters: &Table) {
+    let api_key = parameters.get_text("api_key");
+    let commands_database_id = parameters.get_text("commands_database_id");
+    let workspaces_database_id = parameters.get_text("workspaces_database_id");
 
-    let workspace = Workspace::new(WorkspaceParameters {
-        id,
-        name: name.to_string(),
-        location: location.map(ToString::to_string),
-        last_access_time,
-    })
-    .expect("Workspace should be valid");
+    let credentials = BackupCredentials::notion(NotionBackupCredentialsParameters {
+        api_key: api_key.to_string(),
+        commands_database_id: commands_database_id.to_string(),
+        workspaces_database_id: workspaces_database_id.to_string(),
+    });
 
     storage
-        .workspaces
+        .backup_credentials
         .write()
-        .expect("Should be able to insert workspace")
-        .insert(**workspace.id(), workspace);
+        .expect("Should be able to insert Notion backup credentials")
+        .insert(NOTION_CREDENTIALS_KEY.to_string(), credentials);
 }
 
 pub fn insert_notion_command(storage: &MockNotionStorage, parameters: &Table) {
@@ -281,4 +266,34 @@ pub fn insert_notion_workspace(storage: &MockNotionStorage, parameters: &Table) 
         .write()
         .expect("Should be able to insert Notion workspace entry")
         .insert(external_id.to_string(), entry);
+}
+
+pub fn insert_workspace(storage: &InMemoryStorage, parameters: &Table) {
+    let id = parameters.get_uuid("id");
+    let last_access_time = parameters.maybe_get_date_time("last_access_time");
+    let name = parameters.get_text("name");
+    let location = parameters.maybe_get_text("location");
+
+    let workspace = Workspace::new(WorkspaceParameters {
+        id,
+        name: name.to_string(),
+        location: location.map(ToString::to_string),
+        last_access_time,
+    })
+    .expect("Workspace should be valid");
+
+    storage
+        .workspaces
+        .write()
+        .expect("Should be able to insert workspace")
+        .insert(**workspace.id(), workspace);
+}
+
+pub fn freeze_storage_time(storage: &InMemoryStorage, time: DateTime<Utc>) {
+    let mut timestamp = storage
+        .now
+        .write()
+        .expect("Should be able to freeze storage time");
+
+    *timestamp = Some(time);
 }
