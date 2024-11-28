@@ -12,6 +12,7 @@ mod export_workspace_test;
 mod delete_command_test;
 mod delete_commands_test;
 mod delete_workspace_test;
+mod export_workspaces_test;
 mod save_backup_credentials_test;
 mod visit_workspace_location_test;
 // mod execute_command_test;
@@ -54,6 +55,10 @@ pub mod prelude {
 
     pub trait GetUuid {
         fn get_uuid(&self, key: &str) -> Uuid;
+    }
+
+    pub trait MaybeGetTable {
+        fn maybe_get_table(&self, key: &str) -> Option<&Table>;
     }
 
     pub trait MaybeGetText {
@@ -117,8 +122,7 @@ pub mod prelude {
 
     impl GetTable for Table {
         fn get_table(&self, key: &str) -> &Table {
-            self.get(key)
-                .and_then(|value| value.as_table())
+            self.maybe_get_table(key)
                 .unwrap_or_else(|| panic!("Table should have table value for `{key}` key"))
         }
     }
@@ -128,6 +132,12 @@ pub mod prelude {
             self.get_text(key).parse().unwrap_or_else(|_| {
                 panic!("Should be able to parse table key `{key}` as uuid value")
             })
+        }
+    }
+
+    impl MaybeGetTable for Table {
+        fn maybe_get_table(&self, key: &str) -> Option<&Table> {
+            self.get(key).and_then(|value| value.as_table())
         }
     }
 

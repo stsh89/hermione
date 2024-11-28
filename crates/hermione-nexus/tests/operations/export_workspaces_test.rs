@@ -1,24 +1,62 @@
+use hermione_nexus::{
+    definitions::BackupProviderKind,
+    operations::{ExportWorkspacesOperation, ExportWorkspacesOperationParameters},
+};
+use std::rc::Rc;
+
 use crate::{
     prelude::*,
     support::{self, InMemoryStorage, MockNotionBuilder, MockNotionStorage},
 };
-use hermione_nexus::{
-    definitions::BackupProviderKind,
-    operations::{
-        ExportWorkspaceOperation, ExportWorkspaceOperationParameters, ExportWorkspaceParameters,
-    },
-};
-use std::rc::Rc;
-use toml::Table;
 
 #[derive(Default)]
-struct ExportWorkspaceToNotionTestCase {
+struct ExportWorkspacesTestCase {
     storage: InMemoryStorage,
-    notion_storage: Rc<MockNotionStorage>,
+    notion: Rc<MockNotionStorage>,
     operation: Operation<()>,
 }
 
-impl TestCase for ExportWorkspaceToNotionTestCase {
+impl TestCase for ExportWorkspacesTestCase {
+    fn execute_operation(&mut self, parameters: Table) {
+        let backup_provider_name = parameters.get_text("backup_provider_kind");
+        let backup_provider_kind = support::get_backup_provider_kind(backup_provider_name);
+
+        let backup_builder = match backup_provider_kind {
+            BackupProviderKind::Notion => &MockNotionBuilder {
+                storage: self.notion.clone(),
+            },
+        };
+
+        let result = ExportWorkspacesOperation::new(ExportWorkspacesOperationParameters {
+            backup_credentials: &self.storage,
+            workspaces: &self.storage,
+            backup_builder,
+        })
+        .execute(backup_provider_kind);
+
+        self.operation.set_result(result);
+    }
+
+    fn inspect_operation_results(&self, expectations: Table) {
+        self.operation.assert_is_success();
+
+        self.operation.assert_is_success();
+
+        let backup_table = expectations.get_table("backup");
+        let backup_provider_name = backup_table.get_text("provider_kind");
+        let backup_provider_kind = support::get_backup_provider_kind(backup_provider_name);
+
+        match backup_provider_kind {
+            BackupProviderKind::Notion => {
+                let workspace_table = backup_table.get_table("workspace");
+                let external_id = workspace_table.get_text("external_id");
+                let notion_workspace = support::get_notion_workspace(&self.notion, external_id);
+
+                support::assert_notion_workspace(&notion_workspace, workspace_table);
+            }
+        }
+    }
+
     fn setup(&mut self, parameters: Table) {
         let storage_table = parameters.get_table("storage");
         let credentials_table = &storage_table.get_table("backup_credentials");
@@ -30,55 +68,11 @@ impl TestCase for ExportWorkspaceToNotionTestCase {
             support::insert_notion_backup_credentials(&self.storage, credentials);
         }
     }
-
-    fn execute_operation(&mut self, parameters: Table) {
-        let workspace_id = parameters.get_uuid("workspace_id");
-
-        let backup_provider_name = parameters.get_text("backup_provider_kind");
-        let backup_provider_kind = support::get_backup_provider_kind(backup_provider_name);
-
-        let backup_provider_builder = match backup_provider_kind {
-            BackupProviderKind::Notion => &MockNotionBuilder {
-                storage: self.notion_storage.clone(),
-            },
-        };
-
-        let result = ExportWorkspaceOperation::new(ExportWorkspaceOperationParameters {
-            find_backup_credentials: &self.storage,
-            find_workspace: &self.storage,
-            backup_provider_builder,
-        })
-        .execute(ExportWorkspaceParameters {
-            workspace_id: workspace_id.into(),
-            backup_provider_kind,
-        });
-
-        self.operation.set_result(result);
-    }
-
-    fn inspect_operation_results(&self, parameters: Table) {
-        self.operation.assert_is_success();
-
-        let backup_table = parameters.get_table("backup");
-        let backup_provider_name = backup_table.get_text("provider_kind");
-        let backup_provider_kind = support::get_backup_provider_kind(backup_provider_name);
-
-        match backup_provider_kind {
-            BackupProviderKind::Notion => {
-                let workspace_table = backup_table.get_table("workspace");
-                let external_id = workspace_table.get_text("external_id");
-                let notion_workspace =
-                    support::get_notion_workspace(&self.notion_storage, external_id);
-
-                support::assert_notion_workspace(&notion_workspace, workspace_table);
-            }
-        }
-    }
 }
 
 #[test]
-fn it_saves_workspace_into_notion_database() {
-    let mut test_case = ExportWorkspaceToNotionTestCase::default();
+fn it_sends_workspaces_to_notion() {
+    let mut test_case = ExportWorkspacesTestCase::default();
 
     test_case.setup(table! {
         [storage.workspace]
@@ -95,7 +89,6 @@ fn it_saves_workspace_into_notion_database() {
 
     test_case.execute_operation(table! {
         backup_provider_kind = "Notion"
-        workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
     });
 
     test_case.inspect_operation_results(table! {

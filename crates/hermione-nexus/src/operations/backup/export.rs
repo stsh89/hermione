@@ -1,6 +1,6 @@
-use super::GetBackupCredentialsOperation;
 use crate::{
     definitions::{BackupCredentials, BackupProviderKind, Command, Workspace},
+    operations::GetBackupCredentialsOperation,
     services::{
         BackupCommands, BackupService, BackupServiceBuilder, BackupWorkspaces,
         FilterCommandsParameters, FilterWorkspacesParameters, FindBackupCredentials, ListCommands,
