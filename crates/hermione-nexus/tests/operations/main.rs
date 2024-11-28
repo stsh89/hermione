@@ -12,6 +12,7 @@ mod export_workspace_test;
 mod delete_command_test;
 mod delete_commands_test;
 mod delete_workspace_test;
+mod export_commands_test;
 mod export_workspaces_test;
 mod save_backup_credentials_test;
 mod visit_workspace_location_test;

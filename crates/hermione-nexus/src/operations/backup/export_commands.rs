@@ -1,9 +1,9 @@
 use crate::{
-    definitions::{BackupCredentials, BackupProviderKind, Workspace},
+    definitions::{BackupCredentials, BackupProviderKind, Command},
     operations::GetBackupCredentialsOperation,
     services::{
-        BackupService, BackupServiceBuilder, BackupWorkspaces, FilterWorkspacesParameters,
-        FindBackupCredentials, ListWorkspaces, StorageService,
+        BackupCommands, BackupService, BackupServiceBuilder, FilterCommandsParameters,
+        FindBackupCredentials, ListCommands, StorageService,
     },
     Result,
 };
@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 
 const BACKUP_BATCH_SIZE: u32 = 100;
 
-pub struct ExportWorkspacesOperation<'a, BCP, LWP, BPB, BP>
+pub struct ExportCommandsOperation<'a, BCP, LWP, BPB, BP>
 where
     BCP: StorageService,
     LWP: StorageService,
@@ -19,39 +19,39 @@ where
     BP: BackupService,
 {
     backup_credentials: &'a BCP,
-    workspaces: &'a LWP,
+    commands: &'a LWP,
     backup_builder: &'a BPB,
     backup: PhantomData<BP>,
 }
 
-pub struct ExportWorkspacesOperationParameters<'a, BCP, LWP, BPB> {
+pub struct ExportCommandsOperationParameters<'a, BCP, LWP, BPB> {
     pub backup_credentials: &'a BCP,
-    pub workspaces: &'a LWP,
+    pub commands: &'a LWP,
     pub backup_builder: &'a BPB,
 }
 
-impl<'a, BCP, LWP, BPB, BP> ExportWorkspacesOperation<'a, BCP, LWP, BPB, BP>
+impl<'a, BCP, LWP, BPB, BP> ExportCommandsOperation<'a, BCP, LWP, BPB, BP>
 where
-    LWP: ListWorkspaces,
+    LWP: ListCommands,
     BCP: FindBackupCredentials,
     BPB: BackupServiceBuilder<BP>,
-    BP: BackupWorkspaces,
+    BP: BackupCommands,
 {
     fn build_backup_provider(&self, credentials: &BackupCredentials) -> Result<BP> {
         self.backup_builder.build_backup_provider(credentials)
     }
 
-    fn export_workspaces(&self, backup_provider: &BP) -> Result<()> {
+    fn export_commands(&self, backup_provider: &BP) -> Result<()> {
         let mut page_number = 0;
 
         loop {
-            let workspaces = self.list_workspaces(page_number)?;
+            let commands = self.list_commands(page_number)?;
 
-            if workspaces.is_empty() {
+            if commands.is_empty() {
                 break;
             }
 
-            backup_provider.backup_workspaces(workspaces)?;
+            backup_provider.backup_commands(commands)?;
             page_number += 1;
         }
 
@@ -59,12 +59,12 @@ where
     }
 
     pub fn execute(&self, kind: BackupProviderKind) -> Result<()> {
-        tracing::info!(operation = "Export workspaces");
+        tracing::info!(operation = "Export commands");
 
         let credentials = self.get_backup_credentials(kind)?;
         let backup_provider = self.build_backup_provider(&credentials)?;
 
-        self.export_workspaces(&backup_provider)?;
+        self.export_commands(&backup_provider)?;
 
         Ok(())
     }
@@ -76,26 +76,27 @@ where
         .execute(kind)
     }
 
-    fn list_workspaces(&self, page_number: u32) -> Result<Vec<Workspace>> {
-        let parameters = FilterWorkspacesParameters {
-            name_contains: None,
+    fn list_commands(&self, page_number: u32) -> Result<Vec<Command>> {
+        let parameters = FilterCommandsParameters {
+            program_contains: None,
             page_number,
             page_size: BACKUP_BATCH_SIZE,
+            workspace_id: None,
         };
 
-        self.workspaces.list_workspaces(parameters)
+        self.commands.list_commands(parameters)
     }
 
-    pub fn new(parameters: ExportWorkspacesOperationParameters<'a, BCP, LWP, BPB>) -> Self {
-        let ExportWorkspacesOperationParameters {
+    pub fn new(parameters: ExportCommandsOperationParameters<'a, BCP, LWP, BPB>) -> Self {
+        let ExportCommandsOperationParameters {
             backup_credentials,
-            workspaces,
+            commands,
             backup_builder,
         } = parameters;
 
         Self {
             backup_credentials,
-            workspaces,
+            commands,
             backup_builder,
             backup: PhantomData,
         }
