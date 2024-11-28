@@ -1,13 +1,21 @@
 mod delete_backup_credentials;
 mod export;
+mod export_command;
+mod export_workspace;
 mod get_backup_credentials;
 mod import;
+mod import_commands;
+mod import_workspaces;
 mod list_backup_credentials;
 mod save_backup_credentials;
 
 pub use delete_backup_credentials::*;
 pub use export::*;
+pub use export_command::*;
+pub use export_workspace::*;
 pub use get_backup_credentials::*;
 pub use import::*;
+pub use import_commands::*;
+pub use import_workspaces::*;
 pub use list_backup_credentials::*;
 pub use save_backup_credentials::*;
