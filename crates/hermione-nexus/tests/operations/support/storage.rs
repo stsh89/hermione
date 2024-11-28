@@ -360,7 +360,10 @@ impl ListCommands for InMemoryStorage {
             .into_iter()
             .filter(|command| {
                 let contains_program = if let Some(program_contains) = program_contains {
-                    command.program().contains(program_contains)
+                    command
+                        .program()
+                        .to_lowercase()
+                        .contains(&program_contains.to_lowercase())
                 } else {
                     true
                 };

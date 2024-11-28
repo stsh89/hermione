@@ -22,6 +22,8 @@ impl TestCase for ListWorkspacesTestCase {
         let workspaces_table = parameters.get_table("response").get_array("workspaces");
         let workspaces = self.operation.result().as_ref().unwrap();
 
+        assert_eq!(workspaces_table.len(), workspaces.len());
+
         for (index, workspace_table) in workspaces_table.iter().enumerate() {
             let workspace = workspaces.get(index).unwrap_or_else(|| {
                 panic!(

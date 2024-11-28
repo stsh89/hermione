@@ -28,7 +28,7 @@ impl TestCase for UpdateWorkspaceTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let workspace_id = parameters.get_uuid("workspace_id");
+        let workspace_id = parameters.get_uuid("id");
         let name = parameters.get_text("name");
         let location = parameters.get_text("location");
 
@@ -65,7 +65,7 @@ fn it_updates_workspace() {
     });
 
     test_case.execute_operation(table! {
-        workspace_id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
+        id = "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"
         location = "C:\\"
         name = "Avenger"
     });

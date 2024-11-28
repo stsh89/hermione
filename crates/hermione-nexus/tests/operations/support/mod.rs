@@ -1,3 +1,5 @@
+pub mod table;
+
 mod backup;
 mod storage;
 mod system;
@@ -6,11 +8,11 @@ pub use backup::*;
 pub use storage::*;
 pub use system::*;
 
-use crate::prelude::*;
 use hermione_nexus::definitions::{
     BackupCredentials, BackupProviderKind, Command, CommandParameters,
     NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
 };
+use table::{GetText, GetUuid, MaybeGetDateTime, MaybeGetText, Table};
 use uuid::Uuid;
 
 pub fn assert_command(command: &Command, parameters: &Table) {
@@ -63,6 +65,18 @@ pub fn assert_notion_workspace(notion_workspace: &NotionWorkspace, parameters: &
     assert_eq!(&notion_workspace.name, name);
 }
 
+pub fn assert_system_location(system: &MockSystem, expected_location: Option<&str>) {
+    let location = get_system_location(system);
+
+    assert_eq!(location.as_deref(), expected_location);
+}
+
+pub fn assert_system_program(system: &MockSystem, expected_program: Option<&str>) {
+    let program = get_system_program(system);
+
+    assert_eq!(program.as_deref(), expected_program);
+}
+
 pub fn assert_workspace(workspace: &Workspace, parameters: &Table) {
     let last_access_time = parameters.maybe_get_date_time("last_access_time");
     let location = parameters.maybe_get_text("location");
@@ -113,14 +127,6 @@ pub fn get_command(storage: &InMemoryStorage, id: Uuid) -> Command {
         .unwrap_or_else(|| panic!("Command {} should exist", id.braced()))
 }
 
-pub fn get_last_executed_command(system: &MockSystem) -> Option<String> {
-    system
-        .program
-        .read()
-        .expect("Should be able to get system program")
-        .clone()
-}
-
 pub fn get_notion_backup_credentials(storage: &InMemoryStorage) -> BackupCredentials {
     storage
         .backup_credentials
@@ -156,6 +162,14 @@ pub fn get_system_location(system: &MockSystem) -> Option<String> {
         .location
         .read()
         .expect("Should be able to access system location")
+        .clone()
+}
+
+pub fn get_system_program(system: &MockSystem) -> Option<String> {
+    system
+        .program
+        .read()
+        .expect("Should be able to get system program")
         .clone()
 }
 

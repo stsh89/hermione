@@ -1,10 +1,12 @@
-use std::num::NonZeroU32;
-
 use crate::{
     definitions::{Command, WorkspaceId},
     services::{FilterCommandsParameters, ListCommands, StorageService},
     Result,
 };
+use std::num::NonZeroU32;
+
+const DEFAULT_PAGE_NUMBER: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1) };
+const DEFAULT_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(100) };
 
 pub struct ListCommandsOperation<'a, SP>
 where
@@ -14,8 +16,8 @@ where
 }
 
 pub struct ListCommandsParameters<'a> {
-    pub page_size: NonZeroU32,
-    pub page_number: NonZeroU32,
+    pub page_size: Option<NonZeroU32>,
+    pub page_number: Option<NonZeroU32>,
     pub program_contains: Option<&'a str>,
     pub workspace_id: Option<&'a WorkspaceId>,
 }
@@ -34,10 +36,13 @@ where
             workspace_id,
         } = parameters;
 
+        let page_number = page_number.unwrap_or(DEFAULT_PAGE_NUMBER).get() - 1;
+        let page_size = page_size.unwrap_or(DEFAULT_PAGE_SIZE).get();
+
         self.provider.list_commands(FilterCommandsParameters {
             program_contains,
-            page_number: Into::<u32>::into(page_number) - 1,
-            page_size: page_size.into(),
+            page_number,
+            page_size,
             workspace_id,
         })
     }

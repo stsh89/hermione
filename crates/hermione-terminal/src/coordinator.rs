@@ -300,8 +300,8 @@ impl Coordinator {
             provider: &self.storage(),
         }
         .execute(ListCommandsParameters {
-            page_size: page_size.unwrap_or(DEFAULT_PAGE_SIZE),
-            page_number: page_number.unwrap_or(FIRST_PAGE),
+            page_size,
+            page_number,
             program_contains: Some(program_contains),
             workspace_id: Some(&workspace_id.into()),
         })?;
