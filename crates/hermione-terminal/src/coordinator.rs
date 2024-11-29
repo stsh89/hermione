@@ -5,14 +5,15 @@ use hermione_nexus::operations::{
     CreateCommandParameters, CreateWorkspaceOperation, CreateWorkspaceParameters,
     DeleteBackupCredentialsOperation, DeleteCommandOperation, DeleteCommandsOperation,
     DeleteCommandsParameters, DeleteWorkspaceOperation, ExecuteCommandOperation,
-    ExecuteProgramOperation, ExecuteProgramParameters, ExportOperation,
-    GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation,
-    ImportCommandsOperation, ImportCommandsOperationParameters, ImportWorkspacesOperation,
-    ImportWorkspacesOperationParameters, ListBackupCredentialsOperation, ListCommandsOperation,
-    ListCommandsParameters, ListWorkspacesOperation, ListWorkspacesParameters,
-    SaveBackupCredentialsOperation, SaveBackupCredentialsOperationParameters,
-    UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
-    UpdateWorkspaceParameters, VisitWorkspaceLocationOperation,
+    ExecuteProgramOperation, ExecuteProgramParameters, ExportCommandsOperation,
+    ExportCommandsOperationParameters, ExportWorkspacesOperation,
+    ExportWorkspacesOperationParameters, GetBackupCredentialsOperation, GetCommandOperation,
+    GetWorkspaceOperation, ImportCommandsOperation, ImportCommandsOperationParameters,
+    ImportWorkspacesOperation, ImportWorkspacesOperationParameters, ListBackupCredentialsOperation,
+    ListCommandsOperation, ListCommandsParameters, ListWorkspacesOperation,
+    ListWorkspacesParameters, SaveBackupCredentialsOperation,
+    SaveBackupCredentialsOperationParameters, UpdateCommandOperation, UpdateCommandParameters,
+    UpdateWorkspaceOperation, UpdateWorkspaceParameters, VisitWorkspaceLocationOperation,
 };
 use std::num::NonZeroU32;
 use uuid::Uuid;
@@ -216,17 +217,28 @@ impl Coordinator {
     }
 
     pub fn export(&self, kind: BackupProviderKind) -> Result<()> {
-        let storage = self.storage();
-        let backup_provider = self.notion_backup_builder();
-
-        ExportOperation {
-            backup_credentials_provider: &storage,
-            list_commands_provider: &storage,
-            list_workspaces_provider: &storage,
-            backup_provider_builder: &backup_provider,
-            backup_provider: std::marker::PhantomData,
+        match kind {
+            BackupProviderKind::Notion => self.export_to_notion(),
         }
-        .execute(kind.into())?;
+    }
+
+    fn export_to_notion(&self) -> Result<()> {
+        let storage = self.storage();
+        let backup_provider_builder = self.notion_backup_builder();
+
+        ExportWorkspacesOperation::new(ExportWorkspacesOperationParameters {
+            backup_credentials: &storage,
+            workspaces: &storage,
+            backup_builder: &backup_provider_builder,
+        })
+        .execute(BackupProviderKind::Notion.into())?;
+
+        ExportCommandsOperation::new(ExportCommandsOperationParameters {
+            backup_credentials: &storage,
+            commands: &storage,
+            backup_builder: &backup_provider_builder,
+        })
+        .execute(BackupProviderKind::Notion.into())?;
 
         Ok(())
     }
