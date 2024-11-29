@@ -14,8 +14,8 @@ where
     pub update_workspace_provider: &'a UW,
 }
 
-pub struct UpdateWorkspaceParameters<'a> {
-    pub id: &'a WorkspaceId,
+pub struct UpdateWorkspaceParameters {
+    pub id: WorkspaceId,
     pub location: Option<String>,
     pub name: String,
 }
@@ -45,7 +45,7 @@ where
         Ok(workspace)
     }
 
-    fn get_workspace(&self, id: &WorkspaceId) -> Result<Workspace> {
+    fn get_workspace(&self, id: WorkspaceId) -> Result<Workspace> {
         GetWorkspaceOperation {
             provider: self.find_workspace_provider,
         }

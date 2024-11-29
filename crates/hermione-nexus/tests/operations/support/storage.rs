@@ -24,7 +24,7 @@ pub const NOTION_CREDENTIALS_KEY: &str = "notion";
 pub struct InMemoryStorage {
     pub backup_credentials: RwLock<HashMap<String, BackupCredentials>>,
     pub commands: RwLock<HashMap<CommandId, Command>>,
-    pub workspaces: RwLock<HashMap<Uuid, Workspace>>,
+    pub workspaces: RwLock<HashMap<WorkspaceId, Workspace>>,
     pub now: RwLock<Option<DateTime<Utc>>>,
 }
 
@@ -82,17 +82,17 @@ impl InMemoryStorage {
         Ok(command)
     }
 
-    pub fn get_workspace(&self, id: &Uuid) -> Result<Option<Workspace>> {
+    pub fn get_workspace(&self, id: WorkspaceId) -> Result<Option<Workspace>> {
         let workspace = self
             .workspaces
             .read()
             .map_err(|_err| {
                 Error::storage(eyre!(
                     "Workspaces blocked for reading, can't get workspace {}",
-                    id.braced()
+                    id
                 ))
             })?
-            .get(id)
+            .get(&id)
             .cloned();
 
         Ok(workspace)
@@ -135,7 +135,7 @@ impl InMemoryStorage {
             ))
         })?;
 
-        workspaces.insert(**workspace.id(), workspace.clone());
+        workspaces.insert(workspace.id(), workspace.clone());
 
         Ok(())
     }
@@ -166,11 +166,11 @@ impl InMemoryStorage {
         Ok(())
     }
 
-    fn remove_workspace_commands(&self, workspace_id: &WorkspaceId) -> Result<()> {
+    fn remove_workspace_commands(&self, workspace_id: WorkspaceId) -> Result<()> {
         let mut commands = self.commands.write().map_err(|_err| {
             Error::storage(eyre!(
                 "Commands blocked for writing, can't remove commands from workspace {}",
-                **workspace_id
+                workspace_id
             ))
         })?;
 
@@ -179,15 +179,15 @@ impl InMemoryStorage {
         Ok(())
     }
 
-    fn remove_workspace(&self, id: &Uuid) -> Result<()> {
+    fn remove_workspace(&self, id: WorkspaceId) -> Result<()> {
         let mut workspace = self.workspaces.write().map_err(|_err| {
             Error::storage(eyre!(
                 "Workspaces blocked for writing, can't remove workspace {}",
-                id.braced()
+                id
             ))
         })?;
 
-        workspace.remove(id);
+        workspace.remove(&id);
 
         Ok(())
     }
@@ -207,7 +207,7 @@ impl InMemoryStorage {
         Ok(())
     }
 
-    fn set_workspace_access_time(&self, id: &Uuid) -> Result<()> {
+    fn set_workspace_access_time(&self, id: WorkspaceId) -> Result<()> {
         let workspace = self.get_workspace(id)?;
 
         let Some(mut workspace) = workspace else {
@@ -295,7 +295,7 @@ impl DeleteCommand for InMemoryStorage {
 }
 
 impl DeleteWorkspaceCommands for InMemoryStorage {
-    fn delete_workspace_commands(&self, id: &WorkspaceId) -> Result<()> {
+    fn delete_workspace_commands(&self, id: WorkspaceId) -> Result<()> {
         self.remove_workspace_commands(id)?;
 
         Ok(())
@@ -303,7 +303,7 @@ impl DeleteWorkspaceCommands for InMemoryStorage {
 }
 
 impl DeleteWorkspace for InMemoryStorage {
-    fn delete_workspace(&self, id: &WorkspaceId) -> Result<()> {
+    fn delete_workspace(&self, id: WorkspaceId) -> Result<()> {
         self.remove_workspace(id)?;
 
         Ok(())
@@ -334,7 +334,7 @@ impl FindCommand for InMemoryStorage {
 }
 
 impl FindWorkspace for InMemoryStorage {
-    fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>> {
+    fn find_workspace(&self, id: WorkspaceId) -> Result<Option<Workspace>> {
         let workspaces = self.get_workspace(id)?;
 
         Ok(workspaces)
@@ -440,7 +440,7 @@ impl TrackCommandExecuteTime for InMemoryStorage {
 }
 
 impl TrackWorkspaceAccessTime for InMemoryStorage {
-    fn track_workspace_access_time(&self, id: &WorkspaceId) -> Result<()> {
+    fn track_workspace_access_time(&self, id: WorkspaceId) -> Result<()> {
         self.set_workspace_access_time(id)?;
 
         Ok(())

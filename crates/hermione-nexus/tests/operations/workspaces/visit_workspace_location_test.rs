@@ -3,7 +3,6 @@ use crate::{
     support::{self, InMemoryStorage, MockSystem},
 };
 use hermione_nexus::operations::VisitWorkspaceLocationOperation;
-use toml::Table;
 
 #[derive(Default)]
 struct VisitWorkspaceLocationTestCase {
@@ -21,13 +20,13 @@ impl TestCase for VisitWorkspaceLocationTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let workspace_id = parameters.get_uuid("workspace_id").into();
+        let workspace_id = parameters.get_workspace_id("workspace_id");
 
         let result = VisitWorkspaceLocationOperation {
             find_workspace: &self.storage,
             system_provider: &self.system,
         }
-        .execute(&workspace_id);
+        .execute(workspace_id);
 
         self.operation.set_result(result);
     }

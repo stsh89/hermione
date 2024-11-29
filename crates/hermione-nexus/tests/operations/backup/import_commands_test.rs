@@ -7,7 +7,6 @@ use hermione_nexus::{
     operations::{ImportCommandsOperation, ImportCommandsOperationParameters},
 };
 use std::rc::Rc;
-use toml::Table;
 
 #[derive(Default)]
 struct ImportCommandsFromNotionTestCase {
@@ -45,7 +44,7 @@ impl TestCase for ImportCommandsFromNotionTestCase {
         let command_id = command_table.get_command_id("id");
         let command = &support::get_command(&self.storage, command_id);
 
-        support::assert_command(command, command_table);
+        support::assert_command(command, &command_table);
     }
 
     fn setup(&mut self, parameters: Table) {

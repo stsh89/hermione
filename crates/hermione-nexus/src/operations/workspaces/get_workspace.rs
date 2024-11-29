@@ -16,12 +16,12 @@ impl<'a, F> GetWorkspaceOperation<'a, F>
 where
     F: FindWorkspace,
 {
-    pub fn execute(&self, id: &WorkspaceId) -> Result<Workspace> {
+    pub fn execute(&self, id: WorkspaceId) -> Result<Workspace> {
         tracing::info!(operation = "Get workspace");
 
         self.provider
             .find_workspace(id)?
-            .ok_or(eyre!("Could not find workspace with ID: {}", **id))
+            .ok_or(eyre!("Could not find workspace with ID: {}", id))
             .map_err(Error::not_found)
     }
 }

@@ -19,7 +19,7 @@ where
     FWP: FindWorkspace,
     DWP: DeleteWorkspace,
 {
-    pub fn execute(&self, id: &WorkspaceId) -> Result<()> {
+    pub fn execute(&self, id: WorkspaceId) -> Result<()> {
         tracing::info!(operation = "Delete workspace");
 
         self.get_workspace(id)?;
@@ -28,7 +28,7 @@ where
         Ok(())
     }
 
-    fn get_workspace(&self, id: &WorkspaceId) -> Result<Workspace> {
+    fn get_workspace(&self, id: WorkspaceId) -> Result<Workspace> {
         GetWorkspaceOperation {
             provider: self.find_workspace_provider,
         }

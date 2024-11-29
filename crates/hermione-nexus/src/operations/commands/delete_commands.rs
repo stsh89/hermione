@@ -23,7 +23,7 @@ impl<'a, DWC> DeleteCommandsOperation<'a, DWC>
 where
     DWC: DeleteWorkspaceCommands,
 {
-    pub fn delete_workspace_commands(&self, id: &WorkspaceId) -> Result<()> {
+    pub fn delete_workspace_commands(&self, id: WorkspaceId) -> Result<()> {
         self.delete_workspace_commands.delete_workspace_commands(id)
     }
 
@@ -33,7 +33,7 @@ where
         use CommandsDeleteAttribute as Attr;
 
         match delete_attribute {
-            Attr::WorkspaceId(workspace_id) => self.delete_workspace_commands(&workspace_id),
+            Attr::WorkspaceId(workspace_id) => self.delete_workspace_commands(workspace_id),
         }
     }
 }

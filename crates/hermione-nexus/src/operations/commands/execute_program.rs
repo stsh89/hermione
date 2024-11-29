@@ -35,7 +35,7 @@ where
         let workspace = GetWorkspaceOperation {
             provider: self.find_workspace,
         }
-        .execute(&workspace_id)?;
+        .execute(workspace_id)?;
 
         self.system.invoke_command(InvokeCommandParameters {
             command: program,

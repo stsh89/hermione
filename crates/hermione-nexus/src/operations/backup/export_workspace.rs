@@ -63,7 +63,7 @@ where
         GetWorkspaceOperation {
             provider: self.find_workspace,
         }
-        .execute(&id)
+        .execute(id)
     }
 
     pub fn new(parameters: ExportWorkspaceOperationParameters<'a, FBC, FW, BPB>) -> Self {

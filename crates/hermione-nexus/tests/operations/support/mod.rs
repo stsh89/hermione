@@ -1,3 +1,4 @@
+#[macro_use]
 pub mod table;
 
 mod backup;
@@ -11,10 +12,9 @@ pub use system::*;
 
 use hermione_nexus::definitions::{
     BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters,
-    NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
+    NotionBackupCredentialsParameters, Workspace, WorkspaceId, WorkspaceParameters,
 };
-use table::{GetText, GetUuid, MaybeGetDateTime, MaybeGetText, Table};
-use uuid::Uuid;
+use table::Table;
 
 pub fn assert_clipboard_content(system: &MockSystem, expected_clipboard_content: &str) {
     let content = get_clipboard_content(system);
@@ -26,12 +26,12 @@ pub fn assert_command(command: &Command, parameters: &Table) {
     let name = parameters.get_text("name");
     let program = parameters.get_text("program");
     let last_execute_time = parameters.maybe_get_date_time("last_execute_time");
-    let workspace_id = parameters.get_uuid("workspace_id");
+    let workspace_id = parameters.get_workspace_id("workspace_id");
 
     assert_eq!(command.name(), name);
     assert_eq!(command.program(), program);
     assert_eq!(command.last_execute_time(), last_execute_time.as_ref());
-    assert_eq!(**command.workspace_id(), workspace_id);
+    assert_eq!(command.workspace_id(), workspace_id);
 }
 
 pub fn assert_backup_credentials_count(storage: &InMemoryStorage, expected_count: usize) {
@@ -58,10 +58,7 @@ pub fn assert_last_executed_program(system: &MockSystem, expected_program: &str)
     assert_eq!(program.as_deref(), Some(expected_program));
 }
 
-pub fn assert_notion_backup_credentials(
-    backup_credentials: &BackupCredentials,
-    parameters: &Table,
-) {
+pub fn assert_notion_backup_credentials(backup_credentials: &BackupCredentials, parameters: Table) {
     let api_key = parameters.get_text("api_key");
     let commands_database_id = parameters.get_text("commands_database_id");
     let workspaces_database_id = parameters.get_text("workspaces_database_id");
@@ -75,7 +72,7 @@ pub fn assert_notion_backup_credentials(
     }
 }
 
-pub fn assert_notion_command(notion_command: &NotionCommand, parameters: &Table) {
+pub fn assert_notion_command(notion_command: &NotionCommand, parameters: Table) {
     let name = parameters.get_text("name");
     let program = parameters.get_text("program");
     let workspace_id = parameters.get_text("workspace_id");
@@ -85,7 +82,7 @@ pub fn assert_notion_command(notion_command: &NotionCommand, parameters: &Table)
     assert_eq!(&notion_command.workspace_id, workspace_id);
 }
 
-pub fn assert_notion_workspace(notion_workspace: &NotionWorkspace, parameters: &Table) {
+pub fn assert_notion_workspace(notion_workspace: &NotionWorkspace, parameters: Table) {
     let location = parameters.get_text("location");
     let name = parameters.get_text("name");
 
@@ -196,29 +193,29 @@ pub fn get_last_executed_program(system: &MockSystem) -> Option<String> {
         .clone()
 }
 
-pub fn get_workspace(storage: &InMemoryStorage, id: Uuid) -> Workspace {
+pub fn get_workspace(storage: &InMemoryStorage, id: WorkspaceId) -> Workspace {
     storage
         .workspaces
         .read()
         .expect("Should be able to get workspace")
         .get(&id)
         .cloned()
-        .unwrap_or_else(|| panic!("Workspace {} should exist", id.braced()))
+        .unwrap_or_else(|| panic!("Workspace {} should exist", id))
 }
 
-pub fn insert_command(storage: &InMemoryStorage, parameters: &Table) {
+pub fn insert_command(storage: &InMemoryStorage, parameters: Table) {
     let id = parameters.get_uuid("id");
     let last_execute_time = parameters.maybe_get_date_time("last_execute_time");
     let name = parameters.get_text("name");
     let program = parameters.get_text("program");
-    let workspace_id = parameters.get_uuid("workspace_id");
+    let workspace_id = parameters.get_workspace_id("workspace_id");
 
     let command = Command::new(CommandParameters {
         id,
         name: name.to_string(),
         program: program.to_string(),
         last_execute_time,
-        workspace_id: workspace_id.into(),
+        workspace_id,
     })
     .expect("Command should be valid");
 
@@ -229,7 +226,7 @@ pub fn insert_command(storage: &InMemoryStorage, parameters: &Table) {
         .insert(command.id(), command);
 }
 
-pub fn insert_notion_backup_credentials(storage: &InMemoryStorage, parameters: &Table) {
+pub fn insert_notion_backup_credentials(storage: &InMemoryStorage, parameters: Table) {
     let api_key = parameters.get_text("api_key");
     let commands_database_id = parameters.get_text("commands_database_id");
     let workspaces_database_id = parameters.get_text("workspaces_database_id");
@@ -247,7 +244,7 @@ pub fn insert_notion_backup_credentials(storage: &InMemoryStorage, parameters: &
         .insert(NOTION_CREDENTIALS_KEY.to_string(), credentials);
 }
 
-pub fn insert_notion_command(storage: &MockNotionStorage, parameters: &Table) {
+pub fn insert_notion_command(storage: &MockNotionStorage, parameters: Table) {
     let external_id = parameters.get_text("external_id");
     let name = parameters.get_text("name");
     let program = parameters.get_text("program");
@@ -267,7 +264,7 @@ pub fn insert_notion_command(storage: &MockNotionStorage, parameters: &Table) {
         .insert(external_id.to_string(), entry);
 }
 
-pub fn insert_notion_workspace(storage: &MockNotionStorage, parameters: &Table) {
+pub fn insert_notion_workspace(storage: &MockNotionStorage, parameters: Table) {
     let external_id = parameters.get_text("external_id");
     let name = parameters.get_text("name");
     let location = parameters.get_text("location");
@@ -285,7 +282,7 @@ pub fn insert_notion_workspace(storage: &MockNotionStorage, parameters: &Table) 
         .insert(external_id.to_string(), entry);
 }
 
-pub fn insert_workspace(storage: &InMemoryStorage, parameters: &Table) {
+pub fn insert_workspace(storage: &InMemoryStorage, parameters: Table) {
     let id = parameters.get_uuid("id");
     let last_access_time = parameters.maybe_get_date_time("last_access_time");
     let name = parameters.get_text("name");
@@ -303,7 +300,7 @@ pub fn insert_workspace(storage: &InMemoryStorage, parameters: &Table) {
         .workspaces
         .write()
         .expect("Should be able to insert workspace")
-        .insert(**workspace.id(), workspace);
+        .insert(workspace.id(), workspace);
 }
 
 pub fn freeze_storage_time(storage: &InMemoryStorage, time: DateTime<Utc>) {

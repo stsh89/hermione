@@ -23,9 +23,8 @@ impl TestCase for ListBackupCredentialsTestCase {
     fn inspect_operation_results(&self, expectations: Table) {
         self.operation.assert_is_success();
 
-        let credentials_table = expectations
-            .get_table("response")
-            .get_table("backup_credentials");
+        let response_table = expectations.get_table("response");
+        let credentials_table = response_table.get_table("backup_credentials");
         let notion_backup_credentials = credentials_table.get_table("notion");
         let backup_credentials = self.operation.result().as_ref().unwrap();
 

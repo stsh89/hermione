@@ -1,3 +1,5 @@
+pub use hermione_nexus::definitions::{CommandId, WorkspaceId};
+
 use crate::Result;
 use hermione_drive::{NotionBackupBuilder, ServiceFactory, Storage, System};
 use hermione_nexus::operations::{
@@ -16,7 +18,6 @@ use hermione_nexus::operations::{
     UpdateWorkspaceOperation, UpdateWorkspaceParameters, VisitWorkspaceLocationOperation,
 };
 use std::num::NonZeroU32;
-use uuid::Uuid;
 
 pub const FIRST_PAGE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1) };
 pub const DEFAULT_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(43) };
@@ -26,20 +27,17 @@ pub struct Coordinator {
 }
 
 pub struct Workspace {
-    pub id: Uuid,
+    pub id: WorkspaceId,
     pub location: String,
     pub name: String,
 }
 
 pub struct Command {
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
     pub id: CommandId,
     pub name: String,
     pub program: String,
 }
-
-#[derive(Copy, Clone)]
-pub struct CommandId(pub Uuid);
 
 #[derive(Clone)]
 pub enum BackupProviderKind {
@@ -53,7 +51,12 @@ pub enum BackupCredentials {
 pub struct CreateCommandInput {
     pub name: String,
     pub program: String,
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
+}
+
+pub struct CreateWorkspaceInput {
+    pub location: String,
+    pub name: String,
 }
 
 pub struct NotionBackupCredentials {
@@ -68,7 +71,7 @@ pub struct ExecuteCommandInput {
 }
 
 pub struct ExecuteProgramInput {
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
     pub program: String,
 }
 
@@ -82,7 +85,7 @@ pub struct ListCommandsWithinWorkspaceInput<'a> {
     pub page_number: Option<NonZeroU32>,
     pub page_size: Option<NonZeroU32>,
     pub program_contains: &'a str,
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
 }
 
 impl Coordinator {
@@ -95,7 +98,7 @@ impl Coordinator {
             clipboard_provider: &self.system(),
             storage_provider: &self.storage(),
         }
-        .execute(id.try_into()?)?;
+        .execute(id)?;
 
         Ok(())
     }
@@ -113,18 +116,14 @@ impl Coordinator {
         .execute(CreateCommandParameters {
             name,
             program,
-            workspace_id: workspace_id.into(),
+            workspace_id,
         })?;
 
         Ok(command.into())
     }
 
-    pub fn create_workspace(&self, dto: Workspace) -> Result<Workspace> {
-        let Workspace {
-            id: _,
-            location,
-            name,
-        } = dto;
+    pub fn create_workspace(&self, input: CreateWorkspaceInput) -> Result<Workspace> {
+        let CreateWorkspaceInput { location, name } = input;
 
         let workspace = CreateWorkspaceOperation {
             storage_provider: &self.storage(),
@@ -156,26 +155,26 @@ impl Coordinator {
             find_provider: &storage,
             delete_provider: &storage,
         }
-        .execute(id.try_into()?)?;
+        .execute(id)?;
 
         Ok(())
     }
 
-    pub fn delete_workspace(&self, id: Uuid) -> Result<()> {
+    pub fn delete_workspace(&self, id: WorkspaceId) -> Result<()> {
         let storage = self.storage();
 
         DeleteCommandsOperation {
             delete_workspace_commands: &storage,
         }
         .execute(DeleteCommandsParameters {
-            delete_attribute: CommandsDeleteAttribute::WorkspaceId(id.into()),
+            delete_attribute: CommandsDeleteAttribute::WorkspaceId(id),
         })?;
 
         DeleteWorkspaceOperation {
             find_workspace_provider: &storage,
             delete_workspace_provider: &storage,
         }
-        .execute(&id.into())?;
+        .execute(id)?;
 
         Ok(())
     }
@@ -198,7 +197,7 @@ impl Coordinator {
             track_command_provider: &storage,
             track_workspace_provider: &storage,
         }
-        .execute(command_id.try_into()?)?;
+        .execute(command_id)?;
 
         Ok(())
     }
@@ -218,7 +217,7 @@ impl Coordinator {
         }
         .execute(ExecuteProgramParameters {
             program,
-            workspace_id: workspace_id.into(),
+            workspace_id,
         })?;
 
         Ok(())
@@ -275,16 +274,16 @@ impl Coordinator {
         let command = GetCommandOperation {
             provider: &self.storage(),
         }
-        .execute(id.try_into()?)?;
+        .execute(id)?;
 
         Ok(command.into())
     }
 
-    pub fn get_workspace(&self, id: Uuid) -> Result<Workspace> {
+    pub fn get_workspace(&self, id: WorkspaceId) -> Result<Workspace> {
         let workspace = GetWorkspaceOperation {
             provider: &self.storage(),
         }
-        .execute(&id.into())?;
+        .execute(id)?;
 
         Ok(workspace.into())
     }
@@ -343,7 +342,7 @@ impl Coordinator {
             page_size,
             page_number,
             program_contains: Some(program_contains),
-            workspace_id: Some(&workspace_id.into()),
+            workspace_id: Some(workspace_id),
         })?;
 
         Ok(workspaces.into_iter().map(Into::into).collect())
@@ -368,12 +367,12 @@ impl Coordinator {
         Ok(workspaces.into_iter().map(Into::into).collect())
     }
 
-    pub fn open_windows_terminal(&self, workspace_id: Uuid) -> Result<()> {
+    pub fn open_windows_terminal(&self, workspace_id: WorkspaceId) -> Result<()> {
         VisitWorkspaceLocationOperation {
             find_workspace: &self.storage(),
             system_provider: &self.system(),
         }
-        .execute(&workspace_id.into())?;
+        .execute(workspace_id)?;
 
         Ok(())
     }
@@ -413,11 +412,7 @@ impl Coordinator {
             find_command_provider: &storage,
             update_command_provider: &storage,
         }
-        .execute(UpdateCommandParameters {
-            id: id.try_into()?,
-            name,
-            program,
-        })?;
+        .execute(UpdateCommandParameters { id, name, program })?;
 
         Ok(command.into())
     }
@@ -432,7 +427,7 @@ impl Coordinator {
             update_workspace_provider: &storage,
         }
         .execute(UpdateWorkspaceParameters {
-            id: &id.into(),
+            id,
             location: Some(location),
             name,
         })?;
@@ -445,15 +440,14 @@ mod convert {
     mod core {
         pub use hermione_nexus::{
             definitions::{
-                BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters,
+                BackupCredentials, BackupProviderKind, Command, CommandParameters,
                 NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
             },
             Error, Result,
         };
     }
     use super::{
-        BackupCredentials, BackupProviderKind, Command, CommandId, NotionBackupCredentials,
-        Workspace,
+        BackupCredentials, BackupProviderKind, Command, NotionBackupCredentials, Workspace,
     };
 
     impl From<BackupProviderKind> for core::BackupProviderKind {
@@ -476,11 +470,11 @@ mod convert {
             } = value;
 
             let command = core::Command::new(core::CommandParameters {
-                id: id.0,
+                id: id.as_uuid(),
                 name,
                 last_execute_time: None,
                 program,
-                workspace_id: workspace_id.into(),
+                workspace_id,
             })?;
 
             Ok(command)
@@ -518,7 +512,7 @@ mod convert {
             let Workspace { id, location, name } = value;
 
             let workspace = core::Workspace::new(core::WorkspaceParameters {
-                id,
+                id: id.as_uuid(),
                 name,
                 location: Some(location),
                 last_access_time: None,
@@ -551,26 +545,18 @@ mod convert {
     impl From<core::Command> for Command {
         fn from(command: core::Command) -> Self {
             Self {
-                id: CommandId(command.id().as_uuid()),
+                id: command.id(),
                 name: command.name().to_string(),
                 program: command.program().to_string(),
-                workspace_id: **command.workspace_id(),
+                workspace_id: command.workspace_id(),
             }
-        }
-    }
-
-    impl TryFrom<CommandId> for core::CommandId {
-        type Error = core::Error;
-
-        fn try_from(id: CommandId) -> core::Result<Self> {
-            Self::new(id.0)
         }
     }
 
     impl From<core::Workspace> for Workspace {
         fn from(workspace: core::Workspace) -> Self {
             Self {
-                id: **workspace.id(),
+                id: workspace.id(),
                 location: workspace.location().unwrap_or_default().into(),
                 name: workspace.name().to_string(),
             }

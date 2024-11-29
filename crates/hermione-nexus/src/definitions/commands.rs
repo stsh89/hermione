@@ -1,8 +1,7 @@
-use super::WorkspaceId;
-use crate::{Error, Result};
+use crate::{definitions::WorkspaceId, Error, Result};
 use chrono::{DateTime, Utc};
 use eyre::eyre;
-use std::fmt::Display;
+use std::fmt::{self, Debug, Display, Formatter};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -82,8 +81,8 @@ impl Command {
         self.name = CommandName { value: name };
     }
 
-    pub fn workspace_id(&self) -> &WorkspaceId {
-        &self.workspace_id
+    pub fn workspace_id(&self) -> WorkspaceId {
+        self.workspace_id
     }
 }
 
@@ -109,8 +108,14 @@ impl CommandId {
     }
 }
 
+impl Debug for CommandId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "command:{}", self.0)
+    }
+}
+
 impl Display for CommandId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }

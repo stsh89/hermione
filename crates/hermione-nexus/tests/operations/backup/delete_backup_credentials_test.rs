@@ -27,9 +27,8 @@ impl TestCase for DeleteBackupCredentialsTestCase {
     fn inspect_operation_results(&self, expectations: Table) {
         self.operation.assert_is_success();
 
-        let credentials_table = expectations
-            .get_table("storage")
-            .get_table("backup_credentials");
+        let storage_table = expectations.get_table("storage");
+        let credentials_table = storage_table.get_table("backup_credentials");
 
         let expected_count = credentials_table.get_integer("count") as usize;
 

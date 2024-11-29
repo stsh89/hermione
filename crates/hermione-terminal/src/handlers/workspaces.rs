@@ -1,11 +1,10 @@
 use crate::{
-    coordinator::{Coordinator, ListWorkspacesInput, Workspace},
+    coordinator::{Coordinator, CreateWorkspaceInput, ListWorkspacesInput, Workspace},
     models::{WorkspaceModel, WorkspacesModel, WorkspacesModelParameters},
     themes::Theme,
     CreateWorkspaceParams, DeleteWorkspaceParams, EditWorkspaceParams, ListWorkspacesParams,
     Result, UpdateWorkspaceParams,
 };
-use uuid::Uuid;
 
 pub struct WorkspacesHandler<'a> {
     pub coordinator: &'a Coordinator,
@@ -16,8 +15,7 @@ impl<'a> WorkspacesHandler<'a> {
     pub fn create(self, parameters: CreateWorkspaceParams) -> Result<WorkspacesModel> {
         let CreateWorkspaceParams { name, location } = parameters;
 
-        self.coordinator.create_workspace(Workspace {
-            id: Uuid::nil(),
+        self.coordinator.create_workspace(CreateWorkspaceInput {
             location,
             name: name.clone(),
         })?;

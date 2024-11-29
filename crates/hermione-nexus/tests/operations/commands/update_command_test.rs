@@ -17,14 +17,15 @@ impl TestCase for UpdateCommandTestCase {
     fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
-        let command_table = parameters.get_table("storage").get_table("command");
+        let storage_table = parameters.get_table("storage");
+        let command_table = storage_table.get_table("command");
         let id = command_table.get_command_id("id");
 
         let command = support::get_command(&self.storage, id);
-        support::assert_command(&command, command_table);
+        support::assert_command(&command, &command_table);
 
         let command = self.operation.result().as_ref().unwrap();
-        support::assert_command(command, command_table);
+        support::assert_command(command, &command_table);
     }
 
     fn execute_operation(&mut self, parameters: Table) {

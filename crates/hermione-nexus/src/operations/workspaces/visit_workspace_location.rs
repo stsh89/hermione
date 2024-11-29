@@ -20,7 +20,7 @@ where
     FW: FindWorkspace,
     S: SetLocation,
 {
-    pub fn execute(&self, id: &WorkspaceId) -> Result<()> {
+    pub fn execute(&self, id: WorkspaceId) -> Result<()> {
         let workspace = GetWorkspaceOperation {
             provider: self.find_workspace,
         }

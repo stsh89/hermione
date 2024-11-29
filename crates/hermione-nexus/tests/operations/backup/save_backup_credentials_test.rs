@@ -19,9 +19,8 @@ impl TestCase for SaveBackupCredentialsTestCase {
     fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
-        let credentials_table = parameters
-            .get_table("storage")
-            .get_table("backup_credentials");
+        let storage_table = parameters.get_table("storage");
+        let credentials_table = storage_table.get_table("backup_credentials");
         let backup_provider_name = credentials_table.get_text("backup_provider_kind");
         let backup_provider_kind = support::get_backup_provider_kind(backup_provider_name);
 

@@ -23,13 +23,13 @@ impl TestCase for DeleteWorkspaceTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let workspace_id = parameters.get_uuid("workspace_id").into();
+        let workspace_id = parameters.get_workspace_id("workspace_id");
 
         let result = DeleteWorkspaceOperation {
             find_workspace_provider: &self.storage,
             delete_workspace_provider: &self.storage,
         }
-        .execute(&workspace_id);
+        .execute(workspace_id);
 
         self.operation.set_result(result);
     }

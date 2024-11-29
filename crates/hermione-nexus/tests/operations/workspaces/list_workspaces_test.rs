@@ -19,7 +19,8 @@ impl TestCase for ListWorkspacesTestCase {
     fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
-        let workspaces_table = parameters.get_table("response").get_array("workspaces");
+        let response_table = parameters.get_table("response");
+        let workspaces_table = response_table.get_array("workspaces");
         let workspaces = self.operation.result().as_ref().unwrap();
 
         assert_eq!(workspaces_table.len(), workspaces.len());

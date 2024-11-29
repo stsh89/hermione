@@ -24,7 +24,7 @@ impl TestCase for ExecuteProgramTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let workspace_id = parameters.get_uuid("workspace_id");
+        let workspace_id = parameters.get_workspace_id("workspace_id");
         let program = parameters.get_text("program");
 
         let result = ExecuteProgramOperation {
@@ -33,7 +33,7 @@ impl TestCase for ExecuteProgramTestCase {
         }
         .execute(ExecuteProgramParameters {
             program,
-            workspace_id: workspace_id.into(),
+            workspace_id,
         });
 
         self.operation.set_result(result);

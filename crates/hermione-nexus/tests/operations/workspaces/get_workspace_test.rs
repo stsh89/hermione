@@ -14,19 +14,20 @@ impl TestCase for GetWorkspaceTestCase {
     fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
-        let workspace_table = parameters.get_table("response").get_table("workspace");
+        let response_table = parameters.get_table("response");
+        let workspace_table = response_table.get_table("workspace");
         let workspace = self.operation.result().as_ref().unwrap();
 
-        support::assert_workspace(workspace, workspace_table);
+        support::assert_workspace(workspace, &workspace_table);
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let workspace_id = parameters.get_uuid("workspace_id");
+        let workspace_id = parameters.get_workspace_id("workspace_id");
 
         let result = GetWorkspaceOperation {
             provider: &self.storage,
         }
-        .execute(&workspace_id.into());
+        .execute(workspace_id);
 
         self.operation.set_result(result);
     }

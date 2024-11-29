@@ -14,10 +14,11 @@ impl TestCase for GetCommandTestCase {
     fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
-        let command_table = parameters.get_table("response").get_table("command");
+        let response_table = parameters.get_table("response");
+        let command_table = response_table.get_table("command");
         let command = self.operation.result().as_ref().unwrap();
 
-        support::assert_command(command, command_table);
+        support::assert_command(command, &command_table);
     }
 
     fn execute_operation(&mut self, parameters: Table) {

@@ -57,7 +57,7 @@ where
         .execute(id)
     }
 
-    fn get_workspace(&self, id: &WorkspaceId) -> Result<Workspace> {
+    fn get_workspace(&self, id: WorkspaceId) -> Result<Workspace> {
         GetWorkspaceOperation {
             provider: self.find_workspace_provider,
         }

@@ -18,7 +18,7 @@ impl TestCase for DeleteCommandsTestCase {
 
         let delete_attribute = match delete_attribute_table.get_text("attribute_kind") {
             "workspace_id" => CommandsDeleteAttribute::WorkspaceId(
-                delete_attribute_table.get_uuid("workspace_id").into(),
+                delete_attribute_table.get_workspace_id("workspace_id"),
             ),
             kind => panic!("Unexpected delete attribute kind: {kind}"),
         };

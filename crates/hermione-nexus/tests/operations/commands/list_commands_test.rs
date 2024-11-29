@@ -18,12 +18,13 @@ impl TestCase for ListCommandsTestCase {
     fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
-        let commands_table = parameters.get_table("response").get_array("commands");
+        let response_table = parameters.get_table("response");
+        let commands_table = response_table.get_array("commands");
         let commands = self.operation.result().as_ref().unwrap();
 
         assert_eq!(commands_table.len(), commands.len());
 
-        for (index, command_table) in commands_table.iter().enumerate() {
+        for (index, command_table) in commands_table.into_iter().enumerate() {
             let command = commands.get(index).unwrap_or_else(|| {
                 panic!(
                     "Total number of commands is {}, but index is {}",
@@ -32,7 +33,7 @@ impl TestCase for ListCommandsTestCase {
                 )
             });
 
-            support::assert_command(command, command_table);
+            support::assert_command(command, &command_table);
         }
     }
 
@@ -40,14 +41,14 @@ impl TestCase for ListCommandsTestCase {
         let program_contains = parameters.maybe_get_text("program_contains");
         let page_number = parameters.maybe_get_integer("page_number");
         let page_size = parameters.maybe_get_integer("page_size");
-        let workspace_id = parameters.maybe_get_uuid("workspace_id");
+        let workspace_id = parameters.maybe_get_workspace_id("workspace_id");
 
         let result = ListCommandsOperation {
             provider: &self.storage,
         }
         .execute(ListCommandsParameters {
             program_contains,
-            workspace_id: workspace_id.map(|id| id.into()).as_ref(),
+            workspace_id,
             page_number: page_number.map(|v| unsafe { NonZeroU32::new_unchecked(v as u32) }),
             page_size: page_size.map(|v| unsafe { NonZeroU32::new_unchecked(v as u32) }),
         });

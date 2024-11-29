@@ -2,7 +2,7 @@ use eyre::{eyre, Report};
 use hermione_nexus::{
     definitions::{
         BackupCredentials, Command, CommandParameters, NotionBackupCredentials, Workspace,
-        WorkspaceParameters,
+        WorkspaceId, WorkspaceParameters,
     },
     services::{
         BackupCommand, BackupCommands, BackupCopies, BackupCopyParameters, BackupService,
@@ -355,7 +355,7 @@ impl TryFrom<NotionCommand> for Command {
             last_execute_time: None,
             name: value.name,
             program: value.program,
-            workspace_id: workspace_id.into(),
+            workspace_id: WorkspaceId::new(workspace_id)?,
         })
     }
 }

@@ -1,5 +1,6 @@
 use super::Workspace;
 use crate::{
+    coordinator::WorkspaceId,
     layouts::WideLayout,
     themes::Theme,
     tui::{EventHandler, Input, Model},
@@ -13,7 +14,6 @@ use ratatui::{
     widgets::Paragraph,
     Frame,
 };
-use uuid::Uuid;
 
 #[derive(Default)]
 pub struct WorkspaceModel {
@@ -22,7 +22,7 @@ pub struct WorkspaceModel {
     name: Input,
     redirect: Option<Route>,
     theme: Theme,
-    id: Option<Uuid>,
+    id: Option<WorkspaceId>,
 }
 
 #[derive(Default, PartialEq)]
@@ -211,7 +211,7 @@ impl WorkspaceModel {
         self.active_input = self.active_input.next();
     }
 
-    fn update_workspace_parameters(&self, id: Uuid) -> UpdateWorkspaceParams {
+    fn update_workspace_parameters(&self, id: WorkspaceId) -> UpdateWorkspaceParams {
         UpdateWorkspaceParams {
             name: self.name.value().to_string(),
             location: self.location.value().to_string(),

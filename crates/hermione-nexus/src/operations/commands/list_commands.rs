@@ -19,7 +19,7 @@ pub struct ListCommandsParameters<'a> {
     pub page_size: Option<NonZeroU32>,
     pub page_number: Option<NonZeroU32>,
     pub program_contains: Option<&'a str>,
-    pub workspace_id: Option<&'a WorkspaceId>,
+    pub workspace_id: Option<WorkspaceId>,
 }
 
 impl<'a, L> ListCommandsOperation<'a, L>

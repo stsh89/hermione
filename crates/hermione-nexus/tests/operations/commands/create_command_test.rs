@@ -19,17 +19,16 @@ impl TestCase for CreateCommandTestCase {
 
         let command = self.operation.result().as_ref().unwrap();
         let command = support::get_command(&self.storage, command.id());
+        let storage_table = parameters.get_table("storage");
+        let command_table = storage_table.get_table("command");
 
-        support::assert_command(
-            &command,
-            parameters.get_table("storage").get_table("command"),
-        );
+        support::assert_command(&command, &command_table);
     }
 
     fn execute_operation(&mut self, parameters: Table) {
         let name = parameters.get_text("name");
         let program = parameters.get_text("program");
-        let workspace_id = parameters.get_uuid("workspace_id");
+        let workspace_id = parameters.get_workspace_id("workspace_id");
 
         let result = CreateCommandOperation {
             storage_provider: &self.storage,
@@ -37,7 +36,7 @@ impl TestCase for CreateCommandTestCase {
         .execute(CreateCommandParameters {
             name: name.to_string(),
             program: program.to_string(),
-            workspace_id: workspace_id.into(),
+            workspace_id,
         });
 
         self.operation.set_result(result);

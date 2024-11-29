@@ -2,7 +2,7 @@ use eyre::Report;
 use hermione_nexus::{
     definitions::{
         BackupCredentials, Command, CommandParameters, NotionBackupCredentials, Workspace,
-        WorkspaceParameters,
+        WorkspaceId, WorkspaceParameters,
     },
     services::{
         BackupCommands, BackupCopies, BackupCopyParameters, BackupService, BackupServiceBuilder,
@@ -146,7 +146,7 @@ impl GetCommandsBackupCopy for NotionBackup {
                     last_execute_time: None,
                     program: page.properties.program,
                     name: page.properties.name,
-                    workspace_id: workspace_id.into(),
+                    workspace_id: WorkspaceId::new(workspace_id)?,
                 })
             })
             .collect::<Result<Vec<Command>>>()?;

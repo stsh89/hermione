@@ -96,7 +96,7 @@ impl DeleteCommand for Storage<'_> {
 }
 
 impl DeleteWorkspace for Storage<'_> {
-    fn delete_workspace(&self, id: &WorkspaceId) -> Result<()> {
+    fn delete_workspace(&self, id: WorkspaceId) -> Result<()> {
         sqlite::delete_workspace(self.conn, id.as_bytes()).map_err(internal_error)?;
 
         Ok(())
@@ -104,7 +104,7 @@ impl DeleteWorkspace for Storage<'_> {
 }
 
 impl DeleteWorkspaceCommands for Storage<'_> {
-    fn delete_workspace_commands(&self, id: &WorkspaceId) -> Result<()> {
+    fn delete_workspace_commands(&self, id: WorkspaceId) -> Result<()> {
         sqlite::delete_workspace_commands(self.conn, id.as_bytes()).map_err(internal_error)?;
 
         Ok(())
@@ -133,7 +133,7 @@ impl FindCommand for Storage<'_> {
 }
 
 impl FindWorkspace for Storage<'_> {
-    fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>> {
+    fn find_workspace(&self, id: WorkspaceId) -> Result<Option<Workspace>> {
         sqlite::find_workspace(self.conn, id.as_bytes())
             .map_err(internal_error)?
             .map(TryFrom::try_from)
@@ -238,7 +238,7 @@ impl TrackCommandExecuteTime for Storage<'_> {
 }
 
 impl TrackWorkspaceAccessTime for Storage<'_> {
-    fn track_workspace_access_time(&self, id: &WorkspaceId) -> Result<()> {
+    fn track_workspace_access_time(&self, id: WorkspaceId) -> Result<()> {
         sqlite::update_workspace(
             self.conn,
             UpdateWorkspaceQueryOptions {

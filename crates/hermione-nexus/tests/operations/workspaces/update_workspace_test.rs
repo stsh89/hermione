@@ -17,18 +17,19 @@ impl TestCase for UpdateWorkspaceTestCase {
     fn inspect_operation_results(&self, parameters: Table) {
         self.operation.assert_is_success();
 
-        let workspace_table = parameters.get_table("storage").get_table("workspace");
-        let id = workspace_table.get_uuid("id");
+        let storage_table = parameters.get_table("storage");
+        let workspace_table = storage_table.get_table("workspace");
+        let id = workspace_table.get_workspace_id("id");
 
         let workspace = support::get_workspace(&self.storage, id);
-        support::assert_workspace(&workspace, workspace_table);
+        support::assert_workspace(&workspace, &workspace_table);
 
         let workspace = self.operation.result().as_ref().unwrap();
-        support::assert_workspace(workspace, workspace_table);
+        support::assert_workspace(workspace, &workspace_table);
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let workspace_id = parameters.get_uuid("id");
+        let id = parameters.get_workspace_id("id");
         let name = parameters.get_text("name");
         let location = parameters.get_text("location");
 
@@ -37,7 +38,7 @@ impl TestCase for UpdateWorkspaceTestCase {
             update_workspace_provider: &self.storage,
         }
         .execute(UpdateWorkspaceParameters {
-            id: &workspace_id.into(),
+            id,
             location: Some(location.to_string()),
             name: name.to_string(),
         });

@@ -7,7 +7,6 @@ use hermione_nexus::{
     operations::{ImportWorkspacesOperation, ImportWorkspacesOperationParameters},
 };
 use std::rc::Rc;
-use toml::Table;
 
 #[derive(Default)]
 struct ImportWorkspacesFromNotionTestCase {
@@ -42,10 +41,10 @@ impl TestCase for ImportWorkspacesFromNotionTestCase {
 
         let storage_table = parameters.get_table("storage");
         let workspace_table = storage_table.get_table("workspace");
-        let workspace_id = workspace_table.get_uuid("id");
+        let workspace_id = workspace_table.get_workspace_id("id");
         let workspace = &support::get_workspace(&self.storage, workspace_id);
 
-        support::assert_workspace(workspace, workspace_table);
+        support::assert_workspace(workspace, &workspace_table);
     }
 
     fn setup(&mut self, parameters: Table) {

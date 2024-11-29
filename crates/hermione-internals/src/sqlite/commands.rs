@@ -1,6 +1,6 @@
 use super::OptionalValue;
 use chrono::DateTime;
-use hermione_nexus::definitions::{Command, CommandParameters};
+use hermione_nexus::definitions::{Command, CommandParameters, WorkspaceId};
 use rusqlite::{named_params, params, Connection, OptionalExtension, Result};
 use uuid::{Bytes, Uuid};
 
@@ -260,13 +260,14 @@ impl TryFrom<CommandRecord> for Command {
 
         let last_execute_time = last_execute_time.and_then(DateTime::from_timestamp_micros);
         let id = Uuid::from_bytes(id);
+        let workspace_id = Uuid::from_bytes(workspace_id);
 
         Command::new(CommandParameters {
             id,
             last_execute_time,
             name,
             program,
-            workspace_id: Uuid::from_bytes(workspace_id).into(),
+            workspace_id: WorkspaceId::new(workspace_id)?,
         })
     }
 }

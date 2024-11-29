@@ -18,12 +18,11 @@ impl TestCase for CreateWorkspaceTestCase {
         self.operation.assert_is_success();
 
         let workspace = self.operation.result().as_ref().unwrap();
-        let workspace = support::get_workspace(&self.storage, **workspace.id());
+        let workspace = support::get_workspace(&self.storage, workspace.id());
+        let storage_table = parameters.get_table("storage");
+        let workspace_table = storage_table.get_table("workspace");
 
-        support::assert_workspace(
-            &workspace,
-            parameters.get_table("storage").get_table("workspace"),
-        );
+        support::assert_workspace(&workspace, &workspace_table);
     }
 
     fn execute_operation(&mut self, parameters: Table) {

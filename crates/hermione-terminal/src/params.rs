@@ -1,9 +1,8 @@
 use crate::{
-    coordinator::{BackupProviderKind, CommandId, DEFAULT_PAGE_SIZE, FIRST_PAGE},
+    coordinator::{BackupProviderKind, CommandId, WorkspaceId, DEFAULT_PAGE_SIZE, FIRST_PAGE},
     BackupCredentialsRoute, Route, WorkspaceCommandsRoute, WorkspacesRoute,
 };
 use std::num::NonZeroU32;
-use uuid::Uuid;
 
 pub struct CreateWorkspaceParams {
     pub name: String,
@@ -13,7 +12,7 @@ pub struct CreateWorkspaceParams {
 pub struct CreateWorkspaceCommandParams {
     pub name: String,
     pub program: String,
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
 }
 
 pub struct DeleteBackupCredentialsParams {
@@ -22,15 +21,15 @@ pub struct DeleteBackupCredentialsParams {
 
 pub struct DeleteCommandParams {
     pub command_id: CommandId,
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
 }
 
 pub struct DeleteWorkspaceParams {
-    pub id: Uuid,
+    pub id: WorkspaceId,
 }
 
 pub struct EditWorkspaceParams {
-    pub id: Uuid,
+    pub id: WorkspaceId,
 }
 
 pub struct EditCommandParams {
@@ -47,7 +46,7 @@ pub struct ExecuteCommandParams {
 }
 
 pub struct ExecuteProgramParams {
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
     pub program: String,
 }
 
@@ -62,7 +61,7 @@ pub struct ListWorkspacesParams {
 }
 
 pub struct ListWorkspaceCommandsParams {
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
     pub search_query: String,
     pub page_number: Option<NonZeroU32>,
     pub page_size: Option<NonZeroU32>,
@@ -70,7 +69,7 @@ pub struct ListWorkspaceCommandsParams {
 }
 
 pub struct NewWorkspaceCommandParams {
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
 }
 
 pub struct CopyCommandToClipboardParams {
@@ -78,7 +77,7 @@ pub struct CopyCommandToClipboardParams {
 }
 
 pub struct OpenWindowsTerminalParams {
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
 }
 
 pub struct SaveNotionBackupCredentialsParams {
@@ -88,7 +87,7 @@ pub struct SaveNotionBackupCredentialsParams {
 }
 
 pub struct UpdateWorkspaceParams {
-    pub id: Uuid,
+    pub id: WorkspaceId,
     pub name: String,
     pub location: String,
 }
@@ -97,7 +96,7 @@ pub struct UpdateWorkspaceCommandParams {
     pub command_id: CommandId,
     pub name: String,
     pub program: String,
-    pub workspace_id: Uuid,
+    pub workspace_id: WorkspaceId,
 }
 
 impl Default for ListWorkspacesParams {

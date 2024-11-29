@@ -9,7 +9,6 @@ use hermione_nexus::{
     },
 };
 use std::rc::Rc;
-use toml::Table;
 
 #[derive(Default)]
 struct ExportWorkspaceToNotionTestCase {
@@ -32,7 +31,7 @@ impl TestCase for ExportWorkspaceToNotionTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let workspace_id = parameters.get_uuid("workspace_id");
+        let workspace_id = parameters.get_workspace_id("workspace_id");
 
         let backup_provider_name = parameters.get_text("backup_provider_kind");
         let backup_provider_kind = support::get_backup_provider_kind(backup_provider_name);
@@ -49,7 +48,7 @@ impl TestCase for ExportWorkspaceToNotionTestCase {
             backup_provider_builder,
         })
         .execute(ExportWorkspaceParameters {
-            workspace_id: workspace_id.into(),
+            workspace_id,
             backup_provider_kind,
         });
 

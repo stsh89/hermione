@@ -51,7 +51,8 @@ impl TestCase for ExecuteCommandTestCase {
         let command_table = storage_table.get_table("command");
         let last_access_time = workspace_table.get_date_time("last_access_time");
         let last_execute_time = command_table.get_date_time("last_execute_time");
-        let workspace = support::get_workspace(&self.storage, workspace_table.get_uuid("id"));
+        let workspace =
+            support::get_workspace(&self.storage, workspace_table.get_workspace_id("id"));
         let command = support::get_command(&self.storage, command_table.get_command_id("id"));
 
         assert_eq!(command.last_execute_time(), Some(&last_execute_time));

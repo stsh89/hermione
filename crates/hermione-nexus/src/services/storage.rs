@@ -24,11 +24,11 @@ pub trait DeleteCommand: StorageService {
 }
 
 pub trait DeleteWorkspaceCommands: StorageService {
-    fn delete_workspace_commands(&self, id: &WorkspaceId) -> Result<()>;
+    fn delete_workspace_commands(&self, id: WorkspaceId) -> Result<()>;
 }
 
 pub trait DeleteWorkspace: StorageService {
-    fn delete_workspace(&self, id: &WorkspaceId) -> Result<()>;
+    fn delete_workspace(&self, id: WorkspaceId) -> Result<()>;
 }
 
 pub trait FindBackupCredentials: StorageService {
@@ -43,7 +43,7 @@ pub trait FindCommand: StorageService {
 }
 
 pub trait FindWorkspace: StorageService {
-    fn find_workspace(&self, id: &WorkspaceId) -> Result<Option<Workspace>>;
+    fn find_workspace(&self, id: WorkspaceId) -> Result<Option<Workspace>>;
 }
 
 pub trait ListBackupCredentials: StorageService {
@@ -67,7 +67,7 @@ pub trait TrackCommandExecuteTime: StorageService {
 }
 
 pub trait TrackWorkspaceAccessTime: StorageService {
-    fn track_workspace_access_time(&self, workspace_id: &WorkspaceId) -> Result<()>;
+    fn track_workspace_access_time(&self, workspace_id: WorkspaceId) -> Result<()>;
 }
 
 pub trait UpdateCommand: StorageService {
@@ -93,7 +93,7 @@ pub struct EditCommandParameters<'a> {
 }
 
 pub struct EditWorkspaceParameters<'a> {
-    pub id: &'a WorkspaceId,
+    pub id: WorkspaceId,
     pub name: &'a str,
     pub location: Option<&'a str>,
 }
@@ -102,7 +102,7 @@ pub struct FilterCommandsParameters<'a> {
     pub program_contains: Option<&'a str>,
     pub page_number: u32,
     pub page_size: u32,
-    pub workspace_id: Option<&'a WorkspaceId>,
+    pub workspace_id: Option<WorkspaceId>,
 }
 
 pub struct FilterWorkspacesParameters<'a> {
