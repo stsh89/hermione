@@ -6,11 +6,13 @@ use hermione_nexus::operations::{
     DeleteBackupCredentialsOperation, DeleteCommandOperation, DeleteCommandsOperation,
     DeleteCommandsParameters, DeleteWorkspaceOperation, ExecuteCommandOperation,
     ExecuteProgramOperation, ExecuteProgramParameters, ExportOperation,
-    GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation, ImportOperation,
-    ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
-    ListWorkspacesOperation, ListWorkspacesParameters, SaveBackupCredentialsOperation,
-    SaveBackupCredentialsOperationParameters, UpdateCommandOperation, UpdateCommandParameters,
-    UpdateWorkspaceOperation, UpdateWorkspaceParameters, VisitWorkspaceLocationOperation,
+    GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation,
+    ImportCommandsOperation, ImportCommandsOperationParameters, ImportWorkspacesOperation,
+    ImportWorkspacesOperationParameters, ListBackupCredentialsOperation, ListCommandsOperation,
+    ListCommandsParameters, ListWorkspacesOperation, ListWorkspacesParameters,
+    SaveBackupCredentialsOperation, SaveBackupCredentialsOperationParameters,
+    UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
+    UpdateWorkspaceParameters, VisitWorkspaceLocationOperation,
 };
 use std::num::NonZeroU32;
 use uuid::Uuid;
@@ -268,17 +270,28 @@ impl Coordinator {
     }
 
     pub fn import(&self, kind: BackupProviderKind) -> Result<()> {
-        let storage = self.storage();
-        let backup_builder = self.notion_backup_builder();
+        match kind {
+            BackupProviderKind::Notion => self.import_from_notion(),
+        }
+    }
 
-        ImportOperation {
+    fn import_from_notion(&self) -> Result<()> {
+        let storage = self.storage();
+        let backup_provider_builder = self.notion_backup_builder();
+
+        ImportWorkspacesOperation::new(ImportWorkspacesOperationParameters {
+            backup_credentials_provider: &storage,
+            upsert_workspaces_provider: &storage,
+            backup_provider_builder: &backup_provider_builder,
+        })
+        .execute(BackupProviderKind::Notion.into())?;
+
+        ImportCommandsOperation::new(ImportCommandsOperationParameters {
             backup_credentials_provider: &storage,
             upsert_commands_provider: &storage,
-            upsert_workspaces_provider: &storage,
-            backup_provider_builder: &backup_builder,
-            backup_provider: std::marker::PhantomData,
-        }
-        .execute(kind.into())?;
+            backup_provider_builder: &backup_provider_builder,
+        })
+        .execute(BackupProviderKind::Notion.into())?;
 
         Ok(())
     }
