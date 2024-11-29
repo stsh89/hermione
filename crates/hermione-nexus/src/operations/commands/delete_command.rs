@@ -19,14 +19,16 @@ where
     FCP: FindCommand,
     GCP: DeleteCommand,
 {
-    pub fn execute(&self, id: &CommandId) -> Result<()> {
+    pub fn execute(&self, id: CommandId) -> Result<()> {
         tracing::info!(operation = "Delete command");
 
         self.get_command(id)?;
-        self.delete_provider.delete_command(id)
+        self.delete_provider.delete_command(id)?;
+
+        Ok(())
     }
 
-    fn get_command(&self, id: &CommandId) -> Result<Command> {
+    fn get_command(&self, id: CommandId) -> Result<Command> {
         GetCommandOperation {
             provider: self.find_provider,
         }

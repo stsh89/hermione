@@ -19,7 +19,7 @@ where
     FC: FindCommand,
     CCP: SetClipboardContent,
 {
-    pub fn execute(&self, id: &CommandId) -> Result<()> {
+    pub fn execute(&self, id: CommandId) -> Result<()> {
         tracing::info!(operation = "Copy command to clipboard");
 
         let command = self.get_command(id)?;
@@ -28,7 +28,7 @@ where
             .set_clipboard_content(command.program())
     }
 
-    fn get_command(&self, id: &CommandId) -> Result<Command> {
+    fn get_command(&self, id: CommandId) -> Result<Command> {
         GetCommandOperation {
             provider: self.storage_provider,
         }

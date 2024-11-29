@@ -2,6 +2,7 @@ use super::WorkspaceId;
 use crate::{Error, Result};
 use chrono::{DateTime, Utc};
 use eyre::eyre;
+use std::fmt::Display;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -21,7 +22,7 @@ pub struct CommandParameters {
     pub workspace_id: WorkspaceId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub struct CommandId(Uuid);
 
 #[derive(Clone)]
@@ -35,8 +36,8 @@ struct CommandName {
 }
 
 impl Command {
-    pub fn id(&self) -> &CommandId {
-        &self.id
+    pub fn id(&self) -> CommandId {
+        self.id
     }
 
     pub fn last_execute_time(&self) -> Option<&DateTime<Utc>> {
@@ -87,25 +88,29 @@ impl Command {
 }
 
 impl CommandId {
-    fn new(value: Uuid) -> Result<Self> {
-        if value.is_nil() {
+    pub fn as_bytes(&self) -> &[u8; 16] {
+        self.0.as_bytes()
+    }
+
+    pub fn as_uuid(&self) -> Uuid {
+        self.0
+    }
+
+    pub fn into_bytes(self) -> [u8; 16] {
+        self.0.into_bytes()
+    }
+
+    pub fn new(id: Uuid) -> Result<Self> {
+        if id.is_nil() {
             return Err(Error::invalid_argument(eyre!("Command ID cannot be nil")));
         }
 
-        Ok(Self(value))
+        Ok(Self(id))
     }
 }
 
-impl std::ops::Deref for CommandId {
-    type Target = Uuid;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<Uuid> for CommandId {
-    fn from(value: Uuid) -> Self {
-        Self(value)
+impl Display for CommandId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

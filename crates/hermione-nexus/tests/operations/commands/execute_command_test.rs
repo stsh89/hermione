@@ -22,7 +22,7 @@ impl TestCase for ExecuteCommandTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let command_id = parameters.get_uuid("command_id").into();
+        let command_id = parameters.get_command_id("command_id");
 
         let result = ExecuteCommandOperation {
             find_command_provider: &self.storage,
@@ -31,7 +31,7 @@ impl TestCase for ExecuteCommandTestCase {
             track_command_provider: &self.storage,
             track_workspace_provider: &self.storage,
         }
-        .execute(&command_id);
+        .execute(command_id);
 
         self.operation.set_result(result);
     }
@@ -52,7 +52,7 @@ impl TestCase for ExecuteCommandTestCase {
         let last_access_time = workspace_table.get_date_time("last_access_time");
         let last_execute_time = command_table.get_date_time("last_execute_time");
         let workspace = support::get_workspace(&self.storage, workspace_table.get_uuid("id"));
-        let command = support::get_command(&self.storage, command_table.get_uuid("id"));
+        let command = support::get_command(&self.storage, command_table.get_command_id("id"));
 
         assert_eq!(command.last_execute_time(), Some(&last_execute_time));
         assert_eq!(workspace.last_access_time(), Some(&last_access_time))

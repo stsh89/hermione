@@ -31,7 +31,7 @@ where
     TCP: TrackCommandExecuteTime,
     TWP: TrackWorkspaceAccessTime,
 {
-    pub fn execute(&self, id: &CommandId) -> Result<()> {
+    pub fn execute(&self, id: CommandId) -> Result<()> {
         tracing::info!(operation = "Execute command");
 
         let command = self.get_command(id)?;
@@ -50,7 +50,7 @@ where
         Ok(())
     }
 
-    fn get_command(&self, id: &CommandId) -> Result<Command> {
+    fn get_command(&self, id: CommandId) -> Result<Command> {
         GetCommandOperation {
             provider: self.find_command_provider,
         }

@@ -1,11 +1,10 @@
 use crate::{
-    coordinator::{Command, ListCommandsWithinWorkspaceInput, Workspace},
+    coordinator::{Command, CreateCommandInput, ListCommandsWithinWorkspaceInput, Workspace},
     models::{CommandModel, WorkspaceCommandsModel, WorkspaceCommandsModelParameters},
     themes::Theme,
     Coordinator, CreateWorkspaceCommandParams, DeleteCommandParams, EditCommandParams,
     ListWorkspaceCommandsParams, NewWorkspaceCommandParams, Result, UpdateWorkspaceCommandParams,
 };
-use uuid::Uuid;
 
 pub struct CommandsHandler<'a> {
     pub coordinator: &'a Coordinator,
@@ -20,14 +19,11 @@ impl<'a> CommandsHandler<'a> {
             program,
         } = parameters;
 
-        let command = Command {
-            workspace_id,
-            id: Uuid::nil(),
+        self.coordinator.create_command(CreateCommandInput {
             name,
             program,
-        };
-
-        self.coordinator.create_command(command)
+            workspace_id,
+        })
     }
 
     pub fn delete(&self, parameters: DeleteCommandParams) -> Result<Workspace> {

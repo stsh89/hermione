@@ -14,8 +14,8 @@ where
     pub update_command_provider: &'a UW,
 }
 
-pub struct UpdateCommandParameters<'a> {
-    pub id: &'a CommandId,
+pub struct UpdateCommandParameters {
+    pub id: CommandId,
     pub program: String,
     pub name: String,
 }
@@ -45,7 +45,7 @@ where
         Ok(command)
     }
 
-    fn get_command(&self, id: &CommandId) -> Result<Command> {
+    fn get_command(&self, id: CommandId) -> Result<Command> {
         GetCommandOperation {
             provider: self.find_command_provider,
         }

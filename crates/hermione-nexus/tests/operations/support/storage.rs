@@ -23,7 +23,7 @@ pub const NOTION_CREDENTIALS_KEY: &str = "notion";
 #[derive(Default)]
 pub struct InMemoryStorage {
     pub backup_credentials: RwLock<HashMap<String, BackupCredentials>>,
-    pub commands: RwLock<HashMap<Uuid, Command>>,
+    pub commands: RwLock<HashMap<CommandId, Command>>,
     pub workspaces: RwLock<HashMap<Uuid, Workspace>>,
     pub now: RwLock<Option<DateTime<Utc>>>,
 }
@@ -66,17 +66,17 @@ impl InMemoryStorage {
         Ok(credentials)
     }
 
-    pub fn get_command(&self, id: &Uuid) -> Result<Option<Command>> {
+    pub fn get_command(&self, id: CommandId) -> Result<Option<Command>> {
         let command = self
             .commands
             .read()
             .map_err(|_err| {
                 Error::storage(eyre!(
                     "Commands blocked for reading, can't get command {}",
-                    id.braced()
+                    id
                 ))
             })?
-            .get(id)
+            .get(&id)
             .cloned();
 
         Ok(command)
@@ -116,14 +116,14 @@ impl InMemoryStorage {
         Ok(())
     }
 
-    pub fn insert_command(&self, command: &Command) -> Result<()> {
+    pub fn insert_command(&self, command: Command) -> Result<()> {
         let mut commands = self.commands.write().map_err(|_err| {
             Error::storage(eyre!(
                 "Commands blocked for writing, can't proceed with command insert",
             ))
         })?;
 
-        commands.insert(**command.id(), command.clone());
+        commands.insert(command.id(), command);
 
         Ok(())
     }
@@ -153,15 +153,15 @@ impl InMemoryStorage {
         Ok(())
     }
 
-    fn remove_command(&self, id: &Uuid) -> Result<()> {
+    fn remove_command(&self, id: CommandId) -> Result<()> {
         let mut commands = self.commands.write().map_err(|_err| {
             Error::storage(eyre!(
                 "Commands blocked for writing, can't remove command {}",
-                id.braced()
+                id
             ))
         })?;
 
-        commands.remove(id);
+        commands.remove(&id);
 
         Ok(())
     }
@@ -192,7 +192,7 @@ impl InMemoryStorage {
         Ok(())
     }
 
-    fn set_command_execute_time(&self, id: &Uuid) -> Result<()> {
+    fn set_command_execute_time(&self, id: CommandId) -> Result<()> {
         let command = self.get_command(id)?;
 
         let Some(mut command) = command else {
@@ -202,7 +202,7 @@ impl InMemoryStorage {
         let timestamp = now(self).map_err(Error::storage)?;
         command.set_execute_time(timestamp);
 
-        self.insert_command(&command)?;
+        self.insert_command(command)?;
 
         Ok(())
     }
@@ -251,7 +251,7 @@ impl CreateCommand for InMemoryStorage {
             workspace_id,
         })?;
 
-        self.insert_command(&command)?;
+        self.insert_command(command.clone())?;
 
         Ok(command)
     }
@@ -287,7 +287,7 @@ impl DeleteBackupCredentials for InMemoryStorage {
 }
 
 impl DeleteCommand for InMemoryStorage {
-    fn delete_command(&self, id: &CommandId) -> Result<()> {
+    fn delete_command(&self, id: CommandId) -> Result<()> {
         self.remove_command(id)?;
 
         Ok(())
@@ -326,7 +326,7 @@ impl FindBackupCredentials for InMemoryStorage {
 }
 
 impl FindCommand for InMemoryStorage {
-    fn find_command(&self, id: &CommandId) -> Result<Option<Command>> {
+    fn find_command(&self, id: CommandId) -> Result<Option<Command>> {
         let command = self.get_command(id)?;
 
         Ok(command)
@@ -432,7 +432,7 @@ impl SaveBackupCredentials for InMemoryStorage {
 }
 
 impl TrackCommandExecuteTime for InMemoryStorage {
-    fn track_command_execute_time(&self, id: &CommandId) -> Result<()> {
+    fn track_command_execute_time(&self, id: CommandId) -> Result<()> {
         self.set_command_execute_time(id)?;
 
         Ok(())
@@ -458,7 +458,7 @@ impl UpdateCommand for InMemoryStorage {
         command.set_name(name.to_string());
         command.set_program(program.to_string());
 
-        self.insert_command(&command)?;
+        self.insert_command(command)?;
 
         Ok(())
     }
@@ -467,7 +467,7 @@ impl UpdateCommand for InMemoryStorage {
 impl UpsertCommands for InMemoryStorage {
     fn upsert_commands(&self, commands: Vec<Command>) -> Result<()> {
         for command in commands {
-            self.insert_command(&command)?;
+            self.insert_command(command)?;
         }
 
         Ok(())

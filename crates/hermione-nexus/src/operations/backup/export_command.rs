@@ -63,7 +63,7 @@ where
         GetCommandOperation {
             provider: self.find_command,
         }
-        .execute(&id)
+        .execute(id)
     }
 
     pub fn new(parameters: ExportCommandOperationParameters<'a, FBC, FC, BPB>) -> Self {

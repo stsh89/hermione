@@ -1,5 +1,6 @@
 use super::{Command, Workspace};
 use crate::{
+    coordinator::CommandId,
     layouts::WideLayout,
     themes::Theme,
     tui::{EventHandler, Input, Model},
@@ -14,11 +15,10 @@ use ratatui::{
     widgets::Paragraph,
     Frame,
 };
-use uuid::Uuid;
 
 pub struct CommandModel {
     active_input: InputName,
-    id: Option<Uuid>,
+    id: Option<CommandId>,
     name: Input,
     program: Input,
     redirect: Option<Route>,
@@ -244,7 +244,7 @@ impl CommandModel {
         self.active_input = self.active_input.next();
     }
 
-    fn update_command_parameters(&self, id: Uuid) -> UpdateWorkspaceCommandParams {
+    fn update_command_parameters(&self, id: CommandId) -> UpdateWorkspaceCommandParams {
         UpdateWorkspaceCommandParams {
             name: self.name.value().to_string(),
             program: self.program.value().to_string(),

@@ -21,13 +21,13 @@ impl TestCase for DeleteCommandTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let command_id = parameters.get_uuid("command_id").into();
+        let command_id = parameters.get_command_id("command_id");
 
         let result = DeleteCommandOperation {
             find_provider: &self.storage,
             delete_provider: &self.storage,
         }
-        .execute(&command_id);
+        .execute(command_id);
 
         self.operation.set_result(result);
     }

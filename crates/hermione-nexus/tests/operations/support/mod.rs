@@ -10,7 +10,7 @@ pub use storage::*;
 pub use system::*;
 
 use hermione_nexus::definitions::{
-    BackupCredentials, BackupProviderKind, Command, CommandParameters,
+    BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters,
     NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
 };
 use table::{GetText, GetUuid, MaybeGetDateTime, MaybeGetText, Table};
@@ -140,14 +140,14 @@ pub fn get_clipboard_content(system: &MockSystem) -> Option<String> {
         .clone()
 }
 
-pub fn get_command(storage: &InMemoryStorage, id: Uuid) -> Command {
+pub fn get_command(storage: &InMemoryStorage, id: CommandId) -> Command {
     storage
         .commands
         .read()
         .expect("Should be able to get command")
         .get(&id)
         .cloned()
-        .unwrap_or_else(|| panic!("Command {} should exist", id.braced()))
+        .unwrap_or_else(|| panic!("Command {} should exist", id))
 }
 
 pub fn get_notion_backup_credentials(storage: &InMemoryStorage) -> BackupCredentials {
@@ -226,7 +226,7 @@ pub fn insert_command(storage: &InMemoryStorage, parameters: &Table) {
         .commands
         .write()
         .expect("Should be able to insert command")
-        .insert(**command.id(), command);
+        .insert(command.id(), command);
 }
 
 pub fn insert_notion_backup_credentials(storage: &InMemoryStorage, parameters: &Table) {

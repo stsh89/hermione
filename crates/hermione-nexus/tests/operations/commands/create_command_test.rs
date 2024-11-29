@@ -18,7 +18,7 @@ impl TestCase for CreateCommandTestCase {
         self.operation.assert_is_success();
 
         let command = self.operation.result().as_ref().unwrap();
-        let command = support::get_command(&self.storage, **command.id());
+        let command = support::get_command(&self.storage, command.id());
 
         support::assert_command(
             &command,

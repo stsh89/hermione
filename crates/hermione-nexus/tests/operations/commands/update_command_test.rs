@@ -18,7 +18,7 @@ impl TestCase for UpdateCommandTestCase {
         self.operation.assert_is_success();
 
         let command_table = parameters.get_table("storage").get_table("command");
-        let id = command_table.get_uuid("id");
+        let id = command_table.get_command_id("id");
 
         let command = support::get_command(&self.storage, id);
         support::assert_command(&command, command_table);
@@ -28,7 +28,7 @@ impl TestCase for UpdateCommandTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let command_id = parameters.get_uuid("id");
+        let id = parameters.get_command_id("id");
         let name = parameters.get_text("name");
         let program = parameters.get_text("program");
 
@@ -37,7 +37,7 @@ impl TestCase for UpdateCommandTestCase {
             update_command_provider: &self.storage,
         }
         .execute(UpdateCommandParameters {
-            id: &command_id.into(),
+            id,
             program: program.to_string(),
             name: name.to_string(),
         });

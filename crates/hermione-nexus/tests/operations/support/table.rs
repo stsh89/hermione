@@ -1,4 +1,5 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
+use hermione_nexus::definitions::CommandId;
 pub use toml::{toml as table, Table};
 use uuid::Uuid;
 
@@ -24,6 +25,10 @@ pub trait GetTable {
 
 pub trait GetUuid {
     fn get_uuid(&self, key: &str) -> Uuid;
+}
+
+pub trait GetCommandId {
+    fn get_command_id(&self, key: &str) -> CommandId;
 }
 
 pub trait MaybeGetInteger {
@@ -96,6 +101,12 @@ impl GetUuid for Table {
     fn get_uuid(&self, key: &str) -> Uuid {
         self.maybe_get_uuid(key)
             .unwrap_or_else(|| panic!("Table should have uuid value for `{key}` key"))
+    }
+}
+
+impl GetCommandId for Table {
+    fn get_command_id(&self, key: &str) -> CommandId {
+        CommandId::new(self.get_uuid(key)).unwrap()
     }
 }
 

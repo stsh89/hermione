@@ -20,7 +20,7 @@ pub trait DeleteBackupCredentials: StorageService {
 }
 
 pub trait DeleteCommand: StorageService {
-    fn delete_command(&self, id: &CommandId) -> Result<()>;
+    fn delete_command(&self, id: CommandId) -> Result<()>;
 }
 
 pub trait DeleteWorkspaceCommands: StorageService {
@@ -39,7 +39,7 @@ pub trait FindBackupCredentials: StorageService {
 }
 
 pub trait FindCommand: StorageService {
-    fn find_command(&self, id: &CommandId) -> Result<Option<Command>>;
+    fn find_command(&self, id: CommandId) -> Result<Option<Command>>;
 }
 
 pub trait FindWorkspace: StorageService {
@@ -63,7 +63,7 @@ pub trait SaveBackupCredentials: StorageService {
 }
 
 pub trait TrackCommandExecuteTime: StorageService {
-    fn track_command_execute_time(&self, command_id: &CommandId) -> Result<()>;
+    fn track_command_execute_time(&self, command_id: CommandId) -> Result<()>;
 }
 
 pub trait TrackWorkspaceAccessTime: StorageService {
@@ -87,7 +87,7 @@ pub trait UpsertWorkspaces: StorageService {
 }
 
 pub struct EditCommandParameters<'a> {
-    pub id: &'a CommandId,
+    pub id: CommandId,
     pub name: &'a str,
     pub program: &'a str,
 }

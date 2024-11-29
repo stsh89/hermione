@@ -42,7 +42,7 @@ impl TestCase for ImportCommandsFromNotionTestCase {
 
         let storage_table = parameters.get_table("storage");
         let command_table = storage_table.get_table("command");
-        let command_id = command_table.get_uuid("id");
+        let command_id = command_table.get_command_id("id");
         let command = &support::get_command(&self.storage, command_id);
 
         support::assert_command(command, command_table);

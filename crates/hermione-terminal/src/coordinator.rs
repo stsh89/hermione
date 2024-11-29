@@ -33,10 +33,13 @@ pub struct Workspace {
 
 pub struct Command {
     pub workspace_id: Uuid,
-    pub id: Uuid,
+    pub id: CommandId,
     pub name: String,
     pub program: String,
 }
+
+#[derive(Copy, Clone)]
+pub struct CommandId(pub Uuid);
 
 #[derive(Clone)]
 pub enum BackupProviderKind {
@@ -47,6 +50,12 @@ pub enum BackupCredentials {
     Notion(NotionBackupCredentials),
 }
 
+pub struct CreateCommandInput {
+    pub name: String,
+    pub program: String,
+    pub workspace_id: Uuid,
+}
+
 pub struct NotionBackupCredentials {
     pub api_key: String,
     pub commands_database_id: String,
@@ -54,7 +63,7 @@ pub struct NotionBackupCredentials {
 }
 
 pub struct ExecuteCommandInput {
-    pub command_id: Uuid,
+    pub command_id: CommandId,
     pub no_exit: bool,
 }
 
@@ -81,23 +90,22 @@ impl Coordinator {
         NotionBackupBuilder::default()
     }
 
-    pub fn copy_command_to_clipboard(&self, id: Uuid) -> Result<()> {
+    pub fn copy_command_to_clipboard(&self, id: CommandId) -> Result<()> {
         CopyCommandToClipboardOperation {
             clipboard_provider: &self.system(),
             storage_provider: &self.storage(),
         }
-        .execute(&id.into())?;
+        .execute(id.try_into()?)?;
 
         Ok(())
     }
 
-    pub fn create_command(&self, command: Command) -> Result<Command> {
-        let Command {
-            id: _,
+    pub fn create_command(&self, input: CreateCommandInput) -> Result<Command> {
+        let CreateCommandInput {
             name,
             program,
             workspace_id,
-        } = command;
+        } = input;
 
         let command = CreateCommandOperation {
             storage_provider: &self.storage(),
@@ -141,14 +149,14 @@ impl Coordinator {
         Ok(())
     }
 
-    pub fn delete_command(&self, id: Uuid) -> Result<()> {
+    pub fn delete_command(&self, id: CommandId) -> Result<()> {
         let storage = self.storage();
 
         DeleteCommandOperation {
             find_provider: &storage,
             delete_provider: &storage,
         }
-        .execute(&id.into())?;
+        .execute(id.try_into()?)?;
 
         Ok(())
     }
@@ -190,7 +198,7 @@ impl Coordinator {
             track_command_provider: &storage,
             track_workspace_provider: &storage,
         }
-        .execute(&command_id.into())?;
+        .execute(command_id.try_into()?)?;
 
         Ok(())
     }
@@ -263,11 +271,11 @@ impl Coordinator {
         Ok(Some(credentials))
     }
 
-    pub fn get_command(&self, id: Uuid) -> Result<Command> {
+    pub fn get_command(&self, id: CommandId) -> Result<Command> {
         let command = GetCommandOperation {
             provider: &self.storage(),
         }
-        .execute(&id.into())?;
+        .execute(id.try_into()?)?;
 
         Ok(command.into())
     }
@@ -406,7 +414,7 @@ impl Coordinator {
             update_command_provider: &storage,
         }
         .execute(UpdateCommandParameters {
-            id: &id.into(),
+            id: id.try_into()?,
             name,
             program,
         })?;
@@ -437,14 +445,15 @@ mod convert {
     mod core {
         pub use hermione_nexus::{
             definitions::{
-                BackupCredentials, BackupProviderKind, Command, CommandParameters,
+                BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters,
                 NotionBackupCredentialsParameters, Workspace, WorkspaceParameters,
             },
             Error, Result,
         };
     }
     use super::{
-        BackupCredentials, BackupProviderKind, Command, NotionBackupCredentials, Workspace,
+        BackupCredentials, BackupProviderKind, Command, CommandId, NotionBackupCredentials,
+        Workspace,
     };
 
     impl From<BackupProviderKind> for core::BackupProviderKind {
@@ -467,7 +476,7 @@ mod convert {
             } = value;
 
             let command = core::Command::new(core::CommandParameters {
-                id,
+                id: id.0,
                 name,
                 last_execute_time: None,
                 program,
@@ -542,11 +551,19 @@ mod convert {
     impl From<core::Command> for Command {
         fn from(command: core::Command) -> Self {
             Self {
-                id: **command.id(),
+                id: CommandId(command.id().as_uuid()),
                 name: command.name().to_string(),
                 program: command.program().to_string(),
                 workspace_id: **command.workspace_id(),
             }
+        }
+    }
+
+    impl TryFrom<CommandId> for core::CommandId {
+        type Error = core::Error;
+
+        fn try_from(id: CommandId) -> core::Result<Self> {
+            Self::new(id.0)
         }
     }
 

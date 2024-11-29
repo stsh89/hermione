@@ -20,13 +20,13 @@ impl TestCase for CopyCommandToClipboardTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let command_id = parameters.get_uuid("command_id").into();
+        let command_id = parameters.get_command_id("command_id");
 
         let result = CopyCommandToClipboardOperation {
             storage_provider: &self.storage,
             clipboard_provider: &self.system,
         }
-        .execute(&command_id);
+        .execute(command_id);
 
         self.operation.set_result(result);
     }

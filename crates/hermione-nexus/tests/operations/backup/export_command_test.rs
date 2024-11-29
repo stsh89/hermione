@@ -29,7 +29,7 @@ impl TestCase for ExportCommandToNotionTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let command_id = parameters.get_uuid("command_id");
+        let command_id = parameters.get_command_id("command_id");
         let backup_provider_name = parameters.get_text("backup_provider_kind");
         let backup_provider_kind = support::get_backup_provider_kind(backup_provider_name);
 
@@ -41,7 +41,7 @@ impl TestCase for ExportCommandToNotionTestCase {
             },
         })
         .execute(ExportCommandParameters {
-            command_id: command_id.into(),
+            command_id,
             backup_provider_kind,
         });
 

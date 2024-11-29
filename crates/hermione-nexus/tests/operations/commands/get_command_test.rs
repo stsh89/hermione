@@ -21,12 +21,12 @@ impl TestCase for GetCommandTestCase {
     }
 
     fn execute_operation(&mut self, parameters: Table) {
-        let command_id = parameters.get_uuid("command_id");
+        let command_id = parameters.get_command_id("command_id");
 
         let result = GetCommandOperation {
             provider: &self.storage,
         }
-        .execute(&command_id.into());
+        .execute(command_id);
 
         self.operation.set_result(result);
     }

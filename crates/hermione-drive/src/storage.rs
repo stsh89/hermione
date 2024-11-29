@@ -88,7 +88,7 @@ impl DeleteBackupCredentials for Storage<'_> {
 }
 
 impl DeleteCommand for Storage<'_> {
-    fn delete_command(&self, id: &CommandId) -> Result<()> {
+    fn delete_command(&self, id: CommandId) -> Result<()> {
         sqlite::delete_command(self.conn, id.as_bytes()).map_err(internal_error)?;
 
         Ok(())
@@ -124,7 +124,7 @@ impl FindBackupCredentials for Storage<'_> {
 }
 
 impl FindCommand for Storage<'_> {
-    fn find_command(&self, id: &CommandId) -> Result<Option<Command>> {
+    fn find_command(&self, id: CommandId) -> Result<Option<Command>> {
         sqlite::find_command(self.conn, id.as_bytes())
             .map_err(internal_error)?
             .map(TryFrom::try_from)
@@ -221,7 +221,7 @@ impl SaveBackupCredentials for Storage<'_> {
 }
 
 impl TrackCommandExecuteTime for Storage<'_> {
-    fn track_command_execute_time(&self, id: &CommandId) -> Result<()> {
+    fn track_command_execute_time(&self, id: CommandId) -> Result<()> {
         sqlite::update_command(
             self.conn,
             UpdateCommandQueryOptions {

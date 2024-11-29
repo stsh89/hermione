@@ -1,5 +1,5 @@
 use crate::{
-    coordinator::{BackupProviderKind, DEFAULT_PAGE_SIZE, FIRST_PAGE},
+    coordinator::{BackupProviderKind, CommandId, DEFAULT_PAGE_SIZE, FIRST_PAGE},
     BackupCredentialsRoute, Route, WorkspaceCommandsRoute, WorkspacesRoute,
 };
 use std::num::NonZeroU32;
@@ -21,7 +21,7 @@ pub struct DeleteBackupCredentialsParams {
 }
 
 pub struct DeleteCommandParams {
-    pub command_id: Uuid,
+    pub command_id: CommandId,
     pub workspace_id: Uuid,
 }
 
@@ -34,7 +34,7 @@ pub struct EditWorkspaceParams {
 }
 
 pub struct EditCommandParams {
-    pub command_id: Uuid,
+    pub command_id: CommandId,
 }
 
 pub struct ExportParams {
@@ -42,7 +42,7 @@ pub struct ExportParams {
 }
 
 pub struct ExecuteCommandParams {
-    pub command_id: Uuid,
+    pub command_id: CommandId,
     pub powershell_no_exit: bool,
 }
 
@@ -74,7 +74,7 @@ pub struct NewWorkspaceCommandParams {
 }
 
 pub struct CopyCommandToClipboardParams {
-    pub command_id: Uuid,
+    pub command_id: CommandId,
 }
 
 pub struct OpenWindowsTerminalParams {
@@ -94,7 +94,7 @@ pub struct UpdateWorkspaceParams {
 }
 
 pub struct UpdateWorkspaceCommandParams {
-    pub command_id: Uuid,
+    pub command_id: CommandId,
     pub name: String,
     pub program: String,
     pub workspace_id: Uuid,
