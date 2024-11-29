@@ -1,9 +1,10 @@
 use crate::Result;
 use hermione_drive::{NotionBackupBuilder, ServiceFactory, Storage, System};
 use hermione_nexus::operations::{
-    CopyCommandToClipboardOperation, CreateCommandOperation, CreateCommandParameters,
-    CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
-    DeleteCommandOperation, DeleteWorkspaceOperation, ExecuteCommandOperation,
+    CommandsDeleteAttribute, CopyCommandToClipboardOperation, CreateCommandOperation,
+    CreateCommandParameters, CreateWorkspaceOperation, CreateWorkspaceParameters,
+    DeleteBackupCredentialsOperation, DeleteCommandOperation, DeleteCommandsOperation,
+    DeleteCommandsParameters, DeleteWorkspaceOperation, ExecuteCommandOperation,
     ExecuteProgramOperation, ExecuteProgramParameters, ExportOperation,
     GetBackupCredentialsOperation, GetCommandOperation, GetWorkspaceOperation, ImportOperation,
     ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
@@ -152,10 +153,16 @@ impl Coordinator {
     pub fn delete_workspace(&self, id: Uuid) -> Result<()> {
         let storage = self.storage();
 
+        DeleteCommandsOperation {
+            delete_workspace_commands: &storage,
+        }
+        .execute(DeleteCommandsParameters {
+            delete_attribute: CommandsDeleteAttribute::WorkspaceId(id.into()),
+        })?;
+
         DeleteWorkspaceOperation {
             find_workspace_provider: &storage,
             delete_workspace_provider: &storage,
-            delete_workspace_commands_provider: &storage,
         }
         .execute(&id.into())?;
 

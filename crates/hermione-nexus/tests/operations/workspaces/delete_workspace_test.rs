@@ -27,7 +27,6 @@ impl TestCase for DeleteWorkspaceTestCase {
 
         let result = DeleteWorkspaceOperation {
             find_workspace_provider: &self.storage,
-            delete_workspace_commands_provider: &self.storage,
             delete_workspace_provider: &self.storage,
         }
         .execute(&workspace_id);
@@ -74,6 +73,6 @@ fn it_deletes_workspace() {
         count = 0
 
         [storage.commands]
-        count = 0
+        count = 1
     });
 }
