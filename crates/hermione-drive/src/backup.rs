@@ -21,7 +21,9 @@ use uuid::Uuid;
 const DEFAULT_BACKUP_PAGE_SIZE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(100) };
 
 use hermione_internals::notion::{
-    self, external_ids_filter, verify_commands_database_properties, verify_workspaces_database_properties, NotionCommandProperties, NotionWorkspaceProperties, QueryDatabaseResponse
+    self, external_ids_filter, verify_commands_database_properties,
+    verify_workspaces_database_properties, NotionCommandProperties, NotionWorkspaceProperties,
+    QueryDatabaseResponse,
 };
 
 pub struct NotionBackup {
