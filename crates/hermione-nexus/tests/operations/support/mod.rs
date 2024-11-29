@@ -6,10 +6,10 @@ mod storage;
 mod system;
 
 pub use backup::*;
-use chrono::{DateTime, Utc};
 pub use storage::*;
 pub use system::*;
 
+use chrono::{DateTime, Utc};
 use hermione_nexus::definitions::{
     BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters,
     NotionBackupCredentialsParameters, Workspace, WorkspaceId, WorkspaceParameters,
@@ -130,11 +130,7 @@ pub fn get_backup_provider_kind(name: &str) -> BackupProviderKind {
 }
 
 pub fn get_clipboard_content(system: &MockSystem) -> Option<String> {
-    system
-        .clipboard
-        .read()
-        .expect("Should be able to get clipboard content")
-        .clone()
+    system.clipboard.read().unwrap().clone()
 }
 
 pub fn get_command(storage: &InMemoryStorage, id: CommandId) -> Command {
