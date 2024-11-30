@@ -106,6 +106,15 @@ impl CommandId {
 
         Ok(Self(id))
     }
+
+    pub fn parse_str(value: &str) -> Result<Self> {
+        let id = Uuid::parse_str(value).map_err(|err| {
+            let err = eyre::Error::new(err).wrap_err("Invalid command ID representation");
+            Error::invalid_argument(err)
+        })?;
+
+        Self::new(id)
+    }
 }
 
 impl Debug for CommandId {

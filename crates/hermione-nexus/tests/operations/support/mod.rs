@@ -9,7 +9,7 @@ pub use backup::*;
 pub use storage::*;
 pub use system::*;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use hermione_nexus::definitions::{
     BackupCredentials, BackupProviderKind, Command, CommandId, CommandParameters,
     NotionBackupCredentialsParameters, Workspace, WorkspaceId, WorkspaceParameters,
@@ -278,6 +278,14 @@ pub fn insert_notion_workspace(storage: &MockNotionStorage, parameters: Table) {
         .insert(external_id.to_string(), entry);
 }
 
+pub fn insert_raw_workspace(storage: &InMemoryStorage, workspace: Workspace) {
+    storage
+        .workspaces
+        .write()
+        .unwrap()
+        .insert(workspace.id(), workspace);
+}
+
 pub fn insert_workspace(storage: &InMemoryStorage, parameters: Table) {
     let id = parameters.get_uuid("id");
     let last_access_time = parameters.maybe_get_date_time("last_access_time");
@@ -292,11 +300,7 @@ pub fn insert_workspace(storage: &InMemoryStorage, parameters: Table) {
     })
     .expect("Workspace should be valid");
 
-    storage
-        .workspaces
-        .write()
-        .expect("Should be able to insert workspace")
-        .insert(workspace.id(), workspace);
+    insert_raw_workspace(storage, workspace);
 }
 
 pub fn freeze_storage_time(storage: &InMemoryStorage, time: DateTime<Utc>) {
@@ -306,4 +310,14 @@ pub fn freeze_storage_time(storage: &InMemoryStorage, time: DateTime<Utc>) {
         .expect("Should be able to freeze storage time");
 
     *timestamp = Some(time);
+}
+
+pub fn maybe_parse_time(value: Option<&str>) -> Option<DateTime<Utc>> {
+    value.map(parse_time)
+}
+
+pub fn parse_time(value: &str) -> DateTime<Utc> {
+    NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S")
+        .unwrap()
+        .and_utc()
 }

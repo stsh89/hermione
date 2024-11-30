@@ -5,6 +5,10 @@ mod backup;
 mod commands;
 mod workspaces;
 
+mod create_workspace;
+mod delete_workspace;
+mod get_workspace;
+
 pub mod prelude {
     pub use crate::support::table::*;
 

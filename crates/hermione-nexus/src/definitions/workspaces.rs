@@ -103,10 +103,21 @@ impl WorkspaceId {
 
     pub fn new(id: Uuid) -> Result<Self> {
         if id.is_nil() {
-            return Err(Error::invalid_argument(eyre!("Workspace ID cannot be nil")));
+            return Err(Error::invalid_argument(eyre!(
+                "Invalid workspace ID. Workspace ID cannot be nil"
+            )));
         }
 
         Ok(Self(id))
+    }
+
+    pub fn parse_str(value: &str) -> Result<Self> {
+        let id = Uuid::parse_str(value).map_err(|err| {
+            let err = eyre::Error::new(err).wrap_err("Invalid workspace ID representation");
+            Error::invalid_argument(err)
+        })?;
+
+        Self::new(id)
     }
 }
 
