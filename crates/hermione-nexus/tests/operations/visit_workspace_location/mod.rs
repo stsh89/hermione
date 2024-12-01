@@ -1,12 +1,13 @@
-mod test_case;
-
-use crate::support::{ExistingWorkspace, InMemoryStorage};
+use crate::support::{ExistingWorkspace, InMemoryStorage, MockSystem};
 use test_case::Background;
 
+mod test_case;
+
 #[test]
-fn test_delete_workspace_operation_succeded() {
+fn test_visit_workspace_operation_succeds() {
     let background = Background {
         storage: InMemoryStorage::empty(),
+        system: MockSystem::default(),
     };
 
     test_case::setup(
@@ -14,8 +15,8 @@ fn test_delete_workspace_operation_succeded() {
         ExistingWorkspace {
             id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
             name: "Ironman",
+            location: Some("/home/ironman"),
             last_access_time: None,
-            location: None,
         },
     );
 
@@ -23,8 +24,5 @@ fn test_delete_workspace_operation_succeded() {
         test_case::execute_operation(&background, "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa");
 
     test_case::assert_operation_success(operation_result);
-    test_case::assert_storage_does_not_contain_workspace(
-        &background,
-        "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
-    );
+    test_case::assert_system_location_changed(&background, "/home/ironman");
 }

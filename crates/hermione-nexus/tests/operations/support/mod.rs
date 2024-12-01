@@ -15,6 +15,50 @@ use hermione_nexus::definitions::{
     NotionBackupCredentialsParameters, Workspace, WorkspaceId, WorkspaceParameters,
 };
 use table::Table;
+use uuid::Uuid;
+
+pub struct ExistingWorkspace<'a> {
+    pub id: &'a str,
+    pub last_access_time: Option<&'a str>,
+    pub location: Option<&'a str>,
+    pub name: &'a str,
+}
+
+pub struct ExpectedWorkspace<'a> {
+    pub id: &'a str,
+    pub last_access_time: Option<&'a str>,
+    pub location: Option<&'a str>,
+    pub name: &'a str,
+}
+
+impl<'a> ExpectedWorkspace<'a> {
+    pub fn id(&self) -> WorkspaceId {
+        parse_workspace_id(self.id)
+    }
+}
+
+pub fn assert_system_location(system: &MockSystem, expected: &str) {
+    let location = system.location.read().unwrap().clone();
+
+    assert_eq!(location.as_deref(), Some(expected));
+}
+
+pub fn assert_workspaces(workspaces: Vec<Workspace>, expected_workspaces: Vec<ExpectedWorkspace>) {
+    assert_eq!(workspaces.len(), expected_workspaces.len());
+
+    for (index, expected_workspace) in expected_workspaces.into_iter().enumerate() {
+        assert_workspace_new(workspaces[index].clone(), expected_workspace);
+    }
+}
+
+pub fn assert_workspace_new(workspace: Workspace, expected: ExpectedWorkspace) {
+    let expected = Workspace::from(expected);
+
+    assert_eq!(workspace.id(), expected.id());
+    assert_eq!(workspace.name(), expected.name());
+    assert_eq!(workspace.location(), expected.location());
+    assert_eq!(workspace.last_access_time(), expected.last_access_time(),);
+}
 
 pub fn assert_clipboard_content(system: &MockSystem, expected_clipboard_content: &str) {
     let content = get_clipboard_content(system);
@@ -190,13 +234,11 @@ pub fn get_last_executed_program(system: &MockSystem) -> Option<String> {
 }
 
 pub fn get_workspace(storage: &InMemoryStorage, id: WorkspaceId) -> Workspace {
-    storage
-        .workspaces
-        .read()
-        .expect("Should be able to get workspace")
-        .get(&id)
-        .cloned()
-        .unwrap_or_else(|| panic!("Workspace {} should exist", id))
+    maybe_get_workspace(storage, id).unwrap_or_else(|| panic!("Workspace {} should exist", id))
+}
+
+pub fn maybe_get_workspace(storage: &InMemoryStorage, id: WorkspaceId) -> Option<Workspace> {
+    storage.workspaces.read().unwrap().get(&id).cloned()
 }
 
 pub fn insert_command(storage: &InMemoryStorage, parameters: Table) {
@@ -278,12 +320,20 @@ pub fn insert_notion_workspace(storage: &MockNotionStorage, parameters: Table) {
         .insert(external_id.to_string(), entry);
 }
 
-pub fn insert_raw_workspace(storage: &InMemoryStorage, workspace: Workspace) {
+pub fn insert_workspace_new(storage: &InMemoryStorage, existing: ExistingWorkspace) {
+    let workspace = Workspace::from(existing);
+
     storage
         .workspaces
         .write()
         .unwrap()
         .insert(workspace.id(), workspace);
+}
+
+pub fn insert_workspaces(storage: &InMemoryStorage, workspaces: Vec<ExistingWorkspace>) {
+    for workspace in workspaces {
+        insert_workspace_new(storage, workspace);
+    }
 }
 
 pub fn insert_workspace(storage: &InMemoryStorage, parameters: Table) {
@@ -300,7 +350,11 @@ pub fn insert_workspace(storage: &InMemoryStorage, parameters: Table) {
     })
     .expect("Workspace should be valid");
 
-    insert_raw_workspace(storage, workspace);
+    storage
+        .workspaces
+        .write()
+        .unwrap()
+        .insert(workspace.id(), workspace);
 }
 
 pub fn freeze_storage_time(storage: &InMemoryStorage, time: DateTime<Utc>) {
@@ -320,4 +374,50 @@ pub fn parse_time(value: &str) -> DateTime<Utc> {
     NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S")
         .unwrap()
         .and_utc()
+}
+
+pub fn parse_uuid(value: &str) -> Uuid {
+    Uuid::parse_str(value).unwrap()
+}
+
+pub fn parse_workspace_id(value: &str) -> WorkspaceId {
+    WorkspaceId::parse_str(value).unwrap()
+}
+
+impl<'a> From<ExistingWorkspace<'a>> for Workspace {
+    fn from(value: ExistingWorkspace) -> Self {
+        let ExistingWorkspace {
+            id,
+            name,
+            location,
+            last_access_time,
+        } = value;
+
+        Workspace::new(WorkspaceParameters {
+            id: parse_uuid(id),
+            name: name.to_string(),
+            location: location.map(ToString::to_string),
+            last_access_time: maybe_parse_time(last_access_time),
+        })
+        .unwrap()
+    }
+}
+
+impl<'a> From<ExpectedWorkspace<'a>> for Workspace {
+    fn from(value: ExpectedWorkspace) -> Self {
+        let ExpectedWorkspace {
+            id,
+            name,
+            location,
+            last_access_time,
+        } = value;
+
+        Workspace::new(WorkspaceParameters {
+            id: parse_uuid(id),
+            name: name.to_string(),
+            location: location.map(ToString::to_string),
+            last_access_time: maybe_parse_time(last_access_time),
+        })
+        .unwrap()
+    }
 }

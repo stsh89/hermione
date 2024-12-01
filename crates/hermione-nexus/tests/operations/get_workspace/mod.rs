@@ -1,7 +1,7 @@
 mod test_case;
 
-use crate::support::InMemoryStorage;
-use test_case::{Background, ExistingWorkspace, ExpectedOperationResult, ExpectedWorkspace};
+use crate::support::{ExistingWorkspace, ExpectedWorkspace, InMemoryStorage};
+use test_case::{Background, ExpectedOperationResult};
 
 #[test]
 fn test_get_workspace_operation_succeded() {

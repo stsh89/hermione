@@ -1,8 +1,8 @@
 mod test_case;
 
-use crate::support::InMemoryStorage;
+use crate::support::{ExpectedWorkspace, InMemoryStorage};
 use hermione_nexus::operations::CreateWorkspaceParameters;
-use test_case::{Background, ExpectedOperationResult, ExpectedStoredWorkspace, ExpectedWorkspace};
+use test_case::Background;
 
 #[test]
 fn test_create_workspace_operation_succeded() {
@@ -10,28 +10,32 @@ fn test_create_workspace_operation_succeded() {
         storage: InMemoryStorage::empty(),
     };
 
-    let operation_result = test_case::execute_operation(
+    let Ok(workspace) = test_case::execute_operation(
         &background,
         CreateWorkspaceParameters {
             name: "Ironman".to_string(),
             location: Some("/home/ironman".to_string()),
         },
-    );
+    ) else {
+        panic!("Should be able to create workspace");
+    };
 
-    test_case::assert_operation_result(
-        operation_result,
-        ExpectedOperationResult::Success {
-            expected_workspace: ExpectedWorkspace {
-                name: "Ironman",
-                location: Some("/home/ironman"),
-                last_access_time: None,
-            },
+    let id = workspace.id().as_uuid().to_string();
+
+    test_case::assert_returned_workspace(
+        workspace,
+        ExpectedWorkspace {
+            id: &id,
+            name: "Ironman",
+            location: Some("/home/ironman"),
+            last_access_time: None,
         },
     );
 
     test_case::assert_storage_contains_workspace(
         &background.storage,
-        ExpectedStoredWorkspace {
+        ExpectedWorkspace {
+            id: &id,
             name: "Ironman",
             location: Some("/home/ironman"),
             last_access_time: None,

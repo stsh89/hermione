@@ -8,6 +8,8 @@ mod workspaces;
 mod create_workspace;
 mod delete_workspace;
 mod get_workspace;
+mod list_workspaces;
+mod visit_workspace_location;
 
 pub mod prelude {
     pub use crate::support::table::*;
