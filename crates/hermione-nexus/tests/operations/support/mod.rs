@@ -65,12 +65,22 @@ pub fn assert_system_location(system: &MockSystem, expected: &str) {
     assert_eq!(location.as_deref(), Some(expected));
 }
 
+pub fn assert_commands(commands: Vec<Command>, expected_commands: Vec<ExpectedCommand>) {
+    assert_eq!(commands.len(), expected_commands.len());
+
+    expected_commands
+        .into_iter()
+        .zip(commands)
+        .for_each(|(expected, command)| assert_command_new(command, expected));
+}
+
 pub fn assert_workspaces(workspaces: Vec<Workspace>, expected_workspaces: Vec<ExpectedWorkspace>) {
     assert_eq!(workspaces.len(), expected_workspaces.len());
 
-    for (index, expected_workspace) in expected_workspaces.into_iter().enumerate() {
-        assert_workspace_new(workspaces[index].clone(), expected_workspace);
-    }
+    expected_workspaces
+        .into_iter()
+        .zip(workspaces)
+        .for_each(|(expected, workspace)| assert_workspace_new(workspace, expected));
 }
 
 pub fn assert_command_new(command: Command, expected: ExpectedCommand) {
@@ -369,10 +379,16 @@ pub fn insert_command_new(storage: &InMemoryStorage, existing: ExistingCommand) 
         .insert(command.id(), command);
 }
 
+pub fn insert_commands(storage: &InMemoryStorage, commands: Vec<ExistingCommand>) {
+    commands
+        .into_iter()
+        .for_each(|command| insert_command_new(storage, command));
+}
+
 pub fn insert_workspaces(storage: &InMemoryStorage, workspaces: Vec<ExistingWorkspace>) {
-    for workspace in workspaces {
-        insert_workspace_new(storage, workspace);
-    }
+    workspaces
+        .into_iter()
+        .for_each(|workspace| insert_workspace_new(storage, workspace));
 }
 
 pub fn insert_workspace(storage: &InMemoryStorage, parameters: Table) {
