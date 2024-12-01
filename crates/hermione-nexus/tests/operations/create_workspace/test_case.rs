@@ -13,8 +13,8 @@ pub fn assert_returned_workspace(workspace: Workspace, expected: ExpectedWorkspa
     support::assert_workspace_new(workspace, expected)
 }
 
-pub fn assert_storage_contains_workspace(storage: &InMemoryStorage, expected: ExpectedWorkspace) {
-    let workspace = support::get_workspace(storage, expected.id());
+pub fn assert_storage_contains_workspace(background: &Background, expected: ExpectedWorkspace) {
+    let workspace = support::get_workspace(&background.storage, expected.id());
 
     support::assert_workspace_new(workspace, expected);
 }

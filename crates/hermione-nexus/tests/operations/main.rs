@@ -4,8 +4,12 @@ pub mod support;
 mod backup;
 mod commands;
 
+mod create_command;
 mod create_workspace;
+mod delete_command;
+mod delete_commands;
 mod delete_workspace;
+mod get_command;
 mod get_workspace;
 mod list_workspaces;
 mod update_workspace;

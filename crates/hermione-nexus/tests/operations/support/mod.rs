@@ -17,6 +17,14 @@ use hermione_nexus::definitions::{
 use table::Table;
 use uuid::Uuid;
 
+pub struct ExistingCommand<'a> {
+    pub id: &'a str,
+    pub name: &'a str,
+    pub program: &'a str,
+    pub last_execute_time: Option<&'a str>,
+    pub workspace_id: &'a str,
+}
+
 pub struct ExistingWorkspace<'a> {
     pub id: &'a str,
     pub last_access_time: Option<&'a str>,
@@ -24,11 +32,25 @@ pub struct ExistingWorkspace<'a> {
     pub name: &'a str,
 }
 
+pub struct ExpectedCommand<'a> {
+    pub id: &'a str,
+    pub name: &'a str,
+    pub program: &'a str,
+    pub last_execute_time: Option<&'a str>,
+    pub workspace_id: &'a str,
+}
+
 pub struct ExpectedWorkspace<'a> {
     pub id: &'a str,
     pub last_access_time: Option<&'a str>,
     pub location: Option<&'a str>,
     pub name: &'a str,
+}
+
+impl<'a> ExpectedCommand<'a> {
+    pub fn id(&self) -> CommandId {
+        parse_command_id(self.id)
+    }
 }
 
 impl<'a> ExpectedWorkspace<'a> {
@@ -49,6 +71,15 @@ pub fn assert_workspaces(workspaces: Vec<Workspace>, expected_workspaces: Vec<Ex
     for (index, expected_workspace) in expected_workspaces.into_iter().enumerate() {
         assert_workspace_new(workspaces[index].clone(), expected_workspace);
     }
+}
+
+pub fn assert_command_new(command: Command, expected: ExpectedCommand) {
+    let expected = Command::from(expected);
+
+    assert_eq!(command.id(), expected.id());
+    assert_eq!(command.name(), expected.name());
+    assert_eq!(command.program(), expected.program());
+    assert_eq!(command.last_execute_time(), expected.last_execute_time(),);
 }
 
 pub fn assert_workspace_new(workspace: Workspace, expected: ExpectedWorkspace) {
@@ -177,16 +208,6 @@ pub fn get_clipboard_content(system: &MockSystem) -> Option<String> {
     system.clipboard.read().unwrap().clone()
 }
 
-pub fn get_command(storage: &InMemoryStorage, id: CommandId) -> Command {
-    storage
-        .commands
-        .read()
-        .expect("Should be able to get command")
-        .get(&id)
-        .cloned()
-        .unwrap_or_else(|| panic!("Command {} should exist", id))
-}
-
 pub fn get_notion_backup_credentials(storage: &InMemoryStorage) -> BackupCredentials {
     storage
         .backup_credentials
@@ -231,6 +252,14 @@ pub fn get_last_executed_program(system: &MockSystem) -> Option<String> {
         .read()
         .expect("Should be able to get system program")
         .clone()
+}
+
+pub fn get_command(storage: &InMemoryStorage, id: CommandId) -> Command {
+    maybe_get_command(storage, id).unwrap_or_else(|| panic!("Command {} should exist", id))
+}
+
+pub fn maybe_get_command(storage: &InMemoryStorage, id: CommandId) -> Option<Command> {
+    storage.commands.read().unwrap().get(&id).cloned()
 }
 
 pub fn get_workspace(storage: &InMemoryStorage, id: WorkspaceId) -> Workspace {
@@ -330,6 +359,16 @@ pub fn insert_workspace_new(storage: &InMemoryStorage, existing: ExistingWorkspa
         .insert(workspace.id(), workspace);
 }
 
+pub fn insert_command_new(storage: &InMemoryStorage, existing: ExistingCommand) {
+    let command = Command::from(existing);
+
+    storage
+        .commands
+        .write()
+        .unwrap()
+        .insert(command.id(), command);
+}
+
 pub fn insert_workspaces(storage: &InMemoryStorage, workspaces: Vec<ExistingWorkspace>) {
     for workspace in workspaces {
         insert_workspace_new(storage, workspace);
@@ -380,8 +419,33 @@ pub fn parse_uuid(value: &str) -> Uuid {
     Uuid::parse_str(value).unwrap()
 }
 
+pub fn parse_command_id(value: &str) -> CommandId {
+    CommandId::parse_str(value).unwrap()
+}
+
 pub fn parse_workspace_id(value: &str) -> WorkspaceId {
     WorkspaceId::parse_str(value).unwrap()
+}
+
+impl<'a> From<ExistingCommand<'a>> for Command {
+    fn from(value: ExistingCommand) -> Self {
+        let ExistingCommand {
+            id,
+            name,
+            program,
+            workspace_id,
+            last_execute_time,
+        } = value;
+
+        Command::new(CommandParameters {
+            id: parse_uuid(id),
+            name: name.to_string(),
+            program: program.to_string(),
+            workspace_id: parse_workspace_id(workspace_id),
+            last_execute_time: maybe_parse_time(last_execute_time),
+        })
+        .unwrap()
+    }
 }
 
 impl<'a> From<ExistingWorkspace<'a>> for Workspace {
@@ -417,6 +481,27 @@ impl<'a> From<ExpectedWorkspace<'a>> for Workspace {
             name: name.to_string(),
             location: location.map(ToString::to_string),
             last_access_time: maybe_parse_time(last_access_time),
+        })
+        .unwrap()
+    }
+}
+
+impl<'a> From<ExpectedCommand<'a>> for Command {
+    fn from(value: ExpectedCommand) -> Self {
+        let ExpectedCommand {
+            id,
+            name,
+            program,
+            last_execute_time,
+            workspace_id,
+        } = value;
+
+        Command::new(CommandParameters {
+            id: parse_uuid(id),
+            name: name.to_string(),
+            program: program.to_string(),
+            last_execute_time: maybe_parse_time(last_execute_time),
+            workspace_id: parse_workspace_id(workspace_id),
         })
         .unwrap()
     }

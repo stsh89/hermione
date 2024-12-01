@@ -10,15 +10,13 @@ fn test_create_workspace_operation_succeeds() {
         storage: InMemoryStorage::empty(),
     };
 
-    let Ok(workspace) = test_case::execute_operation(
+    let workspace = test_case::execute_operation(
         &background,
         CreateWorkspaceParameters {
             name: "Ironman".to_string(),
             location: Some("/home/ironman".to_string()),
         },
-    ) else {
-        panic!("Should be able to create workspace");
-    };
+    ).unwrap();
 
     let id = workspace.id().as_uuid().to_string();
 
@@ -33,7 +31,7 @@ fn test_create_workspace_operation_succeeds() {
     );
 
     test_case::assert_storage_contains_workspace(
-        &background.storage,
+        &background,
         ExpectedWorkspace {
             id: &id,
             name: "Ironman",
