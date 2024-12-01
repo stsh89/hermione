@@ -1,5 +1,8 @@
 use crate::support::{self, ExistingCommand, ExistingWorkspace, InMemoryStorage};
-use hermione_nexus::{operations::{DeleteCommandsOperation, DeleteCommandsParameters}, Result};
+use hermione_nexus::{
+    operations::{DeleteCommandsOperation, DeleteCommandsParameters},
+    Result,
+};
 
 pub struct Background {
     pub storage: InMemoryStorage,
@@ -24,7 +27,10 @@ pub fn assert_storage_does_not_contain_command(background: &Background, command_
     assert!(command.is_none());
 }
 
-pub fn execute_operation(backgournd: &Background, parameters: DeleteCommandsParameters) -> Result<()> {
+pub fn execute_operation(
+    backgournd: &Background,
+    parameters: DeleteCommandsParameters,
+) -> Result<()> {
     let Background { storage } = backgournd;
 
     DeleteCommandsOperation {

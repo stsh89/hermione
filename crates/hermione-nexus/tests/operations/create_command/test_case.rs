@@ -1,7 +1,9 @@
-use hermione_nexus::{
-    definitions::Command, operations::{CreateCommandOperation, CreateCommandParameters}, Error
-};
 use crate::support::{self, ExistingWorkspace, ExpectedCommand, InMemoryStorage};
+use hermione_nexus::{
+    definitions::Command,
+    operations::{CreateCommandOperation, CreateCommandParameters},
+    Error,
+};
 
 pub struct Background {
     pub storage: InMemoryStorage,
@@ -17,7 +19,10 @@ pub fn assert_storage_contains_command(background: &Background, expected: Expect
     support::assert_command_new(command, expected);
 }
 
-pub fn execute_operation(background: &Background, parameters: CreateCommandParameters) -> Result<Command, Error>{
+pub fn execute_operation(
+    background: &Background,
+    parameters: CreateCommandParameters,
+) -> Result<Command, Error> {
     let Background { storage } = background;
 
     CreateCommandOperation {

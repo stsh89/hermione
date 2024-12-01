@@ -16,7 +16,8 @@ fn test_create_workspace_operation_succeeds() {
             name: "Ironman".to_string(),
             location: Some("/home/ironman".to_string()),
         },
-    ).unwrap();
+    )
+    .unwrap();
 
     let id = workspace.id().as_uuid().to_string();
 
