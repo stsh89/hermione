@@ -4,7 +4,7 @@ use crate::support::{ExistingWorkspace, InMemoryStorage};
 use test_case::Background;
 
 #[test]
-fn test_delete_workspace_operation_succeded() {
+fn test_delete_workspace_operation_succeeds() {
     let background = Background {
         storage: InMemoryStorage::empty(),
     };

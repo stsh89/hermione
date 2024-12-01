@@ -4,7 +4,7 @@ use crate::support::{ExistingWorkspace, ExpectedWorkspace, InMemoryStorage};
 use test_case::{Background, ExpectedOperationResult};
 
 #[test]
-fn test_get_workspace_operation_succeded() {
+fn test_get_workspace_operation_succeeds() {
     let background = Background {
         storage: InMemoryStorage::empty(),
     };

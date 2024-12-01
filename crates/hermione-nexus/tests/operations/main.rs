@@ -3,12 +3,12 @@ pub mod support;
 
 mod backup;
 mod commands;
-mod workspaces;
 
 mod create_workspace;
 mod delete_workspace;
 mod get_workspace;
 mod list_workspaces;
+mod update_workspace;
 mod visit_workspace_location;
 
 pub mod prelude {
