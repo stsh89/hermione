@@ -1,4 +1,4 @@
-use crate::support::{ExistingWorkspace, InMemoryStorage, MockSystem};
+use crate::support::{InMemoryStorage, MockSystem, WorkspaceFixture};
 use test_case::Background;
 
 mod test_case;
@@ -12,7 +12,7 @@ fn test_visit_workspace_operation_succeds() {
 
     test_case::setup(
         &background,
-        ExistingWorkspace {
+        WorkspaceFixture {
             id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
             name: "Ironman",
             location: Some("/home/ironman"),

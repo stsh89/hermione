@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingCommand, ExistingWorkspace, ExpectedCommand, InMemoryStorage};
+use crate::support::{self, CommandFixture, ExpectedCommand, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::{
     definitions::Command,
     operations::{ListCommandsOperation, ListCommandsParameters},
@@ -10,8 +10,8 @@ pub struct Background {
 }
 
 pub struct BackgroundContext<'a> {
-    pub workspace: ExistingWorkspace<'a>,
-    pub commands: Vec<ExistingCommand<'a>>,
+    pub workspace: WorkspaceFixture<'a>,
+    pub commands: Vec<CommandFixture<'a>>,
 }
 
 pub enum ExpectedOperationResult<'a> {
@@ -49,6 +49,6 @@ pub fn setup(backgound: &Background, context: BackgroundContext) {
         commands,
     } = context;
 
-    support::insert_workspace_new(storage, workspace);
+    support::insert_workspace(storage, workspace);
     support::insert_commands(storage, commands);
 }

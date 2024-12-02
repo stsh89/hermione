@@ -1,6 +1,6 @@
 mod test_case;
 
-use crate::support::{ExistingWorkspace, ExpectedWorkspace, InMemoryStorage};
+use crate::support::{ExpectedWorkspace, InMemoryStorage, WorkspaceFixture};
 use test_case::{Background, ExpectedOperationResult};
 
 #[test]
@@ -11,7 +11,7 @@ fn test_get_workspace_operation_succeeds() {
 
     test_case::setup(
         &background,
-        ExistingWorkspace {
+        WorkspaceFixture {
             id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
             name: "Ironman",
             location: Some("/home/ironman"),

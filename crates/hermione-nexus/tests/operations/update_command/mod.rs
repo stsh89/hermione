@@ -1,6 +1,6 @@
 mod test_case;
 
-use crate::support::{self, ExistingCommand, ExistingWorkspace, ExpectedCommand, InMemoryStorage};
+use crate::support::{self, CommandFixture, ExpectedCommand, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::operations::UpdateCommandParameters;
 use test_case::{Background, ExistingStorageData, OperationResult};
 
@@ -13,13 +13,13 @@ fn test_update_command_operation_succeeds() {
     test_case::setup(
         &background,
         ExistingStorageData {
-            workspace: ExistingWorkspace {
+            workspace: WorkspaceFixture {
                 id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 name: "Ironman",
                 last_access_time: None,
                 location: None,
             },
-            command: ExistingCommand {
+            command: CommandFixture {
                 id: "51280bfc-2eea-444a-8df9-a1e7158c2c6b",
                 name: "Ping",
                 program: "ping 1.1.1.1",

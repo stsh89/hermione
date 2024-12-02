@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingWorkspace, ExpectedWorkspace, InMemoryStorage};
+use crate::support::{self, ExpectedWorkspace, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::{definitions::Workspace, operations::GetWorkspaceOperation, Result};
 
 pub struct Background {
@@ -15,7 +15,7 @@ pub fn assert_operation_result(result: Result<Workspace>, expected: ExpectedOper
     match expected {
         ExpectedOperationResult::Success { expected_workspace } => {
             assert!(result.is_ok());
-            support::assert_workspace_new(result.unwrap(), expected_workspace)
+            support::assert_workspace(result.unwrap(), expected_workspace)
         }
     }
 }
@@ -26,8 +26,8 @@ pub fn execute_operation(backgound: &Background, workspace_id: &str) -> Result<W
     GetWorkspaceOperation { provider: storage }.execute(support::parse_workspace_id(workspace_id))
 }
 
-pub fn setup(backgound: &Background, workspace: ExistingWorkspace) {
+pub fn setup(backgound: &Background, workspace: WorkspaceFixture) {
     let Background { storage } = backgound;
 
-    support::insert_workspace_new(storage, workspace);
+    support::insert_workspace(storage, workspace);
 }

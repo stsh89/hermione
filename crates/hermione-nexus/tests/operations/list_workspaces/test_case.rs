@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingWorkspace, ExpectedWorkspace, InMemoryStorage};
+use crate::support::{self, ExpectedWorkspace, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::{
     definitions::Workspace,
     operations::{ListWorkspacesOperation, ListWorkspacesParameters},
@@ -38,7 +38,7 @@ pub fn execute_operation(
     ListWorkspacesOperation { provider: storage }.execute(parameters)
 }
 
-pub fn setup(backgound: &Background, workspaces: Vec<ExistingWorkspace>) {
+pub fn setup(backgound: &Background, workspaces: Vec<WorkspaceFixture>) {
     let Background { storage } = backgound;
 
     support::insert_workspaces(storage, workspaces);

@@ -1,6 +1,6 @@
 mod test_case;
 
-use crate::support::{ExistingWorkspace, InMemoryStorage};
+use crate::support::{InMemoryStorage, WorkspaceFixture};
 use test_case::Background;
 
 #[test]
@@ -11,7 +11,7 @@ fn test_delete_workspace_operation_succeeds() {
 
     test_case::setup(
         &background,
-        ExistingWorkspace {
+        WorkspaceFixture {
             id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
             name: "Ironman",
             last_access_time: None,

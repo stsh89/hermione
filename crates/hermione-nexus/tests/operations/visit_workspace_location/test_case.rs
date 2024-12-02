@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingWorkspace, InMemoryStorage, MockSystem};
+use crate::support::{self, InMemoryStorage, MockSystem, WorkspaceFixture};
 use hermione_nexus::{operations::VisitWorkspaceLocationOperation, Error};
 
 pub struct Background {
@@ -11,11 +11,11 @@ pub fn assert_operation_success(operation_result: Result<(), Error>) {
 }
 
 pub fn assert_system_location_changed(background: &Background, expected: &str) {
-    support::assert_system_location(&background.system, expected);
+    support::assert_file_system_location(&background.system, expected);
 }
 
-pub fn setup(background: &Background, workspace: ExistingWorkspace) {
-    support::insert_workspace_new(&background.storage, workspace);
+pub fn setup(background: &Background, workspace: WorkspaceFixture) {
+    support::insert_workspace(&background.storage, workspace);
 }
 
 pub fn execute_operation(background: &Background, workspace_id: &str) -> Result<(), Error> {

@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingWorkspace, InMemoryStorage};
+use crate::support::{self, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::{operations::DeleteWorkspaceOperation, Result};
 
 pub struct Background {
@@ -28,8 +28,8 @@ pub fn execute_operation(backgournd: &Background, workspace_id: &str) -> Result<
     .execute(support::parse_workspace_id(workspace_id))
 }
 
-pub fn setup(backgournd: &Background, workspace: ExistingWorkspace) {
+pub fn setup(backgournd: &Background, workspace: WorkspaceFixture) {
     let Background { storage } = backgournd;
 
-    support::insert_workspace_new(storage, workspace);
+    support::insert_workspace(storage, workspace);
 }

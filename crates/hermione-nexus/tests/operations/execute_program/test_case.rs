@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingWorkspace, InMemoryStorage, MockSystem};
+use crate::support::{self, InMemoryStorage, MockSystem, WorkspaceFixture};
 use hermione_nexus::{
     operations::{ExecuteProgramOperation, ExecuteProgramParameters},
     Error,
@@ -38,8 +38,8 @@ pub fn execute_operation(
     .execute(parameters)
 }
 
-pub fn setup(backgound: &Background, workspace: ExistingWorkspace) {
+pub fn setup(backgound: &Background, workspace: WorkspaceFixture) {
     let Background { storage, system: _ } = backgound;
 
-    support::insert_workspace_new(storage, workspace);
+    support::insert_workspace(storage, workspace);
 }

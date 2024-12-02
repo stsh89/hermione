@@ -1,6 +1,6 @@
 mod test_case;
 
-use crate::support::{ExistingCommand, ExistingWorkspace, ExpectedCommand, InMemoryStorage};
+use crate::support::{CommandFixture, ExpectedCommand, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::operations::ListCommandsParameters;
 use std::num::NonZeroU32;
 use test_case::{Background, BackgroundContext, ExpectedOperationResult};
@@ -14,21 +14,21 @@ fn test_list_commands_operation_filteres_by_program() {
     test_case::setup(
         &background,
         BackgroundContext {
-            workspace: ExistingWorkspace {
+            workspace: WorkspaceFixture {
                 id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 name: "Ironman",
                 location: Some("/home/ironman"),
                 last_access_time: None,
             },
             commands: vec![
-                ExistingCommand {
+                CommandFixture {
                     id: "51280bfc-2eea-444a-8df9-a1e7158c2c6b",
                     name: "Ping",
                     program: "ping 1.1.1.1",
                     last_execute_time: None,
                     workspace_id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 },
-                ExistingCommand {
+                CommandFixture {
                     id: "51280bfc-2eea-444a-8df9-a1e7158c2c6b",
                     name: "Get directory items",
                     program: "GetChild-Item .",
@@ -72,35 +72,35 @@ fn test_list_commands_operation_paginates() {
     test_case::setup(
         &background,
         BackgroundContext {
-            workspace: ExistingWorkspace {
+            workspace: WorkspaceFixture {
                 id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 name: "Ironman",
                 location: Some("/home/ironman"),
                 last_access_time: None,
             },
             commands: vec![
-                ExistingCommand {
+                CommandFixture {
                     id: "51280bfc-2eea-444a-8df9-a1e7158c2c6b",
                     name: "Ping",
                     program: "ping 1.1.1.1",
                     last_execute_time: None,
                     workspace_id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 },
-                ExistingCommand {
+                CommandFixture {
                     id: "657acc69-aafe-426d-8496-9859bc40ca62",
                     name: "Get directory items",
                     program: "getchild-item .",
                     last_execute_time: None,
                     workspace_id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 },
-                ExistingCommand {
+                CommandFixture {
                     id: "1d0c6b79-2ea9-4291-85bf-84b9412c3a52",
                     name: "Generate new UUID",
                     program: "new-guid",
                     last_execute_time: Some("2024-11-17 11:00:00"),
                     workspace_id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 },
-                ExistingCommand {
+                CommandFixture {
                     id: "12fe0231-2850-4f9b-b11c-844147f50b3d",
                     name: "Lint Rust codebase",
                     program: "becon",

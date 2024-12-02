@@ -1,6 +1,6 @@
 mod test_case;
 
-use crate::support::{self, ExistingWorkspace, ExpectedWorkspace, InMemoryStorage};
+use crate::support::{self, ExpectedWorkspace, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::operations::UpdateWorkspaceParameters;
 use test_case::{Background, OperationResult};
 
@@ -12,7 +12,7 @@ fn test_update_workspace_operation_succeeds() {
 
     test_case::setup(
         &background,
-        ExistingWorkspace {
+        WorkspaceFixture {
             id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
             name: "Ironman",
             location: Some("/home/ironman"),

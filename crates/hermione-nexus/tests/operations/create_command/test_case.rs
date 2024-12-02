@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingWorkspace, ExpectedCommand, InMemoryStorage};
+use crate::support::{self, ExpectedCommand, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::{
     definitions::Command,
     operations::{CreateCommandOperation, CreateCommandParameters},
@@ -10,13 +10,13 @@ pub struct Background {
 }
 
 pub fn assert_returned_command(command: Command, expected: ExpectedCommand) {
-    support::assert_command_new(command, expected);
+    support::assert_command(command, expected);
 }
 
 pub fn assert_storage_contains_command(background: &Background, expected: ExpectedCommand) {
     let command = support::get_command(&background.storage, expected.id());
 
-    support::assert_command_new(command, expected);
+    support::assert_command(command, expected);
 }
 
 pub fn execute_operation(
@@ -31,8 +31,8 @@ pub fn execute_operation(
     .execute(parameters)
 }
 
-pub fn setup(backgound: &Background, workspace: ExistingWorkspace) {
+pub fn setup(backgound: &Background, workspace: WorkspaceFixture) {
     let Background { storage } = backgound;
 
-    support::insert_workspace_new(storage, workspace);
+    support::insert_workspace(storage, workspace);
 }

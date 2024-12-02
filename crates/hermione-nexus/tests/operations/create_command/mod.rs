@@ -1,6 +1,6 @@
 mod test_case;
 
-use crate::support::{self, ExistingWorkspace, ExpectedCommand, InMemoryStorage};
+use crate::support::{self, ExpectedCommand, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::operations::CreateCommandParameters;
 use test_case::Background;
 
@@ -12,7 +12,7 @@ fn test_create_command_operation_succeeds() {
 
     test_case::setup(
         &background,
-        ExistingWorkspace {
+        WorkspaceFixture {
             id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
             last_access_time: None,
             location: None,

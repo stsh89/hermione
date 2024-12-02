@@ -2,7 +2,7 @@ mod test_case;
 
 use std::num::NonZeroU32;
 
-use crate::support::{ExistingWorkspace, ExpectedWorkspace, InMemoryStorage};
+use crate::support::{ExpectedWorkspace, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::operations::ListWorkspacesParameters;
 use test_case::{Background, ExpectedOperationResult};
 
@@ -15,13 +15,13 @@ fn test_list_workspace_operation_returns_workspace_filtered_by_name() {
     test_case::setup(
         &background,
         vec![
-            ExistingWorkspace {
+            WorkspaceFixture {
                 id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 name: "Ironman",
                 location: Some("/home/ironman"),
                 last_access_time: None,
             },
-            ExistingWorkspace {
+            WorkspaceFixture {
                 id: "637d207c-7a18-47eb-b0b4-7f27d4ecbf88",
                 name: "Avenger",
                 location: None,
@@ -61,25 +61,25 @@ fn test_list_workspace_operation_paginates_workspaces() {
     test_case::setup(
         &background,
         vec![
-            ExistingWorkspace {
+            WorkspaceFixture {
                 id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 name: "Ironman",
                 location: Some("/home/ironman"),
                 last_access_time: None,
             },
-            ExistingWorkspace {
+            WorkspaceFixture {
                 id: "637d207c-7a18-47eb-b0b4-7f27d4ecbf88",
                 name: "Avenger",
                 location: None,
                 last_access_time: None,
             },
-            ExistingWorkspace {
+            WorkspaceFixture {
                 id: "19e0f51f-efaa-4b22-a35d-17c37f350823",
                 location: Some("/home/batman"),
                 name: "Batman",
                 last_access_time: Some("2024-11-17 20:00:00"),
             },
-            ExistingWorkspace {
+            WorkspaceFixture {
                 id: "d9469304-ec44-4c84-8612-7ba3c27b9e29",
                 location: Some("/home/vision"),
                 name: "Vision",
@@ -127,19 +127,19 @@ fn test_list_workspace_operation_sorts_workspaces_by_last_access_time_and_name()
     test_case::setup(
         &background,
         vec![
-            ExistingWorkspace {
+            WorkspaceFixture {
                 id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 name: "Ironman",
                 location: Some("/home/ironman"),
                 last_access_time: None,
             },
-            ExistingWorkspace {
+            WorkspaceFixture {
                 id: "637d207c-7a18-47eb-b0b4-7f27d4ecbf88",
                 name: "Avenger",
                 location: None,
                 last_access_time: None,
             },
-            ExistingWorkspace {
+            WorkspaceFixture {
                 id: "19e0f51f-efaa-4b22-a35d-17c37f350823",
                 location: Some("/home/batman"),
                 name: "Batman",

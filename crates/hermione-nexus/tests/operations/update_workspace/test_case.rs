@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingWorkspace, ExpectedWorkspace, InMemoryStorage};
+use crate::support::{self, ExpectedWorkspace, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::{
     definitions::Workspace,
     operations::{UpdateWorkspaceOperation, UpdateWorkspaceParameters},
@@ -22,7 +22,7 @@ pub fn assert_operation_succeess(
     match expected {
         OperationResult::Success { expected_workspace } => {
             assert!(operation_result.is_ok());
-            support::assert_workspace_new(operation_result.unwrap(), expected_workspace);
+            support::assert_workspace(operation_result.unwrap(), expected_workspace);
         }
     }
 }
@@ -40,6 +40,6 @@ pub fn execute_operation(
     .execute(parameters)
 }
 
-pub fn setup(background: &Background, workspace: ExistingWorkspace) {
-    support::insert_workspace_new(&background.storage, workspace);
+pub fn setup(background: &Background, workspace: WorkspaceFixture) {
+    support::insert_workspace(&background.storage, workspace);
 }

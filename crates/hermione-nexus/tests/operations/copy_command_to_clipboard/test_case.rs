@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingCommand, ExistingWorkspace, InMemoryStorage, MockSystem};
+use crate::support::{self, CommandFixture, InMemoryStorage, MockSystem, WorkspaceFixture};
 use hermione_nexus::{operations::CopyCommandToClipboardOperation, Error};
 
 pub struct Background {
@@ -7,8 +7,8 @@ pub struct Background {
 }
 
 pub struct BackgroundContext<'a> {
-    pub command: ExistingCommand<'a>,
-    pub workspace: ExistingWorkspace<'a>,
+    pub command: CommandFixture<'a>,
+    pub workspace: WorkspaceFixture<'a>,
 }
 
 pub fn assert_clipboard_content(backgound: &Background, expected: &str) {
@@ -36,6 +36,6 @@ pub fn setup(backgound: &Background, context: BackgroundContext) {
 
     let BackgroundContext { command, workspace } = context;
 
-    support::insert_workspace_new(storage, workspace);
-    support::insert_command_new(storage, command);
+    support::insert_workspace(storage, workspace);
+    support::insert_command(storage, command);
 }

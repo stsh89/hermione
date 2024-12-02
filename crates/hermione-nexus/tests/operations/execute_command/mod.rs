@@ -1,8 +1,8 @@
 mod test_case;
 
 use crate::support::{
-    ExistingCommand, ExistingWorkspace, ExpectedCommand, ExpectedWorkspace, InMemoryStorage,
-    MockSystem,
+    CommandFixture, ExpectedCommand, ExpectedWorkspace, InMemoryStorage, MockSystem,
+    WorkspaceFixture,
 };
 use test_case::{
     Background, BackgroundContext, ExpectedOperationResult, ExpectedStorageState,
@@ -19,13 +19,13 @@ fn test_execute_command_operation_succeeds() {
     test_case::setup(
         &background,
         BackgroundContext {
-            workspace: ExistingWorkspace {
+            workspace: WorkspaceFixture {
                 id: "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
                 name: "Ironman",
                 last_access_time: None,
                 location: Some("/home/ironman"),
             },
-            command: ExistingCommand {
+            command: CommandFixture {
                 id: "51280bfc-2eea-444a-8df9-a1e7158c2c6b",
                 name: "Ping",
                 program: "ping 1.1.1.1",

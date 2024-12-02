@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingCommand, ExistingWorkspace, InMemoryStorage};
+use crate::support::{self, CommandFixture, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::{
     operations::{DeleteCommandsOperation, DeleteCommandsParameters},
     Result,
@@ -9,8 +9,8 @@ pub struct Background {
 }
 
 pub struct ExistingStorageData<'a> {
-    pub workspace: ExistingWorkspace<'a>,
-    pub command: ExistingCommand<'a>,
+    pub workspace: WorkspaceFixture<'a>,
+    pub command: CommandFixture<'a>,
 }
 
 pub fn assert_operation_success(operation_result: Result<()>) {
@@ -44,6 +44,6 @@ pub fn setup(backgournd: &Background, data: ExistingStorageData) {
 
     let ExistingStorageData { workspace, command } = data;
 
-    support::insert_workspace_new(storage, workspace);
-    support::insert_command_new(storage, command);
+    support::insert_workspace(storage, workspace);
+    support::insert_command(storage, command);
 }

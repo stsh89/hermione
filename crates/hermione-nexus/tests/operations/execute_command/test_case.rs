@@ -1,6 +1,6 @@
 use crate::support::{
-    self, ExistingCommand, ExistingWorkspace, ExpectedCommand, ExpectedWorkspace, InMemoryStorage,
-    MockSystem,
+    self, CommandFixture, ExpectedCommand, ExpectedWorkspace, InMemoryStorage, MockSystem,
+    WorkspaceFixture,
 };
 use hermione_nexus::{operations::ExecuteCommandOperation, Error};
 
@@ -10,8 +10,8 @@ pub struct Background {
 }
 
 pub struct BackgroundContext<'a> {
-    pub workspace: ExistingWorkspace<'a>,
-    pub command: ExistingCommand<'a>,
+    pub workspace: WorkspaceFixture<'a>,
+    pub command: CommandFixture<'a>,
     pub time_freeze: &'a str,
 }
 
@@ -39,8 +39,8 @@ pub fn assert_storage_changes(backgound: &Background, expected: ExpectedStorageS
     let command = support::get_command(storage, expected_command.id());
     let workspace = support::get_workspace(storage, expected_workspace.id());
 
-    support::assert_command_new(command, expected_command);
-    support::assert_workspace_new(workspace, expected_workspace);
+    support::assert_command(command, expected_command);
+    support::assert_workspace(workspace, expected_workspace);
 }
 
 pub fn assert_system_changes(backgound: &Background, expected: ExpectedSystemChanges) {
@@ -52,7 +52,7 @@ pub fn assert_system_changes(backgound: &Background, expected: ExpectedSystemCha
     } = expected;
 
     support::assert_last_executed_program(system, last_executed_program);
-    support::assert_system_location(system, last_visited_location);
+    support::assert_file_system_location(system, last_visited_location);
 }
 
 pub fn assert_operation_result(result: Result<(), Error>, expected: ExpectedOperationResult) {
@@ -83,7 +83,7 @@ pub fn setup(backgound: &Background, context: BackgroundContext) {
         time_freeze,
     } = context;
 
-    support::insert_workspace_new(storage, workspace);
-    support::insert_command_new(storage, command);
+    support::insert_workspace(storage, workspace);
+    support::insert_command(storage, command);
     support::freeze_storage_time(storage, support::parse_time(time_freeze));
 }

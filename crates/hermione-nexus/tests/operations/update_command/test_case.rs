@@ -1,4 +1,4 @@
-use crate::support::{self, ExistingCommand, ExistingWorkspace, ExpectedCommand, InMemoryStorage};
+use crate::support::{self, CommandFixture, ExpectedCommand, InMemoryStorage, WorkspaceFixture};
 use hermione_nexus::{
     definitions::Command,
     operations::{UpdateCommandOperation, UpdateCommandParameters},
@@ -10,8 +10,8 @@ pub struct Background {
 }
 
 pub struct ExistingStorageData<'a> {
-    pub workspace: ExistingWorkspace<'a>,
-    pub command: ExistingCommand<'a>,
+    pub workspace: WorkspaceFixture<'a>,
+    pub command: CommandFixture<'a>,
 }
 
 pub enum OperationResult<'a> {
@@ -27,7 +27,7 @@ pub fn assert_operation_succeess(
     match expected {
         OperationResult::Success { expected_command } => {
             assert!(operation_result.is_ok());
-            support::assert_command_new(operation_result.unwrap(), expected_command);
+            support::assert_command(operation_result.unwrap(), expected_command);
         }
     }
 }
@@ -48,6 +48,6 @@ pub fn execute_operation(
 pub fn setup(background: &Background, data: ExistingStorageData) {
     let ExistingStorageData { command, workspace } = data;
 
-    support::insert_workspace_new(&background.storage, workspace);
-    support::insert_command_new(&background.storage, command);
+    support::insert_workspace(&background.storage, workspace);
+    support::insert_command(&background.storage, command);
 }

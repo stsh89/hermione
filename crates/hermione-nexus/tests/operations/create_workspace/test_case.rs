@@ -10,13 +10,13 @@ pub struct Background {
 }
 
 pub fn assert_returned_workspace(workspace: Workspace, expected: ExpectedWorkspace) {
-    support::assert_workspace_new(workspace, expected)
+    support::assert_workspace(workspace, expected)
 }
 
 pub fn assert_storage_contains_workspace(background: &Background, expected: ExpectedWorkspace) {
     let workspace = support::get_workspace(&background.storage, expected.id());
 
-    support::assert_workspace_new(workspace, expected);
+    support::assert_workspace(workspace, expected);
 }
 
 pub fn execute_operation(
