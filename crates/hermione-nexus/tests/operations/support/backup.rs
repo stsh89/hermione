@@ -170,7 +170,7 @@ impl MockNotion {
 
         Err(eyre!(
             "Could not find Notion workspaces database with ID: {}",
-            self.storage.workspaces_database_id
+            self.credentials.workspaces_database_id()
         ))
     }
 
@@ -181,7 +181,7 @@ impl MockNotion {
 
         Err(eyre!(
             "Could not find Notion commands database with ID: {}",
-            self.storage.commands_database_id
+            self.credentials.commands_database_id()
         ))
     }
 }
