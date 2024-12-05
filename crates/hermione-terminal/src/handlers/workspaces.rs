@@ -1,7 +1,7 @@
 use crate::{
     coordinator::{Coordinator, CreateWorkspaceInput, ListWorkspacesInput, Workspace},
     models::{
-        WorkspaceModel, WorkspaceModelParameters, WorkspacesModel, WorkspacesModelParameters,
+        WorkspaceFormModel, WorkspaceModelParameters, WorkspacesModel, WorkspacesModelParameters,
     },
     themes::Theme,
     CreateWorkspaceParams, DeleteWorkspaceParams, EditWorkspaceParams, ListWorkspacesParams,
@@ -61,12 +61,12 @@ impl<'a> WorkspacesHandler<'a> {
         Ok(model)
     }
 
-    pub fn edit(self, parameters: EditWorkspaceParams) -> Result<WorkspaceModel> {
+    pub fn edit(self, parameters: EditWorkspaceParams) -> Result<WorkspaceFormModel> {
         let EditWorkspaceParams { id } = parameters;
 
         let workspace = self.coordinator.get_workspace(id)?;
 
-        Ok(WorkspaceModel::new(WorkspaceModelParameters {
+        Ok(WorkspaceFormModel::new(WorkspaceModelParameters {
             workspace: Some(workspace),
             theme: self.theme,
         }))
@@ -94,8 +94,8 @@ impl<'a> WorkspacesHandler<'a> {
         })
     }
 
-    pub fn new_workspace(self) -> Result<WorkspaceModel> {
-        Ok(WorkspaceModel::new(WorkspaceModelParameters {
+    pub fn new_workspace(self) -> Result<WorkspaceFormModel> {
+        Ok(WorkspaceFormModel::new(WorkspaceModelParameters {
             workspace: None,
             theme: self.theme,
         }))

@@ -3,15 +3,15 @@ use crate::{themes::Theme, tui::Input};
 use hermione_nexus::definitions::WorkspaceId;
 
 #[derive(Default)]
-pub struct Screen {
+pub struct ModelState {
     active_input: InputName,
     location: Input,
+    mode: Mode,
     name: Input,
     redirect: Option<Route>,
+    usage: UsageIndicator,
     theme: Theme,
     workspace_id: Option<WorkspaceId>,
-    mode: Mode,
-    state: ScreenState,
 }
 
 #[derive(Default)]
@@ -22,7 +22,7 @@ enum Mode {
 }
 
 #[derive(Default)]
-enum ScreenState {
+enum UsageIndicator {
     #[default]
     IsRunning,
     Stopped,
@@ -35,7 +35,7 @@ enum InputName {
     Location,
 }
 
-impl Screen {
+impl ModelState {
     fn active_input_mut(&mut self) -> &mut Input {
         match self.active_input {
             InputName::Name => &mut self.name,
@@ -47,7 +47,7 @@ impl Screen {
         self.active_input_mut().delete_all_chars();
     }
 
-    pub fn create_workspace(&mut self) {
+    pub fn set_redirect_to_create_workspace(&mut self) {
         self.set_redirect(
             CreateWorkspaceParams {
                 name: self.name.value().to_string(),
@@ -69,8 +69,8 @@ impl Screen {
         self.mode = Mode::Input;
     }
 
-    pub fn exit(&mut self) {
-        self.state = ScreenState::Stopped;
+    pub fn stop(&mut self) {
+        self.usage = UsageIndicator::Stopped;
     }
 
     pub fn exit_input_mode(&mut self) {
@@ -102,7 +102,7 @@ impl Screen {
     }
 
     pub fn is_running(&self) -> bool {
-        matches!(self.state, ScreenState::IsRunning)
+        matches!(self.usage, UsageIndicator::IsRunning)
     }
 
     pub fn list_workspaces(&mut self) {
@@ -159,7 +159,7 @@ impl Screen {
         &self.theme
     }
 
-    pub fn update_workspace(&mut self, workspace_id: WorkspaceId) {
+    pub fn set_redirect_to_update_workspace(&mut self, workspace_id: WorkspaceId) {
         self.set_redirect(
             UpdateWorkspaceParams {
                 name: self.name.value().to_string(),
