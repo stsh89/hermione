@@ -35,33 +35,33 @@ pub fn dispatch(action: Action, screen: &mut ModelState) {
     }
 }
 
-pub fn maybe_create_action(message: Message, screen: &ModelState) -> Option<Action> {
+pub fn maybe_create_action(message: Message, state: &ModelState) -> Option<Action> {
     match message {
         Message::Cancel => {
-            if screen.is_in_normal_mode() {
+            if state.is_in_normal_mode() {
                 return Some(Action::ListWorkspaces);
             }
 
-            if screen.is_in_input_mode() {
+            if state.is_in_input_mode() {
                 return Some(Action::ExitInputMode);
             }
         }
         Message::DeleteAllChars => {
-            if screen.is_in_input_mode() {
+            if state.is_in_input_mode() {
                 return Some(Action::ClearInput);
             }
         }
         Message::DeleteChar => {
-            if screen.is_in_input_mode() {
+            if state.is_in_input_mode() {
                 return Some(Action::DeleteChar);
             }
         }
         Message::EnterChar(c) => {
-            if screen.is_in_input_mode() {
+            if state.is_in_input_mode() {
                 return Some(Action::EnterChar(c));
             }
 
-            if screen.is_in_normal_mode() {
+            if state.is_in_normal_mode() {
                 if c == 'i' {
                     return Some(Action::EnterInputMode);
                 }
@@ -72,24 +72,24 @@ pub fn maybe_create_action(message: Message, screen: &ModelState) -> Option<Acti
             }
         }
         Message::MoveCusorLeft => {
-            if screen.is_in_input_mode() {
+            if state.is_in_input_mode() {
                 return Some(Action::MoveCusorLeft);
             }
         }
         Message::MoveCusorRight => {
-            if screen.is_in_input_mode() {
+            if state.is_in_input_mode() {
                 return Some(Action::MoveCusorRight);
             }
         }
         Message::Submit => {
-            if let Some(id) = screen.workspace_id() {
+            if let Some(id) = state.workspace_id() {
                 return Some(Action::SetRedirectToUpdateWorkspace(id));
             } else {
                 return Some(Action::SetRedirectToCreateWorkspace);
             }
         }
         Message::Tab => {
-            if screen.is_in_input_mode() {
+            if state.is_in_input_mode() {
                 return Some(Action::SelectNextInput);
             }
         }
