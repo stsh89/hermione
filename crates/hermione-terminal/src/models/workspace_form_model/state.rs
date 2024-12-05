@@ -105,7 +105,7 @@ impl ModelState {
         matches!(self.usage, UsageIndicator::IsRunning)
     }
 
-    pub fn list_workspaces(&mut self) {
+    pub fn set_redirect_to_list_workspaces(&mut self) {
         self.set_redirect(
             ListWorkspacesParams {
                 search_query: String::new(),

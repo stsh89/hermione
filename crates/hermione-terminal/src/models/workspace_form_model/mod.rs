@@ -12,7 +12,6 @@ use frame::View;
 use ratatui::Frame;
 use state::ModelState;
 
-#[derive(Default)]
 pub struct WorkspaceFormModel {
     state: ModelState,
 }
@@ -20,24 +19,6 @@ pub struct WorkspaceFormModel {
 pub struct WorkspaceModelParameters {
     pub workspace: Option<Workspace>,
     pub theme: Theme,
-}
-
-impl WorkspaceFormModel {
-    pub fn new(parameters: WorkspaceModelParameters) -> Self {
-        let WorkspaceModelParameters { workspace, theme } = parameters;
-
-        let mut state = ModelState::default();
-
-        if let Some(workspace) = workspace {
-            state.set_workspace_id(workspace.id);
-            state.set_workspace_name(workspace.name);
-            state.set_workspace_location(workspace.location);
-        }
-
-        state.set_theme(theme);
-
-        Self { state }
-    }
 }
 
 impl Model for WorkspaceFormModel {
@@ -78,5 +59,23 @@ impl Model for WorkspaceFormModel {
         };
 
         frame::render(frame, view);
+    }
+}
+
+impl WorkspaceFormModel {
+    pub fn new(parameters: WorkspaceModelParameters) -> Self {
+        let WorkspaceModelParameters { workspace, theme } = parameters;
+
+        let mut state = ModelState::default();
+
+        if let Some(workspace) = workspace {
+            state.set_workspace_id(workspace.id);
+            state.set_workspace_name(workspace.name);
+            state.set_workspace_location(workspace.location);
+        }
+
+        state.set_theme(theme);
+
+        Self { state }
     }
 }

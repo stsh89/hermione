@@ -34,7 +34,7 @@ impl<'a> WorkspacesHandler<'a> {
             page_number: None,
             page_size: None,
             theme: self.theme,
-        })?;
+        });
 
         Ok(model)
     }
@@ -56,7 +56,7 @@ impl<'a> WorkspacesHandler<'a> {
             page_number: None,
             page_size: None,
             theme: self.theme,
-        })?;
+        });
 
         Ok(model)
     }
@@ -85,13 +85,15 @@ impl<'a> WorkspacesHandler<'a> {
             page_size,
         })?;
 
-        WorkspacesModel::new(WorkspacesModelParameters {
+        let model = WorkspacesModel::new(WorkspacesModelParameters {
             workspaces,
             search_query,
             page_number,
             page_size,
             theme: self.theme,
-        })
+        });
+
+        Ok(model)
     }
 
     pub fn new_workspace(self) -> Result<WorkspaceFormModel> {
