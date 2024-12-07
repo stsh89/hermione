@@ -29,10 +29,6 @@ impl Model for WorkspaceFormModel {
         EventHandler::new(|key_event| key_event.try_into().ok()).handle_event()
     }
 
-    fn is_running(&self) -> bool {
-        self.state.is_running()
-    }
-
     fn redirect(&mut self) -> Option<Route> {
         self.state.redirect()
     }
@@ -52,8 +48,6 @@ impl Model for WorkspaceFormModel {
             theme: self.state.theme(),
             name_is_active: self.state.is_name_input_active(),
             location_is_active: self.state.is_location_input_active(),
-            is_normal_mode: self.state.is_in_normal_mode(),
-            is_input_mode: self.state.is_in_input_mode(),
             name_character_index: self.state.workspace_name_character_index(),
             location_character_index: self.state.workspace_location_character_index(),
         };

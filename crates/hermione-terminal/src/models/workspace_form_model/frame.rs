@@ -15,8 +15,6 @@ pub struct View<'a> {
     pub theme: &'a Theme,
     pub name_is_active: bool,
     pub location_is_active: bool,
-    pub is_normal_mode: bool,
-    pub is_input_mode: bool,
 }
 
 pub fn render(frame: &mut Frame, view: View) {
@@ -84,17 +82,11 @@ fn create_name_widget<'a>(view: &'a View) -> FormField<'a> {
 fn create_status_bar_widget<'a>(view: &'a View) -> Paragraph<'a> {
     let mut text = Text::default();
 
-    if view.is_normal_mode {
-        text.push_span("Press ");
-        text.push_span(Span::from("q ").fg(view.theme.highlight_color));
-        text.push_span("to quit, ");
-        text.push_span(Span::from("i ").fg(view.theme.highlight_color));
-        text.push_span("to enter input mode");
-    } else if view.is_input_mode {
-        text.push_span("Press ");
-        text.push_span(Span::from("Esc ").fg(view.theme.highlight_color));
-        text.push_span("to exit input mode");
-    }
+    text.push_span("Press ");
+    text.push_span(Span::from("Esc ").fg(view.theme.highlight_color));
+    text.push_span("to discard changes, ");
+    text.push_span(Span::from("Enter ").fg(view.theme.highlight_color));
+    text.push_span("to submit changes");
 
     Paragraph::new(text)
         .bg(view.theme.status_bar_background_color)

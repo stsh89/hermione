@@ -6,26 +6,10 @@ use hermione_nexus::definitions::WorkspaceId;
 pub struct ModelState {
     active_input: InputName,
     location: Input,
-    mode: Mode,
     name: Input,
     redirect: Option<Route>,
-    usage: UsageIndicator,
     theme: Theme,
     workspace_id: Option<WorkspaceId>,
-}
-
-#[derive(Default)]
-enum Mode {
-    #[default]
-    Normal,
-    Input,
-}
-
-#[derive(Default)]
-enum UsageIndicator {
-    #[default]
-    IsRunning,
-    Stopped,
 }
 
 #[derive(Default)]
@@ -65,44 +49,12 @@ impl ModelState {
         self.active_input_mut().enter_char(c);
     }
 
-    pub fn enter_input_mode(&mut self) {
-        self.mode = Mode::Input;
-    }
-
-    pub fn stop(&mut self) {
-        self.usage = UsageIndicator::Stopped;
-    }
-
-    pub fn exit_input_mode(&mut self) {
-        self.mode = Mode::Normal;
-    }
-
-    pub fn is_in_input_mode(&self) -> bool {
-        matches!(self.mode, Mode::Input)
-    }
-
-    pub fn is_in_normal_mode(&self) -> bool {
-        matches!(self.mode, Mode::Normal)
-    }
-
     pub fn is_name_input_active(&self) -> bool {
-        if self.is_in_input_mode() {
-            return matches!(self.active_input, InputName::Name);
-        }
-
-        false
+        matches!(self.active_input, InputName::Name)
     }
 
     pub fn is_location_input_active(&self) -> bool {
-        if self.is_in_input_mode() {
-            return matches!(self.active_input, InputName::Location);
-        }
-
-        false
-    }
-
-    pub fn is_running(&self) -> bool {
-        matches!(self.usage, UsageIndicator::IsRunning)
+        matches!(self.active_input, InputName::Location)
     }
 
     pub fn set_redirect_to_list_workspaces(&mut self) {
