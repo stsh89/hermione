@@ -172,6 +172,10 @@ impl ModelState {
     }
 
     pub fn set_next_page_redirect(&mut self) {
+        if self.page_size().get() > self.workspaces.len() as u32 {
+            return;
+        }
+
         self.set_redirect(
             ListWorkspacesParams {
                 search_query: String::new(),
@@ -195,8 +199,6 @@ impl ModelState {
     }
 
     pub fn set_previous_page_redirect(&mut self) {
-        tracing::info!("asssssssssssssssssss {}", self.page_number());
-
         if self.page_number().get() == 1 {
             return;
         }
