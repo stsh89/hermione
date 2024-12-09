@@ -30,7 +30,7 @@ impl<'a> WorkspacesHandler<'a> {
 
         let model = WorkspacesModel::new(WorkspacesModelParameters {
             workspaces,
-            search_query: name,
+            search_query: Some(name),
             page_number: None,
             page_size: None,
             theme: self.theme,
@@ -52,7 +52,7 @@ impl<'a> WorkspacesHandler<'a> {
 
         let model = WorkspacesModel::new(WorkspacesModelParameters {
             workspaces,
-            search_query: String::new(),
+            search_query: None,
             page_number: None,
             page_size: None,
             theme: self.theme,
@@ -80,7 +80,7 @@ impl<'a> WorkspacesHandler<'a> {
         } = parameters;
 
         let workspaces = self.coordinator.list_workspaces(ListWorkspacesInput {
-            name_contains: &search_query,
+            name_contains: search_query.as_deref().unwrap_or_default(),
             page_number,
             page_size,
         })?;

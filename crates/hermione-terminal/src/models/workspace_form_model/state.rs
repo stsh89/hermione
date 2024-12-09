@@ -58,14 +58,7 @@ impl ModelState {
     }
 
     pub fn set_redirect_to_list_workspaces(&mut self) {
-        self.set_redirect(
-            ListWorkspacesParams {
-                search_query: String::new(),
-                page_number: None,
-                page_size: None,
-            }
-            .into(),
-        );
+        self.set_redirect(ListWorkspacesParams::default().into());
     }
 
     pub fn move_cursor_left(&mut self) {

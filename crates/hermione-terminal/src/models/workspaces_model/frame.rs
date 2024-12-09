@@ -72,15 +72,17 @@ fn create_status_bar_widget<'a>(view: &'a View) -> Paragraph<'a> {
         text.push_span(Span::from("q ").fg(view.theme.highlight_color));
         text.push_span("to quit, ");
         text.push_span(Span::from("/ ").fg(view.theme.highlight_color));
-        text.push_span("to start searching, ");
+        text.push_span("to enter search mode, ");
         text.push_span(Span::from("n ").fg(view.theme.highlight_color));
         text.push_span("to create new workspace, ");
         text.push_span(Span::from("e ").fg(view.theme.highlight_color));
-        text.push_span("to edit workspace");
+        text.push_span("to edit selected workspace");
     } else if view.is_searching {
         text.push_span("Press ");
         text.push_span(Span::from("Esc ").fg(view.theme.highlight_color));
-        text.push_span("to stop searching");
+        text.push_span("to discard search, ");
+        text.push_span(Span::from("Enter ").fg(view.theme.highlight_color));
+        text.push_span("to enter normal mode");
     }
 
     Paragraph::new(text)

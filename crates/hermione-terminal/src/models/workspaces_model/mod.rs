@@ -20,7 +20,7 @@ pub struct WorkspacesModel {
 
 pub struct WorkspacesModelParameters {
     pub workspaces: Vec<Workspace>,
-    pub search_query: String,
+    pub search_query: Option<String>,
     pub page_number: Option<NonZeroU32>,
     pub page_size: Option<NonZeroU32>,
     pub theme: Theme,
@@ -93,11 +93,11 @@ impl WorkspacesModel {
 
         let mut state = ModelState::default();
 
-        if !search_query.is_empty() {
+        if let Some(query) = search_query {
+            state.set_search_query(query);
             state.activate_search_mode();
         }
 
-        state.set_search_query(search_query);
         state.set_theme(theme);
         state.set_workspaces(workspaces);
 

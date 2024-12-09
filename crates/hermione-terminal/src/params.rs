@@ -55,7 +55,7 @@ pub struct ImportParams {
 }
 
 pub struct ListWorkspacesParams {
-    pub search_query: String,
+    pub search_query: Option<String>,
     pub page_number: Option<NonZeroU32>,
     pub page_size: Option<NonZeroU32>,
 }
@@ -102,7 +102,7 @@ pub struct UpdateWorkspaceCommandParams {
 impl Default for ListWorkspacesParams {
     fn default() -> Self {
         Self {
-            search_query: String::new(),
+            search_query: None,
             page_number: Some(FIRST_PAGE),
             page_size: Some(DEFAULT_PAGE_SIZE),
         }

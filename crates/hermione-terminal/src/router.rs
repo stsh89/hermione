@@ -241,7 +241,7 @@ impl TerminalRouter {
                 let workspace = handler.update(parameters)?;
 
                 let model = handler.list(ListWorkspacesParams {
-                    search_query: workspace.name,
+                    search_query: Some(workspace.name),
                     page_number: None,
                     page_size: None,
                 })?;

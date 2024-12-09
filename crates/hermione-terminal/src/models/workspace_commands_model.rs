@@ -328,7 +328,7 @@ impl WorkspaceCommandsModel {
                     ListWorkspacesParams {
                         page_number: None,
                         page_size: Some(self.page_size),
-                        search_query: "".into(),
+                        search_query: Some(self.workspace.name.clone()),
                     }
                     .into(),
                 );

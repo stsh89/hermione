@@ -42,12 +42,10 @@ impl ModelState {
         self.mode = Mode::Searching;
     }
 
-    pub fn delete_search_query(&mut self) {
-        self.search_query.delete_all_chars();
-
+    pub fn discard_search_query(&mut self) {
         self.set_redirect(
             ListWorkspacesParams {
-                search_query: self.search_query.value().to_string(),
+                search_query: None,
                 page_number: NonZeroU32::new(1),
                 page_size: self.page_size,
             }
@@ -60,7 +58,7 @@ impl ModelState {
 
         self.set_redirect(
             ListWorkspacesParams {
-                search_query: self.search_query.value().to_string(),
+                search_query: Some(self.search_query.value().to_string()),
                 page_number: NonZeroU32::new(1),
                 page_size: self.page_size,
             }
@@ -68,16 +66,18 @@ impl ModelState {
         );
     }
 
+    pub fn enter_normal_mode(&mut self) {
+        self.mode = Mode::Normal;
+    }
+
     pub fn enter_search_mode(&mut self) {
         self.mode = Mode::Searching;
     }
 
-    pub fn exit_search_mode(&mut self) {
-        self.mode = Mode::Normal;
-
+    pub fn clear_search_query(&mut self) {
         self.set_redirect(
             ListWorkspacesParams {
-                search_query: String::new(),
+                search_query: Some(String::new()),
                 page_number: NonZeroU32::new(1),
                 page_size: self.page_size,
             }
@@ -178,7 +178,7 @@ impl ModelState {
 
         self.set_redirect(
             ListWorkspacesParams {
-                search_query: String::new(),
+                search_query: None,
                 page_number: self.page_number().checked_add(1),
                 page_size: Some(self.page_size()),
             }
@@ -205,7 +205,7 @@ impl ModelState {
 
         self.set_redirect(
             ListWorkspacesParams {
-                search_query: String::new(),
+                search_query: None,
                 page_number: Some(unsafe {
                     NonZeroU32::new_unchecked(self.page_number().get() - 1)
                 }),
@@ -252,7 +252,7 @@ impl ModelState {
 
         self.set_redirect(
             ListWorkspacesParams {
-                search_query: self.search_query.value().to_string(),
+                search_query: Some(self.search_query.value().to_string()),
                 page_number: NonZeroU32::new(1),
                 page_size: self.page_size,
             }
