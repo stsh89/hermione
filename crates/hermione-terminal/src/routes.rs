@@ -47,3 +47,9 @@ pub enum WorkspaceCommandsRoute {
     New(NewWorkspaceCommandParams),
     Update(UpdateWorkspaceCommandParams),
 }
+
+impl From<WorkspacesRoute> for Route {
+    fn from(route: WorkspacesRoute) -> Self {
+        Route::Workspaces(route)
+    }
+}
