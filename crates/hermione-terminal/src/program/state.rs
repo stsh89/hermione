@@ -24,7 +24,6 @@ pub struct List {
     pub element: usize,
 }
 
-
 pub struct ListItem {
     pub id: Uuid,
     pub text: String,

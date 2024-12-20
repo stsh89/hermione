@@ -1,10 +1,10 @@
+use crate::program::{Context, State};
 use ratatui::{
     layout::{Constraint, Direction},
     text::{Span, Text},
     widgets::{Block, Borders, List, ListState, Paragraph, Widget},
     Frame,
 };
-use crate::program::{Context, State};
 
 pub fn render(frame: &mut Frame, state: &State) {
     let [header, content, footer] = ratatui::layout::Layout::default()

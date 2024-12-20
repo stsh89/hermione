@@ -1,5 +1,7 @@
+mod output;
 mod state;
 
+pub use output::Render;
 pub use state::*;
 
 use crate::{keyboard, terminal};
@@ -11,6 +13,7 @@ use hermione_nexus::{
         ListWorkspacesOperation, ListWorkspacesParameters,
     },
 };
+use output::DrawOperation;
 
 pub fn run() -> anyhow::Result<()> {
     terminal::install_panic_hook();
@@ -237,23 +240,6 @@ fn select_next_list_item(state: &mut State) {
 
 fn select_previous_list_item(state: &mut State) {
     state.list.cursor = (state.list.cursor + state.list.items.len() - 1) % state.list.items.len();
-}
-
-struct DrawOperation<'a, T> {
-    renderer: &'a mut T,
-}
-
-pub trait Render {
-    fn render(&mut self, state: &State) -> anyhow::Result<()>;
-}
-
-impl<'a, T> DrawOperation<'a, T>
-where
-    T: Render,
-{
-    fn execute(&mut self, state: &State) -> anyhow::Result<()> {
-        self.renderer.render(state)
-    }
 }
 
 fn list_workspaces(state: &State, services: &ServiceFactory) -> anyhow::Result<Vec<ListItem>> {
