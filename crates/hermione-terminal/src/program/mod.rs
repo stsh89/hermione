@@ -49,8 +49,9 @@ enum InputUpdate {
 }
 
 enum ChangeContextMethod {
+    Edit,
     NewItem,
-    Submit,
+    Select,
 }
 
 fn change_mode(mode: &mut Mode, event: keyboard::Event) -> bool {
@@ -114,13 +115,28 @@ fn maybe_change_context(
 ) -> anyhow::Result<()> {
     match state.context {
         Context::Workspaces => match method {
+            ChangeContextMethod::Edit => {
+                let Some(workspace) = integration::get_workspace(state, services)? else {
+                    return Ok(());
+                };
+
+                state.context = Context::WorkspaceForm {
+                    workspace_id: Some(workspace.id().as_uuid()),
+                };
+
+                state.form = Form::default();
+                state.form.inputs = vec![
+                    workspace.name().to_string(),
+                    workspace.location().unwrap_or_default().to_string(),
+                ];
+            }
             ChangeContextMethod::NewItem => {
                 state.context = Context::WorkspaceForm { workspace_id: None };
 
                 state.form = Form::default();
                 state.form.inputs = vec![String::new(), String::new()];
             }
-            ChangeContextMethod::Submit => {
+            ChangeContextMethod::Select => {
                 if state.list.items.is_empty() {
                     return Ok(());
                 }
@@ -135,6 +151,7 @@ fn maybe_change_context(
             }
         },
         Context::Commands { workspace_id } => match method {
+            ChangeContextMethod::Select => {}
             ChangeContextMethod::NewItem => {
                 state.context = Context::CommandForm {
                     workspace_id,
@@ -144,7 +161,7 @@ fn maybe_change_context(
                 state.form = Form::default();
                 state.form.inputs = vec![String::new(), String::new()];
             }
-            ChangeContextMethod::Submit => {
+            ChangeContextMethod::Edit => {
                 let Some(command) = integration::get_command(state, services)? else {
                     return Ok(());
                 };
@@ -289,7 +306,7 @@ fn update_state(
             keyboard::Event::Down => select_next_list_item(state),
             keyboard::Event::Up => select_previous_list_item(state),
             keyboard::Event::Enter => {
-                maybe_change_context(state, services, ChangeContextMethod::Submit)?
+                maybe_change_context(state, services, ChangeContextMethod::Select)?
             }
             keyboard::Event::Backspace => restore_previous_context(state, services)?,
             keyboard::Event::Space => {
@@ -300,6 +317,7 @@ fn update_state(
                 'd' => maybe_delete_list_item(state, services)?,
                 'j' => select_next_list_item(state),
                 'k' => select_previous_list_item(state),
+                'e' => maybe_change_context(state, services, ChangeContextMethod::Edit)?,
                 _ => {}
             },
             keyboard::Event::Esc | keyboard::Event::Tab => {}

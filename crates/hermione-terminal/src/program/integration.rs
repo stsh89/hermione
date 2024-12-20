@@ -6,7 +6,7 @@ use hermione_nexus::{
         CommandsDeleteAttribute, CreateCommandOperation, CreateCommandParameters,
         CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteCommandOperation,
         DeleteCommandsOperation, DeleteCommandsParameters, DeleteWorkspaceOperation,
-        ExecuteCommandOperation, GetCommandOperation, ListCommandsOperation,
+        ExecuteCommandOperation, GetCommandOperation, GetWorkspaceOperation, ListCommandsOperation,
         ListCommandsParameters, ListWorkspacesOperation, ListWorkspacesParameters,
         UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
         UpdateWorkspaceParameters,
@@ -37,6 +37,28 @@ pub fn get_command(
     .execute(CommandId::new(id)?)?;
 
     Ok(Some(command))
+}
+
+pub fn get_workspace(
+    state: &mut State,
+    services: &ServiceFactory,
+) -> anyhow::Result<Option<Workspace>> {
+    let Context::Workspaces = state.context else {
+        return Ok(None);
+    };
+
+    if state.list.items.is_empty() {
+        return Ok(None);
+    }
+
+    let id = state.list.items[state.list.cursor].id;
+
+    let workspace = GetWorkspaceOperation {
+        provider: &services.storage(),
+    }
+    .execute(WorkspaceId::new(id)?)?;
+
+    Ok(Some(workspace))
 }
 
 pub fn save_command(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
