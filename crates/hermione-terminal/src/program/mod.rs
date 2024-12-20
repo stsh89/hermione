@@ -48,6 +48,11 @@ enum InputUpdate {
     DeleteChar,
 }
 
+enum ChangeContextMethod {
+    NewItem,
+    Submit,
+}
+
 fn change_mode(mode: &mut Mode, event: keyboard::Event) -> bool {
     match event {
         keyboard::Event::Esc => {
@@ -72,6 +77,7 @@ fn change_mode(mode: &mut Mode, event: keyboard::Event) -> bool {
             false
         }
         keyboard::Event::Up
+        | keyboard::Event::Tab
         | keyboard::Event::Space
         | keyboard::Event::Down
         | keyboard::Event::Backspace
@@ -91,22 +97,72 @@ fn exit(state: &State, event: keyboard::Event) -> bool {
     false
 }
 
-fn maybe_change_context(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+fn focus_next_input(state: &mut State) {
     match state.context {
-        Context::Workspaces => {
-            if state.list.items.is_empty() {
-                return Ok(());
-            }
-
-            state.context = Context::Commands {
-                workspace_id: state.list.items[state.list.cursor].id,
-            };
-
-            state.list.cursor = 0;
-            state.list.filter = String::new();
-            state.list.items = integration::list_commands(state, services)?;
+        Context::Workspaces => {}
+        Context::WorkspaceForm { .. } => {
+            state.form.cursor = (state.form.cursor + 1) % state.form.inputs.len();
         }
         Context::Commands { .. } => {}
+    }
+}
+
+fn maybe_change_context(
+    state: &mut State,
+    services: &ServiceFactory,
+    method: ChangeContextMethod,
+) -> anyhow::Result<()> {
+    match state.context {
+        Context::Workspaces => match method {
+            ChangeContextMethod::NewItem => {
+                state.context = Context::WorkspaceForm { workspace_id: None };
+
+                state.form = Form::default();
+                state.form.inputs = vec![String::new(), String::new()];
+            }
+            ChangeContextMethod::Submit => {
+                if state.list.items.is_empty() {
+                    return Ok(());
+                }
+
+                state.context = Context::Commands {
+                    workspace_id: state.list.items[state.list.cursor].id,
+                };
+
+                state.list.cursor = 0;
+                state.list.filter = String::new();
+                state.list.items = integration::list_commands(state, services)?;
+            }
+        },
+        Context::Commands { .. } => {}
+        Context::WorkspaceForm { .. } => {
+            integration::create_workspace(state, services)?;
+
+            state.context = Context::Workspaces;
+            state.list.cursor = 0;
+            state.list.filter = String::new();
+            state.list.items = integration::list_workspaces(state, services)?;
+        }
+    };
+
+    Ok(())
+}
+
+fn maybe_delete_list_item(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    match state.context {
+        Context::Workspaces => {
+            integration::delete_workspace(state, services)?;
+
+            state.list.cursor = 0;
+            state.list.items = integration::list_workspaces(state, services)?;
+        }
+        Context::WorkspaceForm { .. } => {}
+        Context::Commands { .. } => {
+            integration::delete_command(state, services)?;
+
+            state.list.cursor = 0;
+            state.list.items = integration::list_commands(state, services)?;
+        }
     };
 
     Ok(())
@@ -116,6 +172,12 @@ fn restore_previous_context(state: &mut State, services: &ServiceFactory) -> any
     match state.context {
         Context::Workspaces => {}
         Context::Commands { .. } => {
+            state.context = Context::Workspaces;
+            state.list.cursor = 0;
+            state.list.filter = String::new();
+            state.list.items = integration::list_workspaces(state, services)?;
+        }
+        Context::WorkspaceForm { .. } => {
             state.context = Context::Workspaces;
             state.list.cursor = 0;
             state.list.filter = String::new();
@@ -139,16 +201,28 @@ fn update_active_input(
     update: InputUpdate,
     services: &ServiceFactory,
 ) -> anyhow::Result<()> {
+    let active_input = match state.context {
+        Context::Workspaces | Context::Commands { .. } => &mut state.list.filter,
+        Context::WorkspaceForm { .. } => &mut state.form.inputs[state.form.cursor],
+    };
+
     match update {
-        InputUpdate::AddChar(c) => state.list.filter.push(c),
+        InputUpdate::AddChar(c) => active_input.push(c),
         InputUpdate::DeleteChar => {
-            state.list.filter.pop();
+            active_input.pop();
         }
-    }
+    };
 
     match state.context {
-        Context::Workspaces => state.list.items = integration::list_workspaces(state, services)?,
-        Context::Commands { .. } => state.list.items = integration::list_commands(state, services)?,
+        Context::Workspaces => {
+            state.list.cursor = 0;
+            state.list.items = integration::list_workspaces(state, services)?;
+        }
+        Context::Commands { .. } => {
+            state.list.cursor = 0;
+            state.list.items = integration::list_commands(state, services)?;
+        }
+        Context::WorkspaceForm { .. } => {}
     };
 
     Ok(())
@@ -172,12 +246,19 @@ fn update_state(
         Mode::Normal => match event {
             keyboard::Event::Down => select_next_list_item(state),
             keyboard::Event::Up => select_previous_list_item(state),
-            keyboard::Event::Enter => maybe_change_context(state, services)?,
+            keyboard::Event::Enter => {
+                maybe_change_context(state, services, ChangeContextMethod::Submit)?
+            }
             keyboard::Event::Backspace => restore_previous_context(state, services)?,
             keyboard::Event::Space => {
                 integration::run_command(state, services, RunCommandOptions { no_exit: false })?
             }
-            keyboard::Event::Esc | keyboard::Event::Char(_) => {}
+            keyboard::Event::Char(c) => match c {
+                'n' => maybe_change_context(state, services, ChangeContextMethod::NewItem)?,
+                'd' => maybe_delete_list_item(state, services)?,
+                _ => {}
+            },
+            keyboard::Event::Esc | keyboard::Event::Tab => {}
         },
         Mode::Input => match event {
             keyboard::Event::Char(c) => {
@@ -186,6 +267,10 @@ fn update_state(
 
             keyboard::Event::Backspace => {
                 update_active_input(state, InputUpdate::DeleteChar, services)?
+            }
+
+            keyboard::Event::Tab => {
+                focus_next_input(state);
             }
 
             keyboard::Event::Esc

@@ -3,13 +3,80 @@ use hermione_drive::ServiceFactory;
 use hermione_nexus::{
     definitions::{Command, CommandId, Workspace, WorkspaceId},
     operations::{
-        ExecuteCommandOperation, ListCommandsOperation, ListCommandsParameters,
-        ListWorkspacesOperation, ListWorkspacesParameters,
+        CommandsDeleteAttribute, CreateWorkspaceOperation, CreateWorkspaceParameters,
+        DeleteCommandOperation, DeleteCommandsOperation, DeleteCommandsParameters,
+        DeleteWorkspaceOperation, ExecuteCommandOperation, ListCommandsOperation,
+        ListCommandsParameters, ListWorkspacesOperation, ListWorkspacesParameters,
     },
 };
 
 pub struct RunCommandOptions {
     pub no_exit: bool,
+}
+
+pub fn create_workspace(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    let name = state.form.inputs[0].clone();
+    let location = state.form.inputs[1].clone();
+
+    CreateWorkspaceOperation {
+        storage_provider: &services.storage(),
+    }
+    .execute(CreateWorkspaceParameters {
+        name,
+        location: Some(location),
+    })?;
+
+    Ok(())
+}
+
+pub fn delete_command(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    let Context::Commands { .. } = state.context else {
+        return Ok(());
+    };
+
+    if state.list.items.is_empty() {
+        return Ok(());
+    }
+
+    let id = CommandId::new(state.list.items[state.list.cursor].id)?;
+    let storage = services.storage();
+
+    DeleteCommandOperation {
+        find_provider: &storage,
+        delete_provider: &storage,
+    }
+    .execute(id)?;
+
+    Ok(())
+}
+
+pub fn delete_workspace(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    let Context::Workspaces = state.context else {
+        return Ok(());
+    };
+
+    if state.list.items.is_empty() {
+        return Ok(());
+    }
+
+    let workspace_id = state.list.items[state.list.cursor].id;
+    let id = WorkspaceId::new(workspace_id)?;
+    let storage = services.storage();
+
+    DeleteCommandsOperation {
+        delete_workspace_commands: &storage,
+    }
+    .execute(DeleteCommandsParameters {
+        delete_attribute: CommandsDeleteAttribute::WorkspaceId(id),
+    })?;
+
+    DeleteWorkspaceOperation {
+        find_workspace_provider: &storage,
+        delete_workspace_provider: &storage,
+    }
+    .execute(id)?;
+
+    Ok(())
 }
 
 pub fn list_commands(state: &State, services: &ServiceFactory) -> anyhow::Result<Vec<ListItem>> {

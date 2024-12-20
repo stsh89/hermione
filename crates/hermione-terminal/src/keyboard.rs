@@ -8,6 +8,7 @@ pub enum Event {
     Enter,
     Esc,
     Space,
+    Tab,
     Up,
 }
 
@@ -24,6 +25,7 @@ pub fn read_event() -> anyhow::Result<Event> {
                     event::KeyCode::Down => Event::Down,
                     event::KeyCode::Enter => Event::Enter,
                     event::KeyCode::Esc => Event::Esc,
+                    event::KeyCode::Tab => Event::Tab,
                     event::KeyCode::Up => Event::Up,
                     _ => continue,
                 };
