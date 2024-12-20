@@ -3,10 +3,13 @@ use hermione_drive::ServiceFactory;
 use hermione_nexus::{
     definitions::{Command, CommandId, Workspace, WorkspaceId},
     operations::{
-        CommandsDeleteAttribute, CreateWorkspaceOperation, CreateWorkspaceParameters,
-        DeleteCommandOperation, DeleteCommandsOperation, DeleteCommandsParameters,
-        DeleteWorkspaceOperation, ExecuteCommandOperation, ListCommandsOperation,
+        CommandsDeleteAttribute, CreateCommandOperation, CreateCommandParameters,
+        CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteCommandOperation,
+        DeleteCommandsOperation, DeleteCommandsParameters, DeleteWorkspaceOperation,
+        ExecuteCommandOperation, GetCommandOperation, ListCommandsOperation,
         ListCommandsParameters, ListWorkspacesOperation, ListWorkspacesParameters,
+        UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
+        UpdateWorkspaceParameters,
     },
 };
 
@@ -14,17 +17,96 @@ pub struct RunCommandOptions {
     pub no_exit: bool,
 }
 
-pub fn create_workspace(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+pub fn get_command(
+    state: &mut State,
+    services: &ServiceFactory,
+) -> anyhow::Result<Option<Command>> {
+    let Context::Commands { .. } = state.context else {
+        return Ok(None);
+    };
+
+    if state.list.items.is_empty() {
+        return Ok(None);
+    }
+
+    let id = state.list.items[state.list.cursor].id;
+
+    let command = GetCommandOperation {
+        provider: &services.storage(),
+    }
+    .execute(CommandId::new(id)?)?;
+
+    Ok(Some(command))
+}
+
+pub fn save_command(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    let Context::CommandForm {
+        command_id,
+        workspace_id,
+    } = state.context
+    else {
+        return Ok(());
+    };
+
+    let storage = services.storage();
+
+    let name = state.form.inputs[0].clone();
+    let program = state.form.inputs[1].clone();
+    let workspace_id = WorkspaceId::new(workspace_id)?;
+
+    if let Some(id) = command_id {
+        UpdateCommandOperation {
+            find_command_provider: &storage,
+            update_command_provider: &storage,
+        }
+        .execute(UpdateCommandParameters {
+            id: CommandId::new(id)?,
+            program,
+            name,
+        })?;
+    } else {
+        CreateCommandOperation {
+            storage_provider: &storage,
+        }
+        .execute(CreateCommandParameters {
+            name,
+            program,
+            workspace_id,
+        })?;
+    }
+
+    Ok(())
+}
+
+pub fn save_workspace(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    let Context::WorkspaceForm { workspace_id } = state.context else {
+        return Ok(());
+    };
+
+    let storage = services.storage();
+
     let name = state.form.inputs[0].clone();
     let location = state.form.inputs[1].clone();
 
-    CreateWorkspaceOperation {
-        storage_provider: &services.storage(),
+    if let Some(id) = workspace_id {
+        UpdateWorkspaceOperation {
+            find_workspace_provider: &storage,
+            update_workspace_provider: &storage,
+        }
+        .execute(UpdateWorkspaceParameters {
+            id: WorkspaceId::new(id)?,
+            location: Some(location),
+            name,
+        })?;
+    } else {
+        CreateWorkspaceOperation {
+            storage_provider: &storage,
+        }
+        .execute(CreateWorkspaceParameters {
+            name,
+            location: Some(location),
+        })?;
     }
-    .execute(CreateWorkspaceParameters {
-        name,
-        location: Some(location),
-    })?;
 
     Ok(())
 }
@@ -80,7 +162,20 @@ pub fn delete_workspace(state: &mut State, services: &ServiceFactory) -> anyhow:
 }
 
 pub fn list_commands(state: &State, services: &ServiceFactory) -> anyhow::Result<Vec<ListItem>> {
-    let Context::Commands { workspace_id } = state.context else {
+    let workspace_id = match state.context {
+        Context::Workspaces => {
+            if state.list.items.is_empty() {
+                None
+            } else {
+                Some(state.list.items[state.list.cursor].id)
+            }
+        }
+        Context::WorkspaceForm { workspace_id } => workspace_id,
+        Context::Commands { workspace_id } => Some(workspace_id),
+        Context::CommandForm { workspace_id, .. } => Some(workspace_id),
+    };
+
+    let Some(workspace_id) = workspace_id else {
         return Ok(Vec::new());
     };
 

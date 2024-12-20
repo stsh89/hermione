@@ -37,6 +37,7 @@ fn render_content(state: &State, frame: &mut Frame, area: Rect) {
     match state.context {
         Context::Workspaces | Context::Commands { .. } => render_list(state, frame, area),
         Context::WorkspaceForm { .. } => render_workspace_form(state, frame, area),
+        Context::CommandForm { .. } => render_command_form(state, frame, area),
     }
 }
 
@@ -53,6 +54,21 @@ fn render_workspace_form(state: &State, frame: &mut Frame, area: Rect) {
     let block = Block::default().borders(Borders::ALL).title("Location");
     let paragraph = Paragraph::new(state.form.inputs[1].clone()).block(block);
     frame.render_widget(paragraph, location_area);
+}
+
+fn render_command_form(state: &State, frame: &mut Frame, area: Rect) {
+    let [name_area, program_area] = ratatui::layout::Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Max(3), Constraint::Min(3)])
+        .areas(area);
+
+    let block = Block::default().borders(Borders::ALL).title("Name");
+    let paragraph = Paragraph::new(state.form.inputs[0].clone()).block(block);
+    frame.render_widget(paragraph, name_area);
+
+    let block = Block::default().borders(Borders::ALL).title("Program");
+    let paragraph = Paragraph::new(state.form.inputs[1].clone()).block(block);
+    frame.render_widget(paragraph, program_area);
 }
 
 fn render_list(state: &State, frame: &mut Frame, area: Rect) {
@@ -92,6 +108,10 @@ fn title(state: &State) -> impl Widget {
         Context::WorkspaceForm { workspace_id } => match workspace_id {
             Some(_) => "Edit workspace",
             None => "New workspace",
+        },
+        Context::CommandForm { command_id, .. } => match command_id {
+            Some(_) => "Edit command",
+            None => "New command",
         },
     };
 

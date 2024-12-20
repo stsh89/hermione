@@ -24,6 +24,10 @@ pub enum Context {
     Commands {
         workspace_id: Uuid,
     },
+    CommandForm {
+        workspace_id: Uuid,
+        command_id: Option<Uuid>,
+    },
 }
 
 #[derive(Default)]
