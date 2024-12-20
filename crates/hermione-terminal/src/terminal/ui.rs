@@ -1,58 +1,12 @@
-use crate::program::{Context, Render, State};
 use ratatui::{
-    crossterm::{
-        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-        ExecutableCommand,
-    },
     layout::{Constraint, Direction},
-    prelude::CrosstermBackend,
     text::{Span, Text},
     widgets::{Block, Borders, List, ListState, Paragraph, Widget},
     Frame,
 };
-use std::{
-    io::{stdout, Stdout},
-    panic,
-};
+use crate::program::{Context, State};
 
-pub struct Terminal {
-    inner: ratatui::Terminal<CrosstermBackend<Stdout>>,
-}
-
-impl Render for Terminal {
-    fn render(&mut self, state: &State) -> anyhow::Result<()> {
-        self.inner.draw(|frame| render(frame, state))?;
-
-        Ok(())
-    }
-}
-
-pub fn init() -> anyhow::Result<Terminal> {
-    enable_raw_mode()?;
-    stdout().execute(EnterAlternateScreen)?;
-    let inner = ratatui::Terminal::new(CrosstermBackend::new(stdout()))?;
-
-    Ok(Terminal { inner })
-}
-
-pub fn install_panic_hook() {
-    let original_hook = panic::take_hook();
-
-    panic::set_hook(Box::new(move |panic_info| {
-        stdout().execute(LeaveAlternateScreen).unwrap();
-        disable_raw_mode().unwrap();
-        original_hook(panic_info);
-    }));
-}
-
-pub fn restore() -> anyhow::Result<()> {
-    stdout().execute(LeaveAlternateScreen)?;
-    disable_raw_mode()?;
-
-    Ok(())
-}
-
-fn render(frame: &mut Frame, state: &State) {
+pub fn render(frame: &mut Frame, state: &State) {
     let [header, content, footer] = ratatui::layout::Layout::default()
         .direction(Direction::Vertical)
         .constraints(vec![
