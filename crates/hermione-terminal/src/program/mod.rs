@@ -1,18 +1,13 @@
+mod integration;
 mod output;
 mod state;
 
+use integration::RunCommandOptions;
 pub use output::Render;
 pub use state::*;
 
 use crate::{keyboard, terminal};
 use hermione_drive::{Engine, ServiceFactory};
-use hermione_nexus::{
-    definitions::{Command, CommandId, Workspace, WorkspaceId},
-    operations::{
-        ExecuteCommandOperation, ListCommandsOperation, ListCommandsParameters,
-        ListWorkspacesOperation, ListWorkspacesParameters,
-    },
-};
 use output::DrawOperation;
 
 pub fn run() -> anyhow::Result<()> {
@@ -26,7 +21,7 @@ pub fn run() -> anyhow::Result<()> {
     let mut terminal = terminal::init()?;
     let mut state = State::default();
 
-    state.list.items = list_workspaces(&state, &service_factory)?;
+    state.list.items = integration::list_workspaces(&state, &service_factory)?;
 
     loop {
         DrawOperation {
@@ -48,16 +43,9 @@ pub fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn exit(state: &State, event: keyboard::Event) -> bool {
-    if matches!(state.mode, Mode::Input) {
-        return false;
-    }
-
-    if matches!(event, keyboard::Event::Char('q')) {
-        return true;
-    }
-
-    false
+enum InputUpdate {
+    AddChar(char),
+    DeleteChar,
 }
 
 fn change_mode(mode: &mut Mode, event: keyboard::Event) -> bool {
@@ -91,6 +79,81 @@ fn change_mode(mode: &mut Mode, event: keyboard::Event) -> bool {
     }
 }
 
+fn exit(state: &State, event: keyboard::Event) -> bool {
+    if matches!(state.mode, Mode::Input) {
+        return false;
+    }
+
+    if matches!(event, keyboard::Event::Char('q')) {
+        return true;
+    }
+
+    false
+}
+
+fn maybe_change_context(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    match state.context {
+        Context::Workspaces => {
+            if state.list.items.is_empty() {
+                return Ok(());
+            }
+
+            state.context = Context::Commands {
+                workspace_id: state.list.items[state.list.cursor].id,
+            };
+
+            state.list.cursor = 0;
+            state.list.filter = String::new();
+            state.list.items = integration::list_commands(state, services)?;
+        }
+        Context::Commands { .. } => {}
+    };
+
+    Ok(())
+}
+
+fn restore_previous_context(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    match state.context {
+        Context::Workspaces => {}
+        Context::Commands { .. } => {
+            state.context = Context::Workspaces;
+            state.list.cursor = 0;
+            state.list.filter = String::new();
+            state.list.items = integration::list_workspaces(state, services)?;
+        }
+    };
+
+    Ok(())
+}
+
+fn select_next_list_item(state: &mut State) {
+    state.list.cursor = (state.list.cursor + 1) % state.list.items.len();
+}
+
+fn select_previous_list_item(state: &mut State) {
+    state.list.cursor = (state.list.cursor + state.list.items.len() - 1) % state.list.items.len();
+}
+
+fn update_active_input(
+    state: &mut State,
+    update: InputUpdate,
+    services: &ServiceFactory,
+) -> anyhow::Result<()> {
+    match update {
+        InputUpdate::AddChar(c) => state.list.filter.push(c),
+        InputUpdate::DeleteChar => {
+            state.list.filter.pop();
+        }
+    }
+
+    match state.context {
+        Context::Workspaces => state.list.items = integration::list_workspaces(state, services)?,
+        Context::Commands { .. } => state.list.items = integration::list_commands(state, services)?,
+    };
+
+    Ok(())
+}
+
 fn update_state(
     state: &mut State,
     event: keyboard::Event,
@@ -112,7 +175,7 @@ fn update_state(
             keyboard::Event::Enter => maybe_change_context(state, services)?,
             keyboard::Event::Backspace => restore_previous_context(state, services)?,
             keyboard::Event::Space => {
-                run_command(state, services, RunCommandOptions { no_exit: false })?
+                integration::run_command(state, services, RunCommandOptions { no_exit: false })?
             }
             keyboard::Event::Esc | keyboard::Event::Char(_) => {}
         },
@@ -134,159 +197,4 @@ fn update_state(
     };
 
     Ok(())
-}
-
-enum InputUpdate {
-    AddChar(char),
-    DeleteChar,
-}
-
-struct RunCommandOptions {
-    no_exit: bool,
-}
-
-fn run_command(
-    state: &mut State,
-    services: &ServiceFactory,
-    options: RunCommandOptions,
-) -> anyhow::Result<()> {
-    let Context::Commands { .. } = state.context else {
-        return Ok(());
-    };
-
-    if state.list.items.is_empty() {
-        return Ok(());
-    }
-
-    let command_id = CommandId::new(state.list.items[state.list.cursor].id)?;
-
-    let RunCommandOptions { no_exit } = options;
-
-    let storage = services.storage();
-
-    let mut system = services.system();
-    system.set_no_exit(no_exit);
-
-    ExecuteCommandOperation {
-        find_command_provider: &storage,
-        find_workspace_provider: &storage,
-        system_provider: &system,
-        track_command_provider: &storage,
-        track_workspace_provider: &storage,
-    }
-    .execute(command_id)?;
-
-    Ok(())
-}
-
-fn restore_previous_context(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
-    match state.context {
-        Context::Workspaces => {}
-        Context::Commands { .. } => {
-            state.context = Context::Workspaces;
-            state.list.cursor = 0;
-            state.list.filter = String::new();
-            state.list.items = list_workspaces(state, services)?;
-        }
-    };
-
-    Ok(())
-}
-
-fn maybe_change_context(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
-    match state.context {
-        Context::Workspaces => {
-            if state.list.items.is_empty() {
-                return Ok(());
-            }
-
-            state.context = Context::Commands {
-                workspace_id: state.list.items[state.list.cursor].id,
-            };
-
-            state.list.cursor = 0;
-            state.list.filter = String::new();
-            state.list.items = list_commands(state, services)?;
-        }
-        Context::Commands { .. } => {}
-    };
-
-    Ok(())
-}
-
-fn update_active_input(
-    state: &mut State,
-    update: InputUpdate,
-    services: &ServiceFactory,
-) -> anyhow::Result<()> {
-    match update {
-        InputUpdate::AddChar(c) => state.list.filter.push(c),
-        InputUpdate::DeleteChar => {
-            state.list.filter.pop();
-        }
-    }
-
-    match state.context {
-        Context::Workspaces => state.list.items = list_workspaces(state, services)?,
-        Context::Commands { .. } => state.list.items = list_commands(state, services)?,
-    };
-
-    Ok(())
-}
-
-fn select_next_list_item(state: &mut State) {
-    state.list.cursor = (state.list.cursor + 1) % state.list.items.len();
-}
-
-fn select_previous_list_item(state: &mut State) {
-    state.list.cursor = (state.list.cursor + state.list.items.len() - 1) % state.list.items.len();
-}
-
-fn list_workspaces(state: &State, services: &ServiceFactory) -> anyhow::Result<Vec<ListItem>> {
-    let workspaces = ListWorkspacesOperation {
-        provider: &services.storage(),
-    }
-    .execute(ListWorkspacesParameters {
-        name_contains: Some(&state.list.filter),
-        page_number: None,
-        page_size: None,
-    })?;
-
-    Ok(workspaces.into_iter().map(Into::into).collect())
-}
-
-fn list_commands(state: &State, services: &ServiceFactory) -> anyhow::Result<Vec<ListItem>> {
-    let Context::Commands { workspace_id } = state.context else {
-        return Ok(Vec::new());
-    };
-
-    let commands = ListCommandsOperation {
-        provider: &services.storage(),
-    }
-    .execute(ListCommandsParameters {
-        page_size: None,
-        page_number: None,
-        program_contains: Some(&state.list.filter),
-        workspace_id: Some(WorkspaceId::new(workspace_id)?),
-    })?;
-
-    Ok(commands.into_iter().map(Into::into).collect())
-}
-
-impl From<Workspace> for ListItem {
-    fn from(value: Workspace) -> Self {
-        ListItem {
-            id: value.id().as_uuid(),
-            text: value.name().to_string(),
-        }
-    }
-}
-
-impl From<Command> for ListItem {
-    fn from(value: Command) -> Self {
-        ListItem {
-            id: value.id().as_uuid(),
-            text: value.program().to_string(),
-        }
-    }
 }
