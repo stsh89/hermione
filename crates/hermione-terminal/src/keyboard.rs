@@ -1,3 +1,5 @@
+use ratatui::crossterm::event;
+
 #[derive(Clone, Copy)]
 pub enum Event {
     Backspace,
@@ -10,8 +12,6 @@ pub enum Event {
 }
 
 pub fn read_event() -> anyhow::Result<Event> {
-    use ratatui::crossterm::event;
-
     loop {
         let event = event::read()?;
 
