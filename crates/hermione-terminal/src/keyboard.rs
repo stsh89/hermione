@@ -9,6 +9,7 @@ pub enum Event {
     Esc,
     Space,
     Tab,
+    NumberOne,
     Up,
 }
 
@@ -21,6 +22,7 @@ pub fn read_event() -> anyhow::Result<Event> {
                 let event = match key.code {
                     event::KeyCode::Backspace => Event::Backspace,
                     event::KeyCode::Char(' ') => Event::Space,
+                    event::KeyCode::Char('1') => Event::NumberOne,
                     event::KeyCode::Char(c) => Event::Char(c),
                     event::KeyCode::Down => Event::Down,
                     event::KeyCode::Enter => Event::Enter,

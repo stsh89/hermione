@@ -38,6 +38,7 @@ fn render_content(state: &State, frame: &mut Frame, area: Rect) {
         Context::Workspaces | Context::Commands { .. } => render_list(state, frame, area),
         Context::WorkspaceForm { .. } => render_workspace_form(state, frame, area),
         Context::CommandForm { .. } => render_command_form(state, frame, area),
+        Context::Notion => render_notion_form(state, frame, area),
     }
 }
 
@@ -69,6 +70,34 @@ fn render_command_form(state: &State, frame: &mut Frame, area: Rect) {
     let block = Block::default().borders(Borders::ALL).title("Program");
     let paragraph = Paragraph::new(state.form.inputs[1].clone()).block(block);
     frame.render_widget(paragraph, program_area);
+}
+
+fn render_notion_form(state: &State, frame: &mut Frame, area: Rect) {
+    let [api_key_area, commands_database_id_area, workspaces_database_id_area] =
+        ratatui::layout::Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![
+                Constraint::Max(3),
+                Constraint::Max(3),
+                Constraint::Max(3),
+            ])
+            .areas(area);
+
+    let block = Block::default().borders(Borders::ALL).title("Api key");
+    let paragraph = Paragraph::new(state.form.inputs[0].clone()).block(block);
+    frame.render_widget(paragraph, api_key_area);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title("Commands database id");
+    let paragraph = Paragraph::new(state.form.inputs[1].clone()).block(block);
+    frame.render_widget(paragraph, commands_database_id_area);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title("Workspaces database id");
+    let paragraph = Paragraph::new(state.form.inputs[2].clone()).block(block);
+    frame.render_widget(paragraph, workspaces_database_id_area);
 }
 
 fn render_list(state: &State, frame: &mut Frame, area: Rect) {
@@ -113,6 +142,7 @@ fn title(state: &State) -> impl Widget {
             Some(_) => "Edit command",
             None => "New command",
         },
+        Context::Notion => "Notion",
     };
 
     Paragraph::new(text)

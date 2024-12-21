@@ -28,6 +28,7 @@ pub enum Context {
         workspace_id: Uuid,
         command_id: Option<Uuid>,
     },
+    Notion,
 }
 
 #[derive(Default)]

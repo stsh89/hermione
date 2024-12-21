@@ -1,15 +1,15 @@
 use super::{Context, ListItem, State};
 use hermione_drive::ServiceFactory;
 use hermione_nexus::{
-    definitions::{Command, CommandId, Workspace, WorkspaceId},
+    definitions::{BackupCredentials, Command, CommandId, Workspace, WorkspaceId},
     operations::{
         CommandsDeleteAttribute, CreateCommandOperation, CreateCommandParameters,
         CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteCommandOperation,
         DeleteCommandsOperation, DeleteCommandsParameters, DeleteWorkspaceOperation,
-        ExecuteCommandOperation, GetCommandOperation, GetWorkspaceOperation, ListCommandsOperation,
-        ListCommandsParameters, ListWorkspacesOperation, ListWorkspacesParameters,
-        UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
-        UpdateWorkspaceParameters,
+        ExecuteCommandOperation, GetCommandOperation, GetWorkspaceOperation,
+        ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
+        ListWorkspacesOperation, ListWorkspacesParameters, UpdateCommandOperation,
+        UpdateCommandParameters, UpdateWorkspaceOperation, UpdateWorkspaceParameters,
     },
 };
 
@@ -37,6 +37,18 @@ pub fn get_command(
     .execute(CommandId::new(id)?)?;
 
     Ok(Some(command))
+}
+
+pub fn get_notion_backup_credentials(
+    services: &ServiceFactory,
+) -> anyhow::Result<Option<BackupCredentials>> {
+    let backup_credentials = list_backup_credentials(services)?;
+
+    let notion_backup_credentials = backup_credentials
+        .into_iter()
+        .find(|credentials| matches!(credentials, BackupCredentials::Notion(..)));
+
+    Ok(notion_backup_credentials)
 }
 
 pub fn get_workspace(
@@ -195,6 +207,7 @@ pub fn list_commands(state: &State, services: &ServiceFactory) -> anyhow::Result
         Context::WorkspaceForm { workspace_id } => workspace_id,
         Context::Commands { workspace_id } => Some(workspace_id),
         Context::CommandForm { workspace_id, .. } => Some(workspace_id),
+        Context::Notion => None,
     };
 
     let Some(workspace_id) = workspace_id else {
@@ -277,4 +290,13 @@ impl From<Command> for ListItem {
             text: value.program().to_string(),
         }
     }
+}
+
+fn list_backup_credentials(services: &ServiceFactory) -> anyhow::Result<Vec<BackupCredentials>> {
+    let backup_credentials = ListBackupCredentialsOperation {
+        provider: &services.storage(),
+    }
+    .execute()?;
+
+    Ok(backup_credentials)
 }

@@ -2,6 +2,7 @@ mod integration;
 mod output;
 mod state;
 
+use hermione_nexus::definitions::BackupCredentials;
 use integration::RunCommandOptions;
 pub use output::Render;
 pub use state::*;
@@ -78,6 +79,7 @@ fn change_mode(mode: &mut Mode, event: keyboard::Event) -> bool {
             false
         }
         keyboard::Event::Up
+        | keyboard::Event::NumberOne
         | keyboard::Event::Tab
         | keyboard::Event::Space
         | keyboard::Event::Down
@@ -101,7 +103,7 @@ fn exit(state: &State, event: keyboard::Event) -> bool {
 fn focus_next_input(state: &mut State) {
     match state.context {
         Context::Workspaces => {}
-        Context::WorkspaceForm { .. } | Context::CommandForm { .. } => {
+        Context::WorkspaceForm { .. } | Context::CommandForm { .. } | Context::Notion => {
             state.form.cursor = (state.form.cursor + 1) % state.form.inputs.len();
         }
         Context::Commands { .. } => {}
@@ -192,6 +194,8 @@ fn maybe_change_context(
             state.list.filter = String::new();
             state.list.items = integration::list_commands(state, services)?;
         }
+
+        Context::Notion => {}
     };
 
     Ok(())
@@ -213,6 +217,7 @@ fn maybe_delete_list_item(state: &mut State, services: &ServiceFactory) -> anyho
             state.list.items = integration::list_commands(state, services)?;
         }
         Context::CommandForm { .. } => {}
+        Context::Notion => {}
     };
 
     Ok(())
@@ -239,6 +244,12 @@ fn restore_previous_context(state: &mut State, services: &ServiceFactory) -> any
             state.list.filter = String::new();
             state.list.items = integration::list_commands(state, services)?;
         }
+        Context::Notion => {
+            state.context = Context::Workspaces;
+            state.list.cursor = 0;
+            state.list.filter = String::new();
+            state.list.items = integration::list_workspaces(state, services)?;
+        }
     };
 
     Ok(())
@@ -259,7 +270,7 @@ fn update_active_input(
 ) -> anyhow::Result<()> {
     let active_input = match state.context {
         Context::Workspaces | Context::Commands { .. } => &mut state.list.filter,
-        Context::WorkspaceForm { .. } | Context::CommandForm { .. } => {
+        Context::WorkspaceForm { .. } | Context::CommandForm { .. } | Context::Notion => {
             &mut state.form.inputs[state.form.cursor]
         }
     };
@@ -282,6 +293,7 @@ fn update_active_input(
         }
         Context::WorkspaceForm { .. } => {}
         Context::CommandForm { .. } => {}
+        Context::Notion => {}
     };
 
     Ok(())
@@ -312,6 +324,22 @@ fn update_state(
             keyboard::Event::Space => {
                 integration::run_command(state, services, RunCommandOptions { no_exit: false })?
             }
+            keyboard::Event::NumberOne => {
+                state.context = Context::Notion;
+                state.form = Form::default();
+
+                if let Some(BackupCredentials::Notion(credentials)) =
+                    integration::get_notion_backup_credentials(services)?
+                {
+                    state.form.inputs = vec![
+                        credentials.api_key().to_string(),
+                        credentials.commands_database_id().to_string(),
+                        credentials.workspaces_database_id().to_string(),
+                    ];
+                } else {
+                    state.form.inputs = vec![String::new(), String::new(), String::new()];
+                };
+            }
             keyboard::Event::Char(c) => match c {
                 'n' => maybe_change_context(state, services, ChangeContextMethod::NewItem)?,
                 'd' => maybe_delete_list_item(state, services)?,
@@ -337,6 +365,10 @@ fn update_state(
 
             keyboard::Event::Space => {
                 update_active_input(state, InputUpdate::AddChar(' '), services)?
+            }
+
+            keyboard::Event::NumberOne => {
+                update_active_input(state, InputUpdate::AddChar('1'), services)?
             }
 
             keyboard::Event::Enter => {
