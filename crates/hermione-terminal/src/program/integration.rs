@@ -1,15 +1,20 @@
 use super::{Context, ListItem, State};
-use hermione_drive::ServiceFactory;
+use hermione_drive::{NotionBackupBuilder, ServiceFactory};
 use hermione_nexus::{
-    definitions::{BackupCredentials, Command, CommandId, Workspace, WorkspaceId},
+    definitions::{
+        BackupCredentials, BackupProviderKind, Command, CommandId,
+        NotionBackupCredentialsParameters, Workspace, WorkspaceId,
+    },
     operations::{
         CommandsDeleteAttribute, CreateCommandOperation, CreateCommandParameters,
-        CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteCommandOperation,
-        DeleteCommandsOperation, DeleteCommandsParameters, DeleteWorkspaceOperation,
-        ExecuteCommandOperation, GetCommandOperation, GetWorkspaceOperation,
-        ListBackupCredentialsOperation, ListCommandsOperation, ListCommandsParameters,
-        ListWorkspacesOperation, ListWorkspacesParameters, UpdateCommandOperation,
-        UpdateCommandParameters, UpdateWorkspaceOperation, UpdateWorkspaceParameters,
+        CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
+        DeleteCommandOperation, DeleteCommandsOperation, DeleteCommandsParameters,
+        DeleteWorkspaceOperation, ExecuteCommandOperation, GetCommandOperation,
+        GetWorkspaceOperation, ListBackupCredentialsOperation, ListCommandsOperation,
+        ListCommandsParameters, ListWorkspacesOperation, ListWorkspacesParameters,
+        SaveBackupCredentialsOperation, SaveBackupCredentialsOperationParameters,
+        UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
+        UpdateWorkspaceParameters,
     },
 };
 
@@ -107,6 +112,42 @@ pub fn save_command(state: &mut State, services: &ServiceFactory) -> anyhow::Res
             program,
             workspace_id,
         })?;
+    }
+
+    Ok(())
+}
+
+pub fn save_notion_backup_credentials(
+    state: &mut State,
+    services: &ServiceFactory,
+) -> anyhow::Result<()> {
+    let Context::Notion = state.context else {
+        return Ok(());
+    };
+
+    let is_empty_form = state.form.inputs.iter().all(|input| input.is_empty());
+    let storage = services.storage();
+
+    if is_empty_form {
+        DeleteBackupCredentialsOperation {
+            find_provider: &storage,
+            delete_provider: &storage,
+        }
+        .execute(BackupProviderKind::Notion)?;
+    } else {
+        let credentials = BackupCredentials::notion(NotionBackupCredentialsParameters {
+            api_key: state.form.inputs[0].clone(),
+            commands_database_id: state.form.inputs[1].clone(),
+            workspaces_database_id: state.form.inputs[2].clone(),
+        });
+
+        let backup_provider = NotionBackupBuilder::default();
+
+        SaveBackupCredentialsOperation::new(SaveBackupCredentialsOperationParameters {
+            save_provider: &storage,
+            backup_provider_builder: &backup_provider,
+        })
+        .execute(&credentials)?;
     }
 
     Ok(())

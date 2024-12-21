@@ -1,8 +1,8 @@
-use crate::program::{Context, State};
+use crate::program::{Context, NoticeKind, State};
 use ratatui::{
-    layout::{Constraint, Direction, Rect},
+    layout::{Constraint, Direction, Flex, Layout, Rect},
     text::{Span, Text},
-    widgets::{Block, Borders, List, ListState, Paragraph, Widget},
+    widgets::{Block, Borders, Clear, List, ListState, Paragraph, Widget, Wrap},
     Frame,
 };
 
@@ -49,11 +49,11 @@ fn render_workspace_form(state: &State, frame: &mut Frame, area: Rect) {
         .areas(area);
 
     let block = Block::default().borders(Borders::ALL).title("Name");
-    let paragraph = Paragraph::new(state.form.inputs[0].clone()).block(block);
+    let paragraph = Paragraph::new(state.form.inputs[0].as_str()).block(block);
     frame.render_widget(paragraph, name_area);
 
     let block = Block::default().borders(Borders::ALL).title("Location");
-    let paragraph = Paragraph::new(state.form.inputs[1].clone()).block(block);
+    let paragraph = Paragraph::new(state.form.inputs[1].as_str()).block(block);
     frame.render_widget(paragraph, location_area);
 }
 
@@ -64,40 +64,56 @@ fn render_command_form(state: &State, frame: &mut Frame, area: Rect) {
         .areas(area);
 
     let block = Block::default().borders(Borders::ALL).title("Name");
-    let paragraph = Paragraph::new(state.form.inputs[0].clone()).block(block);
+    let paragraph = Paragraph::new(state.form.inputs[0].as_str()).block(block);
     frame.render_widget(paragraph, name_area);
 
     let block = Block::default().borders(Borders::ALL).title("Program");
-    let paragraph = Paragraph::new(state.form.inputs[1].clone()).block(block);
+    let paragraph = Paragraph::new(state.form.inputs[1].as_str()).block(block);
     frame.render_widget(paragraph, program_area);
 }
 
 fn render_notion_form(state: &State, frame: &mut Frame, area: Rect) {
-    let [api_key_area, commands_database_id_area, workspaces_database_id_area] =
-        ratatui::layout::Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(vec![
-                Constraint::Max(3),
-                Constraint::Max(3),
-                Constraint::Max(3),
-            ])
-            .areas(area);
+    let [api_key_area, commands_database_id_area, workspaces_database_id_area] = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![
+            Constraint::Max(3),
+            Constraint::Max(3),
+            Constraint::Max(3),
+        ])
+        .areas(area);
 
     let block = Block::default().borders(Borders::ALL).title("Api key");
-    let paragraph = Paragraph::new(state.form.inputs[0].clone()).block(block);
+    let paragraph = Paragraph::new(state.form.inputs[0].as_str()).block(block);
     frame.render_widget(paragraph, api_key_area);
 
     let block = Block::default()
         .borders(Borders::ALL)
         .title("Commands database id");
-    let paragraph = Paragraph::new(state.form.inputs[1].clone()).block(block);
+    let paragraph = Paragraph::new(state.form.inputs[1].as_str()).block(block);
     frame.render_widget(paragraph, commands_database_id_area);
 
     let block = Block::default()
         .borders(Borders::ALL)
         .title("Workspaces database id");
-    let paragraph = Paragraph::new(state.form.inputs[2].clone()).block(block);
+    let paragraph = Paragraph::new(state.form.inputs[2].as_str()).block(block);
     frame.render_widget(paragraph, workspaces_database_id_area);
+
+    if let Some(notice) = &state.notice {
+        let title = match notice.kind {
+            NoticeKind::Success => "Success",
+            NoticeKind::Error => "Error",
+        };
+
+        let popup_area = popup_area(area, 50, 50);
+
+        let block = Block::default().borders(Borders::all()).title(title);
+        let paragraph = Paragraph::new(notice.message.as_str())
+            .wrap(Wrap { trim: false })
+            .block(block);
+
+        frame.render_widget(Clear, popup_area);
+        frame.render_widget(paragraph, popup_area);
+    }
 }
 
 fn render_list(state: &State, frame: &mut Frame, area: Rect) {
@@ -112,7 +128,7 @@ fn render_list(state: &State, frame: &mut Frame, area: Rect) {
             .list
             .items
             .iter()
-            .map(|item| item.text.clone())
+            .map(|item| item.text.as_str())
             .collect::<Vec<_>>(),
     )
     .block(block)
@@ -126,7 +142,7 @@ fn render_list(state: &State, frame: &mut Frame, area: Rect) {
     frame.render_stateful_widget(list, list_area, &mut list_state);
 
     let block = Block::default().borders(Borders::ALL);
-    let search = Paragraph::new(state.list.filter.clone()).block(block);
+    let search = Paragraph::new(state.list.filter.as_str()).block(block);
     frame.render_widget(search, search_area);
 }
 
@@ -146,4 +162,14 @@ fn title(state: &State) -> impl Widget {
     };
 
     Paragraph::new(text)
+}
+
+fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+
+    area
 }

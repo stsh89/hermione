@@ -49,12 +49,6 @@ enum InputUpdate {
     DeleteChar,
 }
 
-enum ChangeContextMethod {
-    Edit,
-    NewItem,
-    Select,
-}
-
 fn change_mode(mode: &mut Mode, event: keyboard::Event) -> bool {
     match event {
         keyboard::Event::Esc => {
@@ -79,6 +73,8 @@ fn change_mode(mode: &mut Mode, event: keyboard::Event) -> bool {
             false
         }
         keyboard::Event::Up
+        | keyboard::Event::Left
+        | keyboard::Event::Right
         | keyboard::Event::NumberOne
         | keyboard::Event::Tab
         | keyboard::Event::Space
@@ -86,6 +82,47 @@ fn change_mode(mode: &mut Mode, event: keyboard::Event) -> bool {
         | keyboard::Event::Backspace
         | keyboard::Event::Enter => false,
     }
+}
+
+fn maybe_submit_form(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    match state.context {
+        Context::Workspaces => {}
+        Context::WorkspaceForm { .. } => {
+            integration::save_workspace(state, services)?;
+
+            state.notice = None;
+            state.context = Context::Workspaces;
+            state.list.cursor = 0;
+            state.list.filter = String::new();
+            state.list.items = integration::list_workspaces(state, services)?;
+        }
+        Context::Commands { .. } => {}
+        Context::CommandForm { workspace_id, .. } => {
+            integration::save_command(state, services)?;
+
+            state.notice = None;
+            state.context = Context::Commands { workspace_id };
+            state.list.cursor = 0;
+            state.list.filter = String::new();
+            state.list.items = integration::list_commands(state, services)?;
+        }
+        Context::Notion => match integration::save_notion_backup_credentials(state, services) {
+            Ok(_) => {
+                state.notice = Some(Notice {
+                    message: "Backup credentials saved".to_string(),
+                    kind: NoticeKind::Success,
+                });
+            }
+            Err(err) => {
+                state.notice = Some(Notice {
+                    message: err.to_string(),
+                    kind: NoticeKind::Error,
+                });
+            }
+        },
+    };
+
+    Ok(())
 }
 
 fn exit(state: &State, event: keyboard::Event) -> bool {
@@ -110,96 +147,188 @@ fn focus_next_input(state: &mut State) {
     }
 }
 
-fn maybe_change_context(
-    state: &mut State,
-    services: &ServiceFactory,
-    method: ChangeContextMethod,
-) -> anyhow::Result<()> {
+fn maybe_follow_selected_item(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
     match state.context {
-        Context::Workspaces => match method {
-            ChangeContextMethod::Edit => {
-                let Some(workspace) = integration::get_workspace(state, services)? else {
-                    return Ok(());
-                };
-
-                state.context = Context::WorkspaceForm {
-                    workspace_id: Some(workspace.id().as_uuid()),
-                };
-
-                state.form = Form::default();
-                state.form.inputs = vec![
-                    workspace.name().to_string(),
-                    workspace.location().unwrap_or_default().to_string(),
-                ];
+        Context::Workspaces => {
+            if state.list.items.is_empty() {
+                return Ok(());
             }
-            ChangeContextMethod::NewItem => {
-                state.context = Context::WorkspaceForm { workspace_id: None };
 
-                state.form = Form::default();
-                state.form.inputs = vec![String::new(), String::new()];
-            }
-            ChangeContextMethod::Select => {
-                if state.list.items.is_empty() {
-                    return Ok(());
-                }
+            state.notice = None;
+            state.context = Context::Commands {
+                workspace_id: state.list.items[state.list.cursor].id,
+            };
 
-                state.context = Context::Commands {
-                    workspace_id: state.list.items[state.list.cursor].id,
-                };
-
-                state.list.cursor = 0;
-                state.list.filter = String::new();
-                state.list.items = integration::list_commands(state, services)?;
-            }
-        },
-        Context::Commands { workspace_id } => match method {
-            ChangeContextMethod::Select => {}
-            ChangeContextMethod::NewItem => {
-                state.context = Context::CommandForm {
-                    workspace_id,
-                    command_id: None,
-                };
-
-                state.form = Form::default();
-                state.form.inputs = vec![String::new(), String::new()];
-            }
-            ChangeContextMethod::Edit => {
-                let Some(command) = integration::get_command(state, services)? else {
-                    return Ok(());
-                };
-
-                state.context = Context::CommandForm {
-                    workspace_id,
-                    command_id: Some(state.list.items[state.list.cursor].id),
-                };
-
-                state.form = Form::default();
-                state.form.inputs = vec![command.name().to_string(), command.program().to_string()];
-            }
-        },
-        Context::WorkspaceForm { .. } => {
-            integration::save_workspace(state, services)?;
-
-            state.context = Context::Workspaces;
-            state.list.cursor = 0;
-            state.list.filter = String::new();
-            state.list.items = integration::list_workspaces(state, services)?;
-        }
-
-        Context::CommandForm { workspace_id, .. } => {
-            integration::save_command(state, services)?;
-
-            state.context = Context::Commands { workspace_id };
             state.list.cursor = 0;
             state.list.filter = String::new();
             state.list.items = integration::list_commands(state, services)?;
         }
+        Context::WorkspaceForm { .. } => {}
+        Context::Commands { .. } => {}
+        Context::CommandForm { .. } => {}
+        Context::Notion => {}
+    }
 
+    Ok(())
+}
+
+fn maybe_edit_item(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    match state.context {
+        Context::Workspaces => {
+            let Some(workspace) = integration::get_workspace(state, services)? else {
+                return Ok(());
+            };
+
+            state.notice = None;
+            state.context = Context::WorkspaceForm {
+                workspace_id: Some(workspace.id().as_uuid()),
+            };
+
+            state.form = Form::default();
+            state.form.inputs = vec![
+                workspace.name().to_string(),
+                workspace.location().unwrap_or_default().to_string(),
+            ];
+        }
+        Context::WorkspaceForm { .. } => {}
+        Context::Commands { workspace_id } => {
+            let Some(command) = integration::get_command(state, services)? else {
+                return Ok(());
+            };
+
+            state.notice = None;
+            state.context = Context::CommandForm {
+                workspace_id,
+                command_id: Some(state.list.items[state.list.cursor].id),
+            };
+
+            state.form = Form::default();
+            state.form.inputs = vec![command.name().to_string(), command.program().to_string()];
+        }
+        Context::CommandForm { .. } => {}
+        Context::Notion => {}
+    }
+
+    Ok(())
+}
+
+fn maybe_new_item(state: &mut State) -> anyhow::Result<()> {
+    match state.context {
+        Context::Workspaces => {
+            state.notice = None;
+            state.context = Context::WorkspaceForm { workspace_id: None };
+
+            state.form = Form::default();
+            state.form.inputs = vec![String::new(), String::new()];
+        }
+        Context::WorkspaceForm { .. } => {}
+        Context::Commands { .. } => {}
+        Context::CommandForm { workspace_id, .. } => {
+            state.notice = None;
+            state.context = Context::CommandForm {
+                workspace_id,
+                command_id: None,
+            };
+
+            state.form = Form::default();
+            state.form.inputs = vec![String::new(), String::new()];
+        }
         Context::Notion => {}
     };
 
     Ok(())
 }
+
+// fn maybe_change_context(
+//     state: &mut State,
+//     services: &ServiceFactory,
+//     method: ChangeContextMethod,
+// ) -> anyhow::Result<()> {
+//     match state.context {
+//         Context::Workspaces => match method {
+//             ChangeContextMethod::Edit => {
+//                 let Some(workspace) = integration::get_workspace(state, services)? else {
+//                     return Ok(());
+//                 };
+
+//                 state.context = Context::WorkspaceForm {
+//                     workspace_id: Some(workspace.id().as_uuid()),
+//                 };
+
+//                 state.form = Form::default();
+//                 state.form.inputs = vec![
+//                     workspace.name().to_string(),
+//                     workspace.location().unwrap_or_default().to_string(),
+//                 ];
+//             }
+//             ChangeContextMethod::NewItem => {
+//                 state.context = Context::WorkspaceForm { workspace_id: None };
+
+//                 state.form = Form::default();
+//                 state.form.inputs = vec![String::new(), String::new()];
+//             }
+//             ChangeContextMethod::FollowSelectedItem => {
+//                 if state.list.items.is_empty() {
+//                     return Ok(());
+//                 }
+
+//                 state.context = Context::Commands {
+//                     workspace_id: state.list.items[state.list.cursor].id,
+//                 };
+
+//                 state.list.cursor = 0;
+//                 state.list.filter = String::new();
+//                 state.list.items = integration::list_commands(state, services)?;
+//             }
+//         },
+//         Context::Commands { workspace_id } => match method {
+//             ChangeContextMethod::FollowSelectedItem => {}
+//             ChangeContextMethod::NewItem => {
+//                 state.context = Context::CommandForm {
+//                     workspace_id,
+//                     command_id: None,
+//                 };
+
+//                 state.form = Form::default();
+//                 state.form.inputs = vec![String::new(), String::new()];
+//             }
+//             ChangeContextMethod::Edit => {
+//                 let Some(command) = integration::get_command(state, services)? else {
+//                     return Ok(());
+//                 };
+
+//                 state.context = Context::CommandForm {
+//                     workspace_id,
+//                     command_id: Some(state.list.items[state.list.cursor].id),
+//                 };
+
+//                 state.form = Form::default();
+//                 state.form.inputs = vec![command.name().to_string(), command.program().to_string()];
+//             }
+//         },
+//         Context::WorkspaceForm { .. } => {
+//             integration::save_workspace(state, services)?;
+
+//             state.context = Context::Workspaces;
+//             state.list.cursor = 0;
+//             state.list.filter = String::new();
+//             state.list.items = integration::list_workspaces(state, services)?;
+//         }
+
+//         Context::CommandForm { workspace_id, .. } => {
+//             integration::save_command(state, services)?;
+
+//             state.context = Context::Commands { workspace_id };
+//             state.list.cursor = 0;
+//             state.list.filter = String::new();
+//             state.list.items = integration::list_commands(state, services)?;
+//         }
+
+//         Context::Notion => {}
+//     };
+
+//     Ok(())
+// }
 
 fn maybe_delete_list_item(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
     match state.context {
@@ -223,28 +352,32 @@ fn maybe_delete_list_item(state: &mut State, services: &ServiceFactory) -> anyho
     Ok(())
 }
 
-fn restore_previous_context(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+fn restore_parent_context(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
     match state.context {
         Context::Workspaces => {}
         Context::Commands { .. } => {
+            state.notice = None;
             state.context = Context::Workspaces;
             state.list.cursor = 0;
             state.list.filter = String::new();
             state.list.items = integration::list_workspaces(state, services)?;
         }
         Context::WorkspaceForm { .. } => {
+            state.notice = None;
             state.context = Context::Workspaces;
             state.list.cursor = 0;
             state.list.filter = String::new();
             state.list.items = integration::list_workspaces(state, services)?;
         }
         Context::CommandForm { workspace_id, .. } => {
+            state.notice = None;
             state.context = Context::Commands { workspace_id };
             state.list.cursor = 0;
             state.list.filter = String::new();
             state.list.items = integration::list_commands(state, services)?;
         }
         Context::Notion => {
+            state.notice = None;
             state.context = Context::Workspaces;
             state.list.cursor = 0;
             state.list.filter = String::new();
@@ -317,14 +450,14 @@ fn update_state(
         Mode::Normal => match event {
             keyboard::Event::Down => select_next_list_item(state),
             keyboard::Event::Up => select_previous_list_item(state),
-            keyboard::Event::Enter => {
-                maybe_change_context(state, services, ChangeContextMethod::Select)?
-            }
-            keyboard::Event::Backspace => restore_previous_context(state, services)?,
+            keyboard::Event::Enter => maybe_submit_form(state, services)?,
+            keyboard::Event::Right => maybe_follow_selected_item(state, services)?,
+            keyboard::Event::Left => restore_parent_context(state, services)?,
             keyboard::Event::Space => {
                 integration::run_command(state, services, RunCommandOptions { no_exit: false })?
             }
             keyboard::Event::NumberOne => {
+                state.notice = None;
                 state.context = Context::Notion;
                 state.form = Form::default();
 
@@ -341,14 +474,14 @@ fn update_state(
                 };
             }
             keyboard::Event::Char(c) => match c {
-                'n' => maybe_change_context(state, services, ChangeContextMethod::NewItem)?,
+                'n' => maybe_new_item(state)?,
                 'd' => maybe_delete_list_item(state, services)?,
                 'j' => select_next_list_item(state),
                 'k' => select_previous_list_item(state),
-                'e' => maybe_change_context(state, services, ChangeContextMethod::Edit)?,
+                'e' => maybe_edit_item(state, services)?,
                 _ => {}
             },
-            keyboard::Event::Esc | keyboard::Event::Tab => {}
+            keyboard::Event::Esc | keyboard::Event::Tab | keyboard::Event::Backspace => {}
         },
         Mode::Input => match event {
             keyboard::Event::Char(c) => {
@@ -371,11 +504,23 @@ fn update_state(
                 update_active_input(state, InputUpdate::AddChar('1'), services)?
             }
 
-            keyboard::Event::Enter => {
-                update_active_input(state, InputUpdate::AddChar('\n'), services)?
-            }
+            keyboard::Event::Enter => match state.context {
+                Context::CommandForm { .. } => {
+                    if state.form.cursor == 1 {
+                        update_active_input(state, InputUpdate::AddChar('\n'), services)?
+                    }
+                }
+                Context::Workspaces => {}
+                Context::WorkspaceForm { .. } => {}
+                Context::Commands { .. } => {}
+                Context::Notion => {}
+            },
 
-            keyboard::Event::Esc | keyboard::Event::Down | keyboard::Event::Up => {}
+            keyboard::Event::Esc
+            | keyboard::Event::Down
+            | keyboard::Event::Up
+            | keyboard::Event::Left
+            | keyboard::Event::Right => {}
         },
     };
 

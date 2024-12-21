@@ -6,6 +6,17 @@ pub struct State {
     pub mode: Mode,
     pub list: List,
     pub context: Context,
+    pub notice: Option<Notice>,
+}
+
+pub struct Notice {
+    pub kind: NoticeKind,
+    pub message: String,
+}
+
+pub enum NoticeKind {
+    Success,
+    Error,
 }
 
 #[derive(Default)]
