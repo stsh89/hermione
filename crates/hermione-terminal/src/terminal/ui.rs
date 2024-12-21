@@ -21,6 +21,22 @@ pub fn render(frame: &mut Frame, state: &State) {
     render_content(state, frame, content);
 
     frame.render_widget(help_line(), footer);
+
+    if let Some(notice) = &state.notice {
+        let title = match notice.kind {
+            NoticeKind::Success => "Success",
+            NoticeKind::Error => "Error",
+        };
+
+        let popup_area = popup_area(content, 50, 50);
+        let block = Block::default().borders(Borders::all()).title(title);
+        let paragraph = Paragraph::new(notice.message.as_str())
+            .wrap(Wrap { trim: false })
+            .block(block);
+
+        frame.render_widget(Clear, popup_area);
+        frame.render_widget(paragraph, popup_area);
+    }
 }
 
 fn help_line() -> impl Widget {
@@ -97,23 +113,6 @@ fn render_notion_form(state: &State, frame: &mut Frame, area: Rect) {
         .title("Workspaces database id");
     let paragraph = Paragraph::new(state.form.inputs[2].as_str()).block(block);
     frame.render_widget(paragraph, workspaces_database_id_area);
-
-    if let Some(notice) = &state.notice {
-        let title = match notice.kind {
-            NoticeKind::Success => "Success",
-            NoticeKind::Error => "Error",
-        };
-
-        let popup_area = popup_area(area, 50, 50);
-
-        let block = Block::default().borders(Borders::all()).title(title);
-        let paragraph = Paragraph::new(notice.message.as_str())
-            .wrap(Wrap { trim: false })
-            .block(block);
-
-        frame.render_widget(Clear, popup_area);
-        frame.render_widget(paragraph, popup_area);
-    }
 }
 
 fn render_list(state: &State, frame: &mut Frame, area: Rect) {
