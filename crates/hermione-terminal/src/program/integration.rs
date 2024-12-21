@@ -9,8 +9,13 @@ use hermione_nexus::{
         CommandsDeleteAttribute, CreateCommandOperation, CreateCommandParameters,
         CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
         DeleteCommandOperation, DeleteCommandsOperation, DeleteCommandsParameters,
-        DeleteWorkspaceOperation, ExecuteCommandOperation, GetCommandOperation,
-        GetWorkspaceOperation, ListBackupCredentialsOperation, ListCommandsOperation,
+        DeleteWorkspaceOperation, ExecuteCommandOperation, ExportCommandOperation,
+        ExportCommandOperationParameters, ExportCommandParameters, ExportCommandsOperation,
+        ExportCommandsOperationParameters, ExportWorkspaceOperation,
+        ExportWorkspaceOperationParameters, ExportWorkspaceParameters, ExportWorkspacesOperation,
+        ExportWorkspacesOperationParameters, GetCommandOperation, GetWorkspaceOperation,
+        ImportCommandsOperation, ImportCommandsOperationParameters, ImportWorkspacesOperation,
+        ImportWorkspacesOperationParameters, ListBackupCredentialsOperation, ListCommandsOperation,
         ListCommandsParameters, ListWorkspacesOperation, ListWorkspacesParameters,
         SaveBackupCredentialsOperation, SaveBackupCredentialsOperationParameters,
         UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
@@ -20,6 +25,82 @@ use hermione_nexus::{
 
 pub struct RunCommandOptions {
     pub no_exit: bool,
+}
+
+pub fn backup_commands(services: &ServiceFactory) -> anyhow::Result<()> {
+    let storage = services.storage();
+
+    ExportCommandsOperation::new(ExportCommandsOperationParameters {
+        backup_credentials: &storage,
+        commands: &storage,
+        backup_builder: &NotionBackupBuilder::default(),
+    })
+    .execute(BackupProviderKind::Notion)?;
+
+    Ok(())
+}
+
+pub fn backup_workspaces(services: &ServiceFactory) -> anyhow::Result<()> {
+    let storage = services.storage();
+
+    ExportWorkspacesOperation::new(ExportWorkspacesOperationParameters {
+        backup_credentials: &storage,
+        workspaces: &storage,
+        backup_builder: &NotionBackupBuilder::default(),
+    })
+    .execute(BackupProviderKind::Notion)?;
+
+    Ok(())
+}
+
+pub fn backup_command(state: &State, services: &ServiceFactory) -> anyhow::Result<()> {
+    let Context::Commands { .. } = state.context else {
+        return Ok(());
+    };
+
+    if state.list.items.is_empty() {
+        return Ok(());
+    }
+
+    let command_id = state.list.items[state.list.cursor].id;
+    let storage = services.storage();
+
+    ExportCommandOperation::new(ExportCommandOperationParameters {
+        find_backup_credentials: &storage,
+        find_command: &storage,
+        backup_provider_builder: &NotionBackupBuilder::default(),
+    })
+    .execute(ExportCommandParameters {
+        backup_provider_kind: BackupProviderKind::Notion,
+        command_id: CommandId::new(command_id)?,
+    })?;
+
+    Ok(())
+}
+
+pub fn backup_workspace(state: &State, services: &ServiceFactory) -> anyhow::Result<()> {
+    let Context::Workspaces = state.context else {
+        return Ok(());
+    };
+
+    if state.list.items.is_empty() {
+        return Ok(());
+    }
+
+    let workspace_id = state.list.items[state.list.cursor].id;
+    let storage = services.storage();
+
+    ExportWorkspaceOperation::new(ExportWorkspaceOperationParameters {
+        find_backup_credentials: &storage,
+        find_workspace: &storage,
+        backup_provider_builder: &NotionBackupBuilder::default(),
+    })
+    .execute(ExportWorkspaceParameters {
+        workspace_id: WorkspaceId::new(workspace_id)?,
+        backup_provider_kind: BackupProviderKind::Notion,
+    })?;
+
+    Ok(())
 }
 
 pub fn get_command(
@@ -279,6 +360,32 @@ pub fn list_workspaces(state: &State, services: &ServiceFactory) -> anyhow::Resu
     })?;
 
     Ok(workspaces.into_iter().map(Into::into).collect())
+}
+
+pub fn restore_commands(services: &ServiceFactory) -> anyhow::Result<()> {
+    let storage = services.storage();
+
+    ImportCommandsOperation::new(ImportCommandsOperationParameters {
+        backup_credentials_provider: &storage,
+        upsert_commands_provider: &storage,
+        backup_provider_builder: &NotionBackupBuilder::default(),
+    })
+    .execute(BackupProviderKind::Notion)?;
+
+    Ok(())
+}
+
+pub fn restore_workspaces(services: &ServiceFactory) -> anyhow::Result<()> {
+    let storage = services.storage();
+
+    ImportWorkspacesOperation::new(ImportWorkspacesOperationParameters {
+        backup_credentials_provider: &storage,
+        upsert_workspaces_provider: &storage,
+        backup_provider_builder: &NotionBackupBuilder::default(),
+    })
+    .execute(BackupProviderKind::Notion)?;
+
+    Ok(())
 }
 
 pub fn run_command(

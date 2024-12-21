@@ -5,8 +5,9 @@ use hermione_nexus::{
         WorkspaceId, WorkspaceParameters,
     },
     services::{
-        BackupCommands, BackupCopies, BackupCopyParameters, BackupService, BackupServiceBuilder,
-        BackupWorkspaces, GetCommandsBackupCopy, GetWorkspacesBackupCopy, VerifyBackupCredentials,
+        BackupCommand, BackupCommands, BackupCopies, BackupCopyParameters, BackupService,
+        BackupServiceBuilder, BackupWorkspace, BackupWorkspaces, GetCommandsBackupCopy,
+        GetWorkspacesBackupCopy, VerifyBackupCredentials,
     },
     Error, Result,
 };
@@ -222,6 +223,80 @@ impl GetWorkspacesBackupCopy for NotionBackup {
     }
 }
 
+impl BackupCommand for NotionBackup {
+    fn backup_command(&self, command: Command) -> Result<()> {
+        let filter = external_ids_filter(vec![command.id().to_string()]);
+
+        let query_database = || {
+            api::query_database(
+                &self.client,
+                QueryDatabaseParameters {
+                    database_id: &self.commands_database_id,
+                    start_cursor: None,
+                    page_size: NonZeroU32::new(1),
+                    filter: filter.clone(),
+                },
+            )
+        };
+
+        let response = send_with_retries(query_database)?;
+
+        let response: QueryDatabaseResponse<NotionCommandProperties> =
+            notion::query_datrabase_response(response)
+                .map_err(|err| {
+                    err.wrap_err(
+                        "Could not process Notion API response. API: query commands database",
+                    )
+                })
+                .map_err(Error::backup)?;
+
+        let page = response
+            .database_pages
+            .iter()
+            .find(|p| p.properties.external_id == command.id().to_string());
+
+        let Some(page) = page else {
+            let api_call = || {
+                api::create_database_entry(
+                    &self.client,
+                    CreateDatabaseEntryParameters {
+                        database_id: &self.commands_database_id,
+                        properties: serde_json::json!({
+                            "Name": {"title": [{"text": {"content": command.name()}}]},
+                            "External ID": {"rich_text": [{"text": {"content": command.id().to_string()}}]},
+                            "Program": {"rich_text": [{"text": {"content": command.program()}}]},
+                            "Workspace ID": {"rich_text": [{"text": {"content": command.workspace_id().to_string()}}]}
+                        }),
+                    },
+                )
+            };
+
+            send_with_retries(api_call)?;
+
+            return Ok(());
+        };
+
+        if command.name() != page.properties.name || command.program() != page.properties.program {
+            let api_call = || {
+                api::update_database_entry(
+                    &self.client,
+                    UpdateDatabaseEntryParameters {
+                        entry_id: &page.page_id,
+                        properties: serde_json::json!({
+                            "Name": {"title": [{"text": {"content": command.name()}}]},
+                            "Program": {"rich_text": [{"text": {"content": command.program()}}]}
+                        }),
+                    },
+                )
+            };
+
+            send_with_retries(api_call)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl BackupCommands for NotionBackup {
     fn backup_commands(&self, commands: Vec<Command>) -> Result<()> {
         if commands.is_empty() {
@@ -304,6 +379,81 @@ impl BackupCommands for NotionBackup {
 
                 send_with_retries(api_call)?;
             }
+        }
+
+        Ok(())
+    }
+}
+
+impl BackupWorkspace for NotionBackup {
+    fn backup_workspace(&self, workspace: Workspace) -> Result<()> {
+        let filter = external_ids_filter(vec![workspace.id().to_string()]);
+
+        let api_call = || {
+            api::query_database(
+                &self.client,
+                QueryDatabaseParameters {
+                    database_id: &self.workspaces_database_id,
+                    start_cursor: None,
+                    page_size: NonZeroU32::new(1),
+                    filter: filter.clone(),
+                },
+            )
+        };
+
+        let response = send_with_retries(api_call)?;
+
+        let response: QueryDatabaseResponse<NotionWorkspaceProperties> =
+            notion::query_datrabase_response(response)
+                .map_err(|err| {
+                    err.wrap_err(
+                        "Could not process Notion API response. API: query workspaces database",
+                    )
+                })
+                .map_err(Error::backup)?;
+
+        let page = response
+            .database_pages
+            .iter()
+            .find(|p| p.properties.external_id == workspace.id().to_string());
+
+        let Some(page) = page else {
+            let api_call = || {
+                api::create_database_entry(
+                    &self.client,
+                    CreateDatabaseEntryParameters {
+                        database_id: &self.workspaces_database_id,
+                        properties: serde_json::json!({
+                            "Name": {"title": [{"text": {"content": workspace.name()}}]},
+                            "External ID": {"rich_text": [{"text": {"content": workspace.id().to_string()}}]},
+                            "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
+                        }),
+                    },
+                )
+            };
+
+            send_with_retries(api_call)?;
+
+            return Ok(());
+        };
+
+        if workspace.name() != page.properties.name
+            || workspace.location().unwrap_or_default() != page.properties.location
+        {
+            let api_call = || {
+                api::update_database_entry(
+                    &self.client,
+                    UpdateDatabaseEntryParameters {
+                        entry_id: &page.page_id,
+                        properties: serde_json::json!({
+                            "Name": {"title": [{"text": {"content": workspace.name()}}]},
+                            "Location": {"rich_text": [{"text": {"content": workspace.location()}}]}
+                        }),
+                    },
+                )
+            };
+
+            send_with_retries(api_call)?;
         }
 
         Ok(())

@@ -172,6 +172,122 @@ fn maybe_follow_selected_item(state: &mut State, services: &ServiceFactory) -> a
     Ok(())
 }
 
+fn maybe_backup(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    match state.context {
+        Context::Workspaces => {
+            if state.list.items.is_empty() {
+                return Ok(());
+            };
+
+            match integration::backup_workspace(state, services) {
+                Ok(_) => {
+                    state.notice = Some(Notice {
+                        message: "Workspace backed up".to_string(),
+                        kind: NoticeKind::Success,
+                    });
+                }
+                Err(err) => {
+                    state.notice = Some(Notice {
+                        message: err.to_string(),
+                        kind: NoticeKind::Error,
+                    });
+                }
+            }
+        }
+        Context::WorkspaceForm { .. } => {}
+        Context::Commands { .. } => {
+            if state.list.items.is_empty() {
+                return Ok(());
+            };
+
+            match integration::backup_command(state, services) {
+                Ok(_) => {
+                    state.notice = Some(Notice {
+                        message: "Command backed up".to_string(),
+                        kind: NoticeKind::Success,
+                    });
+                }
+                Err(err) => {
+                    state.notice = Some(Notice {
+                        message: err.to_string(),
+                        kind: NoticeKind::Error,
+                    });
+                }
+            }
+        }
+        Context::CommandForm { .. } => {}
+        Context::Notion => {
+            match integration::backup_workspaces(services) {
+                Ok(_) => {
+                    state.notice = Some(Notice {
+                        message: "Workspaces backed up".to_string(),
+                        kind: NoticeKind::Success,
+                    });
+                }
+                Err(err) => {
+                    state.notice = Some(Notice {
+                        message: err.to_string(),
+                        kind: NoticeKind::Error,
+                    });
+                }
+            };
+
+            match integration::backup_commands(services) {
+                Ok(_) => {
+                    state.notice = Some(Notice {
+                        message: "Commands backed up".to_string(),
+                        kind: NoticeKind::Success,
+                    });
+                }
+                Err(err) => {
+                    state.notice = Some(Notice {
+                        message: err.to_string(),
+                        kind: NoticeKind::Error,
+                    });
+                }
+            };
+        }
+    };
+
+    Ok(())
+}
+
+fn maybe_restore(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    if let Context::Notion = state.context {
+        match integration::restore_workspaces(services) {
+            Ok(_) => {
+                state.notice = Some(Notice {
+                    message: "Workspaces backed up".to_string(),
+                    kind: NoticeKind::Success,
+                });
+            }
+            Err(err) => {
+                state.notice = Some(Notice {
+                    message: err.to_string(),
+                    kind: NoticeKind::Error,
+                });
+            }
+        };
+
+        match integration::restore_commands(services) {
+            Ok(_) => {
+                state.notice = Some(Notice {
+                    message: "Commands backed up".to_string(),
+                    kind: NoticeKind::Success,
+                });
+            }
+            Err(err) => {
+                state.notice = Some(Notice {
+                    message: err.to_string(),
+                    kind: NoticeKind::Error,
+                });
+            }
+        };
+    };
+
+    Ok(())
+}
+
 fn maybe_edit_item(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
     match state.context {
         Context::Workspaces => {
@@ -222,8 +338,7 @@ fn maybe_new_item(state: &mut State) -> anyhow::Result<()> {
             state.form.inputs = vec![String::new(), String::new()];
         }
         Context::WorkspaceForm { .. } => {}
-        Context::Commands { .. } => {}
-        Context::CommandForm { workspace_id, .. } => {
+        Context::Commands { workspace_id } => {
             state.notice = None;
             state.context = Context::CommandForm {
                 workspace_id,
@@ -233,6 +348,7 @@ fn maybe_new_item(state: &mut State) -> anyhow::Result<()> {
             state.form = Form::default();
             state.form.inputs = vec![String::new(), String::new()];
         }
+        Context::CommandForm { .. } => {}
         Context::Notion => {}
     };
 
@@ -388,6 +504,8 @@ fn update_state(
                 'j' => select_next_list_item(state),
                 'k' => select_previous_list_item(state),
                 'e' => maybe_edit_item(state, services)?,
+                'b' => maybe_backup(state, services)?,
+                'r' => maybe_restore(state, services)?,
                 _ => {}
             },
             keyboard::Event::Esc | keyboard::Event::Tab | keyboard::Event::Backspace => {}
