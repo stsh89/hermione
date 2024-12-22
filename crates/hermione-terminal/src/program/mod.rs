@@ -12,6 +12,16 @@ use hermione_drive::{Engine, ServiceFactory};
 use output::DrawOperation;
 
 pub fn run() -> anyhow::Result<()> {
+    if let Err(err) = do_run() {
+        tracing::error!(error = ?err);
+
+        return Err(err);
+    };
+
+    Ok(())
+}
+
+fn do_run() -> anyhow::Result<()> {
     terminal::install_panic_hook();
 
     let Engine {

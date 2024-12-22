@@ -7,8 +7,6 @@ default-run = "hermione-terminal"
 [dependencies]
 anyhow = { workspace = true }
 ratatui = { workspace = true, features = ["serde"] }
-serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 

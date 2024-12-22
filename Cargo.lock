@@ -367,8 +367,6 @@ dependencies = [
  "hermione-drive",
  "hermione-nexus",
  "ratatui",
- "serde",
- "serde_json",
  "tracing",
  "uuid",
 ]
