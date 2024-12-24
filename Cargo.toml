@@ -10,6 +10,7 @@ members = [
 [workspace.dependencies]
 anyhow = "1.0.89"
 chrono = "0.4.38"
+clap = "4.5.23"
 dirs = "5.0.1"
 eyre = "0.6.12"
 ratatui = "0.29.0"

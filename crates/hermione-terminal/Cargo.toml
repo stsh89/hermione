@@ -6,6 +6,7 @@ default-run = "hermione-terminal"
 
 [dependencies]
 anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
 ratatui = { workspace = true, features = ["serde"] }
 tracing = { workspace = true }
 uuid = { workspace = true }

@@ -2,6 +2,8 @@ mod integration;
 mod output;
 mod state;
 
+use std::process::Command;
+
 use hermione_nexus::definitions::BackupCredentials;
 use integration::RunCommandOptions;
 pub use output::Render;
@@ -17,6 +19,17 @@ pub fn run() -> anyhow::Result<()> {
 
         return Err(err);
     };
+
+    Ok(())
+}
+
+pub fn update() -> anyhow::Result<()> {
+    Command::new("cargo")
+        .arg("install")
+        .arg("--git")
+        .arg("https://github.com/stsh89/hermione.git")
+        .arg("hermione-terminal")
+        .status()?;
 
     Ok(())
 }
