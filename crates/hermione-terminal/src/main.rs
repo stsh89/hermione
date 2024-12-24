@@ -5,6 +5,7 @@ mod program;
 mod terminal;
 
 #[derive(Parser)]
+#[command(version)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
