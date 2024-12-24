@@ -29,7 +29,7 @@ pub fn update() -> anyhow::Result<()> {
         .arg("--git")
         .arg("https://github.com/stsh89/hermione.git")
         .arg("hermione-terminal")
-        .status()?;
+        .spawn()?;
 
     Ok(())
 }
