@@ -22,7 +22,7 @@ pub struct ListCommandsParameters<'a> {
     pub workspace_id: Option<WorkspaceId>,
 }
 
-impl<'a, L> ListCommandsOperation<'a, L>
+impl<L> ListCommandsOperation<'_, L>
 where
     L: ListCommands,
 {

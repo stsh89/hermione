@@ -14,7 +14,7 @@ where
     pub storage_provider: &'a SP,
 }
 
-impl<'a, FC, CCP> CopyCommandToClipboardOperation<'a, FC, CCP>
+impl<FC, CCP> CopyCommandToClipboardOperation<'_, FC, CCP>
 where
     FC: FindCommand,
     CCP: SetClipboardContent,

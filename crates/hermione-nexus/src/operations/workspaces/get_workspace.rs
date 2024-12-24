@@ -12,7 +12,7 @@ where
     pub provider: &'a SP,
 }
 
-impl<'a, F> GetWorkspaceOperation<'a, F>
+impl<F> GetWorkspaceOperation<'_, F>
 where
     F: FindWorkspace,
 {

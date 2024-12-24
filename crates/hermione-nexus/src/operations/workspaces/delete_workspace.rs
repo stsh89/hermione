@@ -14,7 +14,7 @@ where
     pub delete_workspace_provider: &'a DWP,
 }
 
-impl<'a, FWP, DWP> DeleteWorkspaceOperation<'a, FWP, DWP>
+impl<FWP, DWP> DeleteWorkspaceOperation<'_, FWP, DWP>
 where
     FWP: FindWorkspace,
     DWP: DeleteWorkspace,

@@ -16,7 +16,7 @@ pub struct CreateWorkspaceParameters {
     pub location: Option<String>,
 }
 
-impl<'a, CW> CreateWorkspaceOperation<'a, CW>
+impl<CW> CreateWorkspaceOperation<'_, CW>
 where
     CW: CreateWorkspace,
 {

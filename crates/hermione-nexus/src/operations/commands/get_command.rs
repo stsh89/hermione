@@ -13,7 +13,7 @@ where
     pub provider: &'a SP,
 }
 
-impl<'a, F> GetCommandOperation<'a, F>
+impl<F> GetCommandOperation<'_, F>
 where
     F: FindCommand,
 {

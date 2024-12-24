@@ -21,7 +21,7 @@ pub struct ExecuteProgramParameters<'a> {
     pub workspace_id: WorkspaceId,
 }
 
-impl<'a, FW, S> ExecuteProgramOperation<'a, FW, S>
+impl<FW, S> ExecuteProgramOperation<'_, FW, S>
 where
     FW: FindWorkspace,
     S: InvokeCommand,

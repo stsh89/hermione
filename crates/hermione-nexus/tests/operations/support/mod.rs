@@ -47,13 +47,13 @@ pub struct ExpectedWorkspace<'a> {
     pub name: &'a str,
 }
 
-impl<'a> ExpectedCommand<'a> {
+impl ExpectedCommand<'_> {
     pub fn id(&self) -> CommandId {
         parse_command_id(self.id)
     }
 }
 
-impl<'a> ExpectedWorkspace<'a> {
+impl ExpectedWorkspace<'_> {
     pub fn id(&self) -> WorkspaceId {
         parse_workspace_id(self.id)
     }
@@ -272,7 +272,7 @@ pub fn parse_workspace_id(value: &str) -> WorkspaceId {
     WorkspaceId::parse_str(value).unwrap()
 }
 
-impl<'a> From<CommandFixture<'a>> for Command {
+impl From<CommandFixture<'_>> for Command {
     fn from(value: CommandFixture) -> Self {
         let CommandFixture {
             id,
@@ -309,7 +309,7 @@ impl<'a> From<NotionBackupCredentialsFixture<'a>> for BackupCredentials {
     }
 }
 
-impl<'a> From<WorkspaceFixture<'a>> for Workspace {
+impl From<WorkspaceFixture<'_>> for Workspace {
     fn from(value: WorkspaceFixture) -> Self {
         let WorkspaceFixture {
             id,
@@ -328,7 +328,7 @@ impl<'a> From<WorkspaceFixture<'a>> for Workspace {
     }
 }
 
-impl<'a> From<ExpectedWorkspace<'a>> for Workspace {
+impl From<ExpectedWorkspace<'_>> for Workspace {
     fn from(value: ExpectedWorkspace) -> Self {
         let ExpectedWorkspace {
             id,

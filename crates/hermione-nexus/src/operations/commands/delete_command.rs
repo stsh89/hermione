@@ -14,7 +14,7 @@ where
     pub delete_provider: &'a GCP,
 }
 
-impl<'a, FCP, GCP> DeleteCommandOperation<'a, FCP, GCP>
+impl<FCP, GCP> DeleteCommandOperation<'_, FCP, GCP>
 where
     FCP: FindCommand,
     GCP: DeleteCommand,

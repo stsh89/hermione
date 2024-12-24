@@ -19,7 +19,7 @@ pub enum CommandsDeleteAttribute {
     WorkspaceId(WorkspaceId),
 }
 
-impl<'a, DWC> DeleteCommandsOperation<'a, DWC>
+impl<DWC> DeleteCommandsOperation<'_, DWC>
 where
     DWC: DeleteWorkspaceCommands,
 {

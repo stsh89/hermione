@@ -20,7 +20,7 @@ pub struct UpdateWorkspaceParameters {
     pub name: String,
 }
 
-impl<'a, FW, UW> UpdateWorkspaceOperation<'a, FW, UW>
+impl<FW, UW> UpdateWorkspaceOperation<'_, FW, UW>
 where
     FW: FindWorkspace,
     UW: UpdateWorkspace,

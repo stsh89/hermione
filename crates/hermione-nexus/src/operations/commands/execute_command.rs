@@ -23,7 +23,7 @@ where
     pub track_workspace_provider: &'a TWP,
 }
 
-impl<'a, FCP, FWP, SP, TCP, TWP> ExecuteCommandOperation<'a, FCP, FWP, SP, TCP, TWP>
+impl<FCP, FWP, SP, TCP, TWP> ExecuteCommandOperation<'_, FCP, FWP, SP, TCP, TWP>
 where
     FCP: FindCommand,
     FWP: FindWorkspace,

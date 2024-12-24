@@ -12,7 +12,7 @@ where
     pub provider: &'a SP,
 }
 
-impl<'a, F> GetBackupCredentialsOperation<'a, F>
+impl<F> GetBackupCredentialsOperation<'_, F>
 where
     F: FindBackupCredentials,
 {

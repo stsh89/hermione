@@ -22,7 +22,7 @@ pub struct ListWorkspacesParameters<'a> {
     pub page_size: Option<NonZeroU32>,
 }
 
-impl<'a, L> ListWorkspacesOperation<'a, L>
+impl<L> ListWorkspacesOperation<'_, L>
 where
     L: ListWorkspaces,
 {

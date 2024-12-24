@@ -15,7 +15,7 @@ where
     pub system_provider: &'a S,
 }
 
-impl<'a, FW, S> VisitWorkspaceLocationOperation<'a, FW, S>
+impl<FW, S> VisitWorkspaceLocationOperation<'_, FW, S>
 where
     FW: FindWorkspace,
     S: SetLocation,

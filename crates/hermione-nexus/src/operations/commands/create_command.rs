@@ -17,7 +17,7 @@ pub struct CreateCommandParameters {
     pub workspace_id: WorkspaceId,
 }
 
-impl<'a, CC> CreateCommandOperation<'a, CC>
+impl<CC> CreateCommandOperation<'_, CC>
 where
     CC: CreateCommand,
 {

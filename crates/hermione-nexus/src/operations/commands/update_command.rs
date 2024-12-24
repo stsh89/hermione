@@ -20,7 +20,7 @@ pub struct UpdateCommandParameters {
     pub name: String,
 }
 
-impl<'a, FW, UW> UpdateCommandOperation<'a, FW, UW>
+impl<FW, UW> UpdateCommandOperation<'_, FW, UW>
 where
     FW: FindCommand,
     UW: UpdateCommand,

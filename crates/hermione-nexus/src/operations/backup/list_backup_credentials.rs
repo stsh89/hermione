@@ -11,7 +11,7 @@ where
     pub provider: &'a SP,
 }
 
-impl<'a, L> ListBackupCredentialsOperation<'a, L>
+impl<L> ListBackupCredentialsOperation<'_, L>
 where
     L: ListBackupCredentials,
 {
