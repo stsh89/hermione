@@ -51,7 +51,7 @@ pub fn open_windows_terminal(
     conn: &PowerShellProcess,
     parameters: Option<PowerShellParameters>,
 ) -> Result<()> {
-    let text = open_windows_termina_command_text(parameters);
+    let text = open_windows_terminal_command_text(parameters);
 
     execute(conn, &text)
 }
@@ -60,7 +60,7 @@ fn copy_to_clipboard_command_text(text: &str) -> String {
     format!("Set-Clipboard '{}'", text)
 }
 
-fn open_windows_termina_command_text(parameters: Option<PowerShellParameters>) -> String {
+fn open_windows_terminal_command_text(parameters: Option<PowerShellParameters>) -> String {
     let cmd = DEFAULT_WINDOWS_TERMINAL_COMMAND_TEXT.to_string();
 
     let Some(parameters) = parameters else {

@@ -2,9 +2,10 @@ mod integration;
 mod output;
 mod state;
 
-use std::process::Command;
-
-use hermione_nexus::definitions::BackupCredentials;
+use hermione_nexus::{
+    definitions::BackupCredentials,
+    operations::{ExecuteProgramOperation, ExecuteProgramParameters},
+};
 use integration::RunCommandOptions;
 pub use output::Render;
 pub use state::*;
@@ -24,12 +25,19 @@ pub fn run() -> anyhow::Result<()> {
 }
 
 pub fn update() -> anyhow::Result<()> {
-    Command::new("cargo")
-        .arg("install")
-        .arg("--git")
-        .arg("https://github.com/stsh89/hermione.git")
-        .arg("hermione-terminal")
-        .spawn()?;
+    let Engine {
+        service_factory,
+        logs_worker_guard: _logs_worker_guard,
+    } = hermione_drive::start()?;
+
+    ExecuteProgramOperation {
+        system: &service_factory.system(),
+        find_workspace: &service_factory.storage(),
+    }
+    .execute(ExecuteProgramParameters {
+        program: "cargo install --git https://github.com/stsh89/hermione.git hermione-terminal",
+        workspace_id: None,
+    })?;
 
     Ok(())
 }

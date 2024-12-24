@@ -25,7 +25,9 @@ fn test_execute_program_operation_succeeds() {
         &background,
         ExecuteProgramParameters {
             program: "ping 1.1.1.1",
-            workspace_id: support::parse_workspace_id("9db9a48b-f075-4518-bdd5-ec9d9b05f4fa"),
+            workspace_id: Some(support::parse_workspace_id(
+                "9db9a48b-f075-4518-bdd5-ec9d9b05f4fa",
+            )),
         },
     );
 
