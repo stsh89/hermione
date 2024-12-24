@@ -1,6 +1,6 @@
 mod ui;
 
-use crate::program::{Render, State};
+use crate::program_lib::{Render, State};
 use ratatui::{
     backend::CrosstermBackend,
     crossterm::{

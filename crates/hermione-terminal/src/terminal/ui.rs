@@ -1,4 +1,4 @@
-use crate::program::{Context, NoticeKind, State};
+use crate::program_lib::{Context, NoticeKind, State};
 use ratatui::{
     layout::{Constraint, Direction, Flex, Layout, Rect},
     text::{Span, Text},

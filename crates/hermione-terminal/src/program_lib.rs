@@ -1,5 +1,9 @@
 use uuid::Uuid;
 
+pub trait Render {
+    fn render(&mut self, state: &State) -> anyhow::Result<()>;
+}
+
 #[derive(Default)]
 pub struct State {
     pub form: Form,
