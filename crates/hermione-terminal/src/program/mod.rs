@@ -30,8 +30,11 @@ pub fn update() -> anyhow::Result<()> {
         logs_worker_guard: _logs_worker_guard,
     } = hermione_drive::start()?;
 
+    let mut system = service_factory.system();
+    system.set_no_exit(false);
+
     ExecuteProgramOperation {
-        system: &service_factory.system(),
+        system: &system,
         find_workspace: &service_factory.storage(),
     }
     .execute(ExecuteProgramParameters {
