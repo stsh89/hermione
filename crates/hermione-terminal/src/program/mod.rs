@@ -262,6 +262,10 @@ fn maybe_backup(state: &mut State, services: &ServiceFactory) -> anyhow::Result<
     Ok(())
 }
 
+fn maybe_copy_item(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
+    integration::copy_command_to_clipboard(state, services)
+}
+
 fn maybe_restore(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
     if let Context::Notion = state.context {
         match integration::restore_workspaces(services) {
@@ -516,6 +520,7 @@ fn update_state(
                 'e' => maybe_edit_item(state, services)?,
                 'b' => maybe_backup(state, services)?,
                 'r' => maybe_restore(state, services)?,
+                'c' => maybe_copy_item(state, services)?,
                 _ => {}
             },
             keyboard::Event::Esc | keyboard::Event::Tab | keyboard::Event::Backspace => {}

@@ -14,7 +14,7 @@ where
     pub find_provider: &'a FBC,
 }
 
-impl<'a, DBC, FBC> DeleteBackupCredentialsOperation<'a, DBC, FBC>
+impl<DBC, FBC> DeleteBackupCredentialsOperation<'_, DBC, FBC>
 where
     DBC: DeleteBackupCredentials,
     FBC: FindBackupCredentials,

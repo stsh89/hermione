@@ -8,7 +8,7 @@ pub trait Render {
     fn render(&mut self, state: &State) -> anyhow::Result<()>;
 }
 
-impl<'a, T> DrawOperation<'a, T>
+impl<T> DrawOperation<'_, T>
 where
     T: Render,
 {

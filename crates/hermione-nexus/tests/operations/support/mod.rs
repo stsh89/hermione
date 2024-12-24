@@ -347,7 +347,7 @@ impl<'a> From<ExpectedWorkspace<'a>> for Workspace {
     }
 }
 
-impl<'a> From<ExpectedCommand<'a>> for Command {
+impl From<ExpectedCommand<'_>> for Command {
     fn from(value: ExpectedCommand) -> Self {
         let ExpectedCommand {
             id,

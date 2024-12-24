@@ -6,12 +6,12 @@ use hermione_nexus::{
         NotionBackupCredentialsParameters, Workspace, WorkspaceId,
     },
     operations::{
-        CommandsDeleteAttribute, CreateCommandOperation, CreateCommandParameters,
-        CreateWorkspaceOperation, CreateWorkspaceParameters, DeleteBackupCredentialsOperation,
-        DeleteCommandOperation, DeleteCommandsOperation, DeleteCommandsParameters,
-        DeleteWorkspaceOperation, ExecuteCommandOperation, ExportCommandOperation,
-        ExportCommandOperationParameters, ExportCommandParameters, ExportCommandsOperation,
-        ExportCommandsOperationParameters, ExportWorkspaceOperation,
+        CommandsDeleteAttribute, CopyCommandToClipboardOperation, CreateCommandOperation,
+        CreateCommandParameters, CreateWorkspaceOperation, CreateWorkspaceParameters,
+        DeleteBackupCredentialsOperation, DeleteCommandOperation, DeleteCommandsOperation,
+        DeleteCommandsParameters, DeleteWorkspaceOperation, ExecuteCommandOperation,
+        ExportCommandOperation, ExportCommandOperationParameters, ExportCommandParameters,
+        ExportCommandsOperation, ExportCommandsOperationParameters, ExportWorkspaceOperation,
         ExportWorkspaceOperationParameters, ExportWorkspaceParameters, ExportWorkspacesOperation,
         ExportWorkspacesOperationParameters, GetCommandOperation, GetWorkspaceOperation,
         ImportCommandsOperation, ImportCommandsOperationParameters, ImportWorkspacesOperation,
@@ -99,6 +99,26 @@ pub fn backup_workspace(state: &State, services: &ServiceFactory) -> anyhow::Res
         workspace_id: WorkspaceId::new(workspace_id)?,
         backup_provider_kind: BackupProviderKind::Notion,
     })?;
+
+    Ok(())
+}
+
+pub fn copy_command_to_clipboard(state: &State, services: &ServiceFactory) -> anyhow::Result<()> {
+    let Context::Commands { .. } = state.context else {
+        return Ok(());
+    };
+
+    if state.list.items.is_empty() {
+        return Ok(());
+    }
+
+    let id = state.list.items[state.list.cursor].id;
+
+    CopyCommandToClipboardOperation {
+        clipboard_provider: &services.system(),
+        storage_provider: &services.storage(),
+    }
+    .execute(CommandId::new(id)?)?;
 
     Ok(())
 }
