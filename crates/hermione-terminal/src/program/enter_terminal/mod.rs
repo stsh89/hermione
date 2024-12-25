@@ -525,14 +525,14 @@ fn update_state(
                 };
             }
             keyboard::Event::Char(c) => match c {
-                'n' => maybe_new_item(state)?,
+                'b' => maybe_backup(state, services)?,
+                'c' => maybe_copy_item(state, services)?,
                 'd' => maybe_delete_list_item(state, services)?,
+                'e' => maybe_edit_item(state, services)?,
                 'j' => select_next_list_item(state),
                 'k' => select_previous_list_item(state),
-                'e' => maybe_edit_item(state, services)?,
-                'b' => maybe_backup(state, services)?,
+                'n' => maybe_new_item(state)?,
                 'r' => maybe_restore(state, services)?,
-                'c' => maybe_copy_item(state, services)?,
                 _ => {}
             },
             keyboard::Event::Esc | keyboard::Event::Tab | keyboard::Event::Backspace => {}
