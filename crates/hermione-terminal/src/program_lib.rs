@@ -11,6 +11,8 @@ pub struct State {
     pub list: List,
     pub context: Context,
     pub notice: Option<Notice>,
+    pub workspace_id: Option<Uuid>,
+    pub command_id: Option<Uuid>,
 }
 
 pub struct Notice {
@@ -33,17 +35,10 @@ pub struct Form {
 pub enum Context {
     #[default]
     Workspaces,
-    WorkspaceForm {
-        workspace_id: Option<Uuid>,
-    },
-    Commands {
-        workspace_id: Uuid,
-    },
-    CommandForm {
-        workspace_id: Uuid,
-        command_id: Option<Uuid>,
-    },
-    Notion,
+    WorkspaceForm,
+    Commands,
+    CommandForm,
+    NotionBackupCredentialsForm,
 }
 
 #[derive(Default)]
@@ -51,7 +46,6 @@ pub struct List {
     pub items: Vec<ListItem>,
     pub cursor: usize,
     pub filter: String,
-    pub element: usize,
 }
 
 pub struct ListItem {

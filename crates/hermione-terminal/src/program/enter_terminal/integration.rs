@@ -18,7 +18,7 @@ use hermione_nexus::{
         ListCommandsParameters, ListWorkspacesOperation, ListWorkspacesParameters,
         SaveBackupCredentialsOperation, SaveBackupCredentialsOperationParameters,
         UpdateCommandOperation, UpdateCommandParameters, UpdateWorkspaceOperation,
-        UpdateWorkspaceParameters,
+        UpdateWorkspaceParameters, VisitWorkspaceLocationOperation,
     },
 };
 
@@ -55,15 +55,10 @@ pub fn backup_workspaces(services: &ServiceFactory) -> anyhow::Result<()> {
 }
 
 pub fn backup_command(state: &State, services: &ServiceFactory) -> anyhow::Result<()> {
-    let Context::Commands { .. } = state.context else {
+    let Some(command_id) = state.command_id else {
         return Ok(());
     };
 
-    if state.list.items.is_empty() {
-        return Ok(());
-    }
-
-    let command_id = state.list.items[state.list.cursor].id;
     let storage = services.storage();
 
     ExportCommandOperation::new(ExportCommandOperationParameters {
@@ -80,15 +75,10 @@ pub fn backup_command(state: &State, services: &ServiceFactory) -> anyhow::Resul
 }
 
 pub fn backup_workspace(state: &State, services: &ServiceFactory) -> anyhow::Result<()> {
-    let Context::Workspaces = state.context else {
+    let Some(workspace_id) = state.workspace_id else {
         return Ok(());
     };
 
-    if state.list.items.is_empty() {
-        return Ok(());
-    }
-
-    let workspace_id = state.list.items[state.list.cursor].id;
     let storage = services.storage();
 
     ExportWorkspaceOperation::new(ExportWorkspaceOperationParameters {
@@ -105,21 +95,15 @@ pub fn backup_workspace(state: &State, services: &ServiceFactory) -> anyhow::Res
 }
 
 pub fn copy_command_to_clipboard(state: &State, services: &ServiceFactory) -> anyhow::Result<()> {
-    let Context::Commands { .. } = state.context else {
+    let Some(command_id) = state.command_id else {
         return Ok(());
     };
-
-    if state.list.items.is_empty() {
-        return Ok(());
-    }
-
-    let id = state.list.items[state.list.cursor].id;
 
     CopyCommandToClipboardOperation {
         clipboard_provider: &services.system(),
         storage_provider: &services.storage(),
     }
-    .execute(CommandId::new(id)?)?;
+    .execute(CommandId::new(command_id)?)?;
 
     Ok(())
 }
@@ -128,20 +112,14 @@ pub fn get_command(
     state: &mut State,
     services: &ServiceFactory,
 ) -> anyhow::Result<Option<Command>> {
-    let Context::Commands { .. } = state.context else {
+    let Some(command_id) = state.command_id else {
         return Ok(None);
     };
-
-    if state.list.items.is_empty() {
-        return Ok(None);
-    }
-
-    let id = state.list.items[state.list.cursor].id;
 
     let command = GetCommandOperation {
         provider: &services.storage(),
     }
-    .execute(CommandId::new(id)?)?;
+    .execute(CommandId::new(command_id)?)?;
 
     Ok(Some(command))
 }
@@ -162,40 +140,33 @@ pub fn get_workspace(
     state: &mut State,
     services: &ServiceFactory,
 ) -> anyhow::Result<Option<Workspace>> {
-    let Context::Workspaces = state.context else {
+    let Some(workspace_id) = state.workspace_id else {
         return Ok(None);
     };
-
-    if state.list.items.is_empty() {
-        return Ok(None);
-    }
-
-    let id = state.list.items[state.list.cursor].id;
 
     let workspace = GetWorkspaceOperation {
         provider: &services.storage(),
     }
-    .execute(WorkspaceId::new(id)?)?;
+    .execute(WorkspaceId::new(workspace_id)?)?;
 
     Ok(Some(workspace))
 }
 
 pub fn save_command(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
-    let Context::CommandForm {
-        command_id,
-        workspace_id,
-    } = state.context
-    else {
+    let Context::CommandForm = state.context else {
+        return Ok(());
+    };
+
+    let Some(workspace_id) = state.workspace_id else {
         return Ok(());
     };
 
     let storage = services.storage();
-
     let name = state.form.inputs[0].clone();
     let program = state.form.inputs[1].clone();
     let workspace_id = WorkspaceId::new(workspace_id)?;
 
-    if let Some(id) = command_id {
+    if let Some(id) = state.command_id {
         UpdateCommandOperation {
             find_command_provider: &storage,
             update_command_provider: &storage,
@@ -223,7 +194,7 @@ pub fn save_notion_backup_credentials(
     state: &mut State,
     services: &ServiceFactory,
 ) -> anyhow::Result<()> {
-    let Context::Notion = state.context else {
+    let Context::NotionBackupCredentialsForm = state.context else {
         return Ok(());
     };
 
@@ -256,16 +227,15 @@ pub fn save_notion_backup_credentials(
 }
 
 pub fn save_workspace(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
-    let Context::WorkspaceForm { workspace_id } = state.context else {
+    let Context::WorkspaceForm = state.context else {
         return Ok(());
     };
 
     let storage = services.storage();
-
     let name = state.form.inputs[0].clone();
     let location = state.form.inputs[1].clone();
 
-    if let Some(id) = workspace_id {
+    if let Some(id) = state.workspace_id {
         UpdateWorkspaceOperation {
             find_workspace_provider: &storage,
             update_workspace_provider: &storage,
@@ -289,22 +259,21 @@ pub fn save_workspace(state: &mut State, services: &ServiceFactory) -> anyhow::R
 }
 
 pub fn delete_command(state: &mut State, services: &ServiceFactory) -> anyhow::Result<()> {
-    let Context::Commands { .. } = state.context else {
+    let Context::Commands = state.context else {
         return Ok(());
     };
 
-    if state.list.items.is_empty() {
+    let Some(command_id) = state.command_id else {
         return Ok(());
-    }
+    };
 
-    let id = CommandId::new(state.list.items[state.list.cursor].id)?;
     let storage = services.storage();
 
     DeleteCommandOperation {
         find_provider: &storage,
         delete_provider: &storage,
     }
-    .execute(id)?;
+    .execute(CommandId::new(command_id)?)?;
 
     Ok(())
 }
@@ -318,42 +287,31 @@ pub fn delete_workspace(state: &mut State, services: &ServiceFactory) -> anyhow:
         return Ok(());
     }
 
-    let workspace_id = state.list.items[state.list.cursor].id;
-    let id = WorkspaceId::new(workspace_id)?;
+    let Some(workspace_id) = state.workspace_id else {
+        return Ok(());
+    };
+
+    let workspace_id = WorkspaceId::new(workspace_id)?;
     let storage = services.storage();
 
     DeleteCommandsOperation {
         delete_workspace_commands: &storage,
     }
     .execute(DeleteCommandsParameters {
-        delete_attribute: CommandsDeleteAttribute::WorkspaceId(id),
+        delete_attribute: CommandsDeleteAttribute::WorkspaceId(workspace_id),
     })?;
 
     DeleteWorkspaceOperation {
         find_workspace_provider: &storage,
         delete_workspace_provider: &storage,
     }
-    .execute(id)?;
+    .execute(workspace_id)?;
 
     Ok(())
 }
 
 pub fn list_commands(state: &State, services: &ServiceFactory) -> anyhow::Result<Vec<ListItem>> {
-    let workspace_id = match state.context {
-        Context::Workspaces => {
-            if state.list.items.is_empty() {
-                None
-            } else {
-                Some(state.list.items[state.list.cursor].id)
-            }
-        }
-        Context::WorkspaceForm { workspace_id } => workspace_id,
-        Context::Commands { workspace_id } => Some(workspace_id),
-        Context::CommandForm { workspace_id, .. } => Some(workspace_id),
-        Context::Notion => None,
-    };
-
-    let Some(workspace_id) = workspace_id else {
+    let Some(workspace_id) = state.workspace_id else {
         return Ok(Vec::new());
     };
 
@@ -381,6 +339,20 @@ pub fn list_workspaces(state: &State, services: &ServiceFactory) -> anyhow::Resu
     })?;
 
     Ok(workspaces.into_iter().map(Into::into).collect())
+}
+
+pub fn open_terminal(state: &State, services: &ServiceFactory) -> anyhow::Result<()> {
+    let Some(workspace_id) = state.workspace_id else {
+        return Ok(());
+    };
+
+    VisitWorkspaceLocationOperation {
+        find_workspace: &services.storage(),
+        system_provider: &services.system(),
+    }
+    .execute(WorkspaceId::new(workspace_id)?)?;
+
+    Ok(())
 }
 
 pub fn restore_commands(services: &ServiceFactory) -> anyhow::Result<()> {
@@ -414,20 +386,13 @@ pub fn run_command(
     services: &ServiceFactory,
     options: RunCommandOptions,
 ) -> anyhow::Result<()> {
-    let Context::Commands { .. } = state.context else {
+    let Some(command_id) = state.command_id else {
         return Ok(());
     };
-
-    if state.list.items.is_empty() {
-        return Ok(());
-    }
-
-    let command_id = CommandId::new(state.list.items[state.list.cursor].id)?;
 
     let RunCommandOptions { no_exit } = options;
 
     let storage = services.storage();
-
     let mut system = services.system();
     system.set_no_exit(no_exit);
 
@@ -438,7 +403,7 @@ pub fn run_command(
         track_command_provider: &storage,
         track_workspace_provider: &storage,
     }
-    .execute(command_id)?;
+    .execute(CommandId::new(command_id)?)?;
 
     Ok(())
 }

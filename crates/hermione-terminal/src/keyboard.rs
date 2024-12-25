@@ -2,6 +2,7 @@ use ratatui::crossterm::event;
 
 #[derive(Clone, Copy)]
 pub enum Event {
+    BackSlash,
     Backspace,
     Char(char),
     Down,
@@ -10,6 +11,7 @@ pub enum Event {
     Left,
     NumberOne,
     Right,
+    Slash,
     Space,
     Tab,
     Up,
@@ -25,6 +27,8 @@ pub fn read_event() -> anyhow::Result<Event> {
                     event::KeyCode::Backspace => Event::Backspace,
                     event::KeyCode::Char(' ') => Event::Space,
                     event::KeyCode::Char('1') => Event::NumberOne,
+                    event::KeyCode::Char('/') => Event::Slash,
+                    event::KeyCode::Char('\\') => Event::BackSlash,
                     event::KeyCode::Char(c) => Event::Char(c),
                     event::KeyCode::Down => Event::Down,
                     event::KeyCode::Enter => Event::Enter,

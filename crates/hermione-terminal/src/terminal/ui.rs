@@ -1,6 +1,7 @@
-use crate::program_lib::{Context, NoticeKind, State};
+use crate::program_lib::{Context, Mode, NoticeKind, State};
 use ratatui::{
     layout::{Constraint, Direction, Flex, Layout, Rect},
+    style::{Color, Style},
     text::{Span, Text},
     widgets::{Block, Borders, Clear, List, ListState, Paragraph, Widget, Wrap},
     Frame,
@@ -54,7 +55,7 @@ fn render_content(state: &State, frame: &mut Frame, area: Rect) {
         Context::Workspaces | Context::Commands { .. } => render_list(state, frame, area),
         Context::WorkspaceForm { .. } => render_workspace_form(state, frame, area),
         Context::CommandForm { .. } => render_command_form(state, frame, area),
-        Context::Notion => render_notion_form(state, frame, area),
+        Context::NotionBackupCredentialsForm => render_notion_form(state, frame, area),
     }
 }
 
@@ -64,11 +65,19 @@ fn render_workspace_form(state: &State, frame: &mut Frame, area: Rect) {
         .constraints(vec![Constraint::Max(3), Constraint::Max(3)])
         .areas(area);
 
-    let block = Block::default().borders(Borders::ALL).title("Name");
+    let mut block = Block::default().borders(Borders::ALL).title("Name");
+    if matches!(state.mode, Mode::Input) && state.form.cursor == 0 {
+        block = block.border_style(Style::default().fg(Color::Yellow));
+    }
+
     let paragraph = Paragraph::new(state.form.inputs[0].as_str()).block(block);
     frame.render_widget(paragraph, name_area);
 
-    let block = Block::default().borders(Borders::ALL).title("Location");
+    let mut block = Block::default().borders(Borders::ALL).title("Location");
+    if matches!(state.mode, Mode::Input) && state.form.cursor == 1 {
+        block = block.border_style(Style::default().fg(Color::Yellow));
+    }
+
     let paragraph = Paragraph::new(state.form.inputs[1].as_str()).block(block);
     frame.render_widget(paragraph, location_area);
 }
@@ -79,11 +88,19 @@ fn render_command_form(state: &State, frame: &mut Frame, area: Rect) {
         .constraints(vec![Constraint::Max(3), Constraint::Min(3)])
         .areas(area);
 
-    let block = Block::default().borders(Borders::ALL).title("Name");
+    let mut block = Block::default().borders(Borders::ALL).title("Name");
+    if matches!(state.mode, Mode::Input) && state.form.cursor == 0 {
+        block = block.border_style(Style::default().fg(Color::Yellow));
+    }
+
     let paragraph = Paragraph::new(state.form.inputs[0].as_str()).block(block);
     frame.render_widget(paragraph, name_area);
 
-    let block = Block::default().borders(Borders::ALL).title("Program");
+    let mut block = Block::default().borders(Borders::ALL).title("Program");
+    if matches!(state.mode, Mode::Input) && state.form.cursor == 1 {
+        block = block.border_style(Style::default().fg(Color::Yellow));
+    }
+
     let paragraph = Paragraph::new(state.form.inputs[1].as_str()).block(block);
     frame.render_widget(paragraph, program_area);
 }
@@ -98,19 +115,31 @@ fn render_notion_form(state: &State, frame: &mut Frame, area: Rect) {
         ])
         .areas(area);
 
-    let block = Block::default().borders(Borders::ALL).title("Api key");
+    let mut block = Block::default().borders(Borders::ALL).title("Api key");
+    if matches!(state.mode, Mode::Input) && state.form.cursor == 0 {
+        block = block.border_style(Style::default().fg(Color::Yellow));
+    }
+
     let paragraph = Paragraph::new(state.form.inputs[0].as_str()).block(block);
     frame.render_widget(paragraph, api_key_area);
 
-    let block = Block::default()
+    let mut block = Block::default()
         .borders(Borders::ALL)
         .title("Commands database id");
+
+    if matches!(state.mode, Mode::Input) && state.form.cursor == 1 {
+        block = block.border_style(Style::default().fg(Color::Yellow));
+    }
     let paragraph = Paragraph::new(state.form.inputs[1].as_str()).block(block);
     frame.render_widget(paragraph, commands_database_id_area);
 
-    let block = Block::default()
+    let mut block = Block::default()
         .borders(Borders::ALL)
         .title("Workspaces database id");
+    if matches!(state.mode, Mode::Input) && state.form.cursor == 2 {
+        block = block.border_style(Style::default().fg(Color::Yellow));
+    }
+
     let paragraph = Paragraph::new(state.form.inputs[2].as_str()).block(block);
     frame.render_widget(paragraph, workspaces_database_id_area);
 }
@@ -121,7 +150,11 @@ fn render_list(state: &State, frame: &mut Frame, area: Rect) {
         .constraints(vec![Constraint::Min(3), Constraint::Max(3)])
         .areas(area);
 
-    let block = Block::default().borders(Borders::ALL);
+    let mut block = Block::default().borders(Borders::ALL);
+    if matches!(state.mode, Mode::Normal) {
+        block = block.border_style(Style::default().fg(Color::Yellow));
+    }
+
     let list = List::new(
         state
             .list
@@ -140,7 +173,11 @@ fn render_list(state: &State, frame: &mut Frame, area: Rect) {
 
     frame.render_stateful_widget(list, list_area, &mut list_state);
 
-    let block = Block::default().borders(Borders::ALL);
+    let mut block = Block::default().borders(Borders::ALL);
+    if matches!(state.mode, Mode::Input) {
+        block = block.border_style(Style::default().fg(Color::Yellow));
+    }
+
     let search = Paragraph::new(state.list.filter.as_str()).block(block);
     frame.render_widget(search, search_area);
 }
@@ -149,15 +186,15 @@ fn title(state: &State) -> impl Widget {
     let text = match state.context {
         Context::Workspaces => "Workspaces",
         Context::Commands { .. } => "Commands",
-        Context::WorkspaceForm { workspace_id } => match workspace_id {
+        Context::WorkspaceForm => match state.workspace_id {
             Some(_) => "Edit workspace",
             None => "New workspace",
         },
-        Context::CommandForm { command_id, .. } => match command_id {
+        Context::CommandForm => match state.command_id {
             Some(_) => "Edit command",
             None => "New command",
         },
-        Context::Notion => "Notion",
+        Context::NotionBackupCredentialsForm => "Notion",
     };
 
     Paragraph::new(text)
